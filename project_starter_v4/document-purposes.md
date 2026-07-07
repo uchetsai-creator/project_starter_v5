@@ -1,274 +1,380 @@
-# AGENTS
+# Document Purposes
 
-## Path Convention
+<!--
+  Reference only. Not read every task.
+  The mandatory per-task update check lives in AGENTS.md → Document Update Checklist.
+  This file explains WHY and details each document's purpose, update triggers, and
+  which diagram script to run after updating.
+-->
 
-Module flow files live in: `docs/modules/`
-Codebase map lives in: `docs/codebase-map.md`
-Document purposes reference lives in: `document-purposes.md` (repo root)
+## Specs (docs/specs/)
 
-If your project uses different folder names, search-replace the paths in this file
-before starting. For example, if you use `docs/flows/` instead of `docs/modules/`:
-  - Search: `docs/modules/`
-  - Replace: `docs/flows/`
-  - Also update `pdf_allowlist.py` to match.
+### research.md
+Update when:
+* New technology decisions are made
+* NEEDS CLARIFICATION items are resolved
+* Architecture decisions change
 
----
+### data-model.md
+Update when:
+* Schema changes
+* New entities are added
+* Relationships change
+* Indexes are added or removed
+* State transitions change in any `docs/business/*-object.md` — update the ENUM mapping here to match, but do not redefine transitions (object file is canonical)
 
-## Project Initialization
+After updating, regenerate both diagrams:
+* ERD: `Edit the ```plantuml block in the file, then run build_pdf.py`
+  (output must go inside docs/ so build_pdf.py can find it)
+* State diagram: `Edit the ```plantuml block in the file, then run build_pdf.py`
 
-If starting a new project:
-1. Create docs/project-requirements.md from templates/project-requirements.md.
-2. Create docs/specs/research.md from templates/specs/research.md (resolve all NEEDS CLARIFICATION).
-3. Create docs/specs/quickstart.md from templates/specs/quickstart.md.
-4. Create docs/architecture/architecture.md from templates/architecture/architecture.md.
-5. Create docs/architecture/backend.md, frontend.md, database.md, deployment.md from templates/architecture/.
-6. Create docs/specs/data-model.md from templates/specs/data-model.md.
-7. Create docs/specs/api-contract.md from templates/specs/api-contract.md.
-8. Create docs/specs/permissions.md from templates/specs/permissions.md.
-9. Create docs/specs/logging-spec.md from templates/specs/logging-spec.md.
-10. Create docs/business/business-process.md from templates/business/business-process-v2.md.
-11. Create docs/business/business-objects.md from templates/business/business-objects-v2.md.
-12. Create docs/business/business-rules.md from templates/business/business-rules.md.
-13. Create docs/modules/module-data-flow.md from templates/modules/module-data-flow-v2.md.
-14. Create docs/modules/module-flow.md from templates/modules/module-flow-v2.md.
-15. Create docs/codebase-map.md from templates/codebase-map.md.
-16. Create docs/project-plan.md from templates/project-plan.md.
-17. Create docs/current-state.md from templates/current-state.md.
+### api-contract.md
+Purpose:
+Describes the full specification for every API endpoint and real-time event.
+Default format assumes REST as the primary protocol. If the project also uses
+WebSocket, Socket.IO, GraphQL, gRPC, or CLI — add a section for each protocol.
+Do not omit a protocol because it was not in the original template.
 
----
+Update when:
+* New endpoints are added
+* New WebSocket / Socket.IO events are added or changed
+* Request/response/payload format changes
+* Error codes are added
+* Validation rules change
 
-If retrofitting an existing project (code already exists, no docs yet):
+### permissions.md
+Update when:
+* New roles are added
+* Permission matrix changes
+* New endpoints are added to API contract
+* New features are added to the system
+* Any `*-process.md` assigns a new "Responsible role" — cross-check that role has the required endpoint access
+* Role permission defaults are seeded or changed via a Role Management feature — mark the row "(Default)", do not promote it to business-rules.md
 
-The goal is to describe what already exists — not to redesign it. Read the codebase first, then fill in the documents to reflect reality.
+After updating, regenerate use case diagram:
+`Edit the ```plantuml block in the file, then run build_pdf.py`
 
-Do not scan the entire repository at once. Work module by module.
+The use case diagram follows standard UML rules:
+- Actors use `extends` for inheritance — only draw lines unique to each actor level
+- Use cases must be verb-oriented user goals, not UI pages or domain objects
+- UC→UC relationships use `..>` with `<<include>>` or `<<extend>>` only
+- `-->` between two use cases is invalid UML and will be rejected with a warning
 
-Step 1 — Understand the system (read before writing anything):
-1. Read the entry point to understand the overall structure
-   (e.g. main file, router, app bootstrap, CLI entry, index)
-2. Read the data layer to understand the data model
-   (e.g. Prisma schema, SQL DDL, ORM models, migration files)
-3. Read one complete vertical slice to understand the layering pattern
-   (e.g. controller → service → repository, view → serializer → model, handler → usecase → store)
+Source distinction: every row in the API Endpoint Access table must specify whether
+access is a Hardcoded constraint (enforced in code, needs a deployment to change) or
+a Seeded default (database starting value, changeable at runtime by an admin). Only
+Hardcoded constraints belong in business-rules.md as permanent rules.
 
-Step 1b — Run the module inventory scan:
+Cross-check rule: every role listed as a responsible actor in any `*-process.md` must have
+at least the minimum API endpoint access to perform that responsibility. A gap is a logical
+contradiction that must be resolved before implementation.
 
-   python3 docs/script/scan_codebase.py <src_dir> --docs docs
+### logging-spec.md
+Purpose:
+Define logging rules, format, and module naming conventions.
+Logger instantiation pattern is documented here in a language/framework-agnostic way —
+use whatever the project's logging library provides.
+All modules must follow this spec.
 
-Review the output with the user:
-- ✅ folders are confirmed as documented
-- ❌ folders → ask the user: "Is this a module that needs documentation, a shared utility, or something else?"
-- — folders → confirm they do not need a flow file
+Update when:
+* New modules are added (add one line to the Module Naming Convention table)
+* Log format changes
+* Logger instantiation pattern changes
 
-Classify every folder before proceeding. Do not proceed until the user confirms the inventory is complete.
+This file is the rule definition only — do not add module-specific logging content here.
+Module-specific log points live in docs/modules/[module]/log-[module].md.
 
-Step 1c — Code Quality Check:
-Read and follow code-quality-check.md. Do not proceed to Step 2 until the check is complete and acknowledged by the user.
+### specs/quickstart.md
+Purpose:
+Step-by-step guide for setting up and running the project locally.
+Covers prerequisites, environment variables, startup commands, and verification steps.
 
-Step 2 — Fill in architecture and spec documents (describe what exists):
-1. Create docs/architecture/architecture.md — describe the actual components and data flows found.
-   Then run: `# Edit the ```plantuml block in architecture.md, then rebuild PDF`
-   Note: the architecture diagram is injected into `architecture/architecture.md` by `build_pdf.py`.
-   The page structure component diagram (from `codebase-map.md`) is injected into `codebase-map.md`
-   — run `# Edit the ```plantuml block in codebase-map.md, then rebuild PDF` after updating the
-   component block in codebase-map.md.
-2. Create docs/architecture/backend.md — describe the actual stack, layering, and module pattern.
-   Use the real layer names from the codebase — do not assume Controller/Service/Repository.
-   Then run: `# Edit the ```plantuml block in backend.md, then rebuild PDF`
-3. Create docs/architecture/frontend.md (if applicable) — describe the actual frontend structure.
-   Then run: `# Edit the ```plantuml block in frontend.md, then rebuild PDF`
-4. Create docs/architecture/database.md — describe the actual entities and key relationships.
-5. Create docs/architecture/deployment.md — describe the actual services, startup flow, and deployment topology.
-   Then run: `# Edit the ```plantuml block in deployment.md, then rebuild PDF`
-6. Create docs/specs/data-model.md — fill in from the actual schema file.
-   Then run: `Edit the ```plantuml block in the file, then run build_pdf.py`
-   (output must go inside docs/ so build_pdf.py can find it)
-   Then run: `# Edit the ```plantuml block in data-model.md, then rebuild PDF`
-7. Create docs/specs/api-contract.md — fill in from the actual routes and controllers.
-8. Create docs/specs/permissions.md — fill in from the actual auth middleware and role logic.
-   Then run: `# Edit the ```plantuml block in permissions.md, then rebuild PDF`
-9. Create docs/business/business-process.md — describe the actual business workflows supported.
-10. Create docs/business/business-objects.md — describe the actual business entities.
-11. Create docs/business/business-rules.md — describe the actual constraints enforced in code.
-12. Create docs/specs/research.md — document the technology choices already made and why (if known).
-
-Step 3 — Fill in module flow files (one module at a time, following the confirmed inventory from Step 1b):
-
-For each module in the confirmed inventory:
-0. Verify docs/modules/module-data-flow.md contains a "## Module Types" section defining
-   Feature / Background Job / Shared Utility. If it is missing (older copy of this template),
-   copy the current templates/modules/module-data-flow-v2.md content into it before proceeding —
-   do not invent your own module type definitions.
-1. Determine the module type: Feature / Background Job / Shared Utility
-   (follow the rules in docs/modules/module-data-flow.md)
-2. Create docs/modules/[module]/[module]-module-data-flow.md following the matching format.
-   Use real function names and file paths from the actual code.
-   Then run: `Edit the ```plantuml block in the file, then run build_pdf.py`
-3. Update docs/modules/module-data-flow.md index with the new module entry.
-4. Update docs/codebase-map.md with the files in this module.
-
-After all modules are documented, re-run the inventory scan to confirm full coverage:
-   python3 docs/script/scan_codebase.py <src_dir> --docs docs
-If any ❌ remain, document those modules before proceeding to Step 4.
-
-Step 4 — Fill in project status documents:
-1. Create docs/project-requirements.md — reconstruct from the actual features that exist.
-   Mark anything uncertain as [NEEDS CLARIFICATION].
-2. Create docs/project-plan.md — list all modules found. Mark all existing ones as completed.
-   Add any known remaining work as incomplete tasks.
-3. Create docs/current-state.md — set the Current Task to the next incomplete item in project-plan.md,
-   or write "Documentation retrofit complete — ready for new tasks" if everything is done.
-
-Step 5 — Generate the PDF:
-
-Before running build_pdf.py, verify flow tables are not empty:
-1. Open `docs/modules/module-data-flow.md` — if the Module Flow Files table contains only placeholder rows (no real module names), Step 3 is incomplete. Finish all module flow files first.
-2. Open `docs/modules/module-flow.md` — same check for the Flow Files table.
-Do not generate the PDF with empty flow index tables.
-
-`python3 docs/script/build_pdf.py docs --lang en -o docs/project-documentation-en.pdf`
+Update when:
+* Setup steps change
+* New prerequisites are added
+* Verification steps change
+* Environment variable requirements change
 
 ---
 
-If continuing an existing project:
-Read:
-1. AGENTS.md
-2. docs/current-state.md
-3. Required Context only
+## Architecture (docs/architecture/)
 
-Required Context should contain only the documents required to complete the Current Task.
-Required Context Do not include:
-- docs/project-plan.md
-- docs/project-requirements.md
-- docs/changelog.md
+### architecture.md
+Purpose:
+Describe system component overview and data flow.
+Contains a ```plantuml component diagram block rendered automatically by build_pdf.py.
+Component type is a free-form label — use whatever best describes the component's role.
 
-unless the task explicitly requires them.
+Update when:
+* New components are added
+* Data flows change
+* Integration changes
 
-Do not scan repository.
+After updating, regenerate diagram:
+`Edit the ```plantuml block in the file, then run build_pdf.py`
 
-For what each document is for and when it changes, read document-purposes.md — reference only, not required every task.
+### backend.md
+Purpose:
+Describe backend structure — stack, layering, layer responsibilities, module pattern.
+Use the actual layer names from the codebase — do not assume Controller/Service/Repository.
+Includes a component block for the backend module structure diagram.
 
----
+Update when:
+* Backend layering, stack, or module pattern changes
 
-## Development Principles
+After updating, regenerate component diagram:
+`Edit the ```plantuml block in the file, then run build_pdf.py`
 
-- Prefer maintainable architecture over temporary shortcuts
-- Maintainability First
-- Package First
-- Glue Code
-- Incremental Changes
-- No Unrelated Refactor
+### frontend.md
+Purpose:
+Describe frontend structure — stack, page structure, component strategy, API hook strategy.
+Includes a component block for the frontend module structure diagram.
 
----
+Update when:
+* Frontend stack, page structure, or component strategy changes
 
-## Package First
+After updating, regenerate component diagram:
+`Edit the ```plantuml block in the file, then run build_pdf.py`
 
-Priority:
-1. Existing package
-2. Existing utility
-3. Framework convention
-4. Custom code
+### database.md
+Purpose:
+Describe database structure at the conceptual level — main entities, main relationships,
+important constraints. Not a field-by-field schema; that level of detail belongs in
+docs/specs/data-model.md.
 
-Custom code only for:
-- Business Logic
-- Domain Rules
-- Data Mapping
-- System Integration
+Update when:
+* Main entities or relationships change
 
----
+### deployment.md
+Purpose:
+Describe runtime structure — services, environment variables, local startup flow,
+build/deploy flow, and deployment topology. Includes Cache Policy section for any
+caching layer. The Deployment Diagram component block shows which service runs where
+and how they connect in the actual deployment environment.
 
-## Current State
+Update when:
+* Services, env vars, or build/deploy flow changes
+* Deployment topology changes (new service, new hosting platform, new network path)
+* A caching layer is added or its TTL / invalidation strategy changes
+* Cache boundary conditions or consumer behaviour is clarified
 
-docs/current-state.md is the active task.
-
-Before starting work:
-* Read docs/current-state.md.
-* If Current Task exists:
-  * Read Required Context.
-  * Start implementation.
-* Otherwise:
-  * Read docs/project-plan.md.
-  * Select the next incomplete task.
-  * Update docs/current-state.md.
-  * Start implementation.
-
-After task completion:
-
-1. Move Current Task to docs/changelog.md.
-2. Mark the task completed in docs/project-plan.md.
-3. Update docs/modules/module-data-flow.md with actual function names and file paths from the implementation.
-4. Update docs/codebase-map.md with the files touched in this task, classified by layer (DB/BE/FE/MOD/JOB) and type (Package/Custom).
-5. Run the Document Update Checklist below. For each item, check yes/no — do not skip the check.
-6. Run the Module Completion Check below. Do not skip this check, even if the answer is usually "no."
-7. Select the next incomplete task from docs/project-plan.md.
-8. Update docs/current-state.md.
-9. Update Required Context.
-
-### Module Completion Check
-
-Run this check after every task — most of the time the answer will be "no," but the check itself must not be skipped.
-
-* Does completing this task finish all work for its module in docs/project-plan.md?
-  * If no: this module is not yet complete. Skip the rest of this section.
-  * If yes: this module is now complete. Do all of the following:
-    1. Insert logger calls into the module's code, following the rules in docs/specs/logging-spec.md.
-       Use the logger instantiation pattern defined in logging-spec.md for this project's language/framework.
-       Direct print/console statements are not allowed.
-       logging-spec.md itself is the rule definition — do not add module-specific content to it.
-       Create or update docs/modules/<module-name>/log-<module-name>.md to list every log point added, in call order.
-    2. Ask: "Would you like to add debug instrumentation to this module? (follows debug-instrumentation-rules.md)"
-       * If yes: follow debug-instrumentation-rules.md and instrument the module.
-       * If no: continue.
-    3. If the module flow file contains multiple sequence or class blocks, each block
-       generates its own diagram file (named by title slug). All are picked up automatically
-       by build_pdf.py — no extra configuration needed.
-    4. Regenerate the English PDF — no need to ask, just run:
-       `python3 docs/script/build_pdf.py docs --lang en -o docs/project-documentation-en.pdf`
-       Chinese PDF is manual only — run when requested:
-       `python3 docs/script/translate_docs.py docs --out docs-zh`
-       `python3 docs/script/build_pdf.py docs-zh --lang zh -o docs/project-documentation-zh.pdf`
-       Note: to add a new doc to the PDF, add it to docs/script/pdf_allowlist.py only —
-       do not edit build_pdf.py or translate_docs.py for this purpose.
-
-### Document Update Checklist
-
-Run through every item below after every task. This is mandatory, not optional.
-
-- [ ] docs/specs/research.md — did this task involve a new technology decision, or resolve a NEEDS CLARIFICATION? If yes, update. Note: research.md is excluded from the PDF by default (pdf_allowlist.py) — uncomment its entry once it has real content.
-- [ ] docs/specs/data-model.md — did the schema, entities, relationships, or indexes change? If yes, update, then:
-  - Regenerate ERD: `Edit the ```plantuml block in the file, then run build_pdf.py`
-    (output must go inside docs/ so build_pdf.py can find it)
-  - Regenerate state diagram: `# Edit the ```plantuml block in data-model.md, then rebuild PDF`
-  State Machine Consistency check: if this task touched an entity with a status lifecycle, confirm the State Machine section here matches the canonical definition in docs/business/[object-name]-object.md exactly. If they differ, update this file to match — the object file wins.
-- [ ] docs/specs/api-contract.md — were endpoints added/changed, did error codes or validation rules change, or were WebSocket/Socket.IO events / GraphQL queries or mutations / gRPC methods / CLI commands added or changed? If yes, update the relevant protocol section.
-  API Endpoint Overlap check: if this task added an endpoint whose purpose overlaps with an existing one (e.g. two endpoints affecting the same state), add a **Design Note:** under each explaining why they are separate, or consolidate into one.
-- [ ] docs/specs/permissions.md — were roles, the permission matrix, or API endpoints changed? If yes, update, then regenerate use case diagram: `# Edit the ```plantuml block in permissions.md, then rebuild PDF`
-  After updating: cross-check every role listed as "Responsible role" in any `*-process.md` against the API Endpoint Access table and Page Access Matrix. If a role is responsible for an action but has no access to the required page or endpoint, check the Source column:
-  - `Hardcoded` → this is a logical contradiction — resolve it before proceeding.
-  - `Seeded default` → this may be intentional (the default simply hasn't been granted yet). Confirm with the project owner whether to update the default, then mark the row "(Default)" — do not write it into business-rules.md as a permanent rule.
-- [ ] docs/architecture/architecture.md — did components or data flows change? If yes, update, then regenerate diagram: `# Edit the ```plantuml block in architecture.md, then rebuild PDF`
-- [ ] docs/codebase-map.md Page Structure block — did the frontend page/screen structure change? If yes, update the component block, then regenerate: `# Edit the ```plantuml block in codebase-map.md, then rebuild PDF`
-- [ ] docs/architecture/backend.md — did backend layering, stack, or module pattern change? If yes, update, then regenerate component diagram: `# Edit the ```plantuml block in backend.md, then rebuild PDF`
-- [ ] docs/architecture/frontend.md — did frontend stack, page structure, or component strategy change? If yes, update, then regenerate component diagram: `# Edit the ```plantuml block in frontend.md, then rebuild PDF`
-- [ ] docs/architecture/database.md — did main entities or relationships change (conceptual level)? If yes, update.
-- [ ] docs/architecture/deployment.md — did services, env vars, build/deploy flow, or deployment topology change? If yes, update, then regenerate deployment diagram: `# Edit the ```plantuml block in deployment.md, then rebuild PDF`
-- [ ] docs/specs/quickstart.md — did setup steps, prerequisites, or verification steps change? If yes, update.
-- [ ] docs/specs/logging-spec.md Module Naming Convention table — does this task introduce a module name not yet listed? If yes, add one line (name + short description) to the table. Do not add module-specific logging detail here — that belongs in docs/modules/<module-name>/log-<module-name>.md.
-- [ ] docs/business/business-rules.md — did business constraints or policies change? If yes, update.
-- [ ] docs/business/[object-name]-object.md — were business entities added or changed? If yes, update, then regenerate state diagram: `Edit the ```plantuml block in the file, then run build_pdf.py`
-- [ ] docs/business/business-objects.md — was a new business object file created or did relationships change? If yes, update the index.
-- [ ] docs/business/[process-name]-process.md — did the business workflow, decision points, or exceptions change for this process? If yes, update, then regenerate activity diagram: `Edit the ```plantuml block in the file, then run build_pdf.py`
-- [ ] docs/business/business-process.md — was a new business process file created? If yes, add a row to the index table.
-- [ ] docs/modules/[module]/[module]-module-data-flow.md — did function names, file paths, or flow steps change for this module? If yes, update, then regenerate class diagram: `# Edit the ```plantuml block in the module data flow file, then rebuild PDF`
-- [ ] docs/modules/module-data-flow.md index table — open the file and verify the current module has a row in the Module Flow Files table. If the row is missing, add it now. Do not rely on memory — read the file.
-- [ ] docs/modules/[module]/[module]-flow.md — did cross-module service calls change for this module? If yes, update, then regenerate sequence diagram: `# Edit the ```plantuml block in the module flow file, then rebuild PDF`
-- [ ] docs/modules/module-flow.md index table — open the file and verify the current module has a row in the Flow Files table (only if a [module]-flow.md exists for this module). If the row is missing, add it now. Do not rely on memory — read the file.
-
-For the full explanation of why each document updates on these triggers, see document-purposes.md.
+After updating the Deployment Diagram block, regenerate the diagram:
+`Edit the ```plantuml block in the file, then run build_pdf.py`
 
 ---
 
-## Task Completion
+## Flows (docs/modules/)
 
-Return:
-- Verification
+### module-data-flow.md
+Purpose:
+Index and rule definition for module-level code flows. Sits at `docs/modules/module-data-flow.md`.
+Defines three module types — Feature, Background Job, Shared Utility — each with its own flow format.
+Each module gets its own subfolder (`docs/modules/[module]/`) with its own flow file.
+
+Update when:
+* A new module is created — add a row to the Module Flow Files table
+
+### [module]-module-data-flow.md
+Purpose:
+Track code-level execution flow (function names, file paths) for a specific module.
+Declare the module type at the top: Feature / Background Job / Shared Utility.
+Flow format follows the matching format defined in module-data-flow.md — do not assume
+Controller/Service/Repository; use the real layer names from the codebase.
+Also includes a class block describing the module's structure.
+
+Location: `docs/modules/[module]/[module]-module-data-flow.md`
+Examples: `docs/modules/order/order-module-data-flow.md`
+
+Files matching this pattern are automatically included in the PDF.
+
+Update when:
+* Function names or file paths change for this module
+* A new operation is implemented
+* The module's class structure changes
+
+After updating, regenerate class diagram:
+`Edit the ```plantuml block in the file, then run build_pdf.py`
+
+### module-flow.md
+Purpose:
+Index and rule definition for all module flow documents.
+Each module has its own flow file: `docs/modules/[module]/[module]-flow.md`.
+
+Update when:
+* A new module flow file is created — add a row to the Flow Files table
+
+### [module]-flow.md
+Purpose:
+Describe cross-module service call sequences for a specific module.
+Includes a Sequence Diagram for each cross-module process.
+Business steps and decision branches belong in docs/business/[process-name]-process.md.
+
+Location: `docs/modules/[module]/[module]-flow.md`
+Example: `docs/modules/order/order-flow.md`
+
+Files matching `*-flow.md` are automatically included in the PDF.
+
+Update when:
+* Cross-module service calls change
+* A new cross-module process is added to this module
+
+After updating, regenerate sequence diagram:
+`Edit the ```plantuml block in the file, then run build_pdf.py`
+
+### log-[module].md
+Purpose:
+Track every log point in a module, in call order. One file per module.
+Not included in the PDF — this is an implementation detail reference for developers.
+
+Location: `docs/modules/[module]/log-[module].md`
+Generate when the module is complete (see AGENTS.md → Module Completion Check).
+Update immediately if function names or file paths change.
+
+---
+
+## Business (docs/business/)
+
+### business-process.md
+Purpose:
+Index file listing all business process documents.
+Each business process has its own dedicated file: `docs/business/[process-name]-process.md`.
+
+Update when:
+* A new business process file is created — add a row to the table
+
+### [process-name]-process.md
+Purpose:
+Describe one business process — goal, steps, decision points, exceptions, and Activity Diagram.
+Cross-module technical call sequences belong in docs/modules/[module]/[module]-flow.md.
+Process Steps table includes a Prerequisites column — any access condition the Owner role
+needs beyond the role itself (page access, permission, precondition state) must be noted
+at the step level, not only in a separate Permission Note a reader could skip past.
+
+Location: `docs/business/[process-name]-process.md`
+Examples: `order-create-process.md`, `order-cancel-process.md`
+
+Files matching `*-process.md` are automatically included in the PDF.
+
+Update when:
+* The business workflow, decision points, or exceptions change
+* A step's access prerequisite changes — update the Prerequisites column, not just a footnote
+
+After updating, regenerate activity diagram:
+`Edit the ```plantuml block in the file, then run build_pdf.py`
+
+### business-objects.md
+Purpose:
+Index and rule definition for all business object documents.
+Each business object has its own file: `docs/business/[object-name]-object.md`.
+Not every entity needs an object file — configuration/seed entities with no business
+lifecycle (Role, Permission, Category, etc.) are excluded; see the Configuration Entity
+Exception in this file's Rules section. Excluded entities still appear in the
+Relationships table with a note pointing to where they're actually documented.
+
+Update when:
+* A new business object file is created — add a row to the table
+* A relationship between objects changes — update the Relationships table
+* An entity is identified as configuration-only — add a note under Relationships
+  pointing to its real documentation location instead of creating an object file
+
+### [object-name]-object.md
+Purpose:
+Describe one business entity — who owns it, who creates it, its lifecycle, and its
+business-level state machine. Technical field-level detail belongs in docs/specs/data-model.md.
+This file is the canonical source of truth for state transitions — `data-model.md` maps
+ENUM values to these states but must not contradict them.
+
+Location: `docs/business/[object-name]-object.md`
+Examples: `order-object.md`, `inventory-object.md`
+
+Files matching `*-object.md` are automatically included in the PDF.
+
+Update when:
+* The business entity's description, ownership, or lifecycle changes
+* Status transitions or responsible roles change
+
+After updating, regenerate state diagram:
+`Edit the ```plantuml block in the file, then run build_pdf.py`
+
+### business-rules.md
+Purpose:
+Describe business constraints and policies — approval rules, validation rules,
+notification rules, audit rules. Each rule must declare its Enforcement Layer.
+Only Hardcoded constraints belong here — Seeded defaults belong in permissions.md,
+not here, since they can change without a deployment.
+
+Update when:
+* Business rules change
+* A constraint moves from Seeded default to Hardcoded (or vice versa) — move the
+  entry between business-rules.md and permissions.md accordingly
+
+---
+
+## Root-level (docs/)
+
+### current-state.md
+Purpose:
+The active task. Read first when continuing an existing project.
+
+### changelog.md
+Purpose:
+Completed task history. Current Task moves here once finished.
+
+### codebase-map.md
+Purpose:
+Track which files are package usage vs custom logic, classified by layer (DB/BE/FE/MOD/JOB).
+Includes a project tree (from project root) with documentation coverage status per module.
+Used to verify the Package First principle is being followed.
+Also serves as the project overview section in the PDF — a page structure component diagram
+is injected here so readers get a visual of the frontend structure before diving into the file listing.
+
+Update when:
+* A task is completed — add the files touched in that task
+* Re-run `python3 docs/script/scan_codebase.py <src_dir> --update docs/codebase-map.md`
+  to refresh the tree view and coverage summary
+* Frontend page/screen structure changes — update the component block in this file
+
+Do not scan the entire repository to regenerate this file. Update incrementally, one task at a time.
+
+Diagram: Page structure component diagram — update the ```component block in codebase-map.md,
+then run `Edit the ```plantuml block in the file, then run build_pdf.py` to regenerate.
+The output (`codebase-map-component.html`) is picked up automatically by `build_pdf.py`.
+
+---
+
+## Scripts (docs/script/)
+
+### pdf_allowlist.py
+Purpose:
+Single source of truth for which files appear in the PDF, in what order, and under which section.
+`build_pdf.py` imports from this file.
+
+Update when:
+* A new permanent document is added to `docs/` and should appear in the PDF
+
+Do not edit `build_pdf.py` for this purpose — edit only this file.
+
+### scan_codebase.py
+Purpose:
+Scans the source directory and reports which modules are documented, undocumented,
+or shared/infrastructure. Outputs a project tree (from project root) with `←` annotations
+and documentation coverage icons.
+
+Run at the start of a retrofit (Step 1b) to inventory all modules before documentation begins.
+Run again after Step 3 to confirm full coverage.
+Run with `--update docs/codebase-map.md` to write the tree and coverage table into codebase-map.md.
+
+---
+
+## Diagram Scripts Reference
+
+| Script | Input format | Output suffix | Embedded in |
+|---|---|---|---|
+| `PlantUML (via build_pdf.py)` | yaml block in architecture.md | `.html` / `.svg` | `architecture/architecture.md` |
+| `schema_to_html.py` | Prisma / SQL file | `.html` / `.svg` | `specs/data-model.md` |
+| `PlantUML (via build_pdf.py)` | state block in any .md | `-state.html` / `.svg` | `specs/data-model.md`, `business/*-object.md` |
+| `PlantUML (via build_pdf.py)` | usecase block in any .md | `-usecase.html` / `.svg` | `specs/permissions.md` |
+| `PlantUML (via build_pdf.py)` | activity block in any .md | `-activity.html` / `.svg` | `business/*-process.md` |
+| `PlantUML (via build_pdf.py)` | sequence block in any .md | `-sequence.html` / `.svg` | `modules/*/` flow files |
+| `PlantUML (via build_pdf.py)` | class block in any .md | `-class.html` / `.svg` | `modules/*/*-module-data-flow.md` |
+| `PlantUML (via build_pdf.py)` | component block in any .md | `-component.html` / `.svg` | `backend.md` / `frontend.md` |
