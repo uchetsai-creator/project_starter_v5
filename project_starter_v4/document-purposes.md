@@ -320,6 +320,21 @@ The active task. Read first when continuing an existing project.
 Purpose:
 Completed task history. Current Task moves here once finished.
 
+---
+
+### task-log.md
+Purpose:
+Verification log — one row per completed task recording what was changed, what command
+was run to verify it, and whether it passed or failed. AI agents must write a row here
+before marking any task done. Prevents AI from reporting completion without actual execution.
+
+Format: `| date | task | files changed | command run | ✅/❌ result |`
+
+Update when:
+* Any task is completed — AI writes one row with real verification output
+
+---
+
 ### codebase-map.md
 Purpose:
 Track which files are package usage vs custom logic, classified by layer (DB/BE/FE/MOD/JOB).
