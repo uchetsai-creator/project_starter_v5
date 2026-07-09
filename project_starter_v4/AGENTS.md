@@ -273,6 +273,12 @@ For the full explanation of why each document updates on these triggers, see doc
 Before marking a task done, run the verification commands for what was changed.
 Do not report completion without having executed them.
 
+Verification must confirm the feature works as intended, not just that no errors occurred.
+Where applicable, verify the actual output or result — not only the absence of errors.
+Examples:
+- ❌ "No errors in log" is not sufficient
+- ✅ "Endpoint returns expected data", "UI shows correct state", "output matches expected value"
+
 | Changed artifact | Required verification |
 |---|---|
 | New feature / endpoint | Start the server, call the endpoint, confirm expected response |
