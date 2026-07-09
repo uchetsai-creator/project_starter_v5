@@ -324,15 +324,21 @@ Completed task history. Current Task moves here once finished.
 
 ### task-log.md
 Purpose:
-Verification log — one row per completed task recording what was changed, what command
-was run to verify it, and whether it passed or failed. AI agents must write a row here
-before marking any task done. Prevents AI from reporting completion without actual execution.
+Verification log — one row per completed task. AI agents must write a row here before
+marking any task done, and every column must be ✅ before the row can be written.
+This forces all post-task steps to be completed before reporting done.
+Prevents AI from reporting completion without actual execution or without updating docs.
 
-Format: `| date | task | files changed | command run | ✅/❌ result |`
+Format:
+`| date | task | files changed | command run | ✅/❌ result | plan | changelog | current-state | docs |`
+
+All checklist columns (plan / changelog / current-state / docs) must be ✅.
+Result must confirm the feature works — not just "no errors":
+- ✅ "endpoint returns expected data", "UI shows correct state", "output matches expected value"
+- ❌ "no errors in log" alone is not sufficient
 
 Update when:
-* Any task is completed — AI writes one row with real verification output
-  Result must confirm the feature works, not just "no errors" — e.g. "endpoint returns expected data", "UI shows correct state"
+* Any task is completed — AI writes one row after completing ALL mandatory post-task steps
 
 ---
 
