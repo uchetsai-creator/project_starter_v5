@@ -32,6 +32,7 @@ project_starter/                     ← this repo (template only)
     ├── project-plan.md              ← sprint/task breakdown per feature
     ├── current-state.md             ← the active task
     ├── changelog.md                 ← completed task history
+    ├── task-log.md                  ← task verification log (AI writes one row per completed task)
     ├── codebase-map.md              ← package vs. custom code, by layer; includes project tree
     │
     ├── specs/                        ← quickstart.md, research.md, data-model.md, api-contract.md,
