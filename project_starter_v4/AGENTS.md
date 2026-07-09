@@ -33,7 +33,8 @@ If starting a new project:
 14. Create docs/modules/module-flow.md from templates/modules/module-flow-v2.md.
 15. Create docs/codebase-map.md from templates/codebase-map.md.
 16. Create docs/project-plan.md from templates/project-plan.md.
-17. Create docs/current-state.md from templates/current-state.md.
+17. Create docs/task-log.md from templates/task-log.md.
+18. Create docs/current-state.md from templates/current-state.md.
 
 ---
 
@@ -269,5 +270,20 @@ For the full explanation of why each document updates on these triggers, see doc
 
 ## Task Completion
 
+Before marking a task done, run the verification commands for what was changed.
+Do not report completion without having executed them.
+
+| Changed artifact | Required verification |
+|---|---|
+| New feature / endpoint | Start the server, call the endpoint, confirm expected response |
+| Database migration / schema | Run migration, confirm schema matches expected state |
+| Config / environment | Start affected service, confirm healthy |
+| Script / utility | Run the script, confirm no errors and expected output |
+| Documentation only | Confirm the PDF builds without error: `python3 docs/script/build_pdf.py docs --lang en -o /tmp/test.pdf` |
+| Diagram (plantuml block) | Rebuild PDF, confirm diagram renders correctly in output |
+
 Return:
-- Verification
+- Write one row to `docs/task-log.md`:
+  `| [date] | [task] | [files changed] | [command run] | ✅/❌ [one-line result] |`
+
+Do not mark a task done without writing this row.
