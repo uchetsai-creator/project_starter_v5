@@ -12,7 +12,7 @@
 * After implementation, update the matching module flow file with actual function names and file paths.
 * If no matching implementation flow exists, create one.
 * Each module flow file must include a class block describing the code structure.
-* After writing, run: `python3 docs/script/class_to_html.py docs/modules/<module>/<module>-module-data-flow.md`
+* After writing: edit the ```plantuml block in the file, then run build_pdf.py to rebuild PDF
 
 ### Index Verification Rule
 
@@ -137,8 +137,9 @@ Only include steps that actually exist in the flow. Do not add layers to match a
 Use real class / function names from your project.
 The relationships should reflect actual dependencies, not an assumed layering.
 
-```class
-title: [Module Name] Structure
+```plantuml
+@startuml
+title [Module Name] Structure
 
 class [YourEntryPointClass] {
   +[method](param: [Type]): [ReturnType]
@@ -155,8 +156,9 @@ class [YourDataLayerClass] {
   +[method](input: [Type]): [ReturnType]
 }
 
-[YourEntryPointClass] --> [YourNextLayerClass]: [relationship]
-[YourNextLayerClass] --> [YourDataLayerClass]: [relationship]
+[YourEntryPointClass]  --> [YourNextLayerClass]  : [relationship]
+[YourNextLayerClass]   --> [YourDataLayerClass]   : [relationship]
+@enduml
 ```
 
 ---
@@ -226,8 +228,9 @@ Error Handling:
 
 ### Class Block Format (Background Job)
 
-```class
-title: [Job Name] Structure
+```plantuml
+@startuml
+title  [Job Name] Structure
 
 class [YourConsumerOrJobClass] {
   +[handleMethod](trigger: [TriggerType]): [ReturnType]
@@ -239,6 +242,7 @@ class [YourProcessingClass] {
 }
 
 [YourConsumerOrJobClass] --> [YourProcessingClass]: [relationship]
+@enduml
 ```
 
 ---
@@ -255,13 +259,15 @@ Use this format for modules that are used by other modules but have no entry poi
 
 ### Class Block Format (Shared Utility)
 
-```class
-title: [Utility Name] Structure
+```plantuml
+@startuml
+title  [Utility Name] Structure
 
 class [UtilityClass] {
   +[method](param: [Type]): [ReturnType]
   +[method](param: [Type]): [ReturnType]
 }
+@enduml
 ```
 
 **Used by:**
