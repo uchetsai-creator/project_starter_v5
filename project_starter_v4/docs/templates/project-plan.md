@@ -41,6 +41,22 @@ Tasks in this sprint:
 - Create: `[file path]`
 - Modify: `[file path]`
 
+**Doc Checklist:**
+<!--
+  List only the documents that could need updating when this specific task completes.
+  This is copied into current-state.md when the task starts — it becomes the only
+  checklist the Agent runs at task completion (no need to open AGENTS.md).
+
+  Pick from:
+  - DB task:            data-model.md, database.md, business-objects.md
+  - BE endpoint task:   api-contract.md, permissions.md, module-data-flow.md, module-flow.md, logging-spec.md
+  - FE task:            frontend.md, codebase-map.md (page structure)
+  - Config/infra task:  deployment.md, quickstart.md
+  - Business logic:     business-rules.md, business-process.md, business-objects.md
+  - Script/utility:     (usually none)
+-->
+- [ ] `docs/[relevant spec]` — [what to check]
+
 - [ ] **Step 1: [Step name]**
   [What to do. Expected result: [description]]
 
@@ -70,6 +86,10 @@ Tasks in this sprint:
 **Files:**
 - Create: `[migration file path]`
 
+**Doc Checklist:**
+- [ ] `docs/specs/data-model.md` — update schema, indexes, state machine if changed
+- [ ] `docs/architecture/database.md` — update if main entities or relationships changed
+
 - [ ] **Step 1: [Step name]**
   [Description. Expected result: [description]]
 
@@ -90,6 +110,12 @@ Tasks in this sprint:
 - Create: `[file path]`
 - Modify: `[file path]`
 
+**Doc Checklist:**
+- [ ] `docs/specs/api-contract.md` — update if endpoints or error codes changed
+- [ ] `docs/specs/permissions.md` — update if roles or endpoint access changed
+- [ ] `docs/specs/logging-spec.md` — add module name if new module introduced
+- [ ] `docs/business/business-rules.md` — update if business constraints changed
+
 - [ ] **Step 1: [Step name]**
   [Description. Expected result: [description]]
 
@@ -108,6 +134,10 @@ Tasks in this sprint:
 
 **Files:**
 - Create: `[file path]`
+
+**Doc Checklist:**
+- [ ] `docs/architecture/frontend.md` — update if page structure or component strategy changed
+- [ ] `docs/codebase-map.md` (page structure block) — update if new pages/screens added
 
 - [ ] **Step 1: [Step name]**
   [Description]
@@ -152,6 +182,10 @@ Tasks in this sprint:
 **Files:**
 - Create: `[file path]`
 
+**Doc Checklist:**
+- [ ] `docs/specs/data-model.md` — update schema, indexes, state machine if changed
+- [ ] `docs/architecture/database.md` — update if main entities or relationships changed
+
 - [ ] **Step 1: [Step name]**
   [Description]
 
@@ -171,6 +205,12 @@ Tasks in this sprint:
 **Files:**
 - Create: `[file path]`
 
+**Doc Checklist:**
+- [ ] `docs/specs/api-contract.md` — update if endpoints or error codes changed
+- [ ] `docs/specs/permissions.md` — update if roles or endpoint access changed
+- [ ] `docs/specs/logging-spec.md` — add module name if new module introduced
+- [ ] `docs/business/business-rules.md` — update if business constraints changed
+
 - [ ] **Step 1: [Step name]**
   [Description]
 
@@ -189,6 +229,10 @@ Tasks in this sprint:
 
 **Files:**
 - Create: `[file path]`
+
+**Doc Checklist:**
+- [ ] `docs/architecture/frontend.md` — update if page structure or component strategy changed
+- [ ] `docs/codebase-map.md` (page structure block) — update if new pages/screens added
 
 - [ ] **Step 1: [Step name]**
   [Description]
