@@ -330,9 +330,10 @@ This forces all post-task steps to be completed before reporting done.
 Prevents AI from reporting completion without actual execution or without updating docs.
 
 Format:
-`| date | task | files changed | command run | ✅/❌ result | plan | changelog | current-state | docs |`
+`| date | task | files changed | command run | ✅/❌ result | plan | changelog | current-state | sprint-log |`
 
-All checklist columns (plan / changelog / current-state / docs) must be ✅.
+All checklist columns must be ✅. The "sprint-log" column confirms an entry was added to sprint-change-log.md.
+The "docs" column is removed — documentation sync now happens at sprint level, not task level.
 Result must confirm the feature works — not just "no errors":
 - ✅ "endpoint returns expected data", "UI shows correct state", "output matches expected value"
 - ❌ "no errors in log" alone is not sufficient
@@ -343,6 +344,22 @@ For validation / guard logic: also verify that invalid input is rejected.
 
 Update when:
 * Any task is completed — AI writes one row after completing ALL mandatory post-task steps
+
+---
+
+### sprint-change-log.md
+Purpose:
+Lightweight record of implementation changes during a sprint. Acts as memory between
+development tasks and sprint-level documentation synchronization. The AI adds one entry
+here per completed task instead of immediately updating all spec/architecture documents.
+At sprint end, run Sprint Documentation Sync (see AGENTS.md) to process all Pending entries.
+
+Format: one entry per task with implementation summary, technical impact flags
+(Architecture/DB/API/Deployment/Module flow), potential documentation updates, and status.
+
+Update when:
+* Any task is completed — AI adds one entry with Status: Pending documentation synchronization
+* Sprint Documentation Sync runs — AI updates Status to: Documentation synchronized — [date]
 
 ---
 
