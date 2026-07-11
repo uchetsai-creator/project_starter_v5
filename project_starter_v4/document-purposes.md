@@ -16,7 +16,7 @@ Update when:
 * Architecture decisions change
 
 ### data-model.md
-Update when:
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
 * Schema changes
 * New entities are added
 * Relationships change
@@ -35,7 +35,7 @@ Default format assumes REST as the primary protocol. If the project also uses
 WebSocket, Socket.IO, GraphQL, gRPC, or CLI — add a section for each protocol.
 Do not omit a protocol because it was not in the original template.
 
-Update when:
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
 * New endpoints are added
 * New WebSocket / Socket.IO events are added or changed
 * Request/response/payload format changes
@@ -43,7 +43,7 @@ Update when:
 * Validation rules change
 
 ### permissions.md
-Update when:
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
 * New roles are added
 * Permission matrix changes
 * New endpoints are added to API contract
@@ -89,7 +89,7 @@ Purpose:
 Step-by-step guide for setting up and running the project locally.
 Covers prerequisites, environment variables, startup commands, and verification steps.
 
-Update when:
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
 * Setup steps change
 * New prerequisites are added
 * Verification steps change
@@ -105,7 +105,7 @@ Describe system component overview and data flow.
 Contains a ```plantuml component diagram block rendered automatically by build_pdf.py.
 Component type is a free-form label — use whatever best describes the component's role.
 
-Update when:
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
 * New components are added
 * Data flows change
 * Integration changes
@@ -119,7 +119,7 @@ Describe backend structure — stack, layering, layer responsibilities, module p
 Use the actual layer names from the codebase — do not assume Controller/Service/Repository.
 Includes a component block for the backend module structure diagram.
 
-Update when:
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
 * Backend layering, stack, or module pattern changes
 
 After updating, regenerate component diagram:
@@ -130,7 +130,7 @@ Purpose:
 Describe frontend structure — stack, page structure, component strategy, API hook strategy.
 Includes a component block for the frontend module structure diagram.
 
-Update when:
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
 * Frontend stack, page structure, or component strategy changes
 
 After updating, regenerate component diagram:
@@ -142,7 +142,7 @@ Describe database structure at the conceptual level — main entities, main rela
 important constraints. Not a field-by-field schema; that level of detail belongs in
 docs/specs/data-model.md.
 
-Update when:
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
 * Main entities or relationships change
 
 ### deployment.md
@@ -152,7 +152,7 @@ build/deploy flow, and deployment topology. Includes Cache Policy section for an
 caching layer. The Deployment Diagram component block shows which service runs where
 and how they connect in the actual deployment environment.
 
-Update when:
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
 * Services, env vars, or build/deploy flow changes
 * Deployment topology changes (new service, new hosting platform, new network path)
 * A caching layer is added or its TTL / invalidation strategy changes
@@ -187,7 +187,7 @@ Examples: `docs/modules/order/order-module-data-flow.md`
 
 Files matching this pattern are automatically included in the PDF.
 
-Update when:
+Update when (only after the module is 100% complete — see AGENTS.md → Module Completion Check):
 * Function names or file paths change for this module
 * A new operation is implemented
 * The module's class structure changes
@@ -214,7 +214,7 @@ Example: `docs/modules/order/order-flow.md`
 
 Files matching `*-flow.md` are automatically included in the PDF.
 
-Update when:
+Update when (only after the module is 100% complete — see AGENTS.md → Module Completion Check):
 * Cross-module service calls change
 * A new cross-module process is added to this module
 
@@ -255,7 +255,7 @@ Examples: `order-create-process.md`, `order-cancel-process.md`
 
 Files matching `*-process.md` are automatically included in the PDF.
 
-Update when:
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
 * The business workflow, decision points, or exceptions change
 * A step's access prerequisite changes — update the Prerequisites column, not just a footnote
 
@@ -289,7 +289,7 @@ Examples: `order-object.md`, `inventory-object.md`
 
 Files matching `*-object.md` are automatically included in the PDF.
 
-Update when:
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
 * The business entity's description, ownership, or lifecycle changes
 * Status transitions or responsible roles change
 
@@ -303,7 +303,7 @@ notification rules, audit rules. Each rule must declare its Enforcement Layer.
 Only Hardcoded constraints belong here — Seeded defaults belong in permissions.md,
 not here, since they can change without a deployment.
 
-Update when:
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
 * Business rules change
 * A constraint moves from Seeded default to Hardcoded (or vice versa) — move the
   entry between business-rules.md and permissions.md accordingly
@@ -326,8 +326,8 @@ Contains:
 - Doc Checklist (filtered per-task list of documents to check at completion)
 
 Update when:
-* Task starts — fill in Current Task, Required Context, Steps, Next Task, Doc Checklist
-* Task completes — mark steps [x], promote Next Task to Current Task, update Doc Checklist for new task
+* Task starts — fill in Current Task, Required Context, Steps, Next Task; filter AGENTS.md → Document Update Checklist into Doc Checklist (this is the only time AGENTS.md is opened during normal task work)
+* Task completes — apply Doc Checklist items, set Status to "Complete — Pending Sprint Doc Sync", mark steps [x], promote Next Task to Current Task, set Status to "In Progress" for new task
 
 ### changelog.md
 Purpose:
@@ -388,10 +388,12 @@ Also serves as the project overview section in the PDF — a page structure comp
 is injected here so readers get a visual of the frontend structure before diving into the file listing.
 
 Update when:
-* A task is completed — add the files touched in that task
+* Sprint Documentation Sync runs — add files touched during the sprint, refresh tree view
 * Re-run `python3 docs/script/scan_codebase.py <src_dir> --update docs/codebase-map.md`
   to refresh the tree view and coverage summary
 * Frontend page/screen structure changes — update the component block in this file
+
+Do not update after every task — defer to Sprint Documentation Sync.
 
 Do not scan the entire repository to regenerate this file. Update incrementally, one task at a time.
 
