@@ -2,7 +2,9 @@
 
 <!--
   Reference only. Not read every task.
-  The mandatory per-task update check lives in AGENTS.md → Document Update Checklist.
+  Reference only. Not read every task.
+  Per-task doc updates are driven by current-state.md → Doc Checklist (filtered at task setup).
+  The full Document Update Checklist lives in AGENTS.md → Sprint Documentation Sync and runs at sprint end.
   This file explains WHY and details each document's purpose, update triggers, and
   which diagram script to run after updating.
 -->
