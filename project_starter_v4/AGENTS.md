@@ -315,9 +315,7 @@ For validation / guard logic: verify that invalid input is correctly rejected.
    - Include: implementation summary, technical impact flags (Architecture/DB/API/Deployment/Module flow), potential documentation updates
    - Status: **Pending documentation synchronization**
 
-6. Write one row to `docs/task-log.md`:
-
-`| [date] | [task] | [files changed] | [command run] | ✅/❌ [result] | plan ✅ | changelog ✅ | current-state ✅ | docs ✅ | sprint-log ✅ |`
+6. Write one row to `docs/task-log.md` (see format defined in that file).
 
 ---
 
