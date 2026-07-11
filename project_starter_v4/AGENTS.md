@@ -304,7 +304,10 @@ Do NOT run the full Document Update Checklist after every task.
 Do NOT update changelog.md, project-plan.md, codebase-map.md, or any spec/architecture/business document after a single task.
 Run the Document Update Checklist only during Sprint Documentation Sync.
 
-### Mandatory post-task steps (every task — 3 writes only)
+### Mandatory post-task steps (every task)
+
+0. **Run Doc Checklist** — open `docs/current-state.md → Doc Checklist` and action every item listed there.
+   This is the filtered subset for this task only. Do not open the full Document Update Checklist in AGENTS.md.
 
 1. **Update `docs/current-state.md`** (1 edit):
    - Mark completed steps `[x]`.
