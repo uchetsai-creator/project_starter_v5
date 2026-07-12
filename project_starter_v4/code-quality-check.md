@@ -1,361 +1,452 @@
-# Document Purposes
+# Code Quality Check
 
-<!--
-  Reference only. Not read every task.
-  The mandatory per-task update check lives in AGENTS.md → Document Update Checklist.
-  This file explains WHY and details each document's purpose, update triggers, and
-  which diagram script to run after updating.
--->
+Used during the "Retrofitting an Existing Project" workflow (see AGENTS.md).
 
-## Specs (docs/specs/)
+Run this immediately after Step 1 (Read Codebase) and before Step 2 (Documentation).
 
-### research.md
-Update when:
-* New technology decisions are made
-* NEEDS CLARIFICATION items are resolved
-* Architecture decisions change
-
-### data-model.md
-Update when:
-* Schema changes
-* New entities are added
-* Relationships change
-* Indexes are added or removed
-* State transitions change in any `docs/business/*-object.md` — update the ENUM mapping here to match, but do not redefine transitions (object file is canonical)
-
-After updating, regenerate both diagrams:
-* ERD: `python3 docs/script/schema_to_html.py <schema file> -o docs/specs/schema.html`
-  (output must go inside docs/ so build_pdf.py can find it)
-* State diagram: `python3 docs/script/state_to_html.py docs/specs/data-model.md`
-
-### api-contract.md
-Purpose:
-Describes the full specification for every API endpoint and real-time event.
-Default format assumes REST as the primary protocol. If the project also uses
-WebSocket, Socket.IO, GraphQL, gRPC, or CLI — add a section for each protocol.
-Do not omit a protocol because it was not in the original template.
-
-Update when:
-* New endpoints are added
-* New WebSocket / Socket.IO events are added or changed
-* Request/response/payload format changes
-* Error codes are added
-* Validation rules change
-
-### permissions.md
-Update when:
-* New roles are added
-* Permission matrix changes
-* New endpoints are added to API contract
-* New features are added to the system
-* Any `*-process.md` assigns a new "Responsible role" — cross-check that role has the required endpoint access
-* Role permission defaults are seeded or changed via a Role Management feature — mark the row "(Default)", do not promote it to business-rules.md
-
-After updating, regenerate use case diagram:
-`python3 docs/script/usecase_to_html.py docs/specs/permissions.md`
-
-The use case diagram is a **system-level view** — it lists ALL roles and ALL major
-functions across all modules in one diagram, not per resource or per module.
-
-Source distinction: every row in the API Endpoint Access table must specify whether
-access is a Hardcoded constraint (enforced in code, needs a deployment to change) or
-a Seeded default (database starting value, changeable at runtime by an admin). Only
-Hardcoded constraints belong in business-rules.md as permanent rules.
-
-Cross-check rule: every role listed as a responsible actor in any `*-process.md` must have
-at least the minimum API endpoint access to perform that responsibility. A gap is a logical
-contradiction that must be resolved before implementation.
-
-### logging-spec.md
-Purpose:
-Define logging rules, format, and module naming conventions.
-Logger instantiation pattern is documented here in a language/framework-agnostic way —
-use whatever the project's logging library provides.
-All modules must follow this spec.
-
-Update when:
-* New modules are added (add one line to the Module Naming Convention table)
-* Log format changes
-* Logger instantiation pattern changes
-
-This file is the rule definition only — do not add module-specific logging content here.
-Module-specific log points live in docs/modules/[module]/log-[module].md.
-
-### specs/quickstart.md
-Purpose:
-Step-by-step guide for setting up and running the project locally.
-Covers prerequisites, environment variables, startup commands, and verification steps.
-
-Update when:
-* Setup steps change
-* New prerequisites are added
-* Verification steps change
-* Environment variable requirements change
+Do not begin writing documentation until all High severity issues have been resolved.
 
 ---
 
-## Architecture (docs/architecture/)
+# Required Context
 
-### architecture.md
-Purpose:
-Describe system component overview and data flow.
-Holds the structured YAML block used by architecture_to_html.py to generate the diagram.
-Component type is a free-form label — use whatever best describes the component's role.
+Read ONLY the following documentation before inspecting code:
 
-Update when:
-* New components are added
-* Data flows change
-* Integration changes
+- current-state.md
+- docs/architecture/*
+- docs/business/*
+- docs/data-model.md
+- docs/permissions.md
+- docs/project-plan.md
 
-After updating, regenerate diagram:
-`python3 docs/script/architecture_to_html.py docs/architecture/architecture.md`
+Then inspect ONLY:
 
-### backend.md
-Purpose:
-Describe backend structure — stack, layering, layer responsibilities, module pattern.
-Use the actual layer names from the codebase — do not assume Controller/Service/Repository.
-Includes a component block for the backend module structure diagram.
+1. Application entry point
+2. Data layer
+3. One complete vertical slice
 
-Update when:
-* Backend layering, stack, or module pattern changes
+Do NOT scan unrelated modules.
 
-After updating, regenerate component diagram:
-`python3 docs/script/component_to_html.py docs/architecture/backend.md`
-
-### frontend.md
-Purpose:
-Describe frontend structure — stack, page structure, component strategy, API hook strategy.
-Includes a component block for the frontend module structure diagram.
-
-Update when:
-* Frontend stack, page structure, or component strategy changes
-
-After updating, regenerate component diagram:
-`python3 docs/script/component_to_html.py docs/architecture/frontend.md`
-
-### database.md
-Purpose:
-Describe database structure at the conceptual level — main entities, main relationships,
-important constraints. Not a field-by-field schema; that level of detail belongs in
-docs/specs/data-model.md.
-
-Update when:
-* Main entities or relationships change
-
-### deployment.md
-Purpose:
-Describe runtime structure — services, environment variables, local startup flow,
-build/deploy flow. Includes Cache Policy section for any caching layer.
-
-Update when:
-* Services, env vars, or build/deploy flow changes
-* A caching layer is added or its TTL / invalidation strategy changes
-* Cache boundary conditions or consumer behaviour is clarified
+Do NOT read the entire repository unless explicitly required by current-state.md.
 
 ---
 
-## Flows (docs/modules/)
+# Objectives
 
-### module-data-flow.md
-Purpose:
-Index and rule definition for module-level code flows. Sits at `docs/modules/module-data-flow.md`.
-Defines three module types — Feature, Background Job, Shared Utility — each with its own flow format.
-Each module gets its own subfolder (`docs/modules/[module]/`) with its own flow file.
+Evaluate whether the implementation is:
 
-Update when:
-* A new module is created — add a row to the Module Flow Files table
+- Consistent with the documented architecture
+- Consistent with documented business rules
+- Following AGENTS.md principles
+- Safe to continue documentation
 
-### [module]-module-data-flow.md
-Purpose:
-Track code-level execution flow (function names, file paths) for a specific module.
-Declare the module type at the top: Feature / Background Job / Shared Utility.
-Flow format follows the matching format defined in module-data-flow.md — do not assume
-Controller/Service/Repository; use the real layer names from the codebase.
-Also includes a class block describing the module's structure.
-
-Location: `docs/modules/[module]/[module]-module-data-flow.md`
-Examples: `docs/modules/order/order-module-data-flow.md`
-
-Files matching this pattern are automatically included in the PDF.
-
-Update when:
-* Function names or file paths change for this module
-* A new operation is implemented
-* The module's class structure changes
-
-After updating, regenerate class diagram:
-`python3 docs/script/class_to_html.py docs/modules/<module>/<module>-module-data-flow.md`
-
-### module-flow.md
-Purpose:
-Index and rule definition for all module flow documents.
-Each module has its own flow file: `docs/modules/[module]/[module]-flow.md`.
-
-Update when:
-* A new module flow file is created — add a row to the Flow Files table
-
-### [module]-flow.md
-Purpose:
-Describe cross-module service call sequences for a specific module.
-Includes a Sequence Diagram for each cross-module process.
-Business steps and decision branches belong in docs/business/[process-name]-process.md.
-
-Location: `docs/modules/[module]/[module]-flow.md`
-Example: `docs/modules/order/order-flow.md`
-
-Files matching `*-flow.md` are automatically included in the PDF.
-
-Update when:
-* Cross-module service calls change
-* A new cross-module process is added to this module
-
-After updating, regenerate sequence diagram:
-`python3 docs/script/sequence_to_html.py docs/modules/<module>/<module>-flow.md`
-
-### log-[module].md
-Purpose:
-Track every log point in a module, in call order. One file per module.
-Not included in the PDF — this is an implementation detail reference for developers.
-
-Location: `docs/modules/[module]/log-[module].md`
-Generate when the module is complete (see AGENTS.md → Module Completion Check).
-Update immediately if function names or file paths change.
+Focus on correctness rather than style.
 
 ---
 
-## Business (docs/business/)
+# Report Format
 
-### business-process.md
-Purpose:
-Index file listing all business process documents.
-Each business process has its own dedicated file: `docs/business/[process-name]-process.md`.
+**Code Quality Check — [Project Name]**
 
-Update when:
-* A new business process file is created — add a row to the table
+| Area | Finding | Evidence | Severity | Recommendation |
+|------|----------|----------|----------|----------------|
+| Layering | ... | src/... | High | ... |
 
-### [process-name]-process.md
-Purpose:
-Describe one business process — goal, steps, decision points, exceptions, and Activity Diagram.
-Cross-module technical call sequences belong in docs/modules/[module]/[module]-flow.md.
+Only include areas that contain findings.
 
-Location: `docs/business/[process-name]-process.md`
-Examples: `order-create-process.md`, `order-cancel-process.md`
+Possible areas:
 
-Files matching `*-process.md` are automatically included in the PDF.
-
-Update when:
-* The business workflow, decision points, or exceptions change
-
-After updating, regenerate activity diagram:
-`python3 docs/script/activity_to_html.py docs/business/[process-name]-process.md`
-
-### business-objects.md
-Purpose:
-Index and rule definition for all business object documents.
-Each business object has its own file: `docs/business/[object-name]-object.md`.
-
-Update when:
-* A new business object file is created — add a row to the table
-* A relationship between objects changes — update the Relationships table
-
-### [object-name]-object.md
-Purpose:
-Describe one business entity — who owns it, who creates it, its lifecycle, and its
-business-level state machine. Technical field-level detail belongs in docs/specs/data-model.md.
-This file is the canonical source of truth for state transitions — `data-model.md` maps
-ENUM values to these states but must not contradict them.
-
-Location: `docs/business/[object-name]-object.md`
-Examples: `order-object.md`, `inventory-object.md`
-
-Files matching `*-object.md` are automatically included in the PDF.
-
-Update when:
-* The business entity's description, ownership, or lifecycle changes
-* Status transitions or responsible roles change
-
-After updating, regenerate state diagram:
-`python3 docs/script/state_to_html.py docs/business/[object-name]-object.md`
-
-### business-rules.md
-Purpose:
-Describe business constraints and policies — approval rules, validation rules,
-notification rules, audit rules. Each rule must declare its Enforcement Layer.
-Only Hardcoded constraints belong here — Seeded defaults belong in permissions.md,
-not here, since they can change without a deployment.
-
-Update when:
-* Business rules change
-* A constraint moves from Seeded default to Hardcoded (or vice versa) — move the
-  entry between business-rules.md and permissions.md accordingly
+- Layering
+- Package First
+- Naming
+- Schema
+- Security
+- Error Handling
+- Permission Consistency
+- State Machine Consistency
+- API Endpoint Overlap
+- Synthetic Test Data
+- Cross-Component Interface
+- Performance
+- Other
 
 ---
 
-## Root-level (docs/)
+# Evidence Rules
 
-### current-state.md
-Purpose:
-The active task. Read first when continuing an existing project.
+Every finding MUST include:
 
-### changelog.md
-Purpose:
-Completed task history. Current Task moves here once finished.
+- File
+- Function / Class / Endpoint
+- Why it is a problem
 
-### codebase-map.md
-Purpose:
-Track which files are package usage vs custom logic, classified by layer (DB/BE/FE/MOD/JOB).
-Includes a project tree (from project root) with documentation coverage status per module.
-Used to verify the Package First principle is being followed.
-Also serves as the project overview section in the PDF — a page structure component diagram
-is injected here so readers get a visual of the frontend structure before diving into the file listing.
+Example:
 
-Update when:
-* A task is completed — add the files touched in that task
-* Re-run `python3 docs/script/scan_codebase.py <src_dir> --update docs/codebase-map.md`
-  to refresh the tree view and coverage summary
-* Frontend page/screen structure changes — update the component block in this file
+Evidence:
+src/orders/controller.ts
+updateOrder()
 
-Do not scan the entire repository to regenerate this file. Update incrementally, one task at a time.
+Business logic performs database writes directly instead of calling the service layer.
 
-Diagram: Page structure component diagram — update the ```component block in codebase-map.md,
-then run `python3 docs/script/component_to_html.py docs/codebase-map.md` to regenerate.
-The output (`codebase-map-component.html`) is picked up automatically by `build_pdf.py`.
+If evidence cannot be found:
+
+Output
+
+Unable to verify
+
+Never guess.
+
+Never infer missing behavior.
 
 ---
 
-## Scripts (docs/script/)
+# Severity Guide
 
-### pdf_allowlist.py
-Purpose:
-Single source of truth for which files appear in the PDF, in what order, and under which section.
-Both `build_pdf.py` and `translate_docs.py` import from this file.
+## High
 
-Update when:
-* A new permanent document is added to `docs/` and should appear in the PDF
+Only use High when one of the following is true:
 
-Do not edit `build_pdf.py` or `translate_docs.py` for this purpose — edit only this file.
+- Incorrect business behavior
+- Security vulnerability
+- Data corruption risk
+- Architecture contradiction
+- Documented business process cannot be completed
+- Canonical documentation conflicts with implementation
 
-### scan_codebase.py
-Purpose:
-Scans the source directory and reports which modules are documented, undocumented,
-or shared/infrastructure. Outputs a project tree (from project root) with `←` annotations
-and documentation coverage icons.
-
-Run at the start of a retrofit (Step 1b) to inventory all modules before documentation begins.
-Run again after Step 3 to confirm full coverage.
-Run with `--update docs/codebase-map.md` to write the tree and coverage table into codebase-map.md.
+High findings MUST be fixed before Step 2.
 
 ---
 
-## Diagram Scripts Reference
+## Medium
 
-| Script | Input format | Output suffix | Embedded in |
-|---|---|---|---|
-| `architecture_to_html.py` | yaml block in architecture.md | `.html` / `.svg` | `architecture/architecture.md` |
-| `schema_to_html.py` | Prisma / SQL file | `.html` / `.svg` | `specs/data-model.md` |
-| `state_to_html.py` | state block in any .md | `-state.html` / `.svg` | `specs/data-model.md`, `business/*-object.md` |
-| `usecase_to_html.py` | usecase block in any .md | `-usecase.html` / `.svg` | `specs/permissions.md` |
-| `activity_to_html.py` | activity block in any .md | `-activity.html` / `.svg` | `business/*-process.md` |
-| `sequence_to_html.py` | sequence block in any .md | `-sequence.html` / `.svg` | `modules/*/` flow files |
-| `class_to_html.py` | class block in any .md | `-class.html` / `.svg` | `modules/*/*-module-data-flow.md` |
-| `component_to_html.py` | component block in any .md | `-component.html` / `.svg` | `backend.md` / `frontend.md` |
+Use when:
+
+- Maintainability issue
+- Duplicate logic
+- Missing validation
+- Missing index
+- Confusing API
+- Technical debt that should be addressed before the next feature
+
+Do not fix now.
+
+Append to the current sprint in project-plan.md.
+
+---
+
+## Low
+
+Minor issues:
+
+- Naming
+- Small cleanup
+- Documentation mismatch
+- Minor consistency improvements
+
+Append to the current sprint.
+
+---
+
+# Area-Specific Rules
+
+## Layering
+
+Check that:
+
+- Controller contains HTTP logic only
+- Service contains business logic
+- Repository/Data layer contains persistence logic
+
+Business logic inside controllers is a finding.
+
+---
+
+## Package First
+
+Before recommending custom code:
+
+Check whether an existing dependency already solves the problem.
+
+If duplicate custom implementation exists:
+
+Report it.
+
+Do not recommend rewriting unless necessary.
+
+---
+
+## Naming
+
+Check:
+
+- Module names
+- Repository methods
+- Service methods
+- Endpoint naming
+
+Only report inconsistencies that reduce readability.
+
+---
+
+## Schema
+
+Check for:
+
+- Missing indexes
+- Missing constraints
+- Poor foreign keys
+- Frequently queried columns without indexes
+
+Only report when evidence exists.
+
+---
+
+## Security
+
+Check for:
+
+- Missing authorization
+- Missing authentication
+- SQL injection
+- Unsafe file handling
+- Unsafe deserialization
+- Sensitive information leakage
+
+Do not speculate.
+
+---
+
+## Error Handling
+
+Check for:
+
+- Missing exception handling
+- Ignored errors
+- Missing rollback
+- Missing retries where required
+
+---
+
+## Permission Consistency
+
+Read every:
+
+business/*-process.md
+
+Collect every:
+
+(Role, Action)
+
+Cross-reference:
+
+permissions.md
+
+API Endpoint Access table.
+
+Evaluate Source:
+
+Hardcoded
+→ High
+
+Seeded default
+→ Medium
+
+Missing Source column
+→ High
+
+Recommendation:
+
+Grant access
+
+or
+
+Document why another workflow is used.
+
+---
+
+## State Machine Consistency
+
+Canonical source:
+
+business/*-object.md
+
+Compare with:
+
+data-model.md
+
+If transitions differ:
+
+High severity.
+
+business object documentation is always the source of truth.
+
+---
+
+## API Endpoint Overlap
+
+Find endpoints operating on the same resource/state.
+
+Example:
+
+PATCH /orders/:id/approve
+
+PATCH /orders/:id/approval
+
+If both change identical state without a documented reason:
+
+Medium severity.
+
+Recommend:
+
+- Merge endpoints
+
+or
+
+- Add a Design Note explaining why both exist.
+
+---
+
+## Synthetic Test Data
+
+Any test data designed to trigger a failure (break-kit, chaos test, fault injection, boundary violation) must be actually executed at least once before the task is marked complete — not just designed on paper.
+
+Why: design assumptions can be wrong. For example, a seed script might silently fill missing columns with NULL instead of failing, making a test that was supposed to fail appear to pass.
+
+Checklist before marking a negative-case test complete:
+- [ ] Run the test with the intentionally bad data
+- [ ] Confirm the output is the expected failure (not a silent pass or a different error)
+- [ ] Record the actual output in the task's Verify section
+
+If the failure does not trigger as expected — treat it as a bug in the test design. Fix the test before proceeding.
+
+Severity: **High** if a negative-case test has not been executed and verified.
+
+---
+
+## Cross-Component Interface Consistency
+
+Run this check whenever a task touches any external interface definition.
+
+An external interface is any contract between two components:
+
+| Project type | Examples of external interfaces |
+|---|---|
+| Web app | Frontend form field ↔ backend validation rule ↔ DB column |
+| Data pipeline | File sensor glob ↔ GE data asset name ↔ dbt source ↔ DB schema |
+| API service | Request schema ↔ handler validation ↔ DB write |
+| CLI tool | Flag name ↔ config key ↔ env var name |
+
+For each interface touched in this task:
+
+1. List every component that references this interface (field name, path, schema, endpoint, asset name)
+2. Confirm they all point to the same underlying data / same schema / same contract
+3. If any component references a different name, path, or type — flag it as a contradiction before proceeding
+
+Severity: **High** if any mismatch is found. A gap here means a runtime error that only appears when the full stack runs together.
+
+---
+
+## Performance
+
+Only report evidence-based issues such as:
+
+- N+1 queries
+- Full table scans
+- Obvious repeated expensive operations
+
+Do not guess.
+
+---
+
+# Rules During Fixes
+
+Follow AGENTS.md principles:
+
+- Package First
+- Incremental changes only
+- No unrelated refactoring
+- No large architectural rewrites
+
+Only modify files directly related to the finding.
+
+Do NOT:
+
+- Rename unrelated modules
+- Reorganize folders
+- Reformat unrelated files
+- Rewrite working code
+
+---
+
+# After the Report
+
+## High Severity
+
+Fix High findings one at a time.
+
+After each fix output:
+
+Fixed:
+- <summary>
+
+Files:
+- file1
+- file2
+
+Reason:
+- why this resolves the finding
+
+Continue until no High findings remain.
+
+Only then continue to Step 2.
+
+---
+
+## Medium / Low
+
+Append each finding to the END of the current sprint in:
+
+docs/project-plan.md
+
+Format:
+
+- [ ] [CODE QUALITY] [Area]: Recommendation
+
+Examples:
+
+- [ ] [CODE QUALITY] Schema: Add index on orders.status for frequent filtering
+- [ ] [CODE QUALITY] Naming: Standardize repository method names
+- [ ] [CODE QUALITY] Security: Replace custom JWT verification with framework middleware
+
+Do NOT:
+
+- Reorder existing tasks
+- Rewrite completed tasks
+- Modify future sprints
+
+Append only.
+
+---
+
+# Sprint Completion
+
+When the current sprint is completed:
+
+1. Review remaining incomplete tasks.
+2. Check whether completed work affects future tasks.
+3. Update affected task descriptions if necessary.
+4. Do not silently delete tasks.
+5. Preserve sprint history.
+
+---
+
+# Success Criteria
+
+The review is complete only when:
+
+- No High severity findings remain.
+- Every finding includes evidence.
+- No speculative findings exist.
+- Medium/Low findings are appended to the current sprint.
+- Documentation has not started before High findings are resolved.
+- Only files related to confirmed findings have been modified.
