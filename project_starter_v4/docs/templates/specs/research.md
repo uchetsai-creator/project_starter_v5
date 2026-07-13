@@ -28,6 +28,27 @@
 
 ---
 
+## Version Assumptions
+
+<!--
+  Record every assumption made about a specific version of a dependency, service, or tool.
+  Unverified assumptions are a common source of bugs — especially when upgrading or switching providers.
+
+  For each assumption:
+  - State what you assumed the version supports or does
+  - State how you verified it (or mark as UNVERIFIED if not yet confirmed)
+  - If the assumption turned out to be wrong, record the correction here
+
+  Do NOT write config or code based on an UNVERIFIED assumption.
+  Verify first, then commit.
+-->
+
+| Dependency | Version | Assumption | Verified with | Correct? |
+|---|---|---|---|---|
+| [e.g., DataHub] | [e.g., v0.13.3] | [e.g., standalone MAE consumer image exists] | [e.g., checked Docker Hub tags] | ✅ / ❌ / UNVERIFIED |
+
+---
+
 ## [Decision Name]
 
 **Decision:** [Final choice]
