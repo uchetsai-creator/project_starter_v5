@@ -171,6 +171,38 @@ How to confirm the system is running correctly after startup.
 
 ---
 
+## Service-Specific Gotchas
+
+<!--
+  Record non-obvious behaviours for each service — things that would cause silent failures
+  or hard-to-debug errors if assumed incorrectly.
+
+  For each gotcha, document:
+  - The assumption that is easy to make (and wrong)
+  - The actual behaviour
+  - How to verify it
+
+  Examples:
+    DataHub v0.13.x: MAE/MCE consumers are merged into GMS — no standalone consumer image exists.
+      Wrong assumption: deploy datahub-mae-consumer as a separate container.
+      Actual behaviour: set MAE_CONSUMER_ENABLED=true on the GMS container.
+      Verify: docker logs datahub-gms | grep "MAE consumer"
+
+    Elasticsearch: search returns no results if indices have not been created yet.
+      Wrong assumption: empty results = no data ingested.
+      Actual behaviour: check indices first with GET /_cat/indices before concluding data is missing.
+      Verify: curl http://localhost:9200/_cat/indices
+
+  Add one entry per service that has a known gotcha.
+  Update when a new non-obvious behaviour is discovered during development or debugging.
+-->
+
+| Service | Wrong assumption | Actual behaviour | Verify with |
+|---|---|---|---|
+| [service name and version] | [what is easy to assume incorrectly] | [what actually happens] | [exact command to confirm] |
+
+---
+
 ## Teardown
 
 ```bash
