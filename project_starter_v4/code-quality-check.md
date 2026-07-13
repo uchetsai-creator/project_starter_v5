@@ -344,6 +344,16 @@ For each interface touched in this task:
 
 Severity: **High** if any mismatch is found. A gap here means a runtime error that only appears when the full stack runs together.
 
+**External service / third-party image assumptions:**
+
+Before writing any config or code that depends on a specific version of an external service or image:
+
+1. State the assumption explicitly (e.g. "v0.13.3 has a standalone MAE consumer image")
+2. Verify it with an actual command (e.g. check Docker Hub tags, read release notes, run the image)
+3. Record the result in `docs/specs/research.md → Version Assumptions`
+
+Do NOT commit config based on an unverified assumption. If the assumption turns out to be wrong after committing, treat it as a High finding and fix before proceeding.
+
 ---
 
 ## Performance
