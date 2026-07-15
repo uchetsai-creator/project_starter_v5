@@ -736,7 +736,7 @@ def parse_args():
         sys.exit(1)
 
     if not output_path:
-        output_path = f"project-documentation-{lang}.pdf"
+        output_path = os.path.join(docs_dir, f"project-documentation-{lang}.pdf")
 
     return docs_dir, output_path, lang
 
