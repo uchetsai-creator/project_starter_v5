@@ -279,6 +279,7 @@ Do NOT update changelog.md, project-plan.md, codebase-map.md, or any spec/archit
 | Config / environment | Start affected service, confirm healthy |
 | Network / infrastructure config | Verify connectivity between affected services (e.g. `docker exec serviceA ping serviceB`) |
 | Script / utility | Run the script, confirm expected output |
+| External system write | Query the external system via its API, CLI, or database — not only via its UI. If the UI shows inconsistent or missing data but the API returns correct data, document the discrepancy explicitly; do not block task completion on a known UI rendering issue. |
 | Documentation only | `python3 docs/script/build_pdf.py docs --lang en -o /tmp/test.pdf` |
 | Diagram (plantuml block) | Rebuild PDF, confirm diagram renders correctly |
 

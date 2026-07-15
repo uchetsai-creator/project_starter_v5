@@ -354,6 +354,40 @@ Before writing any config or code that depends on a specific version of an exter
 
 Do NOT commit config based on an unverified assumption. If the assumption turns out to be wrong after committing, treat it as a High finding and fix before proceeding.
 
+**Third-party dependency upgrade:**
+
+When a task upgrades an existing dependency (library, service image, API client):
+
+1. List every place in the codebase that calls the dependency's API, SDK method, config key, or endpoint — not just the file being changed
+2. Check the dependency's changelog or release notes for breaking changes between the old and new version
+3. Verify each integration point still works after the upgrade
+
+Severity: **High** if an upgrade is committed without enumerating and verifying all integration points.
+
+---
+
+**External system write consistency:**
+
+If a task writes to an external system that has multiple representations, targets, or entities (e.g. two database tables, two API platforms, a primary record and a derived/twin record):
+
+1. List every write target — not just the primary one
+2. Verify each target independently after the write
+3. If any target is missing the expected data, treat it as a High finding
+
+Severity: **High** if only the primary write target was verified and secondary targets were not checked.
+
+---
+
+**Verification authority:**
+
+For any integration verified via a UI (dashboard, admin panel, visualization tool):
+
+1. Identify the authoritative verification method: API endpoint, database query, or CLI command that returns the same underlying data
+2. Record this authoritative check in the task's Verify section — UI confirmation alone is not accepted
+3. If the UI shows inconsistent or missing data but the authoritative check returns correct data, the finding is in the UI layer, not the integration. Document this explicitly and do not block task completion on a known UI rendering issue
+
+Severity: **Medium** if only UI verification is planned with no authoritative fallback defined.
+
 ---
 
 ## Performance
