@@ -63,9 +63,9 @@ Approach options:
 
 ---
 
-## Phase 3 — Per-Type Code Quality Check (in progress)
+## Phase 3 — Per-Type Code Quality Check ✅ Complete
 
-`code-quality-check.md` currently assumes a layered application architecture. It needs project-type variants.
+`code-quality-check.md` previously assumed a layered Web App architecture. Per-type variants have now been added for all remaining project types.
 
 ### Done
 
@@ -73,16 +73,11 @@ Approach options:
 |---|---|
 | **Layering** | Type-aware table (Web App / CLI / Library / Data Pipeline / ML Pipeline / Microservices / AI LLM App) — completed in Phase 1 |
 | **Observability** | New area added: trace_id propagation (all types), LLM call structured log (AI/LLM only), pipeline stage row count logging (Data Pipeline / ML Pipeline only) — type-aware enforcement via project-type table |
-
-### Still needed
-
-| Type | Key areas to add |
-|---|---|
-| CLI | Flag parsing isolation, command responsibility separation, exit code consistency |
-| Library | No side effects at import, public API stability, test coverage of public surface |
-| Data Pipeline | Inter-stage contract verification, idempotency, archive/replay guarantees |
-| ML Pipeline | Data leakage checks, train/test split integrity, metric reproducibility |
-| Microservices | Service contract conformance, circuit breaker coverage, distributed tracing |
+| **CLI Tool** | Flag parsing isolation, command responsibility separation, exit code consistency — added under `## Type-Specific Checks` |
+| **Library / SDK** | No side effects at import, public API stability, test coverage of public surface — added under `## Type-Specific Checks` |
+| **Data Pipeline** | Inter-stage contract verification, idempotency, archive/replay guarantees — added under `## Type-Specific Checks` |
+| **ML Pipeline** | Data leakage checks, train/test split integrity, metric reproducibility — added under `## Type-Specific Checks` |
+| **Microservices** | Service contract conformance, circuit breaker coverage, distributed tracing — added under `## Type-Specific Checks` |
 
 ---
 
