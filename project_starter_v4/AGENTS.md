@@ -74,6 +74,7 @@ The second type's documents simply join the first type's `docs/specs/` or `docs/
 | `prompt-library.md` | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
 | `eval-spec.md` | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
 | `rag-contract.md` | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ⚠️ if using RAG |
+| `mcp-contract.md` | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ⚠️ if using MCP |
 | `service-catalog.md` | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ |
 | `service-contract.md` | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ |
 | `model-contract.md` | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ | ❌ |
@@ -220,7 +221,8 @@ At the system (repo root) level, additionally create:
 8. Create docs/specs/eval-spec.md from templates/specs/eval-spec.md (judge model, criteria, test case set).
 9. Create docs/specs/eval-log.md from templates/specs/eval-log.md (append-only run log — load only during eval tasks).
 10. If using RAG: Create docs/specs/rag-contract.md from templates/specs/rag-contract.md.
-11. Create docs/modules/module-data-flow.md from templates/modules/module-data-flow-v2.md.
+11. If using MCP servers: Create docs/specs/mcp-contract.md from templates/specs/mcp-contract.md. Add one Server Detail block per connected server. Cross-reference tool names in llm-contract.md Tool Calling section.
+12. Create docs/modules/module-data-flow.md from templates/modules/module-data-flow-v2.md.
 12. Create docs/modules/module-flow.md from templates/modules/module-flow-v2.md.
 13. Create docs/codebase-map.md from templates/codebase-map.md.
 14. Create docs/project-plan.md from templates/project-plan.md.
@@ -244,6 +246,7 @@ Do not assume the row exists. Do not rely on memory. Read the file and check.
 - `eval-spec.md` — if test cases were added or eval criteria changed
 - `eval-log.md` — append one row after every eval run (load this file only during eval tasks)
 - `rag-contract.md` — if retrieval sources, chunking, or embedding model changed
+- `mcp-contract.md` — if an MCP server is added/removed, a tool schema changes, or tool-use policy is tuned
 - `research.md` — if a new model or provider was evaluated
 
 ---

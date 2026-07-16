@@ -56,6 +56,20 @@ Include persona, domain constraints, tone, and any output format instructions.]
 
 ## Tool Calling / Function Schemas
 
+<!--
+  Two cases — use whichever applies:
+
+  A. Direct function calling (tools defined inline in the API call):
+     Document each tool schema below.
+
+  B. Tools sourced from MCP servers:
+     List only the tool names and which server they come from here.
+     Full schemas, transport config, and tool-use policy live in mcp-contract.md.
+     → docs/specs/mcp-contract.md
+
+  If using both, note which tools are inline vs. MCP-sourced.
+-->
+
 [List each tool the model can call. Skip this section if no tools are used.]
 
 ### Tool: `[tool_name]`

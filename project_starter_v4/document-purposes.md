@@ -252,6 +252,24 @@ Update when (if listed in current-state.md → Doc Checklist, update at task lev
 * Similarity threshold or top-K is tuned
 * A retrieval failure mode is discovered and handled
 
+### mcp-contract.md
+**Applies to: AI / LLM Application (optional — only when connecting to one or more MCP servers)**
+
+Purpose:
+Documents every MCP (Model Context Protocol) server this app connects to: transport type
+(stdio command or SSE/HTTP URL), each server's exposed tools (with JSON Schema), resources
+(URI templates), and prompt templates. Also records the tool-use policy (max calls per turn,
+which tools need user confirmation) and failure handling per scenario.
+Kept separate from llm-contract.md so server connection details can change independently
+of the model config and system prompt.
+
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
+* An MCP server is added, removed, or its package version is pinned
+* A tool schema changes (new parameter, renamed field, changed type)
+* Transport changes (stdio → SSE, command args change)
+* Tool-use policy is tuned (call limits, confirmation requirements)
+* A new failure mode is discovered and handled
+
 ### release-guide.md
 **Applies to: Library / SDK, CLI Tool**
 

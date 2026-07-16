@@ -65,6 +65,7 @@ PDF_ALLOWLIST = [
     ("design",       "specs/llm-contract.md",            frozenset({"llm-app"})),
     ("design",       "specs/prompt-library.md",          frozenset({"llm-app"})),  # index; *-prompt.md auto-scanned
     ("design",       "specs/rag-contract.md",            frozenset({"llm-app"})),
+    ("design",       "specs/mcp-contract.md",            frozenset({"llm-app"})),
     # specs/research.md excluded until filled. Uncomment once it has real content:
     # ("design",     "specs/research.md",                ALL),
     # *-module-data-flow.md auto-scanned (ALL types)
