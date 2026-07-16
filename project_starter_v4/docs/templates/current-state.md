@@ -26,6 +26,10 @@
   Only include documents actually needed for this task.
   Do not include project-requirements.md, project-plan.md, or changelog.md
   unless this task explicitly requires them.
+
+  If this task involves debugging a failure or investigating unexpected output, add:
+  - Pipeline stage failure / data quality issue  → docs/specs/pipeline-debug.md
+  - LLM wrong answer / eval score drop / tool failure → docs/specs/llm-debug.md
 -->
 
 * `docs/[relevant file]`
