@@ -200,7 +200,11 @@ The second type's documents simply join the first type's `docs/specs/` or `docs/
 
 ### Microservices
 
-Each individual service uses the Web App initialization sequence above for its own `docs/` folder.
+Each individual service follows the Web App initialization sequence above for its own `docs/` folder, with these adaptations:
+
+- `api-contract.md` — use only if the service exposes an HTTP/REST or GraphQL API externally. For internal gRPC-only services, replace with a gRPC section inside `service-contract.md`. For event-driven services with no synchronous API, omit entirely.
+- `frontend.md` — omit for backend-only services.
+- `permissions.md` — include only if the service enforces its own auth. Services that delegate auth to an API gateway may omit this.
 
 At the system (repo root) level, additionally create:
 
