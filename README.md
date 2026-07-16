@@ -67,6 +67,11 @@ project_starter/                     ← this repo (template only)
     │   │                              ── Microservices (additional) ──
     │   ├── service-catalog.md       ← all services: owner, port, URL, dependencies, events
     │   └── service-contract.md      ← inter-service REST contracts and event schemas
+    │   │                              ── AI / LLM Application ──
+    │   ├── llm-contract.md          ← model, system prompt, parameters, tool schemas, retry strategy
+    │   ├── prompt-library.md        ← versioned prompt templates with variables, examples, test cases
+    │   ├── eval-spec.md             ← LLM-as-a-judge criteria, rubric, test case set, eval run log
+    │   └── rag-contract.md          ← retrieval sources, chunking, embedding model, vector store (optional)
     │
     ├── architecture/
     │   ├── architecture.md          ← components, data flow, structured YAML for diagram (all types)

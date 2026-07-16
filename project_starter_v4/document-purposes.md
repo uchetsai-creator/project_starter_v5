@@ -149,6 +149,67 @@ Update when:
 * A training run is completed — add one entry with hypothesis, config, results, and decision.
   Do not add an entry without a decision. "No conclusion yet — running follow-up" is a valid decision.
 
+### llm-contract.md
+**Applies to: AI / LLM Application**
+
+Purpose:
+Single source of truth for how the LLM is invoked — model ID, system prompt (full text),
+inference parameters (temperature, top_p, max_tokens), tool/function schemas, context window
+strategy, and retry/fallback behaviour. Version this document whenever the system prompt or
+model changes so prompt iterations can be compared against a known baseline.
+
+Update when (update at task level — this is a core spec for LLM applications):
+* The model or provider is changed
+* The system prompt is modified (bump version, keep old version in Version history)
+* Inference parameters (temperature, max_tokens, etc.) are tuned
+* A tool / function schema is added, changed, or removed
+* The context window or retry strategy changes
+
+### prompt-library.md
+**Applies to: AI / LLM Application**
+
+Purpose:
+Version-controlled store of all prompt templates used by the application.
+Each entry has an ID, version, input variables, example I/O, and test cases.
+When a prompt changes, a new version entry is added — old versions are not deleted,
+so the history of what worked (and why changes were made) is preserved.
+
+Update when (update at task level):
+* A prompt template is added or modified (add new version entry, do not overwrite)
+* A prompt is retired (move to Retired Prompts section)
+* Test cases are added to an existing prompt entry
+
+### eval-spec.md
+**Applies to: AI / LLM Application**
+
+Purpose:
+Defines how LLM output quality is measured using LLM-as-a-judge.
+Documents the judge model, evaluation criteria with scoring rubrics, the fixed test case set,
+the pass threshold, and a log of eval run results per prompt version.
+Run the eval suite whenever a prompt version changes to compare objectively — not just by feel.
+
+Update when (update at task level):
+* A new eval criterion is added or an existing rubric is changed
+* The judge model is changed
+* Test cases are added to the fixed set (never remove existing cases)
+* A new eval run is completed — add a row to the Eval Run Log
+
+### rag-contract.md
+**Applies to: AI / LLM Application (optional — only when using Retrieval-Augmented Generation)**
+
+Purpose:
+Documents the retrieval pipeline end-to-end: knowledge sources and their update frequency,
+chunking strategy, embedding model, vector store configuration (similarity metric, threshold,
+top-K), how retrieved chunks are formatted and injected into the prompt, and failure handling
+when retrieval returns nothing or the vector store is unavailable.
+
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
+* A new knowledge source is added or an existing one is changed
+* Chunking strategy or chunk size is changed
+* The embedding model is changed (triggers full re-embedding)
+* Similarity threshold or top-K is tuned
+* A retrieval failure mode is discovered and handled
+
 ### release-guide.md
 **Applies to: Library / SDK, CLI Tool**
 

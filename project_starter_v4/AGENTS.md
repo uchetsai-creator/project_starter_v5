@@ -29,35 +29,40 @@ The type gates which documents are required and which are N/A — do not create 
 | **Data Pipeline** | ETL/ELT batch or streaming; data in → data out; no user-facing API |
 | **ML Pipeline** | Training → evaluation → serving; model artifact is the primary output |
 | **Microservices** | Multiple independently deployed services communicating via API or events |
+| **AI / LLM Application** | Chatbot, copilot, or agent built on a foundation model; prompt-driven, no model training |
 
 **Document matrix — Required (✅) / Optional (⚠️) / Not applicable (❌):**
 
-| Document | Web App | CLI | Library | Data Pipeline | ML Pipeline | Microservices |
-|---|---|---|---|---|---|---|
-| `architecture.md` | ✅ | ✅ | ⚠️ | ✅ | ✅ | ✅ |
-| `backend.md` | ✅ | ✅ | ❌ | ✅ | ✅ | per-service |
-| `frontend.md` | ⚠️ if UI | ❌ | ❌ | ❌ | ❌ | ⚠️ if UI |
-| `database.md` | ✅ | ⚠️ if DB | ❌ | ✅ | ✅ | per-service |
-| `deployment.md` | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ |
-| `distribution.md` | ❌ | ✅ | ✅ | ❌ | ❌ | ❌ |
-| `api-contract.md` | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ (external API) |
-| `cli-contract.md` | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| `public-api.md` | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ |
-| `pipeline-contract.md` | ❌ | ❌ | ❌ | ✅ | ✅ | ❌ |
-| `service-catalog.md` | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| `service-contract.md` | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| `model-contract.md` | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ |
-| `experiment-log.md` | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ |
-| `release-guide.md` | ❌ | ✅ | ✅ | ❌ | ❌ | ❌ |
-| `compatibility-matrix.md` | ❌ | ⚠️ | ✅ | ❌ | ❌ | ❌ |
-| `permissions.md` | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| `data-model.md` | ✅ | ⚠️ if DB | ❌ | ✅ | ✅ | per-service |
-| `business-process.md` | ✅ | ⚠️ | ❌ | ⚠️ | ❌ | ✅ |
-| `business-objects.md` | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| `business-rules.md` | ✅ | ⚠️ | ❌ | ✅ | ⚠️ | ✅ |
-| `logging-spec.md` | ✅ | ✅ | ❌ | ✅ | ✅ | ✅ |
-| `research.md` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `quickstart.md` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Document | Web App | CLI | Library | Data Pipeline | ML Pipeline | Microservices | AI / LLM App |
+|---|---|---|---|---|---|---|---|
+| `architecture.md` | ✅ | ✅ | ⚠️ | ✅ | ✅ | ✅ | ✅ |
+| `backend.md` | ✅ | ✅ | ❌ | ✅ | ✅ | per-service | ⚠️ if >script |
+| `frontend.md` | ⚠️ if UI | ❌ | ❌ | ❌ | ❌ | ⚠️ if UI | ⚠️ if UI |
+| `database.md` | ✅ | ⚠️ if DB | ❌ | ✅ | ✅ | per-service | ⚠️ if storing history |
+| `deployment.md` | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ⚠️ if hosted |
+| `distribution.md` | ❌ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| `api-contract.md` | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ (external API) | ⚠️ if exposing API |
+| `cli-contract.md` | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ⚠️ if CLI-based |
+| `public-api.md` | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| `pipeline-contract.md` | ❌ | ❌ | ❌ | ✅ | ✅ | ❌ | ❌ |
+| `llm-contract.md` | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| `prompt-library.md` | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| `eval-spec.md` | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| `rag-contract.md` | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ⚠️ if using RAG |
+| `service-catalog.md` | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ |
+| `service-contract.md` | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ |
+| `model-contract.md` | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ | ❌ |
+| `experiment-log.md` | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ | ❌ |
+| `release-guide.md` | ❌ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| `compatibility-matrix.md` | ❌ | ⚠️ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| `permissions.md` | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ | ⚠️ if multi-user |
+| `data-model.md` | ✅ | ⚠️ if DB | ❌ | ✅ | ✅ | per-service | ⚠️ if storing history |
+| `business-process.md` | ✅ | ⚠️ | ❌ | ⚠️ | ❌ | ✅ | ❌ |
+| `business-objects.md` | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ |
+| `business-rules.md` | ✅ | ⚠️ | ❌ | ✅ | ⚠️ | ✅ | ⚠️ if domain rules |
+| `logging-spec.md` | ✅ | ✅ | ❌ | ✅ | ✅ | ✅ | ⚠️ if >script |
+| `research.md` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `quickstart.md` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 
 ---
 
@@ -177,6 +182,31 @@ At the system (repo root) level, additionally create:
 2. Create docs/specs/service-contract.md from templates/specs/service-contract.md.
 3. Create docs/architecture/architecture.md (system-level — shows all services and their connections).
 4. Create docs/architecture/deployment.md (system-level — shows deployment topology across all services).
+
+### AI / LLM Application
+
+1. Create docs/project-requirements.md from templates/project-requirements.md.
+2. Create docs/specs/research.md from templates/specs/research.md (model selection, provider, alternatives considered).
+3. Create docs/specs/quickstart.md from templates/specs/quickstart.md (API key setup, local run, first query).
+4. Create docs/architecture/architecture.md from templates/architecture/architecture.md.
+5. Create docs/specs/llm-contract.md from templates/specs/llm-contract.md (model, system prompt, parameters, tools).
+6. Create docs/specs/prompt-library.md from templates/specs/prompt-library.md.
+7. Create docs/specs/eval-spec.md from templates/specs/eval-spec.md (judge model, criteria, test case set).
+8. If using RAG: Create docs/specs/rag-contract.md from templates/specs/rag-contract.md.
+9. Create docs/modules/module-data-flow.md from templates/modules/module-data-flow-v2.md.
+10. Create docs/modules/module-flow.md from templates/modules/module-flow-v2.md.
+11. Create docs/codebase-map.md from templates/codebase-map.md.
+12. Create docs/project-plan.md from templates/project-plan.md.
+13. Create docs/task-log.md from templates/task-log.md.
+14. Create docs/sprint-change-log.md from templates/sprint-change-log.md.
+15. Create docs/current-state.md from templates/current-state.md.
+
+**Quick filter for AI / LLM Application — only check these on every task:**
+- `llm-contract.md` — if system prompt, model, or parameters changed
+- `prompt-library.md` — if a prompt template was added or modified
+- `eval-spec.md` — if test cases were added or eval threshold changed
+- `rag-contract.md` — if retrieval sources, chunking, or embedding model changed
+- `research.md` — if a new model or provider was evaluated
 
 ---
 
