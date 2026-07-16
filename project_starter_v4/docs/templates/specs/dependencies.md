@@ -20,7 +20,8 @@
 
 <!--
   List the packages and their pinned versions used in production.
-  Group by layer (Backend / Frontend / Mobile) if the project has multiple.
+  Group by component if the project has multiple (e.g., Backend / Frontend for Web App,
+  or Stage A / Stage B for a Pipeline). Skip grouping if the project is a single unit.
 
   For Node.js projects: mirror key entries from package.json dependencies
   For Python projects: mirror requirements.txt or pyproject.toml
@@ -62,10 +63,17 @@
   List the infrastructure components the application depends on at runtime.
   These are not packages — they are services that must be running.
   Cross-reference with docs/architecture/deployment.md for startup and configuration details.
+
+  Skip this section if the project has no persistent infrastructure:
+  - CLI Tool: typically no infrastructure (unless it connects to a DB or API)
+  - Library / SDK: no infrastructure (it is called by the consumer's environment)
+  - AI / LLM App (personal / script): only external API — list under External Services instead
 -->
 
 | Component | Technology | Version | Purpose |
 |---|---|---|---|
 | [e.g., Primary database] | [e.g., PostgreSQL] | [e.g., 16] | [persistent storage] |
+| [e.g., Message queue] | [e.g., RabbitMQ / Kafka] | [e.g., 3.12] | [async job processing] |
 | [e.g., Cache] | [e.g., Redis] | [e.g., 7] | [session storage, query cache] |
+| [e.g., Vector store] | [e.g., Chroma / Pinecone] | [e.g., 0.5] | [RAG retrieval — AI/LLM App] |
 | [Component] | [Technology] | [Version] | [Purpose] |

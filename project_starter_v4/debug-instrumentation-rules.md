@@ -56,15 +56,24 @@ requested.
 Each layer lists: where to place the instrumentation, and what data to print. Map the layer name
 to whatever your framework calls that concept.
 
-### 1. Entry Point (UI event, CLI command, or request handler)
+### 1. Entry Point (UI event, CLI command, request handler, queue message, pipeline trigger, or LLM call)
 
-Where a user action or external trigger first enters the code — a form submit handler, a button
-click, a CLI command parser, or the first line of an HTTP route handler.
+Where the first external trigger enters the code. Map to whichever applies to this project type:
+
+| Project type | Entry point |
+|---|---|
+| **Web App / Microservices** | HTTP route handler / GraphQL resolver / WebSocket message handler |
+| **CLI Tool** | Command parser — first line after args are parsed |
+| **Library / SDK** | Public function — first line of the exported function body |
+| **Data Pipeline** | Stage entry — first line after the input dataset or file is received |
+| **ML Pipeline** | Stage entry — after input schema is validated, before processing begins |
+| **AI / LLM App** | Prompt assembly function — immediately before the LLM API call is made |
+| **Background Job** | Consumer handler — first line after the queue message is received |
 
 Placement: immediately after the triggering input is captured, before any processing begins.
 
 Print:
-* The raw input as received (form data, CLI args, request body/params/query)
+* The raw input as received (request body, CLI args, queue payload, input row count, prompt variables)
 
 ### 2. Client-Side Request Preparation (if applicable)
 

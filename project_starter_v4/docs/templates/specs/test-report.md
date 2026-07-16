@@ -56,11 +56,23 @@
 <!--
   Include only if performance tests were run this cycle.
   Remove this section if performance testing is not yet in scope.
+  Use the row format that matches your project type (examples below).
 -->
 
-| Scenario | p50 | p95 | p99 | Target | Status |
-|---|---|---|---|---|---|
-| [e.g., POST /api/orders under 100 concurrent users] | [Xms] | [Xms] | [Xms] | [< 200ms] | ✅ / ❌ |
+| Scenario | Metric | Result | Target | Status |
+|---|---|---|---|---|
+| [see per-type examples below] | [see below] | [measured value] | [target] | ✅ / ❌ |
+
+**Per-type examples:**
+
+| Project type | Scenario example | Key metric |
+|---|---|---|
+| **Web App / Microservices** | `POST /api/orders under 100 concurrent users` | p50 / p95 / p99 latency (ms) |
+| **CLI Tool** | `run command X with 10k-line input file` | Total execution time (s) |
+| **Library / SDK** | `call [function] 10,000 times` | Avg call latency (µs); memory (MB) |
+| **Data Pipeline** | `full pipeline run on 1M-row fixture dataset` | Throughput (rows/sec); total run time (s) |
+| **ML Pipeline** | `batch inference on 1,000 samples` | Inference latency (ms/sample); memory (GB) |
+| **AI / LLM App** | `send 50 prompts to [model]` | Time to first token (ms); tokens/sec |
 
 ---
 

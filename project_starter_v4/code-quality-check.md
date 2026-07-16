@@ -151,13 +151,20 @@ Append to the current sprint.
 
 ## Layering
 
-Check that:
+Check that each layer contains only what belongs to it.
+The layer names and rules depend on the project type — use the row that matches:
 
-- Controller contains HTTP logic only
-- Service contains business logic
-- Repository/Data layer contains persistence logic
+| Project type | Entry layer rule | Middle layer rule | Data / output layer rule |
+|---|---|---|---|
+| **Web App / Microservices** | Controller: HTTP binding only (parse request, return response) | Service: business logic only | Repository: DB queries only — no business logic |
+| **CLI Tool** | Command parser: flag/arg parsing only | Handler / UseCase: command logic | Store / Writer: file I/O or config persistence only |
+| **Library / SDK** | Public API function: input validation + delegation only | Internal implementation | No persistence layer — outputs are return values |
+| **Data Pipeline** | Stage entry: input contract validation only | Transform / Enrich: data logic | Writer / Sink: output contract only — no data logic |
+| **ML Pipeline** | Stage entry: schema + quality checks | Model / Transform: inference or feature logic | Artifact writer: serialisation only |
+| **Microservices** | Per-service: same as Web App | — | — |
+| **AI / LLM App** | Request handler: prompt assembly only | LLM caller: API call + retry logic | Response parser: output extraction only |
 
-Business logic inside controllers is a finding.
+Business logic in the entry layer is always a finding, regardless of project type.
 
 ---
 
@@ -177,12 +184,14 @@ Do not recommend rewriting unless necessary.
 
 ## Naming
 
-Check:
+Check for inconsistencies that reduce readability. Apply only the categories that exist in this project:
 
-- Module names
-- Repository methods
-- Service methods
-- Endpoint naming
+- Module / package / stage names
+- Public function or method names (Library, CLI, Service)
+- Endpoint or command names (Web App, CLI Tool)
+- Repository / store / DAO method names (Web App, Microservices)
+- Pipeline stage and dataset names (Data Pipeline, ML Pipeline)
+- Prompt IDs and variable names (AI / LLM Application)
 
 Only report inconsistencies that reduce readability.
 
@@ -282,27 +291,22 @@ business object documentation is always the source of truth.
 
 ---
 
-## API Endpoint Overlap
+## Interface Overlap
 
-Find endpoints operating on the same resource/state.
+Find interfaces (endpoints, commands, functions, pipeline stages) that operate on the same resource or state without a documented reason to be separate.
 
-Example:
+| Project type | What to look for |
+|---|---|
+| **Web App / Microservices** | Two endpoints that mutate the same resource field: e.g., `PATCH /orders/:id/approve` and `PATCH /orders/:id/approval` |
+| **CLI Tool** | Two subcommands that produce the same output or modify the same config key |
+| **Library / SDK** | Two public functions with overlapping behaviour: e.g., `parse()` and `read()` that both deserialise the same format |
+| **Data Pipeline** | Two stages that read the same source or write to the same destination without a clear handoff contract |
+| **ML Pipeline** | Two preprocessing steps that apply the same transformation on the same feature |
+| **AI / LLM App** | Two prompt templates that perform the same task (e.g., two "summarise" prompts targeting the same content type) |
 
-PATCH /orders/:id/approve
+If overlap exists without a documented reason: **Medium severity.**
 
-PATCH /orders/:id/approval
-
-If both change identical state without a documented reason:
-
-Medium severity.
-
-Recommend:
-
-- Merge endpoints
-
-or
-
-- Add a Design Note explaining why both exist.
+Recommend: merge the interfaces, or add a Design Note in the relevant spec file explaining why both exist.
 
 ---
 
@@ -331,10 +335,13 @@ An external interface is any contract between two components:
 
 | Project type | Examples of external interfaces |
 |---|---|
-| Web app | Frontend form field ↔ backend validation rule ↔ DB column |
-| Data pipeline | File sensor glob ↔ GE data asset name ↔ dbt source ↔ DB schema |
-| API service | Request schema ↔ handler validation ↔ DB write |
-| CLI tool | Flag name ↔ config key ↔ env var name |
+| **Web App** | Frontend form field ↔ backend validation rule ↔ DB column |
+| **CLI Tool** | Flag name ↔ config key ↔ env var name ↔ help text |
+| **Library / SDK** | Public function signature ↔ documented type ↔ serialised output format |
+| **Data Pipeline** | File sensor glob ↔ data asset name ↔ dbt source name ↔ DB schema |
+| **ML Pipeline** | Feature schema ↔ training input contract ↔ model artifact format ↔ serving schema |
+| **Microservices** | Event schema published by service A ↔ event schema consumed by service B |
+| **AI / LLM App** | Prompt variable name ↔ value injected at runtime ↔ expected output format in eval rubric |
 
 For each interface touched in this task:
 
