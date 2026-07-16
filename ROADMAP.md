@@ -106,11 +106,35 @@ AI agents load AGENTS.md on every task setup. As the framework grows, this cost 
 | Extract retrofit procedure → `init/retrofit.md` | 88 lines removed from every AGENTS.md load |
 | Fix stale Doc Checklist reference (pointed to AGENTS.md; checklist was in sprint-sync.md) | Eliminates double-file load on every task setup |
 | Current-state.md template: inline quick-filter guide covers standard task types without loading sprint-sync.md | Most task setups need zero extra file loads |
+| Fix stale references in README.md and document-purposes.md (document-matrix location, retrofit location, Doc Checklist source) | Prevents agents following incorrect file-load paths |
 
 ### Still needed
 
 - Per-type sprint-sync checklist (links to Phase 2): agents running sprint sync on a CLI project still read LLM and ML items before skipping them
 - `document-purposes.md` (800 lines) is the largest file; loaded only as reference but expensive when it is needed — consider splitting into per-type reference files
+
+---
+
+## Phase 6 — UML Diagram Coverage ✅ Complete
+
+**Goal:** Ensure every PDF-included template that benefits from a diagram actually has one, and that existing diagram templates don't produce misleading output for certain project types.
+
+### New diagrams added
+
+| Template | Diagram type | For project type |
+|---|---|---|
+| `specs/pipeline-contract.md` | Sequence — Extract → Validate → Transform → Load with data contract annotations at each boundary | Data Pipeline, ML Pipeline |
+| `specs/rag-contract.md` | Sequence — Query Transformer → Embedding Model → Vector Store → Post-Retrieval Filter → Prompt Builder → LLM → User | AI / LLM Application |
+
+These were the only PDF-included templates without plantuml blocks. Both are auto-picked up by `build_pdf.py` for their respective project types.
+
+### Existing diagram fixes
+
+| Template | Fix |
+|---|---|
+| `architecture/architecture.md` (System Component Structure) | Added project-type comments — agents now know to remove the Frontend package for Data Pipeline / CLI Tool / ML Pipeline projects instead of generating an inapplicable web-app layout |
+| `flows/module-flow-v2.md` | Added `alt success / else error` block to the sequence diagram example — agents now document error branches, not just the happy path |
+| `flows/module-data-flow-v2.md` (Pipeline Stage class diagram) | Added `note` linking `InputType / OutputType` to `pipeline-contract.md` — keeps the class structure and data contract in sync |
 
 ---
 
