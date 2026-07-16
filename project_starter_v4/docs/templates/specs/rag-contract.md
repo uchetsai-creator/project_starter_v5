@@ -53,18 +53,35 @@
 
 ## Retrieval Flow
 
-```
-User query
-↓
-[Pre-retrieval query transformation — optional: HyDE / query expansion / intent detection]
-↓
-Embed query → vector search → top-K chunks
-↓
-[Post-retrieval filtering — by score threshold / date / source]
-↓
-Inject into prompt at: [position in prompt — before user message / after system prompt]
-↓
-LLM generates response
+```plantuml
+@startuml RAG Pipeline Flow
+title RAG Pipeline — Query to Response
+
+actor User
+participant "Query\nTransformer" as QT
+participant "Embedding\nModel" as EM
+participant "Vector\nStore" as VS
+participant "Post-Retrieval\nFilter" as F
+participant "Prompt\nBuilder" as PB
+participant "LLM" as LLM
+
+User -> QT : raw query
+note right of QT
+  Optional: HyDE /
+  query expansion /
+  intent detection
+end note
+QT -> EM : transformed query
+EM -> VS : query vector
+VS -> F : top-K chunks\n(by similarity score)
+note right of F
+  Exclude below
+  similarity threshold
+end note
+F -> PB : filtered chunks
+PB -> LLM : system prompt\n+ [CONTEXT] block\n+ user message
+LLM -> User : response (with citations)
+@enduml
 ```
 
 ---

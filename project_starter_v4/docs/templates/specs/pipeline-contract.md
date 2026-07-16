@@ -14,6 +14,40 @@
 |---|---|---|---|
 | [Stage name] | [File / table / stream] | [File / table / metadata] | [Cron / file drop / upstream stage] |
 
+```plantuml
+@startuml Pipeline Stage Flow
+title Pipeline Stage Flow — Inter-Stage Data Contracts
+
+participant "Extract" as E
+participant "Validate" as V
+participant "Transform" as T
+participant "Load" as L
+participant "Data Store" as DS
+
+E -> V : raw output\n[format · schema · path]
+note right of V
+  Input contract:
+  format, schema,
+  naming convention
+end note
+
+V -> T : validated rows
+note right of T
+  rows_in / rows_out
+  / rows_rejected logged
+end note
+
+T -> L : transformed output\n[enriched · typed]
+note right of L
+  Destination: table / file
+  Lifecycle: append / overwrite
+end note
+
+L -> DS : write
+DS --> L : ✅ confirmed
+@enduml
+```
+
 ---
 
 ## Stage Contracts
