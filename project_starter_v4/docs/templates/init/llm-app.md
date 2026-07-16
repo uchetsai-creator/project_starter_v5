@@ -19,13 +19,19 @@
 11. Create docs/specs/logging-spec.md from templates/specs/logging-spec.md.
 12. If using RAG: Create docs/specs/rag-contract.md from templates/specs/rag-contract.md.
 13. If using MCP servers: Create docs/specs/mcp-contract.md from templates/specs/mcp-contract.md. Add one Server Detail block per connected server. Cross-reference tool names in llm-contract.md Tool Calling section.
-14. Create docs/modules/module-data-flow.md from templates/modules/module-data-flow-v2.md.
-15. Create docs/modules/module-flow.md from templates/modules/module-flow-v2.md.
-16. Create docs/codebase-map.md from templates/codebase-map.md.
-17. Create docs/project-plan.md from templates/project-plan.md.
-18. Create docs/task-log.md from templates/task-log.md.
-19. Create docs/sprint-change-log.md from templates/sprint-change-log.md.
-20. Create docs/current-state.md from templates/current-state.md.
+14. If this app has a frontend UI (chat interface, dashboard): Create docs/architecture/frontend.md from templates/architecture/frontend.md.
+15. If this app is deployed as a hosted service: Create docs/architecture/deployment.md from templates/architecture/deployment.md.
+16. If this app stores conversation history or user data: Create docs/architecture/database.md from templates/architecture/database.md and docs/specs/data-model.md from templates/specs/data-model.md.
+17. If this app exposes an external API: Create docs/specs/api-contract.md from templates/specs/api-contract.md.
+18. If this app has multiple users with different roles: Create docs/specs/permissions.md from templates/specs/permissions.md.
+19. If this app enforces domain-specific rules (e.g. content policy, output constraints): Create docs/business/business-rules.md from templates/business/business-rules.md.
+20. Create docs/modules/module-data-flow.md from templates/modules/module-data-flow-v2.md.
+21. Create docs/modules/module-flow.md from templates/modules/module-flow-v2.md.
+22. Create docs/codebase-map.md from templates/codebase-map.md.
+23. Create docs/project-plan.md from templates/project-plan.md.
+24. Create docs/task-log.md from templates/task-log.md.
+25. Create docs/sprint-change-log.md from templates/sprint-change-log.md.
+26. Create docs/current-state.md from templates/current-state.md.
 
 ---
 
