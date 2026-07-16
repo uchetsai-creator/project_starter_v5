@@ -15,16 +15,16 @@
 
 ## Testing Strategy
 
-Five test levels — include only the levels that apply to your project type (see per-type table below).
+Six test levels — include only the levels that apply to your project type (see per-type table below).
 
-| Level | What it tests | External deps | Tool examples |
+| Level | What it tests | External deps | Tool examples (by type) |
 |---|---|---|---|
-| **Unit** | Single function / method in isolation | All mocked | Jest / pytest / go test |
-| **Component** | Single module / service as a unit | All mocked | pytest / Jest / Testcontainers (optional) |
-| **Integration** | Multiple modules / services with real deps | Real DB / real queue / real files | Supertest / httpx / pytest |
-| **Contract / Service** | Interface contract between two components | Mocked provider OR real stub | Pact / Dredd / pytest / dbt test |
-| **E2E / System** | Full system from user / trigger perspective | All real | Playwright / shell script / pipeline run |
-| **Performance** | Throughput or latency under load | Real or staging | k6 / Artillery / timeit / benchmark |
+| **Unit** | Single function / method in isolation | All mocked | Jest / pytest / go test / vitest |
+| **Component** | Single module / service as a unit | All mocked | pytest / Jest / go test; Testcontainers (optional) |
+| **Integration** | Multiple modules / services with real deps | Real DB / real queue / real files | Web: httpx / Supertest; Pipeline: pytest + real files; LLM App: real API call |
+| **Contract / Service** | Interface contract between two components | Mocked provider OR real stub | Microservices: Pact; Pipeline/ML: dbt test / pandera / great-expectations; LLM App: output schema assert |
+| **E2E / System** | Full system from user / trigger perspective | All real | Web: Playwright; CLI: bash / bats; Pipeline: full run on fixture data; LLM App: eval script |
+| **Performance** | Throughput or latency under load | Real or staging | Web: k6 / Artillery; CLI: hyperfine; Library: timeit / benchmark; Pipeline: custom timer; LLM App: litellm callback |
 
 **Per-type guide — which levels to include and what they mean:**
 
