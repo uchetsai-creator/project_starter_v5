@@ -149,8 +149,148 @@ These were the only PDF-included templates without plantuml blocks. Both are aut
 
 ---
 
-## Known gaps (not yet scheduled)
+## Phase 7 — Event-Driven / Messaging Support (future)
 
-- Mobile App: `frontend.md` does not cover native mobile structure (no web page, different deployment model)
-- IaC / DevOps: Nearly all documents are inapplicable; dedicated IaC template set needed
-- Event-Driven / Messaging: `api-contract.md` cannot express event schemas; a separate `event-catalog.md` template is needed (related to Microservices type but distinct)
+`api-contract.md` records REST endpoints and WebSocket events, but cannot express the publisher/subscriber contracts, schema evolution rules, and dead-letter handling that event-driven architectures need. This gap is most acute for Microservices projects that communicate via Kafka, RabbitMQ, or similar brokers.
+
+**Goal:** Add `event-catalog.md` as the canonical source for all event schemas — decoupled from `service-contract.md` (which covers synchronous REST between services) and from `api-contract.md` (which covers client-facing APIs).
+
+### Planned changes
+
+| File | Change |
+|---|---|
+| `specs/event-catalog.md` | New template: event name, payload schema, publisher, subscriber(s), version, retention, dead-letter policy — one table row per event type |
+| `init/document-matrix.md` | Add `event-catalog.md`: Required for Event-Driven Microservices, Optional for standard Microservices |
+| `init/microservices.md` | Add conditional step: "If the system uses async messaging, create `event-catalog.md`" |
+| `docs/templates/sprint-sync.md` | Add checklist item: `docs/specs/event-catalog.md [Types: Microservices]` |
+| `document-purposes-microservices.md` | Add `event-catalog.md` entry: purpose, update triggers |
+
+Note: Event-Driven is treated as a variant of Microservices (not a new top-level type) because it shares all the same architecture and spec documents; only the inter-service communication pattern differs.
+
+---
+
+## Phase 8 — Mobile App type (future)
+
+`frontend.md` assumes a web page structure (components, routes, API hooks). Native mobile has no pages in the web sense — it has screens, navigation stacks, OS permissions, and app-store distribution rather than server deployment. All existing templates apply to the logic layer but the frontend and deployment templates need mobile variants.
+
+**Goal:** Add `Mobile App` as a supported project type with mobile-specific frontend and distribution templates.
+
+### Planned changes
+
+| File | Change |
+|---|---|
+| `AGENTS.md` | Add `Mobile App` to the supported types table |
+| `init/mobile-app.md` | New init file: step-by-step setup sequence for a Mobile App project |
+| `specs/mobile-contract.md` | New template: screen inventory, navigation graph, deep-link scheme, OS permission declarations, push notification payloads |
+| `architecture/frontend.md` | Add `## Mobile App` variant section: screen-based structure, navigation pattern, state management strategy, platform differences (iOS/Android) |
+| `architecture/distribution.md` | Add `## Mobile App` variant: build pipeline, signing, App Store / Google Play submission checklist, version naming |
+| `init/document-matrix.md` | Add `mobile-contract.md` row; mark `frontend.md` and `distribution.md` as Required for Mobile App |
+| `document-purposes.md` index | Add `document-purposes-mobile-app.md` entry |
+| `document-purposes-mobile-app.md` | New per-type file: mobile-contract.md, frontend.md (mobile variant), distribution.md (app store variant) |
+| `docs/templates/sprint-sync.md` | Add checklist item: `docs/specs/mobile-contract.md [Types: Mobile App]` |
+
+---
+
+## Phase 9 — IaC / DevOps type (future)
+
+Infrastructure-as-Code projects (Terraform, Pulumi, Ansible, Helm charts) have almost no overlap with the existing document set. There are no modules in the feature sense, no API contracts, no business objects, and no frontend. The primary artefacts are resource topology, environment diff policy, and operational runbooks.
+
+**Goal:** Add `IaC / DevOps` as a project type with a minimal dedicated template set. Mark all inapplicable existing documents as N/A so agents don't create empty placeholders.
+
+### Planned changes
+
+| File | Change |
+|---|---|
+| `AGENTS.md` | Add `IaC / DevOps` to the supported types table |
+| `init/iac.md` | New init file: step-by-step setup for an IaC project (topology, runbook, drift policy, secrets policy) |
+| `specs/runbook.md` | New template: incident response steps per resource type, rollback procedure, health check commands |
+| `specs/drift-policy.md` | New template: allowed drift sources, detection cadence, remediation SLA, approval gate for manual changes |
+| `architecture/topology.md` | New template: resource graph (regions, VPCs, subnets, services), environment promotion path (dev → staging → prod) |
+| `init/document-matrix.md` | Add three new rows; mark all existing spec/architecture/business docs as N/A for IaC / DevOps |
+| `document-purposes.md` index | Add `document-purposes-iac.md` entry |
+| `document-purposes-iac.md` | New per-type file: topology.md, runbook.md, drift-policy.md |
+| `docs/templates/sprint-sync.md` | Add checklist items `[Types: IaC / DevOps]` for the three new docs |
+| `scan_codebase.py` | Add `iac` to `VALID_PROJECT_TYPES`; classify `.tf`, `.yaml`, `modules/` as Resource Groups rather than Feature modules |
+
+---
+
+## Phase 10 — Further token load optimization (future)
+
+Phase 5 eliminated most redundant file loads during normal task work. The remaining cost centres are in `AGENTS.md` itself: two large sections — Module Completion Check (~40 lines) and Task Completion (~50 lines) — are loaded on every task startup even though Module Completion is only needed when a module finishes, and Task Completion steps are already summarised in `current-state.md`.
+
+**Goal:** Extract these two sections from `AGENTS.md` into separate load-on-demand files, reducing the mandatory startup payload.
+
+### Planned changes
+
+| File | Change |
+|---|---|
+| `templates/module-completion.md` | New file: full Module Completion Check procedure extracted from `AGENTS.md`; load only when a module is confirmed 100% complete |
+| `templates/task-completion.md` | New file: mandatory post-task steps (Doc Checklist, verification table, sprint-change-log entry, task-log row) extracted from `AGENTS.md`; referenced via a single pointer line in current-state.md |
+| `AGENTS.md` | Replace extracted sections with single-line load instructions: "Load `templates/module-completion.md` when module is complete" / "Load `templates/task-completion.md` at task closeout" |
+| `current-state.md` template | Add inline closeout checklist summary (4 bullet points) so most task closeouts need zero extra file reads |
+| `document-purposes-common.md` | Add entries for the two new template files |
+
+Estimated saving: ~90 lines removed from every `AGENTS.md` load.
+
+---
+
+## Phase 11 — scan_codebase.py improvements (future)
+
+`scan_codebase.py` currently scans one level deep (immediate subdirectories of `src_dir`) and classifies by folder name only. This misses monorepo layouts where each service has its own nested `src/`, and gives no way to auto-scaffold documentation stubs for newly discovered modules.
+
+**Goal:** Support nested discovery, add JSON output for agent consumption, and add a `--scaffold` flag to generate documentation stubs.
+
+### Planned changes
+
+| Change | Effect |
+|---|---|
+| `--depth N` flag | Scan N levels deep — supports monorepos and Microservices with per-service `src/` folders |
+| `--format json` output mode | Machine-readable output for agents that need to programmatically process coverage results without parsing text |
+| `--scaffold` flag | Auto-generate stub `[module]-module-data-flow.md` files under `docs/modules/[module]/` for all undocumented modules (agent fills in content); does not overwrite existing files |
+| Content peek for pipeline confidence | If a directory contains `*_stage.py`, `step_*.py`, or `run_*.py`, boost Pipeline Stage classification confidence — shown as `Pipeline Stage (detected)` vs `Pipeline Stage (inferred)` |
+| `iac` project type support | See Phase 9 |
+
+---
+
+## Phase 12 — Document completeness audit script — verify_docs.py (future)
+
+There is currently no automated way to check whether a project of a given type has created all its Required documents. An agent retrofitting a Data Pipeline project could skip `pipeline-debug.md` without any warning — the gap would only surface during a manual review.
+
+**Goal:** A script that cross-references the declared project type against the document matrix and reports missing Required and Optional documents in `docs/`.
+
+### Planned changes
+
+| File | Change |
+|---|---|
+| `docs/script/verify_docs.py` | New script — see spec below |
+| `README.md` | Document `verify_docs.py` usage alongside `scan_codebase.py` |
+| `document-purposes-common.md` | Add `verify_docs.py` entry under Scripts section |
+
+**`verify_docs.py` spec:**
+
+```
+Usage:
+  python3 docs/script/verify_docs.py --project-type TYPE
+  python3 docs/script/verify_docs.py --project-type TYPE --docs PATH
+  python3 docs/script/verify_docs.py --project-type TYPE --json
+
+Options:
+  --project-type TYPE   Declared project type (same values as scan_codebase.py)
+  --docs PATH           Path to docs/ directory (default: docs)
+  --strict              Exit with code 1 if any Required document is missing
+  --json                Output results as JSON for agent consumption
+```
+
+**Output per document:**
+
+| Status | Meaning |
+|---|---|
+| ✅ Present | File exists in docs/ |
+| ❌ Missing Required | File is Required for this type and does not exist |
+| ⚠️ Missing Optional | File is Optional for this type and does not exist |
+| — N/A | File is not applicable for this type |
+| 🔍 Orphan | File exists in docs/ but is not in the matrix for this type |
+
+**Hybrid type support:** `--project-type data-pipeline+web-app` runs the union of both type matrices.
+
+The script reads the required/optional/N/A mapping from a hardcoded matrix in the script itself (derived from `document-matrix.md` at implementation time) so it has no runtime dependency on the template files — it works in any project that copied this framework's scripts.
