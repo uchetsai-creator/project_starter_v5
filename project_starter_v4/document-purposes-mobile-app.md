@@ -34,8 +34,8 @@ Update when (if listed in current-state.md → Doc Checklist, update at task lev
 * A new OS permission is required or an existing one is removed
 * A push notification payload schema changes
 
-### distribution.md (Mobile App section)
-**Applies to: Mobile App** (also: Library / SDK, CLI Tool)
+### distribution.md
+**Applies to: Mobile App** (also: Library / SDK, CLI Tool — see those sections for package/binary distribution)
 
 Purpose for Mobile App:
 Documents the app-store build and submission pipeline. Covers: build tooling (Fastlane /
@@ -68,8 +68,8 @@ Update when:
 
 ## Architecture (docs/architecture/)
 
-### frontend.md (Mobile App section)
-**Applies to: Mobile App** (also: Web App, Microservices with UI)
+### frontend.md
+**Applies to: Mobile App** (also: Web App, Microservices with UI — those sections use page-based structure)
 
 Purpose for Mobile App:
 Documents screen-based structure, navigation pattern, component / widget strategy, and

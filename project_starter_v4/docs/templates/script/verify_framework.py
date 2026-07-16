@@ -3,7 +3,8 @@
 verify_framework.py — Internal consistency audit for the project_starter_v4 framework.
 
 Checks that file references, token budget, document matrix, sprint-sync checklist,
-document-purposes coverage, and cross-references are all in sync.
+document-purposes coverage, cross-references, type completeness, and script type
+synchronization are all in sync.
 Run after each Phase before merging.
 
 Usage:
@@ -40,7 +41,12 @@ PURPOSES_FILES = {
     "microservices": "document-purposes-microservices.md",
     "llm-app":       "document-purposes-llm-app.md",
     "iac":           "document-purposes-iac.md",
+    "mobile-app":    "document-purposes-mobile-app.md",
 }
+
+# Init file slugs to skip when extracting types from AGENTS.md
+# (these appear in AGENTS.md but are not project types)
+INIT_SKIP = {"document-matrix", "retrofit"}
 
 # Templates that exist for supplementary use but are intentionally absent from
 # the R/O/N matrix (project teams use them if needed — they're not type-gated).
@@ -82,7 +88,7 @@ def parse_matrix(content: str) -> dict[str, dict[str, str]]:
         "Web App": "web-app", "CLI": "cli-tool", "Library": "library",
         "Data Pipeline": "data-pipeline", "ML Pipeline": "ml-pipeline",
         "Microservices": "microservices", "AI / LLM App": "llm-app",
-        "IaC / DevOps": "iac",
+        "IaC / DevOps": "iac", "Mobile App": "mobile-app",
     }
     SYMBOL_MAP = {"✅": "R", "⚠️": "O", "❌": "N"}
 
@@ -338,6 +344,91 @@ def check_cross_references(matrix: dict) -> list[dict]:
     return issues
 
 
+def check_type_completeness() -> list[dict]:
+    """Check 7: For every type slug in AGENTS.md's init table:
+    - docs/templates/init/[slug].md exists
+    - document-purposes-[slug].md exists
+    - type is registered in PURPOSES_FILES (so purposes-coverage check covers it)
+    """
+    content = read_text(AGENTS_MD)
+    slugs = sorted({
+        m.group(1)
+        for m in re.finditer(r'templates/init/([a-z][a-z-]+)\.md', content)
+        if m.group(1) not in INIT_SKIP
+    })
+
+    issues = []
+    for slug in slugs:
+        init_path = TEMPLATES_DIR / "init" / f"{slug}.md"
+        purposes_path = PURPOSES_DIR / f"document-purposes-{slug}.md"
+
+        if not init_path.exists():
+            issues.append(_issue("type-completeness", "fail",
+                                 f"`{slug}`: init file missing — docs/templates/init/{slug}.md"))
+
+        if not purposes_path.exists():
+            issues.append(_issue("type-completeness", "fail",
+                                 f"`{slug}`: purposes file missing — document-purposes-{slug}.md"))
+
+        if slug not in PURPOSES_FILES:
+            issues.append(_issue("type-completeness", "warn",
+                                 f"`{slug}` not in PURPOSES_FILES — purposes-coverage check will skip it"))
+
+    if not issues:
+        return [_issue("type-completeness", "pass",
+                       f"All {len(slugs)} types have init file + purposes file + are registered")]
+    return issues
+
+
+def check_script_type_sync() -> list[dict]:
+    """Check 8: scan_codebase.py and verify_docs.py declare the same set of project types."""
+    scan_path  = TEMPLATES_DIR / "script" / "scan_codebase.py"
+    verify_path = TEMPLATES_DIR / "script" / "verify_docs.py"
+
+    for p in (scan_path, verify_path):
+        if not p.exists():
+            return [_issue("script-type-sync", "error", f"{p.name} not found")]
+
+    # Extract keys from MODULE_VOCAB dict in scan_codebase.py
+    scan_types: set[str] = set()
+    in_vocab = False
+    for line in scan_path.read_text(encoding="utf-8").splitlines():
+        if "MODULE_VOCAB" in line and "dict" in line:
+            in_vocab = True
+        if in_vocab:
+            m = re.search(r'"([a-z][a-z-]+)":\s+\(', line)
+            if m:
+                scan_types.add(m.group(1))
+            if line.strip() == "}":
+                in_vocab = False
+
+    # Extract values from VALID_TYPES list in verify_docs.py
+    verify_types: set[str] = set()
+    in_valid = False
+    for line in verify_path.read_text(encoding="utf-8").splitlines():
+        if re.match(r"\s*VALID_TYPES\s*=\s*\[", line):
+            in_valid = True
+        if in_valid:
+            for m in re.finditer(r"'([a-z][a-z-]+)'", line):
+                verify_types.add(m.group(1))
+            if "]" in line and "VALID_TYPES" not in line:
+                in_valid = False
+
+    issues = []
+    for t in sorted(scan_types - verify_types):
+        issues.append(_issue("script-type-sync", "fail",
+                             f"`{t}` in scan_codebase.py MODULE_VOCAB but NOT in verify_docs.py VALID_TYPES"))
+    for t in sorted(verify_types - scan_types):
+        issues.append(_issue("script-type-sync", "fail",
+                             f"`{t}` in verify_docs.py VALID_TYPES but NOT in scan_codebase.py MODULE_VOCAB"))
+
+    if not issues:
+        return [_issue("script-type-sync", "pass",
+                       f"scan_codebase.py and verify_docs.py share the same {len(scan_types)} types: "
+                       f"{', '.join(sorted(scan_types))}")]
+    return issues
+
+
 # ---------------------------------------------------------------------------
 # Issue factory and output
 # ---------------------------------------------------------------------------
@@ -353,6 +444,8 @@ CHECK_ORDER = [
     "sprint-sync",
     "purposes-coverage",
     "cross-ref",
+    "type-completeness",
+    "script-type-sync",
 ]
 
 CHECK_LABELS = {
@@ -362,6 +455,8 @@ CHECK_LABELS = {
     "sprint-sync":       "Sprint-sync coverage",
     "purposes-coverage": "Per-type purposes coverage   (Required docs only)",
     "cross-ref":         "Cross-reference integrity    (document-purposes → templates)",
+    "type-completeness": "Type completeness            (init file + purposes file per type)",
+    "script-type-sync":  "Script type sync             (scan_codebase.py ↔ verify_docs.py)",
 }
 
 LEVEL_ICON = {"pass": "✅", "warn": "⚠️ ", "fail": "❌", "error": "❌"}
@@ -441,6 +536,8 @@ def main():
     all_issues += check_sprint_sync_coverage(matrix)
     all_issues += check_purposes_coverage(matrix)
     all_issues += check_cross_references(matrix)
+    all_issues += check_type_completeness()
+    all_issues += check_script_type_sync()
 
     if args.json_output:
         print(json.dumps(
