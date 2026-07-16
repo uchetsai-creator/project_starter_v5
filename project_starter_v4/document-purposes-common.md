@@ -263,7 +263,7 @@ is injected here so readers get a visual of the frontend structure before diving
 
 Update when:
 * Sprint Documentation Sync runs — add files touched during the sprint, refresh tree view
-* Re-run `python3 docs/script/scan_codebase.py <src_dir> --update docs/codebase-map.md`
+* Re-run `python3 docs/script/scan_codebase.py <src_dir> --project-type <type> --update docs/codebase-map.md`
   to refresh the tree view and coverage summary
 * Frontend page/screen structure changes — update the component block in this file
 
@@ -294,6 +294,12 @@ Purpose:
 Scans the source directory and reports which modules are documented, undocumented,
 or shared/infrastructure. Outputs a project tree (from project root) with `←` annotations
 and documentation coverage icons.
+
+Pass `--project-type <type>` to use project-appropriate vocabulary in labels and coverage output
+(e.g. "Pipeline Stage" for data-pipeline / ml-pipeline, "Command" for cli-tool,
+"Namespace" for library, "Service" for microservices, "Feature" for web-app / llm-app).
+Valid values: `web-app` | `cli-tool` | `library` | `data-pipeline` | `ml-pipeline` | `microservices` | `llm-app`.
+Without `--project-type`, the script falls back to heuristic folder-name detection.
 
 Run at the start of a retrofit (Step 1b) to inventory all modules before documentation begins.
 Run again after Step 3 to confirm full coverage.

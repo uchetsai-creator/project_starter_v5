@@ -34,7 +34,7 @@ project_starter/                     ← this repo (template only)
 ├── document-purposes-data-pipeline.md ← document purposes for Data Pipeline projects
 ├── document-purposes-ml-pipeline.md ← document purposes for ML Pipeline projects
 ├── document-purposes-microservices.md ← document purposes for Microservices projects
-└── document-purposes-llm-app.md     ← document purposes for AI / LLM App projects
+├── document-purposes-llm-app.md     ← document purposes for AI / LLM App projects
 └── templates/
     ├── project-requirements.md      ← project scope, goals, edge cases, acceptance criteria
     ├── project-plan.md              ← sprint/task breakdown per feature
@@ -118,7 +118,7 @@ project_starter/                     ← this repo (template only)
         ├── plantuml.jar             ← PlantUML renderer (download separately, see below)
         ├── schema_to_html.py        ← Prisma/SQL schema → ERD (interactive HTML + static SVG)
         ├── build_pdf.py             ← renders all ```plantuml blocks via PlantUML + merges docs/ into PDF
-        ├── scan_codebase.py         ← scans src/ and reports which modules are undocumented
+        ├── scan_codebase.py         ← scans src/ and reports which modules are undocumented; use --project-type to classify by type
         └── pdf_allowlist.py         ← single source of truth for which files appear in the PDF
 ```
 
@@ -142,10 +142,12 @@ The root files are the same for every type:
 
 ```
 new_project/
-├── AGENTS.md                ← declare Project Type at the top
+├── AGENTS.md                        ← declare Project Type at the top
 ├── debug-instrumentation-rules.md
 ├── code-quality-check.md
-├── document-purposes.md
+├── document-purposes.md             ← index: maps project type → per-type file
+├── document-purposes-common.md      ← loaded by all types
+├── document-purposes-<type>.md      ← loaded for your declared type (e.g. document-purposes-web-app.md)
 └── docs/
     ├── project-requirements.md
     ├── project-plan.md
@@ -332,7 +334,8 @@ The flow has five steps:
 4. **Fill in architecture and spec documents** — describe what actually exists, not what should exist.
    Templates are architecture-agnostic — use your actual layer names, not assumed patterns
 5. **Fill in module flow files** — one module at a time. Each module is classified as
-   Feature, Background Job, or Shared Utility — each type has its own flow format
+   Feature, Background Job, Pipeline Stage, Command, Namespace, Service, or Shared Utility —
+   each type has its own flow format
 6. **Fill in project status** — reconstruct requirements, mark existing modules as completed in
    project-plan.md, generate the PDF
 
@@ -397,15 +400,23 @@ Before documenting an existing codebase, run the inventory scan to get an object
 what exists and what is already documented:
 
 ```bash
-# Show tree view + coverage report
+# Show tree view + coverage report (auto-detects module type from folder names)
 python3 docs/script/scan_codebase.py src
 
+# Explicit project type — uses correct vocabulary (Feature / Pipeline Stage / Command / Namespace / Service)
+python3 docs/script/scan_codebase.py src --project-type data-pipeline
+python3 docs/script/scan_codebase.py src --project-type web-app
+python3 docs/script/scan_codebase.py src --project-type cli-tool
+# Valid values: web-app | cli-tool | library | data-pipeline | ml-pipeline | microservices | llm-app
+
 # Update the Project Structure and Coverage Summary sections in codebase-map.md automatically
-python3 docs/script/scan_codebase.py src --update docs/codebase-map.md
+python3 docs/script/scan_codebase.py src --project-type web-app --update docs/codebase-map.md
 ```
 
-The scan detects folder names to classify folders as Feature, Background Job, or
-Shared/Infrastructure. Re-run at the end of Step 3 (retrofit) to confirm full coverage.
+The scan detects folder names to classify folders by module type. Pass `--project-type` to
+use the correct vocabulary for your project (e.g. Pipeline Stage for data pipelines,
+Command for CLI tools, Namespace for libraries, Service for microservices).
+Re-run at the end of Step 3 (retrofit) to confirm full coverage.
 
 ---
 
@@ -476,11 +487,13 @@ and `specs/prompts/*-prompt.md` are auto-scanned and do not need to be added man
   do not assume any specific layering pattern or language. Use your actual layer names and
   logger API — the templates provide structure, not prescription.
 - **Module inventory before documentation**: the retrofit flow requires running `scan_codebase.py`
-  and getting user confirmation before any documentation is written — so undocumented modules
-  are caught at the start, not discovered at the end.
-- **Four module types**: Feature (request-driven), Background Job (event/schedule-driven),
-  Pipeline Stage (data-contract-driven, for Data Pipeline and ML Pipeline projects), and
-  Shared Utility (no entry point). Each has its own flow format in `module-data-flow.md`.
+  (with `--project-type` for correct vocabulary) and getting user confirmation before any
+  documentation is written — so undocumented modules are caught at the start, not discovered at the end.
+- **Six module types**: Feature (request-driven), Background Job (event/schedule-driven),
+  Pipeline Stage (data-contract-driven, Data Pipeline / ML Pipeline), Command (CLI Tool),
+  Namespace (Library / SDK), Service (Microservices), and Shared Utility (no entry point).
+  Each has its own flow format in `module-data-flow.md`. `scan_codebase.py --project-type`
+  selects the correct label automatically.
 - **Six-chapter PDF structure**: the generated PDF is organized into Introduction / Plan /
   Design / Build / Test / Deployment — matching standard system analysis document conventions.
   The chapter each file belongs to is configured in `pdf_allowlist.py`.
