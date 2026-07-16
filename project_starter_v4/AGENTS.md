@@ -56,39 +56,8 @@ Project Type: AI / LLM Application + Web App
 Documents are NOT split into separate folders — all docs live in the same `docs/` folder.
 The second type's documents simply join the first type's `docs/specs/` or `docs/architecture/`.
 
-**Document matrix — Required (✅) / Optional (⚠️) / Not applicable (❌):**
-
-| Document | Web App | CLI | Library | Data Pipeline | ML Pipeline | Microservices | AI / LLM App |
-|---|---|---|---|---|---|---|---|
-| `architecture.md` | ✅ | ✅ | ⚠️ | ✅ | ✅ | ✅ | ✅ |
-| `backend.md` | ✅ | ✅ | ❌ | ✅ | ✅ | per-service | ⚠️ if >script |
-| `frontend.md` | ⚠️ if UI | ❌ | ❌ | ❌ | ❌ | ⚠️ if UI | ⚠️ if UI |
-| `database.md` | ✅ | ⚠️ if DB | ❌ | ✅ | ✅ | per-service | ⚠️ if storing history |
-| `deployment.md` | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ⚠️ if hosted |
-| `distribution.md` | ❌ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| `api-contract.md` | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ (external API) | ⚠️ if exposing API |
-| `cli-contract.md` | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ⚠️ if CLI-based |
-| `public-api.md` | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| `pipeline-contract.md` | ❌ | ❌ | ❌ | ✅ | ✅ | ❌ | ❌ |
-| `llm-contract.md` | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| `prompt-library.md` | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| `eval-spec.md` | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| `rag-contract.md` | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ⚠️ if using RAG |
-| `mcp-contract.md` | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ⚠️ if using MCP |
-| `service-catalog.md` | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ |
-| `service-contract.md` | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ |
-| `model-contract.md` | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ | ❌ |
-| `experiment-log.md` | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ | ❌ |
-| `release-guide.md` | ❌ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| `compatibility-matrix.md` | ❌ | ⚠️ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| `permissions.md` | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ | ⚠️ if multi-user |
-| `data-model.md` | ✅ | ⚠️ if DB | ❌ | ✅ | ✅ | per-service | ⚠️ if storing history |
-| `business-process.md` | ✅ | ⚠️ | ❌ | ⚠️ | ❌ | ✅ | ❌ |
-| `business-objects.md` | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ |
-| `business-rules.md` | ✅ | ⚠️ | ❌ | ✅ | ⚠️ | ✅ | ⚠️ if domain rules |
-| `logging-spec.md` | ✅ | ✅ | ❌ | ✅ | ✅ | ✅ | ⚠️ if >script |
-| `research.md` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `quickstart.md` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+**Document matrix (Required/Optional/N/A by project type):** `templates/init/document-matrix.md`
+Load only when initializing or retrofitting — not during normal task work.
 
 ---
 
@@ -111,96 +80,10 @@ For mixed / hybrid types, load each relevant init file and union the step lists 
 
 ---
 
-If retrofitting an existing project (code already exists, no docs yet):
+## Retrofitting an Existing Project
 
-The goal is to describe what already exists — not to redesign it. Read the codebase first, then fill in the documents to reflect reality.
-
-Do not scan the entire repository at once. Work module by module.
-
-Step 1 — Understand the system (read before writing anything):
-1. Read the entry point to understand the overall structure
-   (e.g. main file, router, app bootstrap, CLI entry, index)
-2. Read the data layer to understand the data model
-   (e.g. Prisma schema, SQL DDL, ORM models, migration files)
-3. Read one complete vertical slice to understand the layering pattern
-   (e.g. controller → service → repository, view → serializer → model, handler → usecase → store)
-
-Step 1b — Run the module inventory scan:
-
-   python3 docs/script/scan_codebase.py <src_dir> --docs docs
-
-Review the output with the user:
-- ✅ folders are confirmed as documented
-- ❌ folders → ask the user: "Is this a module that needs documentation, a shared utility, or something else?"
-- — folders → confirm they do not need a flow file
-
-Classify every folder before proceeding. Do not proceed until the user confirms the inventory is complete.
-
-Step 1c — Code Quality Check:
-Read and follow code-quality-check.md. Do not proceed to Step 2 until the check is complete and acknowledged by the user.
-
-Step 2 — Fill in architecture and spec documents (describe what exists):
-1. Create docs/architecture/architecture.md — describe the actual components and data flows found.
-   Then run: `# Edit the ```plantuml block in architecture.md, then rebuild PDF`
-   Note: the architecture diagram is injected into `architecture/architecture.md` by `build_pdf.py`.
-   The page structure component diagram (from `codebase-map.md`) is injected into `codebase-map.md`
-   — run `# Edit the ```plantuml block in codebase-map.md, then rebuild PDF` after updating the
-   component block in codebase-map.md.
-2. Create docs/architecture/backend.md — describe the actual stack, layering, and module pattern.
-   Use the real layer names from the codebase — do not assume Controller/Service/Repository.
-   Then run: `# Edit the ```plantuml block in backend.md, then rebuild PDF`
-3. Create docs/architecture/frontend.md (if applicable) — describe the actual frontend structure.
-   Then run: `# Edit the ```plantuml block in frontend.md, then rebuild PDF`
-4. Create docs/architecture/database.md — describe the actual entities and key relationships.
-5. Create docs/architecture/deployment.md — describe the actual services, startup flow, and deployment topology.
-   Then run: `# Edit the ```plantuml block in deployment.md, then rebuild PDF`
-6. Create docs/specs/data-model.md — fill in from the actual schema file.
-   Then run: `Edit the ```plantuml block in the file, then run build_pdf.py`
-   (output must go inside docs/ so build_pdf.py can find it)
-   Then run: `# Edit the ```plantuml block in data-model.md, then rebuild PDF`
-7. Create docs/specs/api-contract.md — fill in from the actual routes and controllers.
-8. Create docs/specs/permissions.md — fill in from the actual auth middleware and role logic.
-   Then run: `# Edit the ```plantuml block in permissions.md, then rebuild PDF`
-9. Create docs/business/business-process.md — describe the actual business workflows supported.
-10. Create docs/business/business-objects.md — describe the actual business entities.
-11. Create docs/business/business-rules.md — describe the actual constraints enforced in code.
-12. Create docs/specs/research.md — document the technology choices already made and why (if known).
-
-Step 3 — Fill in module flow files (one module at a time, following the confirmed inventory from Step 1b):
-
-For each module in the confirmed inventory:
-0. Verify docs/modules/module-data-flow.md contains a "## Module Types" section defining
-   Feature / Background Job / Shared Utility. If it is missing (older copy of this template),
-   copy the current templates/modules/module-data-flow-v2.md content into it before proceeding —
-   do not invent your own module type definitions.
-1. Determine the module type: Feature / Background Job / Shared Utility
-   (follow the rules in docs/modules/module-data-flow.md)
-2. Create docs/modules/[module]/[module]-module-data-flow.md following the matching format.
-   Use real function names and file paths from the actual code.
-   Then run: `Edit the ```plantuml block in the file, then run build_pdf.py`
-3. Update docs/modules/module-data-flow.md index with the new module entry.
-4. Update docs/codebase-map.md with the files in this module.
-
-After all modules are documented, re-run the inventory scan to confirm full coverage:
-   python3 docs/script/scan_codebase.py <src_dir> --docs docs
-If any ❌ remain, document those modules before proceeding to Step 4.
-
-Step 4 — Fill in project status documents:
-1. Create docs/project-requirements.md — reconstruct from the actual features that exist.
-   Mark anything uncertain as [NEEDS CLARIFICATION].
-2. Create docs/project-plan.md — list all modules found. Mark all existing ones as completed.
-   Add any known remaining work as incomplete tasks.
-3. Create docs/current-state.md — set the Current Task to the next incomplete item in project-plan.md,
-   or write "Documentation retrofit complete — ready for new tasks" if everything is done.
-
-Step 5 — Generate the PDF:
-
-Before running build_pdf.py, verify flow tables are not empty:
-1. Open `docs/modules/module-data-flow.md` — if the Module Flow Files table contains only placeholder rows (no real module names), Step 3 is incomplete. Finish all module flow files first.
-2. Open `docs/modules/module-flow.md` — same check for the Flow Files table.
-Do not generate the PDF with empty flow index tables.
-
-`python3 docs/script/build_pdf.py docs --lang en -o docs/project-documentation-en.pdf`
+Load `templates/init/retrofit.md` for the full step-by-step retrofit procedure (Steps 1–5).
+Not needed during normal task work on an established project.
 
 ---
 
@@ -276,10 +159,10 @@ current-state.md is a state machine with two fields:
 - **Next Task** → pre-filled when current task was set up; becomes the new Current Task on closeout
 
 **When setting up a new Current Task** (not at closeout):
-- Filter the full Document Update Checklist in AGENTS.md down to only items relevant to this task.
+- Use the quick filter guide in `docs/current-state.md → Doc Checklist` comment block to populate the checklist.
+  For task types not covered by the quick filter, load `templates/sprint-sync.md → Document Update Checklist`.
 - Write the filtered list into `docs/current-state.md → Doc Checklist`.
-- This is the ONLY time you open AGENTS.md during normal task work.
-- This filtered list is NOT the full 18-item Document Update Checklist (which runs at Sprint Documentation Sync only).
+- Do not re-open AGENTS.md at task closeout — the filtered list in current-state.md is sufficient.
 
 **When all Steps are done and Verify passes**, follow **## Task Completion** below — all current-state.md edits happen there, once. No external files need to be read at closeout.
 

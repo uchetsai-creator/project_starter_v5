@@ -68,10 +68,9 @@
 
 <!--
   WHEN TO FILL: when this task is first set up — not at closeout.
-  This is the ONLY time you open AGENTS.md → Document Update Checklist during normal task work.
-
-  HOW TO FILL: filter the full Document Update Checklist in AGENTS.md down to only items
-  that could be triggered by this specific task:
+  HOW TO FILL: use the quick filter guide below to identify which docs need updating.
+  For task types not listed below, load `templates/sprint-sync.md → Document Update Checklist`.
+  Do not load AGENTS.md for this — the guide below covers all standard task types.
   - DB schema task          → keep: data-model.md, database.md, business-objects.md
   - BE endpoint task        → keep: api-contract.md, permissions.md, module-data-flow.md, module-flow.md, logging-spec.md
   - FE task                 → keep: frontend.md, codebase-map.md (page structure)
