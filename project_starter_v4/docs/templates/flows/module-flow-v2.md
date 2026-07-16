@@ -77,10 +77,15 @@ title [Flow Name]
 
 "[Client]"    -> "[Service A]" : [method or HTTP call]
 "[Service A]" -> "[Service B]" : [method call]
-"[Service A]" <-- "[Service B]" : [response]
-"[Service A]" -> "[Service C]" : [method call]
-"[Service A]" <-- "[Service C]" : [response]
-"[Client]"    <-- "[Service A]" : [final response]
+alt success
+  "[Service A]" <-- "[Service B]" : [response]
+  "[Service A]" -> "[Service C]" : [method call]
+  "[Service A]" <-- "[Service C]" : [response]
+  "[Client]"    <-- "[Service A]" : [final response]
+else error
+  "[Service A]" <-- "[Service B]" : [error / exception]
+  "[Client]"    <-- "[Service A]" : [error response]
+end
 @enduml
 \`\`\`
 

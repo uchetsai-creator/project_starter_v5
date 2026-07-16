@@ -334,6 +334,11 @@ class [YourOutputWriterClass] {
 }
 
 [YourStageClass] --> [YourOutputWriterClass] : produces
+
+note bottom of [YourStageClass]
+  InputType / OutputType must match
+  the contracts defined in pipeline-contract.md
+end note
 @enduml
 ```
 

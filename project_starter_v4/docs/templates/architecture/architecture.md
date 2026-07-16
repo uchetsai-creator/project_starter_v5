@@ -118,6 +118,13 @@ CompC -down-> DB    : TCP
 ' System Component Structure
 ' Shows code-level layering of the whole system.
 ' Replace layer names with actual names from frontend.md / backend.md / database.md.
+'
+' Adapt packages to your project type:
+'   Web App / AI App  → keep Frontend + Backend + Storage as shown
+'   Data Pipeline     → Entry Layer + Processing + Storage  (delete Frontend package)
+'   ML Pipeline       → Data Prep + Training + Serving      (delete Frontend package)
+'   CLI Tool          → CLI Entry + Processing + Storage    (delete Frontend package)
+'   Remove Frontend package entirely if this project has no UI.
 
 skinparam componentStyle uml2
 
@@ -126,13 +133,13 @@ package "Frontend" {
 }
 
 package "Backend" {
-  component "[Entry point — Router / Controller / Handler]" as BE1
-  component "[Application layer — Service / UseCase]"       as BE2
-  component "[Data layer — Repository / Store]"              as BE3
+  component "[Entry point — Router / Controller / Handler / Stage]" as BE1
+  component "[Application layer — Service / UseCase / Transformer]" as BE2
+  component "[Data layer — Repository / Store / Writer]"             as BE3
 }
 
 package "Storage" {
-  database "[Data store — PostgreSQL / MongoDB / etc.]" as DB
+  database "[Data store — PostgreSQL / MongoDB / S3 / etc.]" as DB
 }
 
 FE  -down-> BE1 : HTTP / WebSocket
