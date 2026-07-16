@@ -31,6 +31,31 @@ The type gates which documents are required and which are N/A — do not create 
 | **Microservices** | Multiple independently deployed services communicating via API or events |
 | **AI / LLM Application** | Chatbot, copilot, or agent built on a foundation model; prompt-driven, no model training |
 
+### Mixed / Hybrid Project Types
+
+Some projects genuinely span more than one type. Declare both types using `+`:
+
+```
+Project Type: Data Pipeline + Web App
+Project Type: CLI Tool + Library
+Project Type: ML Pipeline + Web App
+Project Type: AI / LLM Application + Web App
+```
+
+**Document rule for hybrid projects:** create all documents that are Required (✅) or Optional (⚠️) for ANY of the declared types. Skip only documents that are N/A (❌) for ALL declared types.
+
+**Common combinations:**
+
+| Combination | What the second type adds |
+|---|---|
+| Data Pipeline + Web App | `api-contract.md`, `permissions.md`, `frontend.md` (dashboard/admin UI) |
+| CLI Tool + Library | `public-api.md`, `compatibility-matrix.md` (the tool also ships as an importable package) |
+| ML Pipeline + Web App | `api-contract.md`, `permissions.md` (model served via REST endpoint) |
+| AI / LLM App + Web App | `api-contract.md`, `frontend.md`, `deployment.md` (hosted chatbot with UI) |
+
+Documents are NOT split into separate folders — all docs live in the same `docs/` folder.
+The second type's documents simply join the first type's `docs/specs/` or `docs/architecture/`.
+
 **Document matrix — Required (✅) / Optional (⚠️) / Not applicable (❌):**
 
 | Document | Web App | CLI | Library | Data Pipeline | ML Pipeline | Microservices | AI / LLM App |

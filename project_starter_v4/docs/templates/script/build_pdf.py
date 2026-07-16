@@ -25,7 +25,9 @@ Usage:
 
   --lang en              Section labels and UI text in English (default)
   --lang zh              Section labels and UI text in Traditional Chinese
-  --project-type TYPE    Filter PDF to only include documents relevant to this project type.
+  --project-type TYPE    Filter PDF to only include documents relevant to the project type(s).
+                         Comma-separate multiple types for hybrid projects:
+                           --project-type data-pipeline,web-app
                          Valid values: web-app, cli-tool, library, data-pipeline,
                                        ml-pipeline, microservices, llm-app
                          Omit to include all files that exist (backward-compatible default).
@@ -183,14 +185,14 @@ def find_allowed_files(docs_dir, strings, project_type=None):
     """Return (rel, abs_path, section_label) for every allowlisted file that exists
     and applies to the given project_type. log-*.md files are intentionally excluded.
 
-    project_type: one of the type strings defined in pdf_allowlist.py, or None to
-                  include all entries regardless of type (backward-compatible default).
+    project_type: frozenset of type strings (supports hybrid projects, e.g. {"data-pipeline","web-app"}),
+                  or None to include all entries regardless of type (backward-compatible default).
     """
     result = []
     seen = set()
 
     for section_key, rel, types in PDF_ALLOWLIST:
-        if project_type is not None and project_type not in types:
+        if project_type is not None and not (project_type & types):
             continue
         abs_path = os.path.join(docs_dir, rel)
         section_label = strings["sections"][section_key]
@@ -199,16 +201,14 @@ def find_allowed_files(docs_dir, strings, project_type=None):
             seen.add(rel)
         else:
             if project_type is not None:
-                # Only warn for files that are expected for this project type
-                from pdf_allowlist import ALL
-                required = types - {"llm-app"} if project_type != "llm-app" else types
-                print(f"Warning: expected file not found for {project_type}, skipping: {rel}")
+                print(f"Warning: expected file not found for "
+                      f"{'+'.join(sorted(project_type))}, skipping: {rel}")
             # silently skip files that don't exist when no project type is set
 
     def _should_scan(pattern):
         if project_type is None:
             return True
-        return project_type in AUTO_SCAN_TYPES.get(pattern, set())
+        return bool(project_type & AUTO_SCAN_TYPES.get(pattern, frozenset()))
 
     flows_label = strings["sections"]["build"]
     if _should_scan("modules/*/*-module-data-flow.md"):
@@ -330,14 +330,14 @@ def find_plantuml_diagrams(docs_dir, png_cache_dir, project_type=None):
     # Collect md files from allowlist + auto-scanned patterns
     md_files = set()
     for _, rel, types in PDF_ALLOWLIST:
-        if project_type is not None and project_type not in types:
+        if project_type is not None and not (project_type & types):
             continue
         abs_path = os.path.join(docs_dir, rel)
         if os.path.exists(abs_path):
             md_files.add(abs_path)
     # Also scan auto-included files not in the static allowlist
     for pattern, types in AUTO_SCAN_TYPES.items():
-        if project_type is not None and project_type not in types:
+        if project_type is not None and not (project_type & types):
             continue
         for p in glob.glob(os.path.join(docs_dir, pattern)):
             md_files.add(p)
@@ -769,7 +769,7 @@ def parse_args():
             lang = args[i + 1]
             i += 2
         elif a == "--project-type" and i + 1 < len(args):
-            project_type = args[i + 1]
+            project_type = frozenset(t.strip() for t in args[i + 1].split(","))
             i += 2
         elif a == "--clean":
             clean = True
@@ -784,10 +784,12 @@ def parse_args():
         print(f"Unsupported language '{lang}'. Available: {', '.join(STRINGS)}")
         sys.exit(1)
 
-    if project_type is not None and project_type not in VALID_PROJECT_TYPES:
-        print(f"Unsupported project type '{project_type}'.")
-        print(f"Available: {', '.join(sorted(VALID_PROJECT_TYPES))}")
-        sys.exit(1)
+    if project_type is not None:
+        invalid = project_type - VALID_PROJECT_TYPES
+        if invalid:
+            print(f"Unsupported project type(s): {', '.join(sorted(invalid))}")
+            print(f"Available: {', '.join(sorted(VALID_PROJECT_TYPES))}")
+            sys.exit(1)
 
     if not output_path:
         output_path = os.path.join(docs_dir, f"project-documentation-{lang}.pdf")
@@ -811,7 +813,7 @@ def main():
     os.makedirs(png_cache_dir, exist_ok=True)
 
     if project_type:
-        print(f"Project type: {project_type}")
+        print(f"Project type: {' + '.join(sorted(project_type))}")
 
     # Legacy: find manually-generated SVG/HTML pairs (e.g. schema ERD)
     html_svg_pairs = find_html_svg_pairs(docs_dir)

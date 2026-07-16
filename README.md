@@ -251,6 +251,24 @@ docs/modules/
     └── [module]-module-data-flow.md
 ```
 
+### Mixed / Hybrid Project Types
+
+Some projects span more than one type. Declare both using `+` in `AGENTS.md` and take the union
+of their required documents — everything goes in the same `docs/` folder.
+
+```
+Project Type: Data Pipeline + Web App
+```
+
+Common combinations and what the second type adds:
+
+| Combination | Extra docs from second type |
+|---|---|
+| Data Pipeline + Web App | `api-contract.md`, `permissions.md`, `frontend.md` (dashboard) |
+| CLI Tool + Library | `public-api.md`, `compatibility-matrix.md` |
+| ML Pipeline + Web App | `api-contract.md`, `permissions.md` (serving endpoint) |
+| AI / LLM App + Web App | `api-contract.md`, `frontend.md`, `deployment.md` |
+
 `AGENTS.md` drives initialization automatically — declare the project type at the top of your
 project's `AGENTS.md` and the agent will create each file in the correct order for that type.
 
@@ -398,12 +416,20 @@ with a clickable link to the original interactive HTML.
 ```bash
 pip install markdown weasyprint cairosvg --break-system-packages
 
-# English PDF (runs automatically when a module completes)
+# English PDF — filter to project type (recommended)
+python3 docs/script/build_pdf.py docs --lang en --project-type data-pipeline -o docs/project-documentation-en.pdf
+
+# Hybrid project — comma-separate types
+python3 docs/script/build_pdf.py docs --lang en --project-type data-pipeline,web-app -o docs/project-documentation-en.pdf
+
+# No type filter — include all files that exist (backward-compatible)
 python3 docs/script/build_pdf.py docs --lang en -o docs/project-documentation-en.pdf
 
 # Chinese PDF (manual, only when needed)
-python3 docs/script/build_pdf.py docs-zh --lang zh -o docs/project-documentation-zh.pdf
+python3 docs/script/build_pdf.py docs-zh --lang zh --project-type data-pipeline -o docs/project-documentation-zh.pdf
 ```
+
+Valid `--project-type` values: `web-app`, `cli-tool`, `library`, `data-pipeline`, `ml-pipeline`, `microservices`, `llm-app`
 
 Google Translate (free, no API key needed), preserving code blocks, inline code, HTML comments,
 and table structure. It mirrors the translated files into `docs-zh/`, which `build_pdf.py` then
@@ -414,8 +440,8 @@ reads exactly like `docs/`.
 
 To add a new document to the PDF, add it to **`docs/script/pdf_allowlist.py`** only —
 `build_pdf.py` imports from it automatically. Note that
-`business/*-process.md`, `business/*-object.md`, and `modules/*/*-module-data-flow.md`
-are auto-scanned and do not need to be added manually.
+`business/*-process.md`, `business/*-object.md`, `modules/*/*-module-data-flow.md`,
+and `specs/prompts/*-prompt.md` are auto-scanned and do not need to be added manually.
 
 ---
 
