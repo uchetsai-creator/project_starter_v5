@@ -160,3 +160,74 @@ PageB -down-> API
 SvcA  -down-> API
 @enduml
 ```
+
+---
+
+## Mobile App Variant
+
+<!--
+  Fill in this section instead of the web sections above when project type is Mobile App.
+  Delete the web sections (Stack / Page Structure / Component Strategy / Data Fetching /
+  Shared UI Standards / Component Structure) if this is a pure mobile project.
+-->
+
+### Platform & Framework
+
+| Property | Value |
+|---|---|
+| Framework | [React Native / Flutter / SwiftUI / Jetpack Compose] |
+| Language | [TypeScript / Dart / Swift / Kotlin] |
+| Platforms | [iOS / Android / both] |
+| Styling | [StyleSheet / NativeWind / styled-components / Tailwind (RN) / Theme system (Flutter)] |
+| Navigation | [React Navigation / Expo Router / Flutter Navigator 2.0 / UIKit / Jetpack Navigation] |
+| State management | [Redux Toolkit / Zustand / Riverpod / Provider / MobX / ViewModel + StateFlow] |
+
+### Screen Structure
+
+<!--
+  Describe how screens are organised. Use the real folder names from the codebase.
+
+  React Native (feature-based):
+    src/features/[feature]/screens/[Feature]Screen.tsx
+    src/features/[feature]/components/[Feature]Card.tsx
+    src/features/[feature]/hooks/use[Feature].ts
+
+  Flutter (feature-based):
+    lib/features/[feature]/[feature]_screen.dart
+    lib/features/[feature]/widgets/[feature]_card.dart
+    lib/features/[feature]/[feature]_provider.dart
+
+  iOS / SwiftUI:
+    [Feature]/[Feature]View.swift
+    [Feature]/[Feature]ViewModel.swift
+-->
+
+```
+[show actual folder structure for one representative feature / screen group]
+```
+
+### Component / Widget Strategy
+
+<!--
+  Describe how UI is split.
+
+  Examples:
+    Screen → Section → Component (React Native, feature-based)
+    Screen → Widget → Widget (Flutter)
+    View → ViewModel (MVVM, SwiftUI / Kotlin)
+    Screen → Partial + Cell (UIKit)
+-->
+
+[Describe component / widget split principles]
+
+### Platform-Specific Adaptations
+
+<!--
+  List any significant differences in behaviour, layout, or APIs between iOS and Android.
+  Common examples: push permission flow, in-app browser, file picker, biometric auth.
+-->
+
+| Feature | iOS behaviour | Android behaviour |
+|---|---|---|
+| [Push permission] | Must explicitly request with prompt | Granted by default (Android 12−) / prompted (Android 13+) |
+| [Biometric auth] | Face ID / Touch ID via LocalAuthentication | Fingerprint / Face via BiometricPrompt |

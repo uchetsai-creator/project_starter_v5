@@ -30,6 +30,8 @@ The type gates which documents are required and which are N/A — do not create 
 | **ML Pipeline** | Training → evaluation → serving; model artifact is the primary output |
 | **Microservices** | Multiple independently deployed services communicating via API or events |
 | **AI / LLM Application** | Chatbot, copilot, or agent built on a foundation model; prompt-driven, no model training |
+| **IaC / DevOps** | Infrastructure-as-Code or DevOps tooling; Terraform, Pulumi, Ansible, Helm; resource topology, runbooks, drift policy |
+| **Mobile App** | Native or cross-platform mobile app (React Native, Flutter, iOS/Swift, Android/Kotlin); screen-based, app-store distributed |
 
 ### Mixed / Hybrid Project Types
 
@@ -75,6 +77,8 @@ Read the init file that matches your project type — it contains the full step-
 | ML Pipeline | `templates/init/ml-pipeline.md` |
 | Microservices | `templates/init/microservices.md` |
 | AI / LLM Application | `templates/init/llm-app.md` |
+| IaC / DevOps | `templates/init/iac.md` |
+| Mobile App | `templates/init/mobile-app.md` |
 
 For mixed / hybrid types, load each relevant init file and union the step lists (skip duplicates).
 
@@ -167,95 +171,18 @@ current-state.md is a state machine with two fields:
   - Pipeline stage failure / wrong row count / data quality issue → `docs/specs/pipeline-debug.md`
   - LLM wrong answer / low eval score / tool call failure / retrieval issue → `docs/specs/llm-debug.md`
 
-**When all Steps are done and Verify passes**, follow **## Task Completion** below — all current-state.md edits happen there, once. No external files need to be read at closeout.
+**When all Steps are done and Verify passes**, follow the **Closeout** section in `docs/current-state.md` — all steps are listed there. Load `templates/task-completion.md` only if you need the full verification table or step detail.
 
 ### Module Completion Check
 
-Run this check after every task — most of the time the answer will be "no," but the check itself must not be skipped.
-
-Do NOT create or update `[module]-module-data-flow.md` or `[module]-flow.md` during a task
-unless the module is 100% complete (all tasks for this module are marked done in project-plan.md).
-Creating these files mid-module causes repeated read/write cycles during review. Defer until completion.
-
-* Does completing this task finish all work for its module in docs/project-plan.md?
-  * If no: this module is not yet complete. Skip the rest of this section.
-  * If yes: this module is now complete. Do all of the following:
-    1. Insert logger calls into the module's code, following the rules in docs/specs/logging-spec.md.
-       Use the logger instantiation pattern defined in logging-spec.md for this project's language/framework.
-       Direct print/console statements are not allowed.
-       logging-spec.md itself is the rule definition — do not add module-specific content to it.
-       Create or update docs/modules/<module-name>/log-<module-name>.md to list every log point added, in call order.
-    2. Ask: "Would you like to add debug instrumentation to this module? (follows debug-instrumentation-rules.md)"
-       * If yes: follow debug-instrumentation-rules.md and instrument the module.
-       * If no: continue.
-    3. If the module flow file contains multiple sequence or class blocks, each block
-       generates its own diagram file (named by title slug). All are picked up automatically
-       by build_pdf.py — no extra configuration needed.
-    4. Rebuild the PDF only if ANY of the following conditions are met:
-       - This is a Sprint Documentation Sync (always rebuild at sprint end), OR
-       - 3 or more diagram blocks (plantuml) have changed since the last PDF build.
-       If neither condition is met, skip the PDF rebuild — it will happen at sprint end.
-
-       When rebuilding:
-       `python3 docs/script/build_pdf.py docs --lang en -o docs/project-documentation-en.pdf`
-       Chinese PDF is manual only — run when requested:
-       `python3 docs/script/build_pdf.py docs-zh --lang zh -o docs/project-documentation-zh.pdf`
-       Note: to add a new doc to the PDF, add it to docs/script/pdf_allowlist.py only —
-       do not edit build_pdf.py for this purpose.
-
+> Load `templates/module-completion.md` when a module is confirmed 100% complete. Skip otherwise.
 
 ---
 
 ## Task Completion
 
-**Workflow: Task completed → minimal writes only. Sprint completed → synchronize all documentation.**
-
-Do NOT update changelog.md, project-plan.md, codebase-map.md, or any spec/architecture/business document after a single task — defer to Sprint Documentation Sync.
-
-### Mandatory post-task steps (every task)
-
-1. **Apply Doc Checklist, then update `docs/current-state.md`** (1 edit block, in this order):
-   a. Apply each item in `docs/current-state.md → Doc Checklist` — update the listed doc files now.
-      These are the only doc updates that happen at task level. Do not open the full Document Update Checklist in AGENTS.md.
-   b. In `docs/current-state.md`, while Current Task is still the old task:
-      - Set **Status** to `Complete — Pending Sprint Doc Sync`
-      - Mark completed steps `[x]`
-   c. Now promote Next Task → Current Task:
-      - Copy **Next Task** → **Current Task** (name, goal)
-      - Look up the task after upcoming in project-plan.md → write it into **Next Task**
-        (upcoming → Current Task; the task after upcoming → Next Task)
-      - Update **Required Context** for the new current task
-      - Update **Doc Checklist** → already filtered when this task was set up; replace with filtered list for the new task
-      - Set **Status** to `In Progress`
-
-2. **Run verification** for what was changed:
-
-| Changed artifact | Required verification |
-|---|---|
-| New feature / endpoint | Call the endpoint, confirm expected response |
-| Database migration / schema | Run migration, confirm schema matches expected state |
-| Config / environment | Start affected service, confirm healthy |
-| Network / infrastructure config | Verify connectivity between affected services (e.g. `docker exec serviceA ping serviceB`) |
-| Script / utility | Run the script, confirm expected output |
-| Documentation only | `python3 docs/script/build_pdf.py docs --lang en -o /tmp/test.pdf` |
-| Diagram (plantuml block) | Rebuild PDF, confirm diagram renders correctly |
-
-Verification must confirm the feature works — not just that no errors occurred.
-- ❌ "No errors in log" is not sufficient
-- ✅ "Endpoint returns expected data", "UI shows correct state", "output matches expected value"
-
-For validation / guard logic: verify that invalid input is correctly rejected.
-- ❌ "All checks passed on clean data" alone is not sufficient
-- ✅ "Fed invalid data → check correctly returned failure"
-
-3. **Add one entry to `docs/sprint-change-log.md`** (1 edit):
-   - Implementation summary, technical impact flags (Architecture/DB/API/Deployment/Module flow), potential documentation updates.
-   - Status: **Pending documentation synchronization**
-   - Insert chronologically — append after the last existing entry, not at the top.
-
-4. **Write one row to `docs/task-log.md`** (1 edit):
-
-`| [date] | [task] | [files changed] | [command run] | ✅/❌ [result] | current-state ✅ | sprint-log ✅ |`
+> For standard closeouts, follow the **Closeout** section in `docs/current-state.md` — no extra file load needed.
+> Load `templates/task-completion.md` only if you need the full verification table or step detail.
 
 ---
 

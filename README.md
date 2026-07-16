@@ -409,6 +409,15 @@ python3 docs/script/scan_codebase.py src --project-type web-app
 python3 docs/script/scan_codebase.py src --project-type cli-tool
 # Valid values: web-app | cli-tool | library | data-pipeline | ml-pipeline | microservices | llm-app
 
+# Scan N levels deep — for monorepos or Microservices with per-service src/ folders
+python3 docs/script/scan_codebase.py services --project-type microservices --depth 2
+
+# Machine-readable JSON output (for agent consumption)
+python3 docs/script/scan_codebase.py src --project-type web-app --format json
+
+# Auto-generate stub module-data-flow.md files for undocumented modules (skips existing files)
+python3 docs/script/scan_codebase.py src --project-type web-app --scaffold
+
 # Update the Project Structure and Coverage Summary sections in codebase-map.md automatically
 python3 docs/script/scan_codebase.py src --project-type web-app --update docs/codebase-map.md
 ```
@@ -416,7 +425,81 @@ python3 docs/script/scan_codebase.py src --project-type web-app --update docs/co
 The scan detects folder names to classify folders by module type. Pass `--project-type` to
 use the correct vocabulary for your project (e.g. Pipeline Stage for data pipelines,
 Command for CLI tools, Namespace for libraries, Service for microservices).
+
+For Data Pipeline and ML Pipeline projects, directories containing `*_stage.py`, `step_*.py`,
+or `run_*.py` are labelled `Pipeline Stage (detected)` — giving higher confidence than
+name-based classification alone.
+
 Re-run at the end of Step 3 (retrofit) to confirm full coverage.
+
+---
+
+## Document completeness audit
+
+After initializing or retrofitting a project, verify that all Required documents for the
+declared type exist in `docs/`:
+
+```bash
+# Check completeness for a single project type
+python3 docs/script/verify_docs.py --project-type web-app
+
+# Hybrid project — takes the union of both type matrices
+python3 docs/script/verify_docs.py --project-type data-pipeline+web-app
+
+# Exit with code 1 if any Required document is missing (for CI or pre-merge checks)
+python3 docs/script/verify_docs.py --project-type web-app --strict
+
+# Machine-readable JSON output (for agent consumption)
+python3 docs/script/verify_docs.py --project-type web-app --json
+
+# Custom docs/ path
+python3 docs/script/verify_docs.py --project-type web-app --docs path/to/docs
+```
+
+**Output statuses:**
+
+| Status | Meaning |
+|---|---|
+| ✅ Present | File exists in docs/ |
+| ❌ Missing Required | File is Required for this type and does not exist |
+| ⚠️ Missing Optional | File is Optional for this type and does not exist |
+| — N/A | File is not applicable for this type |
+| 🔍 Orphan | File exists but is N/A for this type, or is not in the document matrix |
+
+Valid `--project-type` values: `web-app`, `cli-tool`, `library`, `data-pipeline`, `ml-pipeline`, `microservices`, `llm-app`, `iac`
+
+---
+
+## Framework maintenance
+
+`verify_framework.py` audits the framework's own internal consistency. Run it after each Phase
+completes, or any time you modify AGENTS.md, document-matrix.md, sprint-sync.md, or any
+document-purposes file.
+
+```bash
+python3 docs/templates/script/verify_framework.py
+python3 docs/templates/script/verify_framework.py --strict   # exits 1 if any check warns or fails
+python3 docs/templates/script/verify_framework.py --json     # machine-readable output
+```
+
+**Checks performed:**
+
+| Check | What it verifies |
+|---|---|
+| Stale pointer | Every `.md` reference in AGENTS.md resolves to an existing file |
+| Token budget | AGENTS.md is ≤ 200 lines |
+| Matrix ↔ template | Every matrix row has a template file; every template has a matrix row |
+| Sprint-sync coverage | Every non-exempt R/O document has a sprint-sync checklist item |
+| Purposes coverage | Every Required document appears in the matching document-purposes file |
+| Cross-reference integrity | Every `### X.md` header in document-purposes-*.md has a template file |
+
+**Output:**
+
+| Status | Meaning |
+|---|---|
+| ✅ Pass | Check passed |
+| ⚠️ Warning | Non-critical drift detected |
+| ❌ Fail | Check failed — lists affected file and line |
 
 ---
 

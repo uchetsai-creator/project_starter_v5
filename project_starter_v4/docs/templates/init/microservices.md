@@ -22,3 +22,7 @@ At the system (repo root) level, additionally create:
 2. Create docs/specs/service-contract.md from templates/specs/service-contract.md.
 3. Create docs/architecture/architecture.md from templates/architecture/architecture.md (system-level — shows all services and their connections).
 4. Create docs/architecture/deployment.md from templates/architecture/deployment.md (system-level — shows deployment topology across all services).
+5. If the system uses asynchronous messaging (Kafka, RabbitMQ, SQS, Pub/Sub, or similar broker):
+   - Create docs/specs/event-catalog.md from templates/specs/event-catalog.md.
+   - For each event type, fill in payload schema, publisher, subscriber(s), retention, and dead-letter policy.
+   - Note in service-contract.md that async schemas are canonical in event-catalog.md.

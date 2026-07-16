@@ -31,15 +31,36 @@ After updating the dependency graph block, regenerate the diagram:
 **Applies to: Microservices**
 
 Purpose:
-Documents inter-service REST contracts and event schemas — request/response format,
-authentication, resilience policy (timeout / retry / circuit breaker), and event
-schema evolution rules. One file covers all inter-service contracts in the system.
+Documents inter-service synchronous REST contracts — request/response format,
+authentication, and resilience policy (timeout / retry / circuit breaker).
+Async event schemas belong in event-catalog.md, not here. service-contract.md
+may reference event-catalog.md entries but does not duplicate them.
 
 Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
 * A REST contract between services changes (endpoint, request/response format, auth)
-* An event schema changes (field added, removed, or type changed)
 * A resilience policy changes (timeout, retry, circuit breaker)
+
+### event-catalog.md
+**Applies to: Microservices (Optional — Required if system uses async messaging)**
+
+Purpose:
+Canonical source for all async messaging contracts — event name, payload schema,
+publisher, subscriber(s), broker/topic, retention, dead-letter policy, and schema
+evolution rules. Covers Kafka, RabbitMQ, SQS, Pub/Sub, and similar brokers.
+Decoupled from service-contract.md (synchronous REST) and api-contract.md (external API).
+
+Create when: the system introduces asynchronous messaging between services.
+Load when: adding or changing an event type, or auditing async contracts.
+
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
+* A new event type is added or retired
+* A payload schema changes (field added, removed, or type changed)
+* A publisher or subscriber changes
+* Retention or dead-letter policy changes
 * Schema evolution rules change
+
+After updating: if the event was also referenced in service-contract.md, update the reference there to point to this file as the canonical source.
+Regenerate sequence diagram: `Edit the \`\`\`plantuml block in event-catalog.md, then run build_pdf.py`
 
 ### api-contract.md
 **Applies to: Web App, Microservices (external API)**

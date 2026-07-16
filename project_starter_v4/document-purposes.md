@@ -29,5 +29,7 @@ Example: `Project Type: Data Pipeline + Web App` → load `document-purposes-com
 | ML Pipeline | `document-purposes-ml-pipeline.md` |
 | Microservices | `document-purposes-microservices.md` |
 | AI / LLM Application | `document-purposes-llm-app.md` |
+| IaC / DevOps | `document-purposes-iac.md` |
+| Mobile App | `document-purposes-mobile-app.md` |
 
 All files live at the same level as this file (repo root alongside AGENTS.md).

@@ -149,122 +149,140 @@ These were the only PDF-included templates without plantuml blocks. Both are aut
 
 ---
 
-## Phase 7 — Event-Driven / Messaging Support (future)
+## Phase 7 — Event-Driven / Messaging Support ✅ Complete
 
 `api-contract.md` records REST endpoints and WebSocket events, but cannot express the publisher/subscriber contracts, schema evolution rules, and dead-letter handling that event-driven architectures need. This gap is most acute for Microservices projects that communicate via Kafka, RabbitMQ, or similar brokers.
 
 **Goal:** Add `event-catalog.md` as the canonical source for all event schemas — decoupled from `service-contract.md` (which covers synchronous REST between services) and from `api-contract.md` (which covers client-facing APIs).
 
-### Planned changes
+### Done
 
 | File | Change |
 |---|---|
-| `specs/event-catalog.md` | New template: event name, payload schema, publisher, subscriber(s), version, retention, dead-letter policy — one table row per event type |
-| `init/document-matrix.md` | Add `event-catalog.md`: Required for Event-Driven Microservices, Optional for standard Microservices |
-| `init/microservices.md` | Add conditional step: "If the system uses async messaging, create `event-catalog.md`" |
-| `docs/templates/sprint-sync.md` | Add checklist item: `docs/specs/event-catalog.md [Types: Microservices]` |
-| `document-purposes-microservices.md` | Add `event-catalog.md` entry: purpose, update triggers |
+| `specs/event-catalog.md` | New template: event inventory table, per-event payload schema + example JSON, retention/dead-letter policy, schema evolution rules, PlantUML pub-sub sequence diagram, cross-service consistency rules |
+| `init/document-matrix.md` | Added `event-catalog.md`: Optional (⚠️) for Microservices, N/A for all other types |
+| `init/microservices.md` | Added conditional Step 5: create event-catalog.md when system uses async messaging |
+| `docs/templates/sprint-sync.md` | Added checklist item for `docs/specs/event-catalog.md [Types: Microservices]`; clarified service-contract.md item to not duplicate async schemas |
+| `document-purposes-microservices.md` | Added `event-catalog.md` entry with purpose, load guidance, and update triggers; updated service-contract.md description to reflect sync-only scope |
+| `docs/templates/script/verify_docs.py` | Added `event-catalog.md` to MATRIX (O for Microservices) and FILE_LOCATIONS |
+
+**Token impact:** zero — AGENTS.md unchanged. All additions are in load-on-demand files (init, sprint-sync, document-purposes).
 
 Note: Event-Driven is treated as a variant of Microservices (not a new top-level type) because it shares all the same architecture and spec documents; only the inter-service communication pattern differs.
 
 ---
 
-## Phase 8 — Mobile App type (future)
+## Phase 8 — Mobile App type ✅ Complete
 
 `frontend.md` assumes a web page structure (components, routes, API hooks). Native mobile has no pages in the web sense — it has screens, navigation stacks, OS permissions, and app-store distribution rather than server deployment. All existing templates apply to the logic layer but the frontend and deployment templates need mobile variants.
 
 **Goal:** Add `Mobile App` as a supported project type with mobile-specific frontend and distribution templates.
 
-### Planned changes
+### Done
 
 | File | Change |
 |---|---|
-| `AGENTS.md` | Add `Mobile App` to the supported types table |
-| `init/mobile-app.md` | New init file: step-by-step setup sequence for a Mobile App project |
-| `specs/mobile-contract.md` | New template: screen inventory, navigation graph, deep-link scheme, OS permission declarations, push notification payloads |
-| `architecture/frontend.md` | Add `## Mobile App` variant section: screen-based structure, navigation pattern, state management strategy, platform differences (iOS/Android) |
-| `architecture/distribution.md` | Add `## Mobile App` variant: build pipeline, signing, App Store / Google Play submission checklist, version naming |
-| `init/document-matrix.md` | Add `mobile-contract.md` row; mark `frontend.md` and `distribution.md` as Required for Mobile App |
-| `document-purposes.md` index | Add `document-purposes-mobile-app.md` entry |
-| `document-purposes-mobile-app.md` | New per-type file: mobile-contract.md, frontend.md (mobile variant), distribution.md (app store variant) |
-| `docs/templates/sprint-sync.md` | Add checklist item: `docs/specs/mobile-contract.md [Types: Mobile App]` |
+| `AGENTS.md` | Added `Mobile App` row to supported types table and init file table |
+| `init/mobile-app.md` | New init file: 10-step setup (requirements → architecture → frontend → mobile-contract → distribution → quickstart → logging → conditional docs → scan → verify) |
+| `specs/mobile-contract.md` | New template: app identity, screen inventory, navigation graph, deep-link scheme, OS permission declarations, push notification payloads, App Store / Play Store metadata |
+| `architecture/frontend.md` | Added `## Mobile App Variant` section: platform/framework table, screen structure, component/widget strategy, platform-specific adaptations (iOS vs Android) |
+| `architecture/distribution.md` | Added `## Mobile App Variant` section: app identity, build pipeline, signing config (iOS certs + Android keystore), release checklist, CI/CD pipeline |
+| `init/document-matrix.md` | Added Mobile App column (10th); added `mobile-contract.md` row (✅ Mobile App only) |
+| `document-purposes.md` | Added `Mobile App → document-purposes-mobile-app.md` entry |
+| `document-purposes-mobile-app.md` | New per-type file: mobile-contract.md, distribution.md (mobile section), compatibility-matrix.md, frontend.md (mobile section), architecture.md note, logging-spec.md note |
+| `sprint-sync.md` | Added Mobile App row to type filter; added quick-filter row; added `mobile-contract.md` checklist item `[Types: Mobile App]` |
+| `scan_codebase.py` | Added `mobile-app` to `MODULE_VOCAB` ("Screen"); `guess_type()` classifies navigation/components/widgets as Shared, else Screen |
+| `verify_docs.py` | Added `mobile-app` to `VALID_TYPES`; extended all MATRIX tuples to 9 columns; added `mobile-contract.md` row |
+
+**Token discipline:** 2 lines added to AGENTS.md (one type row + one init table row) — 197 lines total, within 200-line budget. All detail in load-on-demand files.
+
+**verify_framework.py result after implementation:** all 6 checks ✅ pass.
 
 ---
 
-## Phase 9 — IaC / DevOps type (future)
+## Phase 9 — IaC / DevOps type ✅ Complete
 
 Infrastructure-as-Code projects (Terraform, Pulumi, Ansible, Helm charts) have almost no overlap with the existing document set. There are no modules in the feature sense, no API contracts, no business objects, and no frontend. The primary artefacts are resource topology, environment diff policy, and operational runbooks.
 
 **Goal:** Add `IaC / DevOps` as a project type with a minimal dedicated template set. Mark all inapplicable existing documents as N/A so agents don't create empty placeholders.
 
-### Planned changes
+### Done
 
 | File | Change |
 |---|---|
-| `AGENTS.md` | Add `IaC / DevOps` to the supported types table |
-| `init/iac.md` | New init file: step-by-step setup for an IaC project (topology, runbook, drift policy, secrets policy) |
-| `specs/runbook.md` | New template: incident response steps per resource type, rollback procedure, health check commands |
-| `specs/drift-policy.md` | New template: allowed drift sources, detection cadence, remediation SLA, approval gate for manual changes |
-| `architecture/topology.md` | New template: resource graph (regions, VPCs, subnets, services), environment promotion path (dev → staging → prod) |
-| `init/document-matrix.md` | Add three new rows; mark all existing spec/architecture/business docs as N/A for IaC / DevOps |
-| `document-purposes.md` index | Add `document-purposes-iac.md` entry |
-| `document-purposes-iac.md` | New per-type file: topology.md, runbook.md, drift-policy.md |
-| `docs/templates/sprint-sync.md` | Add checklist items `[Types: IaC / DevOps]` for the three new docs |
-| `scan_codebase.py` | Add `iac` to `VALID_PROJECT_TYPES`; classify `.tf`, `.yaml`, `modules/` as Resource Groups rather than Feature modules |
+| `AGENTS.md` | Added `IaC / DevOps` row to supported types table and init file table |
+| `init/iac.md` | New init file: 8-step IaC setup (topology, runbook, drift-policy, secrets, quickstart) |
+| `specs/runbook.md` | New template: on-call escalation, per-resource-type incident response, rollback, common Terraform ops |
+| `specs/drift-policy.md` | New template: drift scope, allowed sources, detection cadence, remediation SLA, approval gate |
+| `architecture/topology.md` | New template: resource inventory, environment promotion path, PlantUML network diagram, secrets sources |
+| `init/document-matrix.md` | Added IaC / DevOps column (9th); added topology.md / runbook.md / drift-policy.md rows |
+| `document-purposes.md` | Added `IaC / DevOps → document-purposes-iac.md` entry |
+| `document-purposes-iac.md` | New per-type file: topology.md, runbook.md, drift-policy.md with update triggers |
+| `sprint-sync.md` | Added IaC row to type filter; added quick-filter row; added 3 checklist items `[Types: IaC / DevOps]` |
+| `scan_codebase.py` | Added `iac` to `MODULE_VOCAB`; IaC branch in `guess_type()`: `modules/`/`.terraform` → Shared, else Resource Group |
+| `verify_docs.py` | Added `iac` to `VALID_TYPES`; extended all MATRIX tuples to 8 columns; added topology/runbook/drift-policy rows |
+
+**Token discipline:** 0 lines added to AGENTS.md beyond the two pointer rows (init table + supported types). All detail lives in load-on-demand files.
 
 ---
 
-## Phase 10 — Further token load optimization (future)
+## Phase 10 — Further token load optimization ✅ Complete
 
 Phase 5 eliminated most redundant file loads during normal task work. The remaining cost centres are in `AGENTS.md` itself: two large sections — Module Completion Check (~40 lines) and Task Completion (~50 lines) — are loaded on every task startup even though Module Completion is only needed when a module finishes, and Task Completion steps are already summarised in `current-state.md`.
 
 **Goal:** Extract these two sections from `AGENTS.md` into separate load-on-demand files, reducing the mandatory startup payload.
 
-### Planned changes
+### Done
 
 | File | Change |
 |---|---|
 | `templates/module-completion.md` | New file: full Module Completion Check procedure extracted from `AGENTS.md`; load only when a module is confirmed 100% complete |
 | `templates/task-completion.md` | New file: mandatory post-task steps (Doc Checklist, verification table, sprint-change-log entry, task-log row) extracted from `AGENTS.md`; referenced via a single pointer line in current-state.md |
-| `AGENTS.md` | Replace extracted sections with single-line load instructions: "Load `templates/module-completion.md` when module is complete" / "Load `templates/task-completion.md` at task closeout" |
-| `current-state.md` template | Add inline closeout checklist summary (4 bullet points) so most task closeouts need zero extra file reads |
-| `document-purposes-common.md` | Add entries for the two new template files |
+| `AGENTS.md` | Replaced Module Completion Check (~40 lines) and Task Completion (~50 lines) with single-line load pointers; updated "closing out" reference to point to Closeout section in current-state.md |
+| `docs/templates/current-state.md` | Added inline **Closeout** section (4 bullet points) so standard closeouts need zero extra file loads |
+| `document-purposes-common.md` | Added entries for `module-completion.md` and `task-completion.md` |
 
-Estimated saving: ~90 lines removed from every `AGENTS.md` load.
+Saving: ~90 lines removed from every `AGENTS.md` load.
+
+**Token discipline going forward:** every subsequent Phase follows this pattern — AGENTS.md receives only a pointer line; detail lives in a dedicated load-on-demand file.
 
 ---
 
-## Phase 11 — scan_codebase.py improvements (future)
+## Phase 11 — scan_codebase.py improvements ✅ Complete
 
 `scan_codebase.py` currently scans one level deep (immediate subdirectories of `src_dir`) and classifies by folder name only. This misses monorepo layouts where each service has its own nested `src/`, and gives no way to auto-scaffold documentation stubs for newly discovered modules.
 
 **Goal:** Support nested discovery, add JSON output for agent consumption, and add a `--scaffold` flag to generate documentation stubs.
 
-### Planned changes
+### Done
 
 | Change | Effect |
 |---|---|
-| `--depth N` flag | Scan N levels deep — supports monorepos and Microservices with per-service `src/` folders |
-| `--format json` output mode | Machine-readable output for agents that need to programmatically process coverage results without parsing text |
-| `--scaffold` flag | Auto-generate stub `[module]-module-data-flow.md` files under `docs/modules/[module]/` for all undocumented modules (agent fills in content); does not overwrite existing files |
-| Content peek for pipeline confidence | If a directory contains `*_stage.py`, `step_*.py`, or `run_*.py`, boost Pipeline Stage classification confidence — shown as `Pipeline Stage (detected)` vs `Pipeline Stage (inferred)` |
-| `iac` project type support | See Phase 9 |
+| `--depth N` flag | Scan N levels deep — supports monorepos and Microservices with per-service `src/` folders; default 1 preserves existing behaviour |
+| `--format json` output mode | Machine-readable output including per-module type/status/flow_file and a coverage summary object; agents parse this without text scraping |
+| `--scaffold` flag | Auto-generates stub `[module]-module-data-flow.md` files under `docs/modules/[module]/` for all undocumented modules; skips existing files (idempotent) |
+| Content peek for pipeline confidence | Directories containing `*_stage.py`, `step_*.py`, or `run_*.py` are labelled `Pipeline Stage (detected)`; others are `Pipeline Stage` (name-matched) or `Pipeline Stage (inferred)` |
+| `iac` project type support | Deferred — will be added as part of Phase 9 completion |
+
+**Token impact:** zero — script only; no AGENTS.md changes. `document-purposes-common.md` entry is load-on-demand reference.
 
 ---
 
-## Phase 12 — Document completeness audit script — verify_docs.py (future)
+## Phase 12 — Document completeness audit script — verify_docs.py ✅ Complete
 
 There is currently no automated way to check whether a project of a given type has created all its Required documents. An agent retrofitting a Data Pipeline project could skip `pipeline-debug.md` without any warning — the gap would only surface during a manual review.
 
 **Goal:** A script that cross-references the declared project type against the document matrix and reports missing Required and Optional documents in `docs/`.
 
-### Planned changes
+### Done
 
 | File | Change |
 |---|---|
 | `docs/script/verify_docs.py` | New script — see spec below |
-| `README.md` | Document `verify_docs.py` usage alongside `scan_codebase.py` |
-| `document-purposes-common.md` | Add `verify_docs.py` entry under Scripts section |
+| `README.md` | Added "Document completeness audit" section with usage examples and output status table |
+| `document-purposes-common.md` | Added `verify_docs.py` entry under Scripts section |
+
+**Token impact:** zero — script is not referenced in AGENTS.md; entry in document-purposes-common.md is load-on-demand reference only.
 
 **`verify_docs.py` spec:**
 
@@ -294,3 +312,43 @@ Options:
 **Hybrid type support:** `--project-type data-pipeline+web-app` runs the union of both type matrices.
 
 The script reads the required/optional/N/A mapping from a hardcoded matrix in the script itself (derived from `document-matrix.md` at implementation time) so it has no runtime dependency on the template files — it works in any project that copied this framework's scripts.
+
+---
+
+## Phase 13 — Framework Integrity Audit: verify_framework.py ✅ Complete
+
+As the framework grows across phases, file references, document-matrix entries, sprint-sync checklist items,
+and load-on-demand pointers in AGENTS.md can drift out of sync. There is currently no automated way to
+detect a stale pointer, a matrix row without a matching template file, or a checklist item for a document
+that no longer exists. The "token discipline" principle from Phase 10 also needs enforcement — without a
+check, AGENTS.md can quietly grow back.
+
+**Goal:** A script that audits the framework's own internal consistency — cross-checking pointers, matrix,
+checklist, and token budget so that each new Phase ships with confidence that nothing was broken.
+Run at the end of every Phase before merging.
+
+### Done
+
+| File | Change |
+|---|---|
+| `docs/templates/script/verify_framework.py` | New script — 6 checks, `--strict` CI gate, `--json` output |
+| `README.md` | Added "Framework maintenance" section with usage and check table |
+| `document-purposes-common.md` | Added `verify_framework.py` entry under Scripts section |
+| `docs/templates/sprint-sync.md` | Added missing `eval-spec.md` checklist item `[Types: AI / LLM App]` (surfaced by the audit) |
+
+**Checks implemented:**
+
+| Check | What it verifies |
+|---|---|
+| Stale pointer | Every `.md` reference in AGENTS.md resolves to an existing file in the framework |
+| Token budget | AGENTS.md is ≤ 200 lines |
+| Matrix ↔ template | Every matrix row has a template file; every template has a matrix row (exempt: supplementary templates) |
+| Sprint-sync coverage | Every non-exempt R/O document has a sprint-sync checklist item |
+| Purposes coverage | Every Required document appears in the matching document-purposes file (Required-only — Optional docs may live in a sibling type file) |
+| Cross-reference integrity | Every `### X.md` section header in document-purposes-*.md has a corresponding template file |
+
+**Audit result after implementation:** all 6 checks ✅ pass.
+
+**Token discipline:** 0 lines added to AGENTS.md. All detail lives in the script file and README.
+
+Note: Phase 13 is the final Phase. It is designed to be run after every other Phase completes, not just once.

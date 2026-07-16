@@ -35,6 +35,8 @@ Look up your declared project type in the table below. Any item tagged with a ty
 | ML Pipeline | Web App, CLI Tool, Library / SDK, Data Pipeline, Microservices, AI / LLM App |
 | Microservices | CLI Tool, Library / SDK, Data Pipeline, ML Pipeline, AI / LLM App |
 | AI / LLM App | Web App, CLI Tool, Library / SDK, Data Pipeline, ML Pipeline, Microservices |
+| IaC / DevOps | Web App, CLI Tool, Library / SDK, Data Pipeline, ML Pipeline, Microservices, AI / LLM App |
+| Mobile App | CLI Tool, Library / SDK, Data Pipeline, ML Pipeline, Microservices, AI / LLM App, IaC / DevOps |
 
 **Mixed / Hybrid types:** include items tagged with ANY of your declared types.
 Example: `Project Type: Data Pipeline + Web App` → include items tagged Web App, Data Pipeline, or All. Skip items tagged only with CLI Tool, Library / SDK, ML Pipeline, Microservices, or AI / LLM App.
@@ -63,6 +65,8 @@ Quick filter guide:
 | CLI subcommand only | frontend.md, deployment.md, permissions.md, business-objects.md, business-process.md, data-model.md |
 | Prompt / LLM changes only | architecture.md, backend.md, frontend.md, database.md, data-model.md, business-objects.md, deployment.md |
 | MCP server changes only | architecture.md, backend.md, frontend.md, database.md, data-model.md, business-objects.md |
+| IaC / infra changes only | All items except topology.md, runbook.md, drift-policy.md, research.md, quickstart.md |
+| Mobile screen / nav only | backend.md, database.md, api-contract.md, data-model.md, deployment.md, business-objects.md, business-rules.md |
 
 Apply this filter first. Then run only the remaining items.
 
@@ -77,12 +81,14 @@ Apply this filter first. Then run only the remaining items.
 - [ ] docs/specs/public-api.md `[Types: Library / SDK]` — were public functions, classes, types, or constants added, changed, or deprecated? If yes, update. If removing a public symbol, ensure a deprecation entry exists first.
 - [ ] docs/specs/pipeline-contract.md `[Types: Data Pipeline, ML Pipeline]` — did an inter-stage input or output format, path, naming rule, or error handling policy change? If yes, update. Then run the Cross-Stage Consistency Check table.
 - [ ] docs/specs/service-catalog.md `[Types: Microservices]` — was a service added, removed, or renamed? Did ownership, port, base URL, or key dependencies change? If yes, update.
-- [ ] docs/specs/service-contract.md `[Types: Microservices]` — did a REST contract, event schema, or resilience policy between services change? If yes, update.
+- [ ] docs/specs/service-contract.md `[Types: Microservices]` — did a REST contract or resilience policy between services change? If yes, update. Note: async event schemas are canonical in event-catalog.md — do not duplicate them here.
+- [ ] docs/specs/event-catalog.md `[Types: Microservices]` — was an event type added or retired, did a payload schema change, did a publisher or subscriber change, or did retention/dead-letter policy change? If yes, update. If the event was also referenced in service-contract.md, update the reference there too.
 - [ ] docs/specs/model-contract.md `[Types: ML Pipeline]` — did input feature schema, output format, or production thresholds change? If yes, update.
 - [ ] docs/specs/llm-contract.md `[Types: AI / LLM App]` — did the model, system prompt, parameters, or tool schemas change? If yes, update.
 - [ ] docs/specs/prompt-library.md + docs/specs/prompts/[id]-prompt.md `[Types: AI / LLM App]` — were prompts added, modified, or retired? If yes, update the index and the relevant per-prompt file.
 - [ ] docs/specs/rag-contract.md `[Types: AI / LLM App]` — did retrieval sources, chunking strategy, embedding model, or vector store config change? If yes, update.
 - [ ] docs/specs/mcp-contract.md `[Types: AI / LLM App]` — was an MCP server added/removed, did a tool schema change, or was tool-use policy tuned? If yes, update.
+- [ ] docs/specs/eval-spec.md `[Types: AI / LLM App]` — did evaluation criteria, metrics, score thresholds, or test dataset selection rules change? If yes, update.
 - [ ] docs/architecture/distribution.md `[Types: Library / SDK, CLI Tool]` — did the build process, registry, publish command, or installation instructions change? If yes, update.
 - [ ] docs/specs/release-guide.md `[Types: Library / SDK, CLI Tool]` — did the versioning policy, release checklist, publish process, or deprecation policy change? If yes, update.
 - [ ] docs/specs/compatibility-matrix.md `[Types: Library / SDK, CLI Tool]` — was a runtime version added or dropped, or was a known incompatibility discovered? If yes, update.
@@ -107,5 +113,9 @@ Apply this filter first. Then run only the remaining items.
 - [ ] docs/modules/module-data-flow.md index table `[Types: All]` — verify the module has a row in the Module Flow Files table. If missing, add it. Do not rely on memory — read the file.
 - [ ] docs/modules/[module]/[module]-flow.md `[Types: All]` — did cross-module service calls change? If yes, update, then regenerate sequence diagram.
 - [ ] docs/modules/module-flow.md index table `[Types: All]` — verify the module has a row in the Flow Files table. If missing, add it. Do not rely on memory — read the file.
+- [ ] docs/architecture/topology.md `[Types: IaC / DevOps]` — was a resource added, removed, or migrated? Did network topology, environment promotion path, or secrets sources change? If yes, update, then regenerate diagram: `Edit the \`\`\`plantuml block in topology.md, then run build_pdf.py`
+- [ ] docs/specs/runbook.md `[Types: IaC / DevOps]` — was a new resource type added, did health check commands change, or did rollback procedures change? If yes, update.
+- [ ] docs/specs/drift-policy.md `[Types: IaC / DevOps]` — did detection cadence, remediation SLA, exempt resources, or approval gate process change? If yes, update.
+- [ ] docs/specs/mobile-contract.md `[Types: Mobile App]` — was a screen added or removed, did navigation structure change, was a new OS permission added, or did a push notification payload schema change? If yes, update.
 
 For the full explanation of why each document updates on these triggers, see document-purposes-common.md + document-purposes-[your-type].md.

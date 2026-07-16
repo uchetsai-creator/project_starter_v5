@@ -289,6 +289,50 @@ Update when:
 
 Do not edit `build_pdf.py` for this purpose — edit only this file.
 
+### module-completion.md
+
+Purpose:
+Full Module Completion Check procedure. Extracted from AGENTS.md to keep the mandatory startup
+payload lean — load only when a module is confirmed 100% complete.
+
+Load when: a module's final task is done and all tasks for that module are marked complete in project-plan.md.
+Never needed for mid-module tasks.
+Update when: the module completion procedure changes (logging rules, PDF rebuild criteria).
+
+### task-completion.md
+
+Purpose:
+Full mandatory post-task steps: Doc Checklist application, verification table, sprint-change-log entry,
+task-log row. Extracted from AGENTS.md to keep the mandatory startup payload lean.
+
+Load when: the inline Closeout summary in `docs/current-state.md` is insufficient — e.g., unfamiliar
+with the verification table or the exact sprint-change-log entry format.
+For standard closeouts, the Closeout section in current-state.md is sufficient.
+Update when: the post-task procedure changes.
+
+### verify_docs.py
+Purpose:
+Cross-references the declared project type against the document matrix and reports which
+Required and Optional documents exist, are missing, or are inapplicable. Also flags Orphan
+files — documents that exist in docs/ but are N/A for the declared type, or are not in the
+matrix at all. Works in any project that copied the framework's scripts; has no runtime
+dependency on the template files (matrix is hardcoded at implementation time).
+
+Run after retrofitting, after Sprint Documentation Sync, or any time you want to confirm
+the project's docs/ folder matches what the declared type requires.
+
+```bash
+python3 docs/script/verify_docs.py --project-type web-app
+python3 docs/script/verify_docs.py --project-type data-pipeline+web-app
+python3 docs/script/verify_docs.py --project-type web-app --strict   # exits 1 if Required missing
+python3 docs/script/verify_docs.py --project-type web-app --json     # machine-readable output
+```
+
+Output statuses: ✅ Present · ❌ Missing Required · ⚠️ Missing Optional · — N/A · 🔍 Orphan
+
+Update when: a new document is added to the framework and its Required/Optional/N/A status
+per project type is defined — update the MATRIX dict in the script to match document-matrix.md.
+
 ### scan_codebase.py
 Purpose:
 Scans the source directory and reports which modules are documented, undocumented,
@@ -301,9 +345,45 @@ Pass `--project-type <type>` to use project-appropriate vocabulary in labels and
 Valid values: `web-app` | `cli-tool` | `library` | `data-pipeline` | `ml-pipeline` | `microservices` | `llm-app`.
 Without `--project-type`, the script falls back to heuristic folder-name detection.
 
+**Flags:**
+- `--depth N` — scan N levels deep (default 1); use 2+ for monorepos or per-service `src/` layouts
+- `--format json` — machine-readable output (type, status, flow_file per module + summary object)
+- `--scaffold` — auto-generate stub `[module]-module-data-flow.md` for undocumented modules; skips existing files
+- `--coverage` — print coverage summary only (no tree)
+- `--update docs/codebase-map.md` — write tree and coverage table into codebase-map.md
+
+**Pipeline confidence labels** (data-pipeline / ml-pipeline only):
+- `Pipeline Stage (detected)` — directory contains `*_stage.py`, `step_*.py`, or `run_*.py`
+- `Pipeline Stage` — folder name matches a known stage pattern
+- `Pipeline Stage (inferred)` — non-shared folder with no name match or file evidence
+
 Run at the start of a retrofit (Step 1b) to inventory all modules before documentation begins.
 Run again after Step 3 to confirm full coverage.
 Run with `--update docs/codebase-map.md` to write the tree and coverage table into codebase-map.md.
+
+### verify_framework.py
+Purpose:
+Framework self-audit — checks internal consistency of the project_starter_v4 framework itself.
+Run after each Phase completes, before merging.
+
+Six checks performed:
+1. **Stale pointer** — every `.md` reference in AGENTS.md resolves to an existing file
+2. **Token budget** — AGENTS.md is ≤ 200 lines
+3. **Matrix ↔ template** — every matrix row has a template file; every template has a matrix row
+4. **Sprint-sync coverage** — every non-exempt R/O document has a sprint-sync checklist item
+5. **Purposes coverage** — every Required document appears in the matching document-purposes file
+6. **Cross-reference integrity** — every `### X.md` header in document-purposes-*.md has a template file
+
+```bash
+python3 docs/templates/script/verify_framework.py
+python3 docs/templates/script/verify_framework.py --strict   # exits 1 if any check fails or warns
+python3 docs/templates/script/verify_framework.py --json     # machine-readable output
+```
+
+Output statuses: ✅ Pass · ❌ Fail · ⚠️ Warning
+
+This script audits the framework, not a user project. Run it from the framework repo root.
+Update when: the set of checks should change — e.g., a new consistency invariant is introduced.
 
 ---
 
