@@ -351,4 +351,66 @@ Run at the end of every Phase before merging.
 
 **Token discipline:** 0 lines added to AGENTS.md. All detail lives in the script file and README.
 
-Note: Phase 13 is the final Phase. It is designed to be run after every other Phase completes, not just once.
+Note: Phase 13 is designed to be run after every other Phase completes, not just once.
+
+---
+
+## Phase 14 — Framework Correctness Audit ✅ Complete
+
+Running `verify_framework.py` and a full cross-file review after Phase 9 (IaC) and Phase 8 (Mobile App) surfaced a cluster of consistency gaps: init files pointing to a directory that was renamed, a new document missing from the matrix, a broken script reference in a process template, an ASCII-art diagram where a rendered plantuml block should be, and the PDF builder lacking entries for two newly-added project types.
+
+**Goal:** Bring all framework files into agreement — no stale paths, no matrix gaps, no broken script references, no missing PDF entries.
+
+### Init file path fix (Bug 1)
+
+The `flows/` directory (formerly `modules/`) was renamed in Phase 1, but 7 init files still referenced the old path.
+
+| Init file | Fix |
+|---|---|
+| `init/web-app.md` | `templates/modules/module-data-flow-v2.md` → `templates/flows/module-data-flow-v2.md`; same for `module-flow-v2.md` |
+| `init/cli-tool.md` | Same path correction (both flow templates) |
+| `init/library.md` | Same path correction |
+| `init/data-pipeline.md` | Same path correction |
+| `init/ml-pipeline.md` | Same path correction |
+| `init/llm-app.md` | Same path correction |
+| `init/retrofit.md` | Same path correction in Step 3 |
+
+### eval-log.md missing from document matrix (Bug 2)
+
+`init/llm-app.md` Step 9 instructed agents to create `eval-log.md`, but the file had no row in `document-matrix.md` or `verify_docs.py`, and was listed in `verify_framework.py`'s `TEMPLATE_MATRIX_EXEMPT` set (which exempted it from the matrix check rather than fixing the omission).
+
+| File | Fix |
+|---|---|
+| `init/document-matrix.md` | Added `eval-log.md` row: ✅ for AI / LLM App, ❌ for all other types |
+| `docs/templates/script/verify_docs.py` | Added `eval-log.md` to `MATRIX` (`'R'` for llm-app, `'N'` for all others) and `FILE_LOCATIONS` |
+| `docs/templates/script/verify_framework.py` | Removed `specs/eval-log.md` from `TEMPLATE_MATRIX_EXEMPT` (no longer exempt — now in matrix) |
+
+### UML completeness fixes
+
+| Template | Problem | Fix |
+|---|---|---|
+| `specs/mobile-contract.md` | Navigation Graph section used an ASCII-art tree — not rendered by `build_pdf.py` | Replaced with a `plantuml` state diagram (Auth Stack → App Stack with HomeTab / SearchTab / ProfileTab nested stacks) |
+| `business/business-process-v2.md` | Two references to `activity_to_html.py`, a script that does not exist | Removed both references; updated header comment and Activity Diagram Rules section to point to `build_pdf.py` as the actual renderer |
+
+### README.md corrections (4 items)
+
+| Section | Fix |
+|---|---|
+| Templates tree | `├── modules/` → `├── flows/` (aligns with actual directory name); `module-data-flow-v2.md` and `module-flow-v2.md` listed correctly |
+| `verify_docs.py` valid types list | Added `mobile-app` (was omitted despite Phase 8 adding it) |
+| `build_pdf.py` valid types list | Added `iac` and `mobile-app` (both omitted despite Phases 8–9 adding them) |
+| Diagrams section | "Eight scripts" → "Two tools" (`build_pdf.py` + `translate_docs.py`); removed duplicate table header row; updated renderer note from "all six UML scripts" to "`build_pdf.py`" |
+
+### PDF builder script sync
+
+`pdf_allowlist.py` had no entries for `iac` or `mobile-app`, so `--project-type iac` and `--project-type mobile-app` produced near-empty PDFs.
+
+| File | Change |
+|---|---|
+| `docs/templates/script/pdf_allowlist.py` | Added `IAC = frozenset({"iac"})`, `MOBILE = frozenset({"mobile-app"})`, `ALL9 = ALL \| IAC \| MOBILE` constants |
+| | Updated 15+ existing entries to include `IAC` and/or `MOBILE` where `document-matrix.md` marks them Required or Optional |
+| | Added 4 new entries: `("design", "architecture/topology.md", IAC)`, `("design", "specs/mobile-contract.md", MOBILE)`, `("deployment", "specs/runbook.md", IAC)`, `("deployment", "specs/drift-policy.md", IAC)` |
+| | Updated `AUTO_SCAN_TYPES`: `modules/*/*-module-data-flow.md` and `modules/*/*-flow.md` → `ALL \| MOBILE`; `business/*-process.md` → added `\| MOBILE` |
+| `docs/templates/script/build_pdf.py` | Fixed comment: `flows/*-module-data-flow.md` → `modules/*/*-module-data-flow.md` (matches actual glob pattern) |
+
+**verify_framework.py result after all fixes:** all 6 checks ✅ pass.
