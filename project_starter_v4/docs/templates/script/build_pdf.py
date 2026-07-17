@@ -759,7 +759,7 @@ a {{ color: #3182CE; text-decoration: none; }}
 
 VALID_PROJECT_TYPES = {
     "web-app", "cli-tool", "library", "data-pipeline",
-    "ml-pipeline", "microservices", "llm-app",
+    "ml-pipeline", "microservices", "llm-app", "iac", "mobile-app",
 }
 
 def parse_args():

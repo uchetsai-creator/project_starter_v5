@@ -377,6 +377,38 @@ def check_type_completeness() -> list[dict]:
     return issues
 
 
+def check_build_pdf_type_sync() -> list[dict]:
+    """Check 9: build_pdf.py VALID_PROJECT_TYPES matches PURPOSES_FILES (all 9 types)."""
+    build_pdf_path = TEMPLATES_DIR / "script" / "build_pdf.py"
+    if not build_pdf_path.exists():
+        return [_issue("build-pdf-type-sync", "error", "build_pdf.py not found")]
+
+    pdf_types: set[str] = set()
+    in_valid = False
+    for line in build_pdf_path.read_text(encoding="utf-8").splitlines():
+        if re.match(r"\s*VALID_PROJECT_TYPES\s*=\s*\{", line):
+            in_valid = True
+        if in_valid:
+            for m in re.finditer(r'"([a-z][a-z-]+)"', line):
+                pdf_types.add(m.group(1))
+            if "}" in line and "VALID_PROJECT_TYPES" not in line:
+                in_valid = False
+
+    expected = set(PURPOSES_FILES.keys())
+    issues = []
+    for t in sorted(expected - pdf_types):
+        issues.append(_issue("build-pdf-type-sync", "fail",
+                             f"`{t}` is a known project type but missing from build_pdf.py VALID_PROJECT_TYPES"))
+    for t in sorted(pdf_types - expected):
+        issues.append(_issue("build-pdf-type-sync", "warn",
+                             f"`{t}` in build_pdf.py VALID_PROJECT_TYPES but not in PURPOSES_FILES"))
+
+    if not issues:
+        return [_issue("build-pdf-type-sync", "pass",
+                       f"build_pdf.py VALID_PROJECT_TYPES matches all {len(expected)} known project types")]
+    return issues
+
+
 def check_script_type_sync() -> list[dict]:
     """Check 8: scan_codebase.py and verify_docs.py declare the same set of project types."""
     scan_path  = TEMPLATES_DIR / "script" / "scan_codebase.py"
@@ -443,17 +475,19 @@ CHECK_ORDER = [
     "cross-ref",
     "type-completeness",
     "script-type-sync",
+    "build-pdf-type-sync",
 ]
 
 CHECK_LABELS = {
-    "stale-pointer":     "Stale pointer check          (AGENTS.md .md file refs)",
-    "token-budget":      "Token budget check           (AGENTS.md ≤ 200 lines)",
-    "matrix-templates":  "Matrix ↔ template consistency",
-    "sprint-sync":       "Sprint-sync coverage",
-    "purposes-coverage": "Per-type purposes coverage   (Required docs only)",
-    "cross-ref":         "Cross-reference integrity    (document-purposes → templates)",
-    "type-completeness": "Type completeness            (init file + purposes file per type)",
-    "script-type-sync":  "Script type sync             (scan_codebase.py ↔ verify_docs.py)",
+    "stale-pointer":      "Stale pointer check          (AGENTS.md .md file refs)",
+    "token-budget":       "Token budget check           (AGENTS.md ≤ 200 lines)",
+    "matrix-templates":   "Matrix ↔ template consistency",
+    "sprint-sync":        "Sprint-sync coverage",
+    "purposes-coverage":  "Per-type purposes coverage   (Required docs only)",
+    "cross-ref":          "Cross-reference integrity    (document-purposes → templates)",
+    "type-completeness":  "Type completeness            (init file + purposes file per type)",
+    "script-type-sync":   "Script type sync             (scan_codebase.py ↔ verify_docs.py)",
+    "build-pdf-type-sync": "Build PDF type sync          (build_pdf.py VALID_PROJECT_TYPES)",
 }
 
 LEVEL_ICON = {"pass": "✅", "warn": "⚠️ ", "fail": "❌", "error": "❌"}
@@ -535,6 +569,7 @@ def main():
     all_issues += check_cross_references(matrix)
     all_issues += check_type_completeness()
     all_issues += check_script_type_sync()
+    all_issues += check_build_pdf_type_sync()
 
     if args.json_output:
         print(json.dumps(
