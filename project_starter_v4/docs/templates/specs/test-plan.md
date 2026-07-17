@@ -70,6 +70,8 @@ Six test levels — include only the levels that apply to your project type (see
 > **Note:** Not all project types require all three environments.
 > CLI Tools and Libraries typically only need Local + CI.
 > AI / LLM Applications may replace Staging with a prompt eval run against the fixed test case set in `eval-spec.md`.
+> IaC / DevOps projects replace Staging with a sandbox environment — use `terraform plan` for integration and a full apply-verify-destroy cycle for E2E.
+> Mobile Apps add a device lab or emulator farm alongside Local + CI; Staging maps to a backend staging environment the app connects to during E2E tests.
 
 ---
 
@@ -108,3 +110,5 @@ CI must pass before merging to main. Failing tests block deployment.
 > **Note:** Persistent DB seeds apply to Web App and Microservices.
 > Data Pipelines use fixture CSV/Parquet files. AI / LLM Applications use recorded prompt-response pairs.
 > CLI Tools and Libraries typically use in-memory fixtures or temp files.
+> IaC / DevOps projects use a dedicated sandbox account/environment — no fixture files; the "data" is live infrastructure state.
+> Mobile Apps use mock API responses for unit/component tests and a staging backend for integration/E2E tests.

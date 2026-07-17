@@ -23,7 +23,7 @@
   Include only the rows that apply to your project type.
   See test-plan.md per-type guide for which levels each type uses.
   Data Pipeline / ML Pipeline: use the pipeline-specific sections below instead of this table.
-  Web App / Microservices / CLI Tool / Library / LLM App: fill this table and remove the pipeline sections.
+  Web App / Microservices / CLI Tool / Library / LLM App / IaC / DevOps / Mobile App: fill this table and remove the pipeline sections.
 -->
 
 | Type | Total | Passed | Failed | Skipped | Coverage |
@@ -185,6 +185,8 @@ Fixture: `[path/to/fixture.csv]` ([N] rows, [description])
 | **Data Pipeline** | `full pipeline run on 1M-row fixture dataset` | Throughput (rows/sec); total run time (s) |
 | **ML Pipeline** | `batch inference on 1,000 samples` | Inference latency (ms/sample); memory (GB) |
 | **AI / LLM App** | `send 50 prompts to [model]` | Time to first token (ms); tokens/sec |
+| **IaC / DevOps** | `terraform apply on full sandbox environment` | Apply time (s); resource count delta |
+| **Mobile App** | `cold start → first interactive frame` | Cold start time (ms); frame render latency (ms) |
 
 ---
 
@@ -199,8 +201,9 @@ Fixture: `[path/to/fixture.csv]` ([N] rows, [description])
 ## Coverage Report
 
 <!--
-  For unit-tested projects (Web App, CLI Tool, Library, LLM App): paste coverage summary here.
+  For unit-tested projects (Web App, Microservices, CLI Tool, Library, LLM App, Mobile App): paste coverage summary here.
   For Data Pipeline / ML Pipeline: replace with a note on what's covered by contract/integration tests.
+  For IaC / DevOps: replace with a note on which modules have tflint/tfsec/OPA checks and which are covered by the E2E sandbox run.
 -->
 
 ```
