@@ -65,7 +65,14 @@ and module naming convention for log tags.
 - `docs/business/business-rules.md` — if domain-specific validation or policy rules are embedded in the app logic
 - `docs/specs/research.md` — if technology choices (framework, state management, navigation library) were non-obvious; document the decision rationale
 
-**Step 9 — Run the module inventory scan**
+**Step 9 — Create test-plan.md and test-report.md**
+
+Create `docs/specs/test-plan.md` from `templates/specs/test-plan.md`.
+For Mobile App: document unit tests (business logic utils), component tests (single screen with navigation mocked), integration tests (screen + real backend staging), and E2E tests (Detox / Maestro / XCUITest for critical user flows).
+
+Create `docs/specs/test-report.md` from `templates/specs/test-report.md` (fill in after first test run).
+
+**Step 10 — Run the module inventory scan**
 
 ```bash
 python3 docs/script/scan_codebase.py src --project-type mobile-app
@@ -79,7 +86,7 @@ python3 docs/script/scan_codebase.py src/features --project-type mobile-app --de
 
 Creates `docs/codebase-map.md` entries for each screen module.
 
-**Step 10 — Verify documentation completeness**
+**Step 11 — Verify documentation completeness**
 
 ```bash
 python3 docs/script/verify_docs.py --project-type mobile-app

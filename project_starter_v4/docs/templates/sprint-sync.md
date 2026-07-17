@@ -102,6 +102,8 @@ Apply this filter first. Then run only the remaining items.
 - [ ] docs/architecture/frontend.md `[Types: Web App, Microservices]` — did frontend stack, page structure, or component strategy change? If yes, update, then regenerate component diagram.
 - [ ] docs/architecture/database.md `[Types: Web App, Data Pipeline, ML Pipeline, Microservices]` — did main entities or relationships change (conceptual level)? If yes, update.
 - [ ] docs/architecture/deployment.md `[Types: Web App, Data Pipeline, ML Pipeline, Microservices]` — did services, env vars, build/deploy flow, or deployment topology change? If yes, update, then regenerate deployment diagram.
+- [ ] docs/specs/test-plan.md `[Types: All]` — did the testing strategy, tool choices, test levels, CI gate, or test environment change? If yes, update the relevant section.
+- [ ] docs/specs/test-report.md `[Types: All]` — was a new test run completed, were bugs found or fixed, or did coverage change significantly? If yes, update with actual results and adjust the Known Issues / Known Gaps section.
 - [ ] docs/specs/quickstart.md `[Types: All]` — did setup steps, prerequisites, or verification steps change? If yes, update.
 - [ ] docs/specs/logging-spec.md Module Naming Convention table `[Types: Web App, CLI Tool, Data Pipeline, ML Pipeline, Microservices, AI / LLM App]` — does this sprint introduce a module name not yet listed? If yes, add one line (name + short description). Do not add module-specific logging detail here.
 - [ ] docs/business/business-rules.md `[Types: Web App, Data Pipeline, ML Pipeline, Microservices, CLI Tool]` — did business constraints or policies change? If yes, update.

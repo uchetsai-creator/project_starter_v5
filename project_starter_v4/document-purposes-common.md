@@ -48,6 +48,36 @@ Update when (if listed in current-state.md → Doc Checklist, update at task lev
 * Verification steps change
 * Environment variable requirements change
 
+### specs/test-plan.md
+**Applies to: All project types**
+For Data Pipeline / ML Pipeline: use Contract (GE/pandera), Integration (dbt test), E2E (full pipeline run), and Fault Injection levels instead of Unit/Component.
+For IaC / DevOps: use policy unit tests, terraform plan (integration), and full apply-verify-destroy (E2E).
+For Mobile App: use unit (business logic), component (single screen), integration (screen + backend), and E2E (Detox / Maestro).
+
+Purpose:
+Describes the testing strategy — what will be tested, at which levels, with which tools, and what the CI gate requires.
+Actual test results go in test-report.md.
+
+Update when (defer to Sprint Documentation Sync):
+* Testing strategy, tool choices, or test levels change
+* CI gate configuration changes
+* Test environment changes
+* Coverage targets change
+
+### specs/test-report.md
+**Applies to: All project types**
+
+Purpose:
+Records the actual results of each test run — pass/fail counts, coverage, known issues.
+For Data Pipeline / ML Pipeline: records GE checkpoint results, dbt schema test counts, E2E pipeline task results, and fault injection (break-kit) outcomes.
+This file describes WHAT was found, not the plan; the plan lives in test-plan.md.
+
+Update when (defer to Sprint Documentation Sync):
+* A new test run is completed
+* Bugs are found and fixed
+* Coverage changes significantly
+* Known Issues / Known Gaps section changes
+
 ---
 
 ## Architecture (docs/architecture/)

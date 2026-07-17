@@ -82,8 +82,10 @@ If any ❌ remain, document those modules before proceeding to Step 4.
 ## Step 4 — Fill in project status documents
 
 1. Create `docs/project-requirements.md` — reconstruct from the actual features that exist. Mark anything uncertain as [NEEDS CLARIFICATION].
-2. Create `docs/project-plan.md` — list all modules found. Mark all existing ones as completed. Add any known remaining work as incomplete tasks.
-3. Create `docs/current-state.md` — set Current Task to the next incomplete item, or write "Documentation retrofit complete — ready for new tasks" if everything is done.
+2. Create `docs/specs/test-plan.md` from `templates/specs/test-plan.md` — describe the existing testing strategy, tools, and CI gate. If no tests exist, note it as a gap.
+3. Create `docs/specs/test-report.md` from `templates/specs/test-report.md` — record the results of any existing test run, or fill in Known Issues / Known Gaps if no tests have been run yet.
+4. Create `docs/project-plan.md` — list all modules found. Mark all existing ones as completed. Add any known remaining work as incomplete tasks.
+5. Create `docs/current-state.md` — set Current Task to the next incomplete item, or write "Documentation retrofit complete — ready for new tasks" if everything is done.
 
 ---
 

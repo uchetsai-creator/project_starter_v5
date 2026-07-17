@@ -52,8 +52,6 @@ INIT_SKIP = {"document-matrix", "retrofit"}
 # the R/O/N matrix (project teams use them if needed — they're not type-gated).
 TEMPLATE_MATRIX_EXEMPT = {
     "specs/glossary.md",
-    "specs/test-plan.md",
-    "specs/test-report.md",
     "specs/dependencies.md",
 }
 

@@ -67,6 +67,9 @@ MATRIX = {
     'drift-policy.md':         ('N', 'N', 'N', 'N', 'N', 'N', 'N', 'R', 'N'),
     # Mobile App — specific documents
     'mobile-contract.md':      ('N', 'N', 'N', 'N', 'N', 'N', 'N', 'N', 'R'),
+    # Universal — all project types
+    'test-plan.md':            ('R', 'R', 'R', 'R', 'R', 'R', 'R', 'R', 'R'),
+    'test-report.md':          ('R', 'R', 'R', 'R', 'R', 'R', 'R', 'R', 'R'),
 }
 
 FILE_LOCATIONS = {
@@ -109,6 +112,9 @@ FILE_LOCATIONS = {
     'drift-policy.md':         'specs',
     # Mobile App
     'mobile-contract.md':      'specs',
+    # Universal
+    'test-plan.md':            'specs',
+    'test-report.md':          'specs',
 }
 
 SCANNED_DIRS = ('specs', 'architecture', 'business')

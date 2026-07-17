@@ -414,3 +414,34 @@ The `flows/` directory (formerly `modules/`) was renamed in Phase 1, but 7 init 
 | `docs/templates/script/build_pdf.py` | Fixed comment: `flows/*-module-data-flow.md` → `modules/*/*-module-data-flow.md` (matches actual glob pattern) |
 
 **verify_framework.py result after all fixes:** all 6 checks ✅ pass.
+
+---
+
+## Phase 15 — Universal Testing Coverage ✅ Complete
+
+While writing concrete test-plan.md and test-report.md files for a data-pipeline POC project, it became apparent that test-plan.md and test-report.md were completely absent from the framework's enforcement layer: not in `document-matrix.md`, not in `verify_docs.py`, not in any of the 9 init files, not in `sprint-sync.md`, and not in `document-purposes-common.md`. The root cause was that they were listed in `verify_framework.py`'s `TEMPLATE_MATRIX_EXEMPT` set — suppressing the matrix check rather than fixing the omission. Every project type needs a test plan and a test report.
+
+**Goal:** Add test-plan.md and test-report.md to all framework enforcement files so they are Required for all 9 project types.
+
+### Done
+
+| File | Change |
+|---|---|
+| `docs/templates/init/document-matrix.md` | Added `test-plan.md` and `test-report.md` rows — ✅ Required for all 9 project types |
+| `docs/templates/script/verify_docs.py` | Added both to `MATRIX` (`'R'` for all 9 types) and `FILE_LOCATIONS` (`'specs'`) |
+| `docs/templates/script/verify_framework.py` | Removed `specs/test-plan.md` and `specs/test-report.md` from `TEMPLATE_MATRIX_EXEMPT` |
+| `docs/templates/specs/test-plan.md` | Added **IaC / DevOps** and **Mobile App** rows to the per-type guide table |
+| `docs/templates/sprint-sync.md` | Added two `[Types: All]` checklist items for test-plan.md and test-report.md |
+| `document-purposes-common.md` | Added `specs/test-plan.md` and `specs/test-report.md` entries (Applies to: All project types) |
+| `docs/templates/init/web-app.md` | Added steps 19–20 (test-plan.md, test-report.md); renumbered tail |
+| `docs/templates/init/cli-tool.md` | Added steps 16–17; renumbered tail |
+| `docs/templates/init/library.md` | Added steps 12–13; renumbered tail |
+| `docs/templates/init/data-pipeline.md` | Added steps 17–18 (with Data Pipeline–specific notes); renumbered tail |
+| `docs/templates/init/ml-pipeline.md` | Added steps 18–19 (with Pipeline-specific notes); renumbered tail |
+| `docs/templates/init/microservices.md` | Added steps 6–7 to System-Level Setup |
+| `docs/templates/init/llm-app.md` | Added steps 23–24; renumbered tail |
+| `docs/templates/init/iac.md` | Updated "Documents that still apply" note; added steps 7–8; renumbered tail |
+| `docs/templates/init/mobile-app.md` | Added Step 9 (test-plan + test-report with Mobile App–specific notes); renumbered Steps 9–10 → Steps 10–11 |
+| `docs/templates/init/retrofit.md` | Added steps 2–3 in Step 4 (project status documents) for test-plan.md and test-report.md |
+
+Also during this phase: created concrete test-plan.md, test-report.md, and pipeline-contract.md for a data-pipeline POC; fixed stale DataHub version in dependencies.md (0.12.x → 0.15.0.1) and task count in quickstart.md (10/10 → 12/12); added pipeline-contract.md to pdf_allowlist.py; enhanced test-report.md template with four data-pipeline-specific sections (Contract Tests, Integration Tests, E2E System Test, Fault Injection Tests).

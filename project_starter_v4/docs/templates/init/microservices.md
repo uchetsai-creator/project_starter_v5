@@ -26,3 +26,5 @@ At the system (repo root) level, additionally create:
    - Create docs/specs/event-catalog.md from templates/specs/event-catalog.md.
    - For each event type, fill in payload schema, publisher, subscriber(s), retention, and dead-letter policy.
    - Note in service-contract.md that async schemas are canonical in event-catalog.md.
+6. Create docs/specs/test-plan.md from templates/specs/test-plan.md (system-level — cross-service integration and contract tests).
+7. Create docs/specs/test-report.md from templates/specs/test-report.md (system-level — fill in after first test run).

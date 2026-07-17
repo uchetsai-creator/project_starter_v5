@@ -17,7 +17,9 @@
 9. Create docs/modules/module-data-flow.md from templates/flows/module-data-flow-v2.md.
 10. Create docs/modules/module-flow.md from templates/flows/module-flow-v2.md.
 11. Create docs/codebase-map.md from templates/codebase-map.md.
-12. Create docs/project-plan.md from templates/project-plan.md.
-13. Create docs/task-log.md from templates/task-log.md.
-14. Create docs/sprint-change-log.md from templates/sprint-change-log.md.
-15. Create docs/current-state.md from templates/current-state.md.
+12. Create docs/specs/test-plan.md from templates/specs/test-plan.md.
+13. Create docs/specs/test-report.md from templates/specs/test-report.md.
+14. Create docs/project-plan.md from templates/project-plan.md.
+15. Create docs/task-log.md from templates/task-log.md.
+16. Create docs/sprint-change-log.md from templates/sprint-change-log.md.
+17. Create docs/current-state.md from templates/current-state.md.

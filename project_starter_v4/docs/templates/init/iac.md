@@ -19,7 +19,7 @@ The following documents from other project types are **N/A** — do not create t
 - permissions.md, data-model.md, logging-spec.md
 - business-process.md, business-objects.md, business-rules.md
 
-**Documents that still apply:** `research.md`, `quickstart.md`
+**Documents that still apply:** `research.md`, `quickstart.md`, `test-plan.md`, `test-report.md`
 
 ## Initialization Steps
 
@@ -43,8 +43,13 @@ The following documents from other project types are **N/A** — do not create t
 6. Create `docs/specs/drift-policy.md` from `templates/specs/drift-policy.md`.
    Fill in: allowed drift sources, exempt resources, detection cadence per environment, remediation SLA, approval gate for manual changes.
 
-7. Set up `docs/current-state.md` using the template.
+7. Create `docs/specs/test-plan.md` from `templates/specs/test-plan.md`.
+   For IaC: document policy unit tests (tflint, tfsec, OPA), `terraform plan` integration gate, and full apply-verify-destroy E2E cycle on sandbox.
+
+8. Create `docs/specs/test-report.md` from `templates/specs/test-report.md` (fill in after first test run).
+
+9. Set up `docs/current-state.md` using the template.
    The first Current Task is typically "Document existing infrastructure" or the first infrastructure module being built.
 
-8. (Optional) Set up `docs/codebase-map.md` using the template.
-   Run `scan_codebase.py <src_dir> --project-type iac` to classify Terraform modules / resource groups.
+10. (Optional) Set up `docs/codebase-map.md` using the template.
+    Run `scan_codebase.py <src_dir> --project-type iac` to classify Terraform modules / resource groups.
