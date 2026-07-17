@@ -738,6 +738,8 @@ th, td {{
     border: 1px solid #ccc;
     padding: 4px 8px;
     text-align: left;
+    word-break: break-word;
+    overflow-wrap: break-word;
 }}
 th {{ background: #2D3748; color: white; }}
 blockquote {{
