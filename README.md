@@ -531,7 +531,10 @@ with a clickable link to the original interactive HTML.
 ```bash
 pip install markdown weasyprint cairosvg --break-system-packages
 
-# English PDF — filter to project type (recommended)
+# System spec PDF — Introduction, Design, Build, Deployment only (for stakeholder handoff)
+python3 docs/script/build_pdf.py docs --lang en --project-type data-pipeline --content spec
+
+# Full PDF — all six chapters including Plan and Test (for internal use)
 python3 docs/script/build_pdf.py docs --lang en --project-type data-pipeline -o docs/project-documentation-en.pdf
 
 # Hybrid project — comma-separate types
@@ -545,6 +548,8 @@ python3 docs/script/build_pdf.py docs-zh --lang zh --project-type data-pipeline 
 ```
 
 Valid `--project-type` values: `web-app`, `cli-tool`, `library`, `data-pipeline`, `ml-pipeline`, `microservices`, `llm-app`, `iac`, `mobile-app`
+
+`--content spec` omits Plan (project-plan, changelog) and Test (test-plan, test-report) chapters — use this when handing off the spec to stakeholders or clients. Default (`full`) includes all six chapters.
 
 Google Translate (free, no API key needed), preserving code blocks, inline code, HTML comments,
 and table structure. It mirrors the translated files into `docs-zh/`, which `build_pdf.py` then

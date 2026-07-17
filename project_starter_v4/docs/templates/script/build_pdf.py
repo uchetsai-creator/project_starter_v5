@@ -31,6 +31,10 @@ Usage:
                          Valid values: web-app, cli-tool, library, data-pipeline,
                                        ml-pipeline, microservices, llm-app
                          Omit to include all files that exist (backward-compatible default).
+  --content spec|full    Control which chapters are included (default: full).
+                           full — all six chapters (Introduction, Plan, Design, Build, Test, Deployment)
+                           spec — system specification only: Introduction, Design, Build, Deployment
+                                  (omits Plan and Test chapters — suitable for stakeholder handoff)
   --clean                Delete the diagram cache before building (use after changing plantuml.cfg)
 
 To add a file to the PDF: add it to PDF_ALLOWLIST below. Do not change the discovery logic.
@@ -181,17 +185,22 @@ CSS_FONT_EN = "'Segoe UI', Arial, sans-serif"
 CSS_FONT_ZH = "'Noto Sans CJK TC', 'Noto Sans TC', 'Microsoft JhengHei', 'Segoe UI', Arial, sans-serif"
 
 
-def find_allowed_files(docs_dir, strings, project_type=None):
+SPEC_SECTIONS = {"introduction", "design", "build", "deployment"}
+
+def find_allowed_files(docs_dir, strings, project_type=None, content="full"):
     """Return (rel, abs_path, section_label) for every allowlisted file that exists
     and applies to the given project_type. log-*.md files are intentionally excluded.
 
     project_type: frozenset of type strings (supports hybrid projects, e.g. {"data-pipeline","web-app"}),
                   or None to include all entries regardless of type (backward-compatible default).
+    content: "full" (default) — all chapters; "spec" — Introduction, Design, Build, Deployment only.
     """
     result = []
     seen = set()
 
     for section_key, rel, types in PDF_ALLOWLIST:
+        if content == "spec" and section_key not in SPEC_SECTIONS:
+            continue
         if project_type is not None and not (project_type & types):
             continue
         abs_path = os.path.join(docs_dir, rel)
@@ -319,7 +328,7 @@ def extract_plantuml_from_file(md_path, svg_cache_dir):
     return pairs
 
 
-def find_plantuml_diagrams(docs_dir, png_cache_dir, project_type=None):
+def find_plantuml_diagrams(docs_dir, png_cache_dir, project_type=None, content="full"):
     """Scan all allowlisted markdown files for ```plantuml blocks.
     Renders each block to SVG (with mtime-based caching).
     Returns dict: {diagram_key: {svg, md}}"""
@@ -329,7 +338,9 @@ def find_plantuml_diagrams(docs_dir, png_cache_dir, project_type=None):
     all_pairs = {}
     # Collect md files from allowlist + auto-scanned patterns
     md_files = set()
-    for _, rel, types in PDF_ALLOWLIST:
+    for section_key, rel, types in PDF_ALLOWLIST:
+        if content == "spec" and section_key not in SPEC_SECTIONS:
+            continue
         if project_type is not None and not (project_type & types):
             continue
         abs_path = os.path.join(docs_dir, rel)
@@ -621,8 +632,8 @@ def clean_for_pdf(md_text):
     return md_text
 
 
-def build_merged_markdown(docs_dir, html_svg_pairs, png_cache_dir, strings, project_type=None):
-    files = find_allowed_files(docs_dir, strings, project_type)
+def build_merged_markdown(docs_dir, html_svg_pairs, png_cache_dir, strings, project_type=None, content="full"):
+    files = find_allowed_files(docs_dir, strings, project_type, content)
     if not files:
         print("No files to include — check PDF_ALLOWLIST in build_pdf.py")
         sys.exit(1)
@@ -758,6 +769,7 @@ def parse_args():
     lang = "en"
     clean = False
     project_type = None
+    content = "full"
 
     i = 0
     while i < len(args):
@@ -770,6 +782,9 @@ def parse_args():
             i += 2
         elif a == "--project-type" and i + 1 < len(args):
             project_type = frozenset(t.strip() for t in args[i + 1].split(","))
+            i += 2
+        elif a == "--content" and i + 1 < len(args):
+            content = args[i + 1]
             i += 2
         elif a == "--clean":
             clean = True
@@ -784,6 +799,10 @@ def parse_args():
         print(f"Unsupported language '{lang}'. Available: {', '.join(STRINGS)}")
         sys.exit(1)
 
+    if content not in ("full", "spec"):
+        print(f"Unsupported --content value '{content}'. Use: full, spec")
+        sys.exit(1)
+
     if project_type is not None:
         invalid = project_type - VALID_PROJECT_TYPES
         if invalid:
@@ -792,13 +811,14 @@ def parse_args():
             sys.exit(1)
 
     if not output_path:
-        output_path = os.path.join(docs_dir, f"project-documentation-{lang}.pdf")
+        suffix = "spec" if content == "spec" else "documentation"
+        output_path = os.path.join(docs_dir, f"project-{suffix}-{lang}.pdf")
 
-    return docs_dir, output_path, lang, clean, project_type
+    return docs_dir, output_path, lang, clean, project_type, content
 
 
 def main():
-    docs_dir, output_path, lang, clean, project_type = parse_args()
+    docs_dir, output_path, lang, clean, project_type, content = parse_args()
     strings = STRINGS[lang]
 
     if not os.path.isdir(docs_dir):
@@ -814,17 +834,19 @@ def main():
 
     if project_type:
         print(f"Project type: {' + '.join(sorted(project_type))}")
+    if content != "full":
+        print(f"Content mode: {content}")
 
     # Legacy: find manually-generated SVG/HTML pairs (e.g. schema ERD)
     html_svg_pairs = find_html_svg_pairs(docs_dir)
     # New: extract and render all ```plantuml blocks from markdown files
-    plantuml_pairs = find_plantuml_diagrams(docs_dir, png_cache_dir, project_type)
+    plantuml_pairs = find_plantuml_diagrams(docs_dir, png_cache_dir, project_type, content)
     html_svg_pairs.update(plantuml_pairs)
     print(f"Found {len(html_svg_pairs)} diagram(s): {list(html_svg_pairs.keys())}")
     print(f"Language: {lang}")
 
     merged_md = build_merged_markdown(docs_dir, html_svg_pairs, png_cache_dir, strings,
-                                      project_type=project_type)
+                                      project_type=project_type, content=content)
 
     md_html = markdown.markdown(
         merged_md,
