@@ -20,6 +20,7 @@ scaffolding under `templates/`. Copy `templates/` into a new project's `docs/` f
 ```
 project_starter/                     ← this repo (template only)
 ├── AGENTS.md
+├── document-registry.yaml           ← single source of truth for all document metadata
 ├── debug-instrumentation-rules.md
 ├── code-quality-check.md            ← code review checklist for retrofitting existing projects
 ├── docs/                            ← framework design documents (not copied to projects)
@@ -450,7 +451,9 @@ Valid `--project-type` values: `web-app`, `cli-tool`, `library`, `data-pipeline`
 
 ## Framework maintenance
 
-`verify_framework.py` audits the framework's own internal consistency. Run it after any framework update, or any time you modify AGENTS.md, document-matrix.md, sprint-sync.md, or any document-purposes file.
+`verify_framework.py` audits the framework's own internal consistency. Run it after any framework update, or any time you modify `document-registry.yaml`, AGENTS.md, document-matrix.md, sprint-sync.md, or any document-purposes file.
+
+**Adding a new document:** edit `document-registry.yaml` only — `verify_docs.py` and `verify_content.py` derive their document lists from it automatically. Also update `templates/init/document-matrix.md` (human-readable copy) and the relevant `guidance/document-purposes-*.md` file.
 
 ```bash
 python3 templates/script/verify_framework.py
@@ -469,9 +472,9 @@ python3 templates/script/verify_framework.py --json     # machine-readable outpu
 | Purposes coverage | Every Required document appears in the matching document-purposes file |
 | Cross-reference integrity | Every `### X.md` header in document-purposes-*.md has a template file |
 | Type completeness | Every type slug in AGENTS.md's init table has a matching init file and document-purposes file |
-| Script type sync | `scan_codebase.py` and `verify_docs.py` declare the same set of project types |
+| Script type sync | `scan_codebase.py` and `document-registry.yaml` declare the same set of project types |
 | Build-PDF type sync | `build_pdf.py` VALID_PROJECT_TYPES matches all declared project types |
-| Content coverage | `verify_content.py` covers 32 document checkers × 9 project types |
+| Content coverage | `document-registry.yaml` schema valid; `verify_content.py` covers all document checkers |
 
 **Output:**
 

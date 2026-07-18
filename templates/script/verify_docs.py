@@ -19,117 +19,18 @@ import os
 import re
 import sys
 
-VALID_TYPES = [
-    'web-app', 'cli-tool', 'library',
-    'data-pipeline', 'ml-pipeline', 'microservices', 'llm-app', 'iac', 'mobile-app',
-]
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _registry import load_registry, build_matrix, build_file_locations, VALID_TYPES
 
+_reg = load_registry()
+MATRIX = build_matrix(_reg)
+FILE_LOCATIONS = build_file_locations(_reg)
 TYPE_INDEX = {t: i for i, t in enumerate(VALID_TYPES)}
-
-# R = Required, O = Optional, N = Not applicable
-# Column order: web-app, cli-tool, library, data-pipeline, ml-pipeline, microservices, llm-app, iac, mobile-app
-# Derived from templates/init/document-matrix.md — conditional cells (e.g. "⚠️ if DB") treated as O.
-MATRIX = {
-    'architecture.md':         ('R', 'R', 'O', 'R', 'R', 'R', 'R', 'N', 'R'),
-    'backend.md':              ('R', 'R', 'N', 'R', 'R', 'O', 'O', 'N', 'O'),
-    'frontend.md':             ('O', 'N', 'N', 'N', 'N', 'O', 'O', 'N', 'R'),
-    'database.md':             ('R', 'O', 'N', 'R', 'R', 'O', 'O', 'N', 'O'),
-    'deployment.md':           ('R', 'N', 'N', 'R', 'R', 'R', 'O', 'N', 'N'),
-    'distribution.md':         ('N', 'R', 'R', 'N', 'N', 'N', 'N', 'N', 'R'),
-    'api-contract.md':         ('R', 'N', 'N', 'N', 'N', 'R', 'O', 'N', 'O'),
-    'cli-contract.md':         ('N', 'R', 'N', 'N', 'N', 'N', 'O', 'N', 'N'),
-    'public-api.md':           ('N', 'N', 'R', 'N', 'N', 'N', 'N', 'N', 'N'),
-    'pipeline-contract.md':    ('N', 'N', 'N', 'R', 'R', 'N', 'N', 'N', 'N'),
-    'pipeline-debug.md':       ('N', 'N', 'N', 'R', 'R', 'N', 'N', 'N', 'N'),
-    'llm-contract.md':         ('N', 'N', 'N', 'N', 'N', 'N', 'R', 'N', 'N'),
-    'prompt-library.md':       ('N', 'N', 'N', 'N', 'N', 'N', 'R', 'N', 'N'),
-    'eval-spec.md':            ('N', 'N', 'N', 'N', 'N', 'N', 'R', 'N', 'N'),
-    'eval-log.md':             ('N', 'N', 'N', 'N', 'N', 'N', 'R', 'N', 'N'),
-    'llm-debug.md':            ('N', 'N', 'N', 'N', 'N', 'N', 'R', 'N', 'N'),
-    'rag-contract.md':         ('N', 'N', 'N', 'N', 'N', 'N', 'O', 'N', 'N'),
-    'mcp-contract.md':         ('N', 'N', 'N', 'N', 'N', 'N', 'O', 'N', 'N'),
-    'service-catalog.md':      ('N', 'N', 'N', 'N', 'N', 'R', 'N', 'N', 'N'),
-    'service-contract.md':     ('N', 'N', 'N', 'N', 'N', 'R', 'N', 'N', 'N'),
-    'event-catalog.md':        ('N', 'N', 'N', 'N', 'N', 'O', 'N', 'N', 'N'),
-    'model-contract.md':       ('N', 'N', 'N', 'N', 'R', 'N', 'N', 'N', 'N'),
-    'experiment-log.md':       ('N', 'N', 'N', 'N', 'R', 'N', 'N', 'N', 'N'),
-    'release-guide.md':        ('N', 'R', 'R', 'N', 'N', 'N', 'N', 'N', 'N'),
-    'compatibility-matrix.md': ('N', 'O', 'R', 'N', 'N', 'N', 'N', 'N', 'O'),
-    'permissions.md':          ('R', 'N', 'N', 'N', 'N', 'R', 'O', 'N', 'O'),
-    'data-model.md':           ('R', 'O', 'N', 'R', 'R', 'O', 'O', 'N', 'O'),
-    'business-process.md':     ('R', 'O', 'N', 'O', 'N', 'R', 'N', 'N', 'O'),
-    'business-objects.md':     ('R', 'N', 'N', 'N', 'N', 'R', 'N', 'N', 'N'),
-    'business-rules.md':       ('R', 'O', 'N', 'R', 'O', 'R', 'O', 'N', 'O'),
-    'logging-spec.md':         ('R', 'R', 'N', 'R', 'R', 'R', 'O', 'N', 'R'),
-    'research.md':             ('R', 'R', 'R', 'R', 'R', 'R', 'R', 'R', 'R'),
-    'quickstart.md':           ('R', 'R', 'R', 'R', 'R', 'R', 'R', 'R', 'R'),
-    # IaC / DevOps — specific documents
-    'topology.md':             ('N', 'N', 'N', 'N', 'N', 'N', 'N', 'R', 'N'),
-    'runbook.md':              ('N', 'N', 'N', 'N', 'N', 'N', 'N', 'R', 'N'),
-    'drift-policy.md':         ('N', 'N', 'N', 'N', 'N', 'N', 'N', 'R', 'N'),
-    # Mobile App — specific documents
-    'mobile-contract.md':      ('N', 'N', 'N', 'N', 'N', 'N', 'N', 'N', 'R'),
-    # Universal — all project types
-    'test-plan.md':            ('R', 'R', 'R', 'R', 'R', 'R', 'R', 'R', 'R'),
-    'test-report.md':          ('R', 'R', 'R', 'R', 'R', 'R', 'R', 'R', 'R'),
-    # Always-optional utilities — created on demand, not gated by project type
-    'glossary.md':             ('O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O'),
-    'dependencies.md':         ('O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O'),
-}
-
-FILE_LOCATIONS = {
-    'architecture.md':         'architecture',
-    'backend.md':              'architecture',
-    'frontend.md':             'architecture',
-    'database.md':             'architecture',
-    'deployment.md':           'architecture',
-    'distribution.md':         'architecture',
-    'api-contract.md':         'specs',
-    'cli-contract.md':         'specs',
-    'public-api.md':           'specs',
-    'pipeline-contract.md':    'specs',
-    'pipeline-debug.md':       'specs',
-    'llm-contract.md':         'specs',
-    'prompt-library.md':       'specs',
-    'eval-spec.md':            'specs',
-    'eval-log.md':             'specs',
-    'llm-debug.md':            'specs',
-    'rag-contract.md':         'specs',
-    'mcp-contract.md':         'specs',
-    'service-catalog.md':      'specs',
-    'service-contract.md':     'specs',
-    'event-catalog.md':        'specs',
-    'model-contract.md':       'specs',
-    'experiment-log.md':       'specs',
-    'release-guide.md':        'specs',
-    'compatibility-matrix.md': 'specs',
-    'permissions.md':          'specs',
-    'data-model.md':           'specs',
-    'business-process.md':     'business',
-    'business-objects.md':     'business',
-    'business-rules.md':       'business',
-    'logging-spec.md':         'specs',
-    'research.md':             'specs',
-    'quickstart.md':           'specs',
-    # IaC / DevOps
-    'topology.md':             'architecture',
-    'runbook.md':              'specs',
-    'drift-policy.md':         'specs',
-    # Mobile App
-    'mobile-contract.md':      'specs',
-    # Universal
-    'test-plan.md':            'specs',
-    'test-report.md':          'specs',
-    # Always-optional utilities
-    'glossary.md':             'specs',
-    'dependencies.md':         'specs',
-}
 
 SCANNED_DIRS = ('specs', 'architecture', 'business')
 
 # ── Content quality constants (used by --content) ────────────────────────────
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _verify_common import _is_placeholder
 
 # A section must have at least this many non-empty, non-placeholder lines to

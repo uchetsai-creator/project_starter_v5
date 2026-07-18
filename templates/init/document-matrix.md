@@ -3,6 +3,10 @@
 <!--
   Load only during project initialization or retrofitting.
   Not needed during normal task work.
+
+  This table is a human-readable view of document-registry.yaml at the repo root.
+  The registry is authoritative — if this table conflicts with document-registry.yaml,
+  the registry wins.
 -->
 
 **Required (✅) / Optional (⚠️) / Not applicable (❌) by project type:**

@@ -27,74 +27,17 @@ import re
 import subprocess
 import sys
 
-VALID_TYPES = [
-    'web-app', 'cli-tool', 'library',
-    'data-pipeline', 'ml-pipeline', 'microservices', 'llm-app', 'iac', 'mobile-app',
-]
-
-# Document name → relative path within the docs/ directory
-DOC_PATHS: dict[str, str] = {
-    'architecture.md':          'architecture/architecture.md',
-    'backend.md':               'architecture/backend.md',
-    'topology.md':              'architecture/topology.md',
-    'quickstart.md':            'specs/quickstart.md',
-    'research.md':              'specs/research.md',
-    'test-plan.md':             'specs/test-plan.md',
-    'api-contract.md':          'specs/api-contract.md',
-    'permissions.md':           'specs/permissions.md',
-    'data-model.md':            'specs/data-model.md',
-    'pipeline-contract.md':     'specs/pipeline-contract.md',
-    'pipeline-debug.md':        'specs/pipeline-debug.md',
-    'model-contract.md':        'specs/model-contract.md',
-    'experiment-log.md':        'specs/experiment-log.md',
-    'cli-contract.md':          'specs/cli-contract.md',
-    'release-guide.md':         'specs/release-guide.md',
-    'public-api.md':            'specs/public-api.md',
-    'compatibility-matrix.md':  'specs/compatibility-matrix.md',
-    'service-catalog.md':       'specs/service-catalog.md',
-    'service-contract.md':      'specs/service-contract.md',
-    'llm-contract.md':          'specs/llm-contract.md',
-    'eval-spec.md':             'specs/eval-spec.md',
-    'prompt-library.md':        'specs/prompt-library.md',
-    'runbook.md':               'specs/runbook.md',
-    'drift-policy.md':          'specs/drift-policy.md',
-    'mobile-contract.md':       'specs/mobile-contract.md',
-    'deployment.md':            'architecture/deployment.md',
-    'database.md':              'architecture/database.md',
-    'distribution.md':          'architecture/distribution.md',
-    'frontend.md':              'architecture/frontend.md',
-    'business-rules.md':        'business/business-rules.md',
-    'business-process.md':      'business/business-process.md',
-    'business-objects.md':      'business/business-objects.md',
-}
-
-# Universal documents checked for every project type
-UNIVERSAL_DOCS = ['architecture.md', 'quickstart.md', 'research.md', 'test-plan.md']
-
-# Additional Required documents per project type
-TYPE_DOCS: dict[str, list[str]] = {
-    'web-app':       ['api-contract.md', 'permissions.md', 'data-model.md', 'backend.md',
-                      'deployment.md', 'database.md',
-                      'business-rules.md', 'business-process.md', 'business-objects.md'],
-    'microservices': ['api-contract.md', 'permissions.md', 'data-model.md', 'backend.md',
-                      'service-catalog.md', 'service-contract.md',
-                      'deployment.md', 'database.md',
-                      'business-rules.md', 'business-process.md', 'business-objects.md'],
-    'data-pipeline': ['pipeline-contract.md', 'pipeline-debug.md', 'data-model.md', 'backend.md',
-                      'deployment.md', 'database.md', 'business-rules.md'],
-    'ml-pipeline':   ['pipeline-contract.md', 'pipeline-debug.md', 'data-model.md', 'backend.md',
-                      'model-contract.md', 'experiment-log.md',
-                      'deployment.md', 'database.md'],
-    'cli-tool':      ['cli-contract.md', 'release-guide.md', 'backend.md', 'distribution.md'],
-    'library':       ['public-api.md', 'release-guide.md', 'compatibility-matrix.md',
-                      'distribution.md'],
-    'llm-app':       ['llm-contract.md', 'eval-spec.md', 'prompt-library.md'],
-    'iac':           ['topology.md', 'runbook.md', 'drift-policy.md'],
-    'mobile-app':    ['mobile-contract.md', 'frontend.md', 'distribution.md'],
-}
-
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _verify_common import _is_placeholder, _section_body
+from _registry import (
+    load_registry, VALID_TYPES,
+    build_type_docs, build_doc_paths, get_universal_docs,
+)
+
+_reg = load_registry()
+TYPE_DOCS: dict[str, list[str]] = build_type_docs(_reg)
+DOC_PATHS: dict[str, str] = build_doc_paths(_reg)
+UNIVERSAL_DOCS: list[str] = get_universal_docs(_reg)
 
 
 def _read_file(path: str) -> list[str] | None:

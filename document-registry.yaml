@@ -1,0 +1,437 @@
+# document-registry.yaml — project_starter_v4
+# Single source of truth for all document metadata.
+# Replaces: verify_docs.py MATRIX + FILE_LOCATIONS, verify_content.py TYPE_DOCS + DOC_PATHS,
+#           and templates/init/document-matrix.md (which is now a human-readable view only).
+#
+# Schema per entry:
+#   file:             filename (with .md)
+#   path:             path relative to docs/ root
+#   required_for:     project types where this document is Required (R)
+#   optional_for:     project types where this document is Optional (O)
+#   context_priority: high | medium | low  (used by build-context.py)
+#   purpose:          one-line description for AI context headers
+#   used_by:          which tools consume this document
+#   related:          closely related document keys (without .md)
+#
+# Valid project types (9):
+#   web-app | cli-tool | library | data-pipeline | ml-pipeline
+#   microservices | llm-app | iac | mobile-app
+# Hybrid types: data-pipeline+web-app (union of both type entries)
+
+documents:
+
+  # ── Architecture ─────────────────────────────────────────────────────────────
+
+  architecture:
+    file: architecture.md
+    path: architecture/architecture.md
+    required_for: [web-app, cli-tool, data-pipeline, ml-pipeline, microservices, llm-app, mobile-app]
+    optional_for: [library]
+    context_priority: medium
+    purpose: "Current system components and data-flow diagram"
+    used_by: [context-builder, validator, pdf]
+    related: [backend, database, deployment]
+
+  backend:
+    file: backend.md
+    path: architecture/backend.md
+    required_for: [web-app, cli-tool, data-pipeline, ml-pipeline]
+    optional_for: [microservices, llm-app, mobile-app]
+    context_priority: medium
+    purpose: "Backend stack, layering, and module organisation"
+    used_by: [context-builder, validator, pdf]
+    related: [architecture, database]
+
+  frontend:
+    file: frontend.md
+    path: architecture/frontend.md
+    required_for: [mobile-app]
+    optional_for: [web-app, microservices, llm-app]
+    context_priority: medium
+    purpose: "Frontend stack, page structure, and component strategy"
+    used_by: [context-builder, validator, pdf]
+    related: [architecture, permissions]
+
+  database:
+    file: database.md
+    path: architecture/database.md
+    required_for: [web-app, data-pipeline, ml-pipeline]
+    optional_for: [cli-tool, microservices, llm-app, mobile-app]
+    context_priority: medium
+    purpose: "Database engine, main entities, and relationships"
+    used_by: [context-builder, validator, pdf]
+    related: [data-model, backend]
+
+  deployment:
+    file: deployment.md
+    path: architecture/deployment.md
+    required_for: [web-app, data-pipeline, ml-pipeline, microservices]
+    optional_for: [llm-app]
+    context_priority: medium
+    purpose: "Services, environment variables, and build/deploy flow"
+    used_by: [context-builder, validator, pdf]
+    related: [architecture, quickstart]
+
+  distribution:
+    file: distribution.md
+    path: architecture/distribution.md
+    required_for: [cli-tool, library, mobile-app]
+    optional_for: []
+    context_priority: low
+    purpose: "Package build, registry publish, and installation instructions"
+    used_by: [context-builder, validator, pdf]
+    related: [release-guide, compatibility-matrix]
+
+  topology:
+    file: topology.md
+    path: architecture/topology.md
+    required_for: [iac]
+    optional_for: []
+    context_priority: medium
+    purpose: "Infrastructure resource topology and environment promotion path"
+    used_by: [context-builder, validator, pdf]
+    related: [runbook, drift-policy]
+
+  # ── Specs ────────────────────────────────────────────────────────────────────
+
+  api-contract:
+    file: api-contract.md
+    path: specs/api-contract.md
+    required_for: [web-app, microservices]
+    optional_for: [llm-app, mobile-app]
+    context_priority: high
+    purpose: "REST/GraphQL/WebSocket endpoint contracts, error codes, and validation rules"
+    used_by: [context-builder, validator, pdf]
+    related: [permissions, data-model]
+
+  cli-contract:
+    file: cli-contract.md
+    path: specs/cli-contract.md
+    required_for: [cli-tool]
+    optional_for: [llm-app]
+    context_priority: high
+    purpose: "CLI subcommands, flags, arguments, output format, and exit codes"
+    used_by: [context-builder, validator, pdf]
+    related: [quickstart, release-guide]
+
+  public-api:
+    file: public-api.md
+    path: specs/public-api.md
+    required_for: [library]
+    optional_for: []
+    context_priority: high
+    purpose: "Public functions, classes, types, and constants exposed to callers"
+    used_by: [context-builder, validator, pdf]
+    related: [compatibility-matrix, release-guide]
+
+  pipeline-contract:
+    file: pipeline-contract.md
+    path: specs/pipeline-contract.md
+    required_for: [data-pipeline, ml-pipeline]
+    optional_for: []
+    context_priority: high
+    purpose: "Inter-stage input/output formats, paths, naming rules, and error handling"
+    used_by: [context-builder, validator, pdf]
+    related: [pipeline-debug, data-model]
+
+  pipeline-debug:
+    file: pipeline-debug.md
+    path: specs/pipeline-debug.md
+    required_for: [data-pipeline, ml-pipeline]
+    optional_for: []
+    context_priority: medium
+    purpose: "Stage failure diagnosis guide: wrong row count, data quality, root cause"
+    used_by: [context-builder, validator, pdf]
+    related: [pipeline-contract]
+
+  llm-contract:
+    file: llm-contract.md
+    path: specs/llm-contract.md
+    required_for: [llm-app]
+    optional_for: []
+    context_priority: high
+    purpose: "Model, system prompt, parameters, and tool schemas"
+    used_by: [context-builder, validator, pdf]
+    related: [prompt-library, eval-spec, rag-contract]
+
+  prompt-library:
+    file: prompt-library.md
+    path: specs/prompt-library.md
+    required_for: [llm-app]
+    optional_for: []
+    context_priority: high
+    purpose: "Index of all prompts with version, purpose, and per-prompt file link"
+    used_by: [context-builder, validator, pdf]
+    related: [llm-contract, eval-spec]
+
+  eval-spec:
+    file: eval-spec.md
+    path: specs/eval-spec.md
+    required_for: [llm-app]
+    optional_for: []
+    context_priority: medium
+    purpose: "Evaluation criteria, metrics, score thresholds, and dataset selection rules"
+    used_by: [context-builder, validator, pdf]
+    related: [llm-contract, eval-log]
+
+  eval-log:
+    file: eval-log.md
+    path: specs/eval-log.md
+    required_for: [llm-app]
+    optional_for: []
+    context_priority: low
+    purpose: "Per-run evaluation results log (one row per eval run)"
+    used_by: [context-builder, validator, pdf]
+    related: [eval-spec]
+
+  llm-debug:
+    file: llm-debug.md
+    path: specs/llm-debug.md
+    required_for: [llm-app]
+    optional_for: []
+    context_priority: medium
+    purpose: "LLM failure diagnosis guide: wrong answer, low eval score, tool call failure"
+    used_by: [context-builder, validator, pdf]
+    related: [llm-contract, eval-spec]
+
+  rag-contract:
+    file: rag-contract.md
+    path: specs/rag-contract.md
+    required_for: []
+    optional_for: [llm-app]
+    context_priority: medium
+    purpose: "Retrieval sources, chunking strategy, embedding model, and vector store config"
+    used_by: [context-builder, validator, pdf]
+    related: [llm-contract]
+
+  mcp-contract:
+    file: mcp-contract.md
+    path: specs/mcp-contract.md
+    required_for: []
+    optional_for: [llm-app]
+    context_priority: medium
+    purpose: "MCP server tool schemas, tool-use policy, and server configuration"
+    used_by: [context-builder, validator, pdf]
+    related: [llm-contract]
+
+  service-catalog:
+    file: service-catalog.md
+    path: specs/service-catalog.md
+    required_for: [microservices]
+    optional_for: []
+    context_priority: high
+    purpose: "All services: owner, port, base URL, and key dependencies"
+    used_by: [context-builder, validator, pdf]
+    related: [service-contract, event-catalog]
+
+  service-contract:
+    file: service-contract.md
+    path: specs/service-contract.md
+    required_for: [microservices]
+    optional_for: []
+    context_priority: high
+    purpose: "REST contracts and resilience policies between services"
+    used_by: [context-builder, validator, pdf]
+    related: [service-catalog, event-catalog, api-contract]
+
+  event-catalog:
+    file: event-catalog.md
+    path: specs/event-catalog.md
+    required_for: []
+    optional_for: [microservices]
+    context_priority: medium
+    purpose: "Event types, payload schemas, publishers, subscribers, and retention policy"
+    used_by: [context-builder, validator, pdf]
+    related: [service-contract]
+
+  model-contract:
+    file: model-contract.md
+    path: specs/model-contract.md
+    required_for: [ml-pipeline]
+    optional_for: []
+    context_priority: high
+    purpose: "Input feature schema, output format, and production score thresholds"
+    used_by: [context-builder, validator, pdf]
+    related: [pipeline-contract, experiment-log]
+
+  experiment-log:
+    file: experiment-log.md
+    path: specs/experiment-log.md
+    required_for: [ml-pipeline]
+    optional_for: []
+    context_priority: low
+    purpose: "Per-experiment results log (one row per training run)"
+    used_by: [context-builder, validator, pdf]
+    related: [model-contract, eval-spec]
+
+  release-guide:
+    file: release-guide.md
+    path: specs/release-guide.md
+    required_for: [cli-tool, library]
+    optional_for: []
+    context_priority: low
+    purpose: "Versioning policy, release checklist, publish process, and deprecation policy"
+    used_by: [context-builder, validator, pdf]
+    related: [distribution, compatibility-matrix]
+
+  compatibility-matrix:
+    file: compatibility-matrix.md
+    path: specs/compatibility-matrix.md
+    required_for: [library]
+    optional_for: [cli-tool, mobile-app]
+    context_priority: low
+    purpose: "Supported runtime versions and known incompatibilities"
+    used_by: [context-builder, validator, pdf]
+    related: [release-guide, distribution]
+
+  permissions:
+    file: permissions.md
+    path: specs/permissions.md
+    required_for: [web-app, microservices]
+    optional_for: [llm-app, mobile-app]
+    context_priority: high
+    purpose: "Roles, permission matrix, and API endpoint access by role"
+    used_by: [context-builder, validator, pdf]
+    related: [api-contract, business-objects]
+
+  data-model:
+    file: data-model.md
+    path: specs/data-model.md
+    required_for: [web-app, data-pipeline, ml-pipeline]
+    optional_for: [cli-tool, microservices, llm-app, mobile-app]
+    context_priority: high
+    purpose: "Schema, entities, relationships, indexes, and state machine"
+    used_by: [context-builder, validator, pdf]
+    related: [database, pipeline-contract, business-objects]
+
+  logging-spec:
+    file: logging-spec.md
+    path: specs/logging-spec.md
+    required_for: [web-app, cli-tool, data-pipeline, ml-pipeline, microservices, mobile-app]
+    optional_for: [llm-app]
+    context_priority: medium
+    purpose: "Log format, required log points, trace_id propagation, and module naming"
+    used_by: [context-builder, validator, pdf]
+    related: []
+
+  research:
+    file: research.md
+    path: specs/research.md
+    required_for: [web-app, cli-tool, library, data-pipeline, ml-pipeline, microservices, llm-app, iac, mobile-app]
+    optional_for: []
+    context_priority: low
+    purpose: "Technology decisions and resolved NEEDS CLARIFICATION items"
+    used_by: [context-builder, validator, pdf]
+    related: []
+
+  quickstart:
+    file: quickstart.md
+    path: specs/quickstart.md
+    required_for: [web-app, cli-tool, library, data-pipeline, ml-pipeline, microservices, llm-app, iac, mobile-app]
+    optional_for: []
+    context_priority: low
+    purpose: "Prerequisites, environment setup, startup commands, and verification steps"
+    used_by: [context-builder, validator, pdf]
+    related: [deployment]
+
+  runbook:
+    file: runbook.md
+    path: specs/runbook.md
+    required_for: [iac]
+    optional_for: []
+    context_priority: medium
+    purpose: "Health check commands, rollback procedures, and incident response steps"
+    used_by: [context-builder, validator, pdf]
+    related: [topology, drift-policy]
+
+  drift-policy:
+    file: drift-policy.md
+    path: specs/drift-policy.md
+    required_for: [iac]
+    optional_for: []
+    context_priority: medium
+    purpose: "Detection cadence, remediation SLA, exempt resources, and approval gate"
+    used_by: [context-builder, validator, pdf]
+    related: [topology, runbook]
+
+  mobile-contract:
+    file: mobile-contract.md
+    path: specs/mobile-contract.md
+    required_for: [mobile-app]
+    optional_for: []
+    context_priority: high
+    purpose: "Screen inventory, navigation structure, OS permissions, and push notification schemas"
+    used_by: [context-builder, validator, pdf]
+    related: [frontend, distribution]
+
+  test-plan:
+    file: test-plan.md
+    path: specs/test-plan.md
+    required_for: [web-app, cli-tool, library, data-pipeline, ml-pipeline, microservices, llm-app, iac, mobile-app]
+    optional_for: []
+    context_priority: low
+    purpose: "Testing strategy, tool choices, test levels, CI gate, and test environment"
+    used_by: [context-builder, validator, pdf]
+    related: [test-report]
+
+  test-report:
+    file: test-report.md
+    path: specs/test-report.md
+    required_for: [web-app, cli-tool, library, data-pipeline, ml-pipeline, microservices, llm-app, iac, mobile-app]
+    optional_for: []
+    context_priority: low
+    purpose: "Actual test results, coverage, bugs found, and known gaps"
+    used_by: [context-builder, validator, pdf]
+    related: [test-plan]
+
+  glossary:
+    file: glossary.md
+    path: specs/glossary.md
+    required_for: []
+    optional_for: [web-app, cli-tool, library, data-pipeline, ml-pipeline, microservices, llm-app, iac, mobile-app]
+    context_priority: low
+    purpose: "Domain terms and abbreviations used across documents"
+    used_by: [context-builder, pdf]
+    related: [dependencies]
+
+  dependencies:
+    file: dependencies.md
+    path: specs/dependencies.md
+    required_for: []
+    optional_for: [web-app, cli-tool, library, data-pipeline, ml-pipeline, microservices, llm-app, iac, mobile-app]
+    context_priority: low
+    purpose: "Third-party libraries, versions, licences, and update policy"
+    used_by: [context-builder, pdf]
+    related: [glossary]
+
+  # ── Business ─────────────────────────────────────────────────────────────────
+
+  business-process:
+    file: business-process.md
+    path: business/business-process.md
+    required_for: [web-app, microservices]
+    optional_for: [cli-tool, data-pipeline, mobile-app]
+    context_priority: medium
+    purpose: "Business workflow, decision points, responsible roles, and exceptions"
+    used_by: [context-builder, validator, pdf]
+    related: [business-objects, business-rules]
+
+  business-objects:
+    file: business-objects.md
+    path: business/business-objects.md
+    required_for: [web-app, microservices]
+    optional_for: []
+    context_priority: medium
+    purpose: "Index of business entity files and their relationships"
+    used_by: [context-builder, validator, pdf]
+    related: [business-process, data-model]
+
+  business-rules:
+    file: business-rules.md
+    path: business/business-rules.md
+    required_for: [web-app, data-pipeline, microservices]
+    optional_for: [cli-tool, ml-pipeline, llm-app, mobile-app]
+    context_priority: medium
+    purpose: "Business constraints and policies that code must enforce"
+    used_by: [context-builder, validator, pdf]
+    related: [business-process, permissions]

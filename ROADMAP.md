@@ -1219,7 +1219,7 @@ Before any implementation, three design documents establish the target architect
 
 ---
 
-## Phase 37 — Document Registry
+## Phase 37 — Document Registry ✅ Complete
 
 `verify_docs.py` `MATRIX`, `verify_content.py` `TYPE_DOCS` + `DOC_PATHS`, and `document-matrix.md` all encode the same project-type → document knowledge independently. Adding a new document type currently requires updating three separate files. The registry eliminates this duplication.
 

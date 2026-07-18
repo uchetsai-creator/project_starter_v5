@@ -19,6 +19,9 @@ import re
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _registry import VALID_TYPES as _REGISTRY_VALID_TYPES
+
 # Script lives at <root>/templates/script/ — framework root is 3 levels up.
 FRAMEWORK_ROOT = Path(__file__).resolve().parent.parent.parent
 
@@ -407,29 +410,20 @@ def check_script_type_sync() -> list[dict]:
             if line.strip() == "}":
                 in_vocab = False
 
-    # Extract values from VALID_TYPES list in verify_docs.py
-    verify_types: set[str] = set()
-    in_valid = False
-    for line in verify_path.read_text(encoding="utf-8").splitlines():
-        if re.match(r"\s*VALID_TYPES\s*=\s*\[", line):
-            in_valid = True
-        if in_valid:
-            for m in re.finditer(r"'([a-z][a-z-]+)'", line):
-                verify_types.add(m.group(1))
-            if "]" in line and "VALID_TYPES" not in line:
-                in_valid = False
+    # VALID_TYPES is now sourced from document-registry.yaml via _registry.py
+    verify_types: set[str] = set(_REGISTRY_VALID_TYPES)
 
     issues = []
     for t in sorted(scan_types - verify_types):
         issues.append(_issue("script-type-sync", "fail",
-                             f"`{t}` in scan_codebase.py MODULE_VOCAB but NOT in verify_docs.py VALID_TYPES"))
+                             f"`{t}` in scan_codebase.py MODULE_VOCAB but NOT in document-registry.yaml VALID_TYPES"))
     for t in sorted(verify_types - scan_types):
         issues.append(_issue("script-type-sync", "fail",
-                             f"`{t}` in verify_docs.py VALID_TYPES but NOT in scan_codebase.py MODULE_VOCAB"))
+                             f"`{t}` in document-registry.yaml VALID_TYPES but NOT in scan_codebase.py MODULE_VOCAB"))
 
     if not issues:
         return [_issue("script-type-sync", "pass",
-                       f"scan_codebase.py and verify_docs.py share the same {len(scan_types)} types: "
+                       f"scan_codebase.py and document-registry.yaml share the same {len(scan_types)} types: "
                        f"{', '.join(sorted(scan_types))}")]
     return issues
 
@@ -467,34 +461,60 @@ def check_build_pdf_type_sync() -> list[dict]:
 
 
 def check_content_coverage() -> list[dict]:
-    """Check 10: verify_content.py TYPE_DOCS covers all 9 project types
-    and all document checker functions exist."""
+    """Check 10: document-registry.yaml exists with valid schema, and all document
+    checker functions exist in verify_content.py."""
+    registry_path = FRAMEWORK_ROOT / "document-registry.yaml"
     script_path = TEMPLATES_DIR / "script" / "verify_content.py"
-    if not script_path.exists():
-        return [_issue("content-coverage", "error", "verify_content.py not found")]
-
-    text = script_path.read_text(encoding="utf-8")
     issues = []
 
-    # Check TYPE_DOCS has all 9 project types
-    type_docs_types: set[str] = set()
-    in_type_docs = False
-    for line in text.splitlines():
-        if re.match(r"\s*TYPE_DOCS\s*[=:]", line):
-            in_type_docs = True
-        if in_type_docs:
-            m = re.search(r"'([a-z][a-z-]+)'\s*:", line)
-            if m:
-                type_docs_types.add(m.group(1))
-            if "}" in line and "TYPE_DOCS" not in line:
-                in_type_docs = False
+    # Validate registry exists and covers all 9 project types
+    if not registry_path.exists():
+        return [_issue("content-coverage", "error", "document-registry.yaml not found at repo root")]
 
-    expected_types = set(PURPOSES_FILES.keys())
-    for t in sorted(expected_types - type_docs_types):
+    registry_text = registry_path.read_text(encoding="utf-8")
+    required_fields = {"file", "path", "required_for", "optional_for"}
+    expected_types = set(_REGISTRY_VALID_TYPES)
+    seen_types: set[str] = set()
+    current_doc: str | None = None
+    current_fields: set[str] = set()
+
+    for raw_line in registry_text.splitlines():
+        line = raw_line.rstrip()
+        doc_m = re.match(r'^  ([a-z][a-z0-9-]+):$', line)
+        if doc_m:
+            if current_doc and not required_fields <= current_fields:
+                missing = sorted(required_fields - current_fields)
+                issues.append(_issue("content-coverage", "fail",
+                                     f"registry entry `{current_doc}` missing fields: {missing}"))
+            current_doc = doc_m.group(1)
+            current_fields = set()
+            continue
+        if current_doc and line.startswith('    '):
+            field_m = re.match(r'^    ([a-z_]+):\s*(.*)', line)
+            if field_m:
+                key, val = field_m.group(1), field_m.group(2).strip()
+                current_fields.add(key)
+                if key in ('required_for', 'optional_for') and val.startswith('['):
+                    for t in re.findall(r'[a-z][a-z-]+', val):
+                        if t in expected_types:
+                            seen_types.add(t)
+
+    # Check last entry
+    if current_doc and not required_fields <= current_fields:
+        missing = sorted(required_fields - current_fields)
         issues.append(_issue("content-coverage", "fail",
-                             f"`{t}` missing from verify_content.py TYPE_DOCS"))
+                             f"registry entry `{current_doc}` missing fields: {missing}"))
 
-    # Check all document checker functions exist
+    for t in sorted(expected_types - seen_types):
+        issues.append(_issue("content-coverage", "fail",
+                             f"`{t}` not referenced in document-registry.yaml"))
+
+    # Check all document checker functions exist in verify_content.py
+    if not script_path.exists():
+        issues.append(_issue("content-coverage", "error", "verify_content.py not found"))
+        return issues
+    text = script_path.read_text(encoding="utf-8")
+
     required_checkers = {
         "architecture.md":          "check_architecture",
         "quickstart.md":            "check_quickstart",
