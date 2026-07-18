@@ -495,6 +495,53 @@ python3 docs/templates/script/verify_framework.py --json     # machine-readable 
 
 ---
 
+## Verification
+
+Phases 17–23 add automated quality checks. The trigger layer makes them run automatically at the git commit boundary — no AI tool dependency.
+
+### Architecture
+
+```
+Any AI tool (Claude / Codex / Cursor / manual)
+        ↓
+   git commit
+        ↓
+ .githooks/pre-commit          ← PRIMARY: tool-agnostic, always fires
+        ↓
+ verify_docs.py --content      ← Phase 17: doc completeness + fill quality
+ verify_logs.py                ← Phase 23: log format + trace_id (when present)
+ verify_tests.py               ← Phase 23: test-report.md fill quality (when present)
+        ↓
+ PASS → commit proceeds
+ FAIL → commit blocked, output shown to developer
+
+Optional fast-feedback (Claude Code only):
+ .claude/settings.json Stop hook → same scripts → logs/verify-{timestamp}.json
+```
+
+### Setup (once per project clone)
+
+1. Install the hook:
+   ```bash
+   cp .githooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+   ```
+2. Create `.project-starter.yml` at the project root:
+   ```yaml
+   project_type: data-pipeline   # your declared type
+   docs_path: docs/
+   ```
+3. (Optional) For Claude Code fast-feedback, copy `.claude/settings.json` to your project's `.claude/` folder.
+
+### Tool compatibility
+
+| AI tool | Pre-commit hook fires? | Claude Code Stop hook? |
+|---|---|---|
+| Claude Code | ✅ on `git commit` | ✅ optional |
+| Codex | ✅ on `git commit` | ❌ not applicable |
+| Cursor | ✅ on `git commit` | ❌ not applicable |
+| Manual (no AI) | ✅ on `git commit` | ❌ not applicable |
+
+
 ## Setting up PlantUML
 
 All UML diagrams use [PlantUML](https://plantuml.com) syntax (` ```plantuml ` blocks).
