@@ -1860,6 +1860,7 @@ Capability Adapter
 ### Invariants
 
 - A detector must not perform file discovery — it operates on source artifacts provided by the capability layer.
+- A detector must return the normalized form for its capability, not a framework-specific representation.
 - Framework-specific logic must not appear in a capability adapter.
 - `verify_spec_code.py` must not contain framework-specific implementation logic.
 - Adding a new framework implementation within an existing capability requires adding a detector, not a new adapter.
@@ -1972,3 +1973,31 @@ A collection of minor code quality issues across multiple files, none individual
 | `templates/init/document-matrix.md` | Remove trailing extra cell from `event-catalog.md` row |
 
 **Verification:** `python3 -m py_compile` on all modified Python files; manually inspect document-matrix.md table column counts.
+
+---
+
+## Phase future — Detector Auto-Discovery
+
+**Not scheduled. Record of design intent.**
+
+### Problem
+
+As the detector registry grows with each new framework, the central registry becomes a maintenance bottleneck. Every new framework requires updating a registry file in addition to writing the detector itself.
+
+### Goal
+
+Detectors self-register via class-level metadata. The capability layer discovers available detectors automatically — no central registry update required.
+
+### Concept
+
+```
+class FastAPIDetector(Detector):
+    capability = "web-api"
+    framework  = "fastapi"
+```
+
+The discovery mechanism scans for `Detector` subclasses, reads their metadata, and routes `--framework fastapi` to the matching class — similar to pytest plugin discovery and setuptools entry points.
+
+### When to schedule
+
+When the number of registered detectors makes manual registry maintenance visibly painful, or when the framework intends to support third-party detector packages.
