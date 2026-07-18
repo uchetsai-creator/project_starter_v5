@@ -1815,132 +1815,87 @@ Three internal design documents diverge from the implemented system:
 
 ---
 
-## Phase 52.5 — Adapter Plugin Refactor: Capability-Based Architecture
+## Phase 52.5 — Capability-Based Adapter Architecture
 
 **Discovered in post-Phase-47 architectural review.**
 
-Phases 45–47 established a working `FrameworkAdapter` interface but encoded the wrong abstraction boundary. Each adapter maps one-to-one with a specific framework (`FastAPIAdapter`, `AirflowAdapter`, `TerraformAdapter`). This model does not scale: adding Django, Spring Boot, NestJS, or Spark each requires a new top-level adapter, and the registry grows without bound. The underlying problem is that "framework" was used as the primary concept when "capability" should be.
+### Problem
 
-The correct model: a **Capability Adapter** declares what kind of contract it validates (HTTP API, Data Pipeline, CLI, IaC, Mobile, Library). A **Detector** encodes how to extract that contract from a specific framework's code. The capability adapter orchestrates detectors; it has no framework knowledge.
+Phases 45–47 established a working `FrameworkAdapter` interface but encoded the wrong abstraction boundary. Each adapter maps one-to-one with a specific framework: `FastAPIAdapter`, `AirflowAdapter`, `TerraformAdapter`. Adding Django, Spring Boot, or Spark each requires a new top-level adapter. The registry grows linearly with framework count.
 
-**Goal:** Introduce the `Detector` plugin abstraction in `_base.py`. Reorganise all existing framework logic into a capability-based directory tree with per-framework detector modules. Keep full backward compatibility via legacy aliases in the adapter registry. Add a separate detector registry for `--framework` hints. The core validator (`verify_spec_code.py`) gains one optional flag (`--framework`) and no other changes.
+The root cause: "framework" was used as the primary concept when "capability" should be. A FastAPI project and a Flask project both validate the same contract type — HTTP endpoints. The capability is shared; only the extraction mechanism differs.
+
+### Goal
+
+Separate contract validation (capability) from framework-specific extraction (detector). Adding a new framework should require adding a detector, not a new adapter.
 
 ### Architecture
 
 ```
 verify_spec_code.py
-        │  --adapter web-api  [--framework fastapi]
+        │
         ▼
-Capability Adapter  (e.g. WebAPIAdapter)
-        │  extract_spec() — framework-agnostic Markdown parser
-        │  extract_code() — walks src, collects files, dispatches to detectors
-        ▼
-Detector  (e.g. FastAPIDetector)
-        │  extract(files: list[Path]) → list[NormalizedEndpoint]
-        │  receives pre-discovered files; never walks directories
-        ▼
-NormalizedForm  →  verify_spec_code.py compare()  →  MismatchReport
+Capability Adapter
+  owns: spec parsing, source discovery, detector orchestration
+  does not know: framework names, routing patterns, annotation syntax
+        │
+        ├── Detector A  (framework-specific extraction)
+        └── Detector B  (framework-specific extraction)
+                │
+                ▼
+        NormalizedForm  →  compare()  →  MismatchReport
 ```
 
-**Responsibility split:**
+**Responsibility boundaries:**
 
 | Layer | Owns | Does not own |
 |---|---|---|
-| Capability Adapter | spec parsing, file discovery, detector orchestration | framework names, routing patterns |
-| Detector | pattern matching for one framework | file discovery, NormalizedForm comparison |
+| Capability Adapter | spec parsing, file discovery, detector orchestration | framework names, patterns |
+| Detector | extraction logic for one framework | file discovery, comparison |
 | `verify_spec_code.py` | comparison, reporting | any adapter or detector detail |
 
-### Directory structure
+### Invariants
 
-```
-_spec_code_adapters/
-├── _base.py               FrameworkAdapter ABC + new Detector ABC
-├── _utils.py              shared utilities (e.g. _annotation_str)
-├── semantic.py            unchanged
-├── _example_adapter.py    updated to show two-layer pattern
-├── _example_detector.py   (new) companion detector reference
-│
-├── api/                   HTTP API capability
-│   ├── web_api.py         WebAPIAdapter
-│   └── detectors/         one subdir per language; one file per framework
-│
-├── pipeline/              Data/ML pipeline capability
-│   ├── data_pipeline.py   DataPipelineAdapter
-│   └── detectors/         one file per pipeline framework
-│
-├── cli/                   CLI capability
-├── iac/                   IaC capability
-├── mobile/                Mobile UI capability
-└── library/               Library/SDK capability
-```
+- A detector must not perform file discovery — it receives already-discovered source files from the capability adapter.
+- Framework-specific logic must not appear in a capability adapter.
+- `verify_spec_code.py` must not contain any framework or capability knowledge.
+- Adding a new framework requires adding a detector, not a new adapter.
 
-### Constraints
+### Backward Compatibility
 
-- After this phase, no top-level file in `_spec_code_adapters/` (other than `_base.py`, `_utils.py`, `semantic.py`, and the example files) shall encode any framework-specific logic. All framework patterns live in `detectors/`.
-- Detectors receive `list[Path]` (pre-discovered by the capability adapter) and return `list[NormalizedForm]`. They must not walk directories or call `os.walk` / `glob` themselves.
-- Detector names must include the framework name (e.g. `FastAPIDetector`, not `PythonDetector`). A detector is per-framework, not per-language.
-- `--adapter fastapi` (legacy alias) and `--adapter web-api --framework fastapi` must produce identical output on the same inputs.
-- `--adapter web-api` with no `--framework` must find endpoints regardless of whether the project uses FastAPI, Flask, or Express patterns.
-- `docs/contributing-adapters.md` is rewritten so that "add a new framework" means "add one detector file in the right capability directory" — not "add a new top-level adapter."
+Existing `--adapter fastapi` CLI usage must continue to work unchanged. Legacy framework names become aliases that resolve to the appropriate capability adapter. A new `--framework` flag allows explicit detector selection when the capability adapter cannot auto-detect.
 
-### Implementation notes
+### Migration Scope
 
-<details>
-<summary>Registry shape (non-binding — exact keys decided during implementation)</summary>
-
-Two registries live in `verify_spec_code.py` (or a dedicated `_registry.py`):
-
-```python
-# Primary registry — capability keys; legacy framework aliases for backward compat
-ADAPTER_REGISTRY = {
-    'web-api': ('api.web_api', 'WebAPIAdapter'),
-    'data-pipeline': ('pipeline.data_pipeline', 'DataPipelineAdapter'),
-    # ... one entry per capability
-    # Legacy aliases:
-    'fastapi': ('api.web_api', 'WebAPIAdapter'),
-    'airflow': ('pipeline.data_pipeline', 'DataPipelineAdapter'),
-    # ...
-}
-
-# Detector registry — framework hint → detector module
-DETECTOR_REGISTRY = {
-    'fastapi': ('api.detectors.python.fastapi', 'FastAPIDetector'),
-    'flask':   ('api.detectors.python.flask',   'FlaskDetector'),
-    'airflow': ('pipeline.detectors.airflow',   'AirflowDetector'),
-    # ...
-}
-```
-
-`--framework` is optional. When omitted, the capability adapter runs all registered detectors for its capability and unions results. When specified, only that detector is used.
-</details>
+- Existing framework adapters (Phases 45–47) are reclassified as detectors under their respective capabilities.
+- Capability adapters replace framework adapters as the primary public interface.
+- `_base.py` gains a `Detector` abstraction alongside the existing `FrameworkAdapter`.
+- `docs/contributing-adapters.md` is updated: "add a new framework" means adding a detector, not a new adapter.
 
 ---
 
 ## Phase 53 — Deduplicate Shared Utilities
 
-**Discovered in post-Phase-48 audit. Scope updated after Phase 52.5.**
+**Discovered in post-Phase-48 audit.**
 
-Three duplication problems:
+Three duplication problems identified:
 
 1. `templates/script/validators/_registry.py` and `templates/script/framework/_registry.py` are byte-for-byte identical. Both must be updated in sync; there is no mechanism to detect drift.
-2. `_annotation_str()` — an AST-annotation-to-string helper — is independently defined across detector files and `_example_adapter.py` with identical logic. After Phase 52.5, the copies live in `pipeline/detectors/airflow.py`, `api/detectors/python/fastapi.py`, and `_example_adapter.py` (the old flat `airflow.py` / `fastapi.py` no longer exist).
+2. `_annotation_str()` — an AST-annotation-to-string helper — is independently defined across multiple adapter files with identical logic.
 3. `_read_task_type_from_current_state()` and `_resolve_task_type()` are duplicated between `orchestrator.py` and `build-context.py`.
 
-**Goal:** Single source of truth for each piece of shared logic.
+**Goal:** Single source of truth for each piece of shared logic. No duplication that requires coordinated updates.
 
 ### Changes
 
-| File | Change |
+| Area | Change |
 |---|---|
-| `templates/script/validators/_registry.py` | Canonical location — no change |
-| `templates/script/framework/_registry.py` | Delete; update `verify_framework.py` import to point to the validators copy |
-| `_spec_code_adapters/_utils.py` (new) | Extract `_annotation_str()` here; canonical location at the top of the `_spec_code_adapters` package |
-| All detector files that define `_annotation_str()` locally | Replace local definition with `from _spec_code_adapters._utils import _annotation_str` (absolute import; `verify_spec_code.py` already adds its parent dir to `sys.path` at module level so `_spec_code_adapters` is importable) |
-| `_example_adapter.py` | Same import update |
-| `build-context.py` | Remove `_read_task_type_from_current_state()` and `_resolve_task_type()`; import from `orchestrator.py` (or a shared `_workflow_utils.py`) |
-| `docs/contributing-adapters.md` | Add note: import `_annotation_str` from `_utils.py` instead of copying |
+| `_registry.py` duplication | Delete the framework copy; update `verify_framework.py` to import from the validators copy |
+| `_annotation_str()` duplication | Extract to a shared utility module within `_spec_code_adapters`; all adapters and detectors import from it |
+| Task-type reader duplication | Extract to a shared location consumed by both `orchestrator.py` and `build-context.py` |
+| `docs/contributing-adapters.md` | Note that shared utilities exist and must be imported, not copied |
 
-**Verification:** run all validator self-tests; run `verify_framework.py`; confirm no import errors after consolidation.
+**Verification:** run all validator self-tests and `verify_framework.py`; confirm no import errors after consolidation.
 
 ---
 
