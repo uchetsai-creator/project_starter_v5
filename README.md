@@ -20,13 +20,16 @@ scaffolding under `templates/`. Copy `templates/` into a new project's `docs/` f
 ```
 project_starter/                     ← this repo (template only)
 ├── AGENTS.md
+├── orchestrator.py                  ← workflow manager: writes .ai/WORKFLOW.md + calls build-context.py
 ├── build-context.py                 ← context builder: writes .ai/AI_CONTEXT.md from registry
+├── workflow-registry.yaml           ← task_type → validator sequence mapping
 ├── document-registry.yaml           ← single source of truth for all document metadata
 ├── .gitignore                       ← excludes .ai/ (generated, not committed)
 ├── debug-instrumentation-rules.md
 ├── code-quality-check.md            ← code review checklist for retrofitting existing projects
-├── .ai/                             ← generated context (gitignored); recreate with build-context.py
-│   └── AI_CONTEXT.md               ← ordered read list for the current task
+├── .ai/                             ← generated context (gitignored); recreate with orchestrator.py
+│   ├── AI_CONTEXT.md               ← ordered read list for the current task
+│   └── WORKFLOW.md                 ← deterministic workflow plan (pre-task, validators, closeout)
 ├── docs/                            ← framework design documents (not copied to projects)
 │   ├── architecture-analysis.md    ← current coupling problems + responsibility boundaries
 │   ├── refactoring-plan.md         ← 3-phase migration plan (registry → context builder → orchestrator)
@@ -166,6 +169,9 @@ The root files are the same for every type:
 ```
 new_project/
 ├── AGENTS.md                        ← declare Project Type at the top
+├── orchestrator.py                  ← workflow manager: writes .ai/WORKFLOW.md + context
+├── build-context.py                 ← context builder (called internally by orchestrator.py)
+├── workflow-registry.yaml           ← task_type → validator sequence mapping
 ├── debug-instrumentation-rules.md
 ├── code-quality-check.md
 ├── guidance/
@@ -368,6 +374,61 @@ Generated: 2026-07-18T10:00:00
 **Task types:** `feature` · `pipeline-stage` · `bug-fix` · `sprint-end` · `eval-run` · `iac-change`
 
 See `docs/context-builder-design.md` for the full algorithm and token reduction analysis.
+
+---
+
+## Orchestrator
+
+`orchestrator.py` is the single entry point for starting work on a task. It selects the correct
+validator sequence, writes `.ai/WORKFLOW.md`, and calls `build-context.py` internally — so context
+and workflow always reflect the same project type and task type.
+
+```bash
+# Generate workflow plan + context for the current task:
+python3 orchestrator.py
+
+# Override task type:
+python3 orchestrator.py --task-type sprint-end
+
+# Preview WORKFLOW.md without writing:
+python3 orchestrator.py --dry-run
+```
+
+**Inputs:**
+
+| Source | Field | Used for |
+|---|---|---|
+| `.project-starter.yml` | `project_type` | Select validator commands + context |
+| `.project-starter.yml` | `task_type` (optional) | Select workflow template |
+| `docs/current-state.md` | `Task Type:` field (optional) | Override task_type per task |
+| `workflow-registry.yaml` | `workflows[task_type].validators` | Ordered post-task validator sequence |
+
+**Output — `.ai/WORKFLOW.md`:**
+
+```markdown
+# Workflow Plan — pipeline-stage / data-pipeline
+Generated: 2026-07-18T10:00:00
+
+## Pre-task
+1. Run `python3 orchestrator.py` → read `.ai/AI_CONTEXT.md` and `.ai/WORKFLOW.md`
+
+## Implementation
+- Follow Steps in `docs/current-state.md`
+
+## Post-task validators (run in order)
+1. `python3 docs/script/validators/verify_docs.py --project-type data-pipeline --content`
+2. `python3 docs/script/validators/verify_logs.py --project-type data-pipeline --strict`
+3. `python3 docs/script/validators/verify_content.py --project-type data-pipeline --strict`
+
+## Closeout
+- Follow Closeout section in `docs/current-state.md`
+```
+
+**Architecture:** `orchestrator.py` selects the workflow template; validators handle execution.
+No validator logic lives in the orchestrator — separation of concerns is strictly maintained.
+
+**`workflow-registry.yaml`** maps each task type to an ordered validator list. Add a new entry
+when a new task type is introduced; update an existing entry when the validator set changes.
 
 ---
 

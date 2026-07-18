@@ -113,7 +113,9 @@ everything needed to start work and to close out the task when done.
 
 ### Starting work
 
-Run `python3 build-context.py` → read `.ai/AI_CONTEXT.md` → follow the Read list.
+Run `python3 orchestrator.py` → read `.ai/WORKFLOW.md` and `.ai/AI_CONTEXT.md` → follow the Read list.
+
+`orchestrator.py` calls `build-context.py` internally — both read the same `.project-starter.yml`.
 
 ### Closing out a task
 

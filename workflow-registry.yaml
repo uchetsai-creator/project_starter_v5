@@ -1,0 +1,68 @@
+# workflow-registry.yaml — task_type → validator sequence + pre/post steps
+# Used by orchestrator.py to generate .ai/WORKFLOW.md
+#
+# Each workflow entry lists validators in execution order.
+# The orchestrator injects --project-type <type> automatically at runtime.
+# Only add extra flags in `args` (e.g. --content, --strict).
+#
+# Task types: feature | pipeline-stage | bug-fix | sprint-end | eval-run | iac-change
+# If the current task type has no entry, the "default" workflow is used.
+
+workflows:
+
+  feature:
+    validators:
+      - script: docs/script/validators/verify_docs.py
+        args: [--content]
+      - script: docs/script/validators/verify_logs.py
+        args: [--strict]
+      - script: docs/script/validators/verify_content.py
+        args: [--strict]
+
+  pipeline-stage:
+    validators:
+      - script: docs/script/validators/verify_docs.py
+        args: [--content]
+      - script: docs/script/validators/verify_logs.py
+        args: [--strict]
+      - script: docs/script/validators/verify_content.py
+        args: [--strict]
+
+  bug-fix:
+    validators:
+      - script: docs/script/validators/verify_docs.py
+        args: [--content]
+      - script: docs/script/validators/verify_content.py
+        args: [--strict]
+
+  sprint-end:
+    validators:
+      - script: docs/script/validators/verify_docs.py
+        args: [--content]
+      - script: docs/script/validators/verify_logs.py
+        args: [--strict]
+      - script: docs/script/validators/verify_tests.py
+        args: [--strict]
+      - script: docs/script/validators/verify_content.py
+        args: [--strict]
+
+  eval-run:
+    validators:
+      - script: docs/script/validators/verify_docs.py
+        args: [--content]
+      - script: docs/script/validators/verify_content.py
+        args: [--strict]
+
+  iac-change:
+    validators:
+      - script: docs/script/validators/verify_docs.py
+        args: [--content]
+      - script: docs/script/validators/verify_content.py
+        args: [--strict]
+
+  default:
+    validators:
+      - script: docs/script/validators/verify_docs.py
+        args: [--content]
+      - script: docs/script/validators/verify_content.py
+        args: [--strict]

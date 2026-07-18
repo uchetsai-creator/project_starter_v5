@@ -437,6 +437,57 @@ python3 build-context.py --dry-run                # preview without writing
 
 Update when: new task type mappings are needed, or `TASK_TYPE_DOCS` entries change.
 
+### orchestrator.py
+**Applies to: All project types**
+
+Purpose:
+Workflow Manager — generates `.ai/WORKFLOW.md`, a deterministic workflow plan for the current task.
+Reads `.project-starter.yml` (project_type, task_type) and `docs/current-state.md` (Task Type field),
+selects the matching validator sequence from `workflow-registry.yaml`, then calls `build-context.py`
+internally so both context and workflow always reflect the same project type and task type.
+
+The generated WORKFLOW.md lists pre-task setup, implementation guidance, post-task validators
+(in execution order), and closeout steps — eliminating the need for AI agents to reason about
+validator sequencing from AGENTS.md.
+
+```bash
+python3 orchestrator.py                          # generate workflow + context for current task
+python3 orchestrator.py --task-type sprint-end   # override task type
+python3 orchestrator.py --dry-run                # preview WORKFLOW.md without writing
+```
+
+`.ai/WORKFLOW.md` is gitignored — not committed. Regenerate whenever the task changes.
+
+Update when: new task type mappings are needed, or validator sequences in `workflow-registry.yaml` change.
+
+### workflow-registry.yaml
+**Applies to: All project types**
+
+Purpose:
+Maps each `task_type` to an ordered validator sequence with extra flags.
+Read by `orchestrator.py` at runtime to select the correct post-task validators.
+The orchestrator injects `--project-type <type>` automatically — only extra flags (e.g. `--content`,
+`--strict`) belong in the registry.
+
+Contains one entry per task type plus a `default` fallback used when the task type is unset
+or has no explicit mapping.
+
+```yaml
+workflows:
+  feature:
+    validators:
+      - script: docs/script/validators/verify_docs.py
+        args: [--content]
+      - script: docs/script/validators/verify_content.py
+        args: [--strict]
+  default:
+    validators:
+      - script: docs/script/validators/verify_docs.py
+        args: [--content]
+```
+
+Update when: a new task type is introduced, or the required validator set for an existing type changes.
+
 ### .ai/AI_CONTEXT.md
 **Applies to: All project types**
 
@@ -444,9 +495,22 @@ Purpose:
 Generated file — the ordered context list for the current task. Written by `build-context.py`.
 AI tools read this file at startup instead of inferring context from AGENTS.md rules.
 
-Not committed (excluded by `.gitignore`). Recreate with `python3 build-context.py`.
+Not committed (excluded by `.gitignore`). Recreate with `python3 orchestrator.py` (or `python3 build-context.py` directly).
 
-Do not edit manually — it is overwritten on each run of `build-context.py`.
+Do not edit manually — it is overwritten on each run.
+
+### .ai/WORKFLOW.md
+**Applies to: All project types**
+
+Purpose:
+Generated file — the deterministic workflow plan for the current task. Written by `orchestrator.py`.
+Lists pre-task setup, implementation guidance, post-task validators (in execution order with exact
+commands), and closeout steps. AI agents read this file to follow a mechanical plan rather than
+reasoning about validator sequencing from AGENTS.md.
+
+Not committed (excluded by `.gitignore`). Recreate with `python3 orchestrator.py`.
+
+Do not edit manually — it is overwritten on each run of `orchestrator.py`.
 
 ### .project-starter.yml
 **Applies to: All project types**
