@@ -499,9 +499,7 @@ python3 templates/script/verify_framework.py --json     # machine-readable outpu
 
 ## Verification
 
-Phases 17–21 add automated quality checks. The trigger layer makes them run automatically at the git commit boundary — no AI tool dependency.
-
-### Architecture
+Quality checks run automatically at the git commit boundary — no AI tool dependency.
 
 ```
 Any AI tool (Claude / Codex / Cursor / manual)
@@ -530,21 +528,7 @@ Optional fast-feedback (Claude Code only):
  .claude/settings.json Stop hook → same scripts → logs/verify-{timestamp}.json
 ```
 
-### Check table
-
-| Check | Trigger | Severity |
-|---|---|---|
-| Doc completeness + content quality | Every commit (with `project_type` set) | ❌ Block |
-| Log format + trace_id | `docs/script/verify_logs.py` present | ❌ Block |
-| Test-report fill quality | `docs/script/verify_tests.py` present | ❌ Block |
-| Module flow coverage + quality | `docs/script/verify_module_docs.py` present | ❌ Block |
-| Framework integrity (`verify_framework.py --strict`) | Framework repo detected (`templates/script/verify_framework.py` present) | ❌ Block |
-| AGENTS.md token budget (> 200 lines) | `AGENTS.md` staged | ❌ Block |
-| Spec/arch changed without changelog entry | Any `specs/*.md` or `architecture/*.md` staged | ⚠️ Warn |
-| Closeout unfilled on task completion | `current-state.md` staged with `Status: Complete` | ❌ Block |
-| Writing Audience violations (sprint/task refs in stakeholder docs) | Any spec-facing doc staged | ❌ Block |
-
-Spec-facing documents (Writing Audience check): `business-rules.md`, `pipeline-contract.md`, `research.md`, `quickstart.md`, `architecture/*.md`, `modules/*/*-module-data-flow.md`
+Spec-facing documents (writing audience check): `business-rules.md`, `pipeline-contract.md`, `research.md`, `quickstart.md`, `architecture/*.md`, `modules/*/*-module-data-flow.md`
 
 ### Setup (once per project clone)
 
