@@ -20,13 +20,13 @@ Run at the end of each sprint (or when `docs/sprint-change-log.md` has accumulat
    python3 docs/script/verify_docs.py --project-type TYPE --content
    python3 docs/script/verify_logs.py --project-type TYPE
    python3 docs/script/verify_tests.py --project-type TYPE
-   python3 docs/script/verify_module_docs.py --project-type TYPE
+   python3 docs/script/verify_content.py --project-type TYPE
    ```
    Optional — cross-reference module coverage against source code:
    ```bash
    python3 docs/script/verify_module_docs.py --project-type TYPE --src <src-dir>
    ```
-   Record in `docs/task-log.md`: `verify_docs`, `verify_logs`, `verify_tests`, `verify_module_docs` verdict (PASS / WARN / FAIL).
+   Record in `docs/task-log.md`: `verify_docs`, `verify_logs`, `verify_tests`, `verify_content` verdict (PASS / WARN / FAIL).
    All four must reach PASS or WARN before proceeding — resolve any FAIL before continuing.
 5. **Spec quality review** — for each Required spec document updated this sprint:
    a. Run content audit: `python3 docs/script/verify_docs.py --project-type TYPE --content`
@@ -153,7 +153,7 @@ Apply this filter first. Then run only the remaining items.
 - [ ] docs/modules/module-data-flow.md index table `[Types: All]` — verify the module has a row in the Module Flow Files table. If missing, add it. Do not rely on memory — read the file.
 - [ ] docs/modules/[module]/[module]-flow.md `[Types: All]` — did cross-module service calls change? If yes, update, then regenerate sequence diagram.
 - [ ] docs/modules/module-flow.md index table `[Types: All]` — verify the module has a row in the Flow Files table. If missing, add it. Do not rely on memory — read the file.
-- [ ] verify_module_docs.py `[Types: All]` — run `python3 docs/script/verify_module_docs.py --project-type TYPE`; all existing flow files must reach quality PASS. If new modules were added this sprint, also run with `--src <src-dir>` to confirm coverage. Resolve any ⚠️ issues before marking the sprint complete.
+- [ ] verify_content.py `[Types: All]` — run `python3 docs/script/verify_content.py --project-type TYPE`; all documents and module flow files must reach quality PASS. If new modules were added this sprint, also run `python3 docs/script/verify_module_docs.py --project-type TYPE --src <src-dir>` to confirm module coverage. Resolve any ⚠️ issues before marking the sprint complete.
 - [ ] docs/architecture/topology.md `[Types: IaC / DevOps]` — was a resource added, removed, or migrated? Did network topology, environment promotion path, or secrets sources change? If yes, update, then regenerate diagram: `Edit the \`\`\`plantuml block in topology.md, then run build_pdf.py`
 - [ ] docs/specs/runbook.md `[Types: IaC / DevOps]` — was a new resource type added, did health check commands change, or did rollback procedures change? If yes, update.
 - [ ] docs/specs/drift-policy.md `[Types: IaC / DevOps]` — did detection cadence, remediation SLA, exempt resources, or approval gate process change? If yes, update.

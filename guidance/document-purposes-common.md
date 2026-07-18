@@ -455,6 +455,83 @@ Output: fill score (N / M checks passed), missing sections, Verdict PASS / WARN 
 
 Update when: the test-report.md template gains a new required section that should be enforced.
 
+### verify_content.py
+**Applies to: All project types**
+
+Purpose:
+Full document content quality gate. For every Required document in the project's declared type,
+checks that each document's required sections contain real content — not placeholders — gated by
+document × project type. Delegates module flow file audits to `verify_module_docs.py` internally.
+
+Documents already covered by `verify_logs.py` (`logging-spec.md`) and `verify_tests.py`
+(`test-report.md`) are skipped here to avoid duplication.
+
+**Per-document quality rules:**
+
+Universal (all types):
+- `architecture.md` — plantuml component block non-empty; ≥1 real component (not placeholder `[Component]`); Mobile App: ≥1 screen/view component in diagram
+- `quickstart.md` — Prerequisites ≥1 real item; ≥1 numbered setup step with real content; Verification step present
+- `research.md` — ≥1 Decision entry non-placeholder; ≥1 Rationale entry non-placeholder
+- `test-plan.md` — Testing Strategy section ≥3 lines; ≥1 test level (unit/integration/e2e) defined
+
+Web App + Microservices:
+- `api-contract.md` — ≥1 endpoint row with real Method + Path
+- `permissions.md` — Role table ≥1 real role row; ≥1 permission described
+- `data-model.md` — plantuml ER block with ≥1 entity defined
+- `backend.md` — Stack section non-empty
+
+Data Pipeline + ML Pipeline:
+- `pipeline-contract.md` — Cross-stage table ≥1 row with non-placeholder Input + Output formats
+- `pipeline-debug.md` — ≥1 scenario with real Symptom + Root cause
+- `data-model.md` — same as above
+- `backend.md` — same as above
+
+ML Pipeline (additional):
+- `model-contract.md` — Input schema ≥1 real field; Output format non-placeholder; ≥1 production threshold
+- `experiment-log.md` — ≥1 entry with real Hypothesis + Result
+
+CLI Tool:
+- `cli-contract.md` — ≥1 subcommand defined; ≥1 flag or argument documented
+- `release-guide.md` — Versioning policy non-empty; ≥1 publish step
+
+Library / SDK:
+- `public-api.md` — ≥1 real public function or class signature
+- `release-guide.md` — same as CLI Tool
+- `compatibility-matrix.md` — ≥1 runtime version row with Support status
+
+Microservices (additional):
+- `service-catalog.md` — ≥1 service row with real name, port, owner
+- `service-contract.md` — ≥1 inter-service endpoint or event documented
+
+AI / LLM App:
+- `llm-contract.md` — Model name non-placeholder; System Prompt ≥1 real line; ≥1 parameter defined
+- `eval-spec.md` — ≥1 evaluation criterion with non-placeholder content; ≥1 test case
+- `prompt-library.md` — ≥1 prompt entry (name + file reference)
+
+IaC / DevOps:
+- `topology.md` — plantuml block with ≥1 real resource
+- `runbook.md` — ≥1 runbook entry with real Steps
+- `drift-policy.md` — Detection cadence non-placeholder; Remediation SLA defined
+
+Mobile App:
+- `mobile-contract.md` — ≥1 screen defined with non-placeholder title; Navigation structure described
+
+Run at sprint end as part of the quality gate (step 4 of Sprint Documentation Sync).
+Also runs automatically on `git commit` if `docs/script/verify_content.py` is present.
+
+```bash
+python3 docs/script/verify_content.py --project-type web-app
+python3 docs/script/verify_content.py --project-type data-pipeline+web-app --strict
+python3 docs/script/verify_content.py --project-type web-app --json
+python3 docs/script/verify_content.py --project-type web-app --docs path/to/docs
+```
+
+Output: per-document table (Required / Quality columns) followed by module flow results;
+Documents and Quality summary lines.
+`--strict` exits 1 if any document is missing or has a quality FAIL.
+
+Update when: a new project type is added, or per-document quality rules change.
+
 ### spec-review.md
 **Applies to: All project types**
 
@@ -521,6 +598,7 @@ Run with `--update docs/codebase-map.md` to write the tree and coverage table in
 
 ### verify_module_docs.py
 **Applies to: All project types**
+**Internal** — called automatically by `verify_content.py`. Direct use required only for `--src` coverage checks.
 
 Purpose:
 Module flow coverage & quality audit. Cross-references `docs/modules/` against the module list
@@ -538,12 +616,13 @@ sections filled with real values — not placeholders — for the declared modul
 - **Background Job** — `Trigger:` filled; success path present; Error Handling (transient + permanent)
 - **Shared Utility** — plantuml class block with real methods; `Used by` table ≥ 1 real row
 
-AGENTS.md process rules enforced by pre-commit hook, not by agent memory.
-Run at sprint end as part of the quality gate. See `templates/sprint-sync.md → Step 4`.
+Called internally by `verify_content.py` for the module flow section of the quality gate.
+For source-code coverage checks, run directly with `--src`. See `templates/sprint-sync.md → Step 4`.
 
 ```bash
-python3 docs/script/verify_module_docs.py --project-type TYPE
+# Coverage + quality (cross-reference against source code):
 python3 docs/script/verify_module_docs.py --project-type TYPE --src src --docs docs
+# Quality only (audits existing docs/modules/ files):
 python3 docs/script/verify_module_docs.py --project-type TYPE --strict
 python3 docs/script/verify_module_docs.py --project-type TYPE --json
 ```

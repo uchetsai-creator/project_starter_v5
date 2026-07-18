@@ -105,7 +105,7 @@
 - **Doc verification**: run pre-commit hook (`git commit`) or manually: `python3 docs/script/verify_docs.py --project-type TYPE --content` — Required: __ / __ present
 - **Log verification**: `python3 docs/script/verify_logs.py --project-type TYPE --strict` — Verdict: ___
 - **Test report verification**: `python3 docs/script/verify_tests.py --project-type TYPE --strict` — Verdict: ___
-- **Module flow verification**: `python3 docs/script/verify_module_docs.py --project-type TYPE --strict` — Verdict: ___
+- **Content quality verification**: `python3 docs/script/verify_content.py --project-type TYPE --strict` — Verdict: ___
 - **sprint-change-log.md**: append one entry — implementation summary, impact flags (Architecture/DB/API/Deployment/Module flow), status `Pending documentation synchronization`
 - **task-log.md**: write one row — all columns must be ✅ before writing
 

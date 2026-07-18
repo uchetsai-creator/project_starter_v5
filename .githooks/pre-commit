@@ -67,10 +67,10 @@ if [ -f "docs/script/verify_tests.py" ]; then
         --project-type "$PROJECT_TYPE" --docs "$DOCS_PATH" --strict 2>&1 || PASS=false
 fi
 
-# 4. Module flow coverage & quality (Phase 24)
-if [ -f "docs/script/verify_module_docs.py" ]; then
-    echo "  → verify_module_docs.py ..."
-    python3 "docs/script/verify_module_docs.py" \
+# 4. Document content quality (Phase 24)
+if [ -f "docs/script/verify_content.py" ]; then
+    echo "  → verify_content.py ..."
+    python3 "docs/script/verify_content.py" \
         --project-type "$PROJECT_TYPE" --docs "$DOCS_PATH" --strict 2>&1 || PASS=false
 fi
 

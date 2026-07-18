@@ -53,6 +53,8 @@ INIT_SKIP = {"document-matrix", "retrofit"}
 TEMPLATE_MATRIX_EXEMPT = {
     "specs/glossary.md",
     "specs/dependencies.md",
+    "specs/spec-review.md",
+    "specs/spec-challenge.md",
 }
 
 # Documents legitimately absent from sprint-sync (debug guides and per-run logs
@@ -409,51 +411,79 @@ def check_build_pdf_type_sync() -> list[dict]:
     return issues
 
 
-def check_module_docs_coverage() -> list[dict]:
-    """Check 10: verify_module_docs.py PRIMARY_MODULE_TYPE covers all 9 project types
-    and all 4 module types have quality-check functions."""
-    script_path = TEMPLATES_DIR / "script" / "verify_module_docs.py"
+def check_content_coverage() -> list[dict]:
+    """Check 10: verify_content.py TYPE_DOCS covers all 9 project types
+    and all document checker functions exist."""
+    script_path = TEMPLATES_DIR / "script" / "verify_content.py"
     if not script_path.exists():
-        return [_issue("module-docs-coverage", "error", "verify_module_docs.py not found")]
+        return [_issue("content-coverage", "error", "verify_content.py not found")]
 
     text = script_path.read_text(encoding="utf-8")
     issues = []
 
-    # Check PRIMARY_MODULE_TYPE has all 9 project types
-    primary_type_types: set[str] = set()
-    in_primary = False
+    # Check TYPE_DOCS has all 9 project types
+    type_docs_types: set[str] = set()
+    in_type_docs = False
     for line in text.splitlines():
-        if re.match(r"\s*PRIMARY_MODULE_TYPE\s*=\s*\{", line):
-            in_primary = True
-        if in_primary:
+        if re.match(r"\s*TYPE_DOCS\s*[=:]", line):
+            in_type_docs = True
+        if in_type_docs:
             m = re.search(r"'([a-z][a-z-]+)'\s*:", line)
             if m:
-                primary_type_types.add(m.group(1))
-            if "}" in line and "PRIMARY_MODULE_TYPE" not in line:
-                in_primary = False
+                type_docs_types.add(m.group(1))
+            if "}" in line and "TYPE_DOCS" not in line:
+                in_type_docs = False
 
     expected_types = set(PURPOSES_FILES.keys())
-    for t in sorted(expected_types - primary_type_types):
-        issues.append(_issue("module-docs-coverage", "fail",
-                             f"`{t}` missing from verify_module_docs.py PRIMARY_MODULE_TYPE"))
+    for t in sorted(expected_types - type_docs_types):
+        issues.append(_issue("content-coverage", "fail",
+                             f"`{t}` missing from verify_content.py TYPE_DOCS"))
 
-    # Check all 4 module type quality-check functions exist
-    required_funcs = {
-        "Pipeline Stage": "check_pipeline_stage",
-        "Feature":        "check_feature",
-        "Background Job": "check_background_job",
-        "Shared Utility": "check_shared_utility",
+    # Check all document checker functions exist
+    required_checkers = {
+        "architecture.md":          "check_architecture",
+        "quickstart.md":            "check_quickstart",
+        "research.md":              "check_research",
+        "test-plan.md":             "check_test_plan",
+        "api-contract.md":          "check_api_contract",
+        "permissions.md":           "check_permissions",
+        "data-model.md":            "check_data_model",
+        "backend.md":               "check_backend",
+        "pipeline-contract.md":     "check_pipeline_contract",
+        "pipeline-debug.md":        "check_pipeline_debug",
+        "model-contract.md":        "check_model_contract",
+        "experiment-log.md":        "check_experiment_log",
+        "cli-contract.md":          "check_cli_contract",
+        "release-guide.md":         "check_release_guide",
+        "public-api.md":            "check_public_api",
+        "compatibility-matrix.md":  "check_compatibility_matrix",
+        "service-catalog.md":       "check_service_catalog",
+        "service-contract.md":      "check_service_contract",
+        "llm-contract.md":          "check_llm_contract",
+        "eval-spec.md":             "check_eval_spec",
+        "prompt-library.md":        "check_prompt_library",
+        "topology.md":              "check_topology",
+        "runbook.md":               "check_runbook",
+        "drift-policy.md":          "check_drift_policy",
+        "mobile-contract.md":       "check_mobile_contract",
+        "deployment.md":            "check_deployment",
+        "database.md":              "check_database",
+        "distribution.md":          "check_distribution",
+        "frontend.md":              "check_frontend",
+        "business-rules.md":        "check_business_rules",
+        "business-process.md":      "check_business_process",
+        "business-objects.md":      "check_business_objects",
     }
-    for mt, func in required_funcs.items():
+    for doc, func in required_checkers.items():
         if f"def {func}(" not in text:
-            issues.append(_issue("module-docs-coverage", "fail",
-                                 f"verify_module_docs.py missing quality-check function `{func}` "
-                                 f"for module type '{mt}'"))
+            issues.append(_issue("content-coverage", "fail",
+                                 f"verify_content.py missing checker function `{func}` "
+                                 f"for `{doc}`"))
 
     if not issues:
-        return [_issue("module-docs-coverage", "pass",
-                       f"verify_module_docs.py covers all {len(expected_types)} project types "
-                       f"and all 4 module types")]
+        return [_issue("content-coverage", "pass",
+                       f"verify_content.py covers all {len(expected_types)} project types "
+                       f"and all {len(required_checkers)} document checkers")]
     return issues
 
 
@@ -524,20 +554,20 @@ CHECK_ORDER = [
     "type-completeness",
     "script-type-sync",
     "build-pdf-type-sync",
-    "module-docs-coverage",
+    "content-coverage",
 ]
 
 CHECK_LABELS = {
-    "stale-pointer":        "Stale pointer check          (AGENTS.md .md file refs)",
-    "token-budget":         "Token budget check           (AGENTS.md ≤ 200 lines)",
-    "matrix-templates":     "Matrix ↔ template consistency",
-    "sprint-sync":          "Sprint-sync coverage",
-    "purposes-coverage":    "Per-type purposes coverage   (Required docs only)",
-    "cross-ref":            "Cross-reference integrity    (document-purposes → templates)",
-    "type-completeness":    "Type completeness            (init file + purposes file per type)",
-    "script-type-sync":     "Script type sync             (scan_codebase.py ↔ verify_docs.py)",
-    "build-pdf-type-sync":  "Build PDF type sync          (build_pdf.py VALID_PROJECT_TYPES)",
-    "module-docs-coverage": "Module docs coverage         (verify_module_docs.py completeness)",
+    "stale-pointer":       "Stale pointer check          (AGENTS.md .md file refs)",
+    "token-budget":        "Token budget check           (AGENTS.md ≤ 200 lines)",
+    "matrix-templates":    "Matrix ↔ template consistency",
+    "sprint-sync":         "Sprint-sync coverage",
+    "purposes-coverage":   "Per-type purposes coverage   (Required docs only)",
+    "cross-ref":           "Cross-reference integrity    (document-purposes → templates)",
+    "type-completeness":   "Type completeness            (init file + purposes file per type)",
+    "script-type-sync":    "Script type sync             (scan_codebase.py ↔ verify_docs.py)",
+    "build-pdf-type-sync": "Build PDF type sync          (build_pdf.py VALID_PROJECT_TYPES)",
+    "content-coverage":    "Content coverage             (verify_content.py completeness)",
 }
 
 LEVEL_ICON = {"pass": "✅", "warn": "⚠️ ", "fail": "❌", "error": "❌"}
@@ -620,7 +650,7 @@ def main():
     all_issues += check_type_completeness()
     all_issues += check_script_type_sync()
     all_issues += check_build_pdf_type_sync()
-    all_issues += check_module_docs_coverage()
+    all_issues += check_content_coverage()
 
     if args.json_output:
         print(json.dumps(

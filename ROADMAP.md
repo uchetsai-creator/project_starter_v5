@@ -767,7 +767,7 @@ Every task closeout currently only checks whether Required documents exist (`ver
 
 ---
 
-## Phase 24 — Full Document Content Quality Gate 🔲 In Progress
+## Phase 24 — Full Document Content Quality Gate ✅ Complete
 
 `verify_docs.py` checks whether required documents *exist*. `verify_docs.py --content` scans for generic placeholder patterns. Neither knows what *specific sections* each document must contain, nor which sections apply to which project type. An agent can leave `pipeline-contract.md` with empty stage rows, `api-contract.md` with no endpoint entries, or `architecture.md` with no diagram — and no tool will catch it today.
 
@@ -934,3 +934,83 @@ Quality    : 3 / 8 existing documents fully filled
 
 ---
 
+## Phase 25 — verify_content.py Bug Fixes + Stale Doc Sync 🔲 Not Started
+
+A post-Phase-24 audit found three correctness bugs in `verify_content.py` and seven stale references across documentation files. Phase 25 resolves all of them.
+
+### Bug fixes — verify_content.py
+
+| Bug | Location | Description |
+|---|---|---|
+| Hybrid type dropped | `run_module_docs()` | Only passes `project_types[0]` to `verify_module_docs.py` — secondary types in a hybrid (e.g. `data-pipeline+web-app`) are silently ignored. Fix: join all types with `+` and forward the full string. |
+| `_section_body` truncates early | `_section_body()` | Boundary regex `^#+` stops at any heading level. A `##` section body containing `###` sub-sections is truncated before all content is read. Fix: stop only at a heading of the same level or higher. |
+| Duplicate exclusion token | `check_cli_contract()` | `'command'` appears twice in the exclusion tuple — copy-paste error. Remove the duplicate. |
+
+### Stale documentation fixes
+
+| File | Issue |
+|---|---|
+| `README.md` script tree | Add `verify_content.py` to the `templates/script/` listing |
+| `README.md` pre-commit architecture diagram | Add `verify_content.py` as step 4; mark `verify_module_docs.py` as internal (not a direct step) |
+| `README.md` framework maintenance table | Update Check 10 row from `verify_module_docs.py` → `verify_content.py` |
+| `guidance/document-purposes-common.md` | Pre-commit entry says "three quality verifiers" — update to four and list `verify_content.py` |
+| `guidance/document-purposes-common.md` | `scan_codebase.py` valid types list omits `iac` and `mobile-app` |
+| `build_pdf.py` docstring | Valid types list omits `iac` and `mobile-app` |
+| `templates/sprint-sync.md` Optional block | Clarify that `verify_module_docs.py --src` adds only the source-coverage check; `verify_content.py` already calls it internally |
+
+**Token impact:** zero — AGENTS.md unchanged.
+
+---
+
+## Phase 26 — Dead Code Removal 🔲 Not Started
+
+Four instances of dead code identified across existing scripts. Low risk; each is an isolated, self-contained fix.
+
+| File | Issue | Fix |
+|---|---|---|
+| `verify_module_docs.py` | `present_count` computed identically to `present`; one is dead | Remove `present_count`; use `present` throughout `print_results` |
+| `verify_docs.py` | `elif fill_pct >= 50 or fill_pct >= 80:` — the `>= 80` clause is unreachable | Simplify to `elif fill_pct >= 50:` |
+| `scan_codebase.py` | `"constants"` appears twice in `SHARED_PATTERNS` set literal | Remove the duplicate |
+| `diagnose_spec.py` | `"flows"` in template subdir search — no document lives under `docs/flows/` in any project type | Remove `"flows"` from the subdir list |
+
+**Token impact:** zero — AGENTS.md unchanged.
+
+---
+
+## Phase 27 — Cross-Script Refactor: Shared Utilities + diagnose_spec.py Update 🔲 Not Started
+
+A systematic audit revealed four categories of cross-script maintenance risk. Phase 27 addresses the highest-impact ones.
+
+### 1 — `_section_body` interface unification
+
+Three scripts each define their own `_section_body` with incompatible signatures:
+
+| Script | Signature | Returns |
+|---|---|---|
+| `verify_content.py` | `(text: str, pattern: str)` | `str \| None` |
+| `verify_logs.py` | `(lines: list[str], header: str)` | `list[str]` |
+| `verify_tests.py` | `(lines: list[str], header_re: compiled)` | `(str, list[str])` |
+
+Fix: standardise on the `verify_content.py` signature (regex pattern on full text, returns body string or None). Update `verify_logs.py` and `verify_tests.py` call sites.
+
+### 2 — `_PLACEHOLDER_RES` / `_is_placeholder` divergence
+
+Defined separately in four scripts with divergent pattern lists — a placeholder caught by one script may not be caught by another.
+
+Fix: move the canonical list to a shared `_verify_common.py` module; import from it in all four scripts.
+
+### 3 — `SKIP_ROOT` duplicates `SKIP_DIRS` in `scan_codebase.py`
+
+`SKIP_ROOT` inside `print_tree` is a local copy of module-level `SKIP_DIRS`. Adding a new directory to one requires a manual update to the other.
+
+Fix: replace `SKIP_ROOT` with a direct reference to `SKIP_DIRS`.
+
+### 4 — `diagnose_spec.py` incompatibility with `verify_content.py` output
+
+`diagnose_spec.py` expects `verify_docs.py --content --json` output (`results[].content.unfilled_sections`). `verify_content.py --json` emits `documents[].issues` instead. Feeding `verify_content.py` output into `diagnose_spec.py` returns zero gaps silently.
+
+Fix: update `diagnose_spec.py` to accept `verify_content.py --json` output (`documents[].issues`); update docstring and `sprint-sync.md` usage example accordingly.
+
+**Token impact:** zero — AGENTS.md unchanged.
+
+---
