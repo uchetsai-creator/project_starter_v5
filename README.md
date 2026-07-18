@@ -128,6 +128,7 @@ project_starter/                     ← this repo (template only)
         ├── verify_module_docs.py    ← module flow coverage + quality audit
         ├── verify_content.py        ← full document content quality gate (all Required docs × project type)
         ├── verify_framework.py      ← framework internal consistency audit (run in framework repo)
+        ├── _verify_common.py        ← shared placeholder patterns imported by all verify scripts
         ├── diagnose_spec.py         ← classifies spec fill gaps; triggers framework fix PRs
         └── propose_framework_fix.py ← opens a PR on project_starter_v4 to add a missing template section
 ```
@@ -574,9 +575,11 @@ When a spec has fill-quality issues, the root cause is either:
 ### Architecture
 
 ```
+verify_content.py --json          (preferred)
+  — or —
 verify_docs.py --content --json
         ↓
-diagnose_spec.py --round 1
+diagnose_spec.py --round 1        (auto-detects input format)
         ↓
   classify each unfilled section
   ├── project-level  → print for manual fix (no PR)
@@ -602,13 +605,18 @@ diagnose_spec.py --round 2
 
 ```bash
 # Round 1 — diagnose and open PRs
+# Preferred — verify_content.py output (documents[].issues):
+python3 docs/script/verify_content.py --project-type TYPE --json \
+  | python3 templates/script/diagnose_spec.py --project-type TYPE
+
+# Alternative — verify_docs.py output (results[].content.unfilled_sections):
 python3 docs/script/verify_docs.py --project-type TYPE --content --json \
   | python3 templates/script/diagnose_spec.py --project-type TYPE
 
 # After reviewing and merging/skipping round-1 PRs:
 
 # Round 2 — re-diagnose; remaining gaps go to logs/framework-gaps.md
-python3 docs/script/verify_docs.py --project-type TYPE --content --json \
+python3 docs/script/verify_content.py --project-type TYPE --json \
   | python3 templates/script/diagnose_spec.py --project-type TYPE --round 2
 
 # Dry-run mode (no PRs, no files written):
