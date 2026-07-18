@@ -10,6 +10,8 @@ Usage:
   python3 orchestrator.py
   python3 orchestrator.py --task-type sprint-end
   python3 orchestrator.py --dry-run
+  python3 orchestrator.py --adapter claude
+  python3 orchestrator.py --adapter claude --dry-run
 """
 
 import argparse
@@ -26,6 +28,7 @@ except ImportError:
     sys.exit(1)
 
 VALID_TASK_TYPES = ["feature", "pipeline-stage", "bug-fix", "sprint-end", "eval-run", "iac-change"]
+VALID_ADAPTERS = ["claude", "codex", "cursor"]
 
 
 def _load_yaml(path: Path) -> dict:
@@ -143,6 +146,61 @@ def _render(ctx: dict) -> str:
     return "\n".join(lines)
 
 
+def _render_adapter_file(template_path: Path, workflow_content: str) -> str:
+    return template_path.read_text().replace("{{WORKFLOW_CONTENT}}", workflow_content)
+
+
+def _run_adapter(adapter: str, project_root: Path, workflow_content: str, dry_run: bool) -> None:
+    adapter_dir = project_root / "adapters" / adapter
+
+    if adapter == "claude":
+        template = adapter_dir / "start-task.md"
+        if not template.exists():
+            print(f"❌  Adapter template not found: {template}", file=sys.stderr)
+            sys.exit(1)
+        rendered = _render_adapter_file(template, workflow_content)
+        if dry_run:
+            print("\n--- .claude/commands/start-task.md (dry-run) ---")
+            print(rendered)
+        else:
+            out_dir = project_root / ".claude" / "commands"
+            out_dir.mkdir(parents=True, exist_ok=True)
+            out_path = out_dir / "start-task.md"
+            out_path.write_text(rendered)
+            print(f"✅  Adapter → {out_path}")
+
+    elif adapter == "codex":
+        for filename in ("setup.md", "task-instructions.md"):
+            template = adapter_dir / filename
+            if not template.exists():
+                print(f"❌  Adapter template not found: {template}", file=sys.stderr)
+                sys.exit(1)
+            rendered = _render_adapter_file(template, workflow_content)
+            if dry_run:
+                print(f"\n--- .codex/{filename} (dry-run) ---")
+                print(rendered)
+            else:
+                out_dir = project_root / ".codex"
+                out_dir.mkdir(exist_ok=True)
+                out_path = out_dir / filename
+                out_path.write_text(rendered)
+                print(f"✅  Adapter → {out_path}")
+
+    elif adapter == "cursor":
+        template = adapter_dir / ".cursorrules"
+        if not template.exists():
+            print(f"❌  Adapter template not found: {template}", file=sys.stderr)
+            sys.exit(1)
+        rendered = _render_adapter_file(template, workflow_content)
+        if dry_run:
+            print("\n--- .cursorrules (dry-run) ---")
+            print(rendered)
+        else:
+            out_path = project_root / ".cursorrules"
+            out_path.write_text(rendered)
+            print(f"✅  Adapter → {out_path}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Generate .ai/WORKFLOW.md for the current task."
@@ -158,6 +216,12 @@ def main() -> None:
         action="store_true",
         help="Print output without writing .ai/WORKFLOW.md or invoking build-context.py",
     )
+    parser.add_argument(
+        "--adapter",
+        choices=VALID_ADAPTERS,
+        metavar="TOOL",
+        help=f"Render adapter output after writing WORKFLOW.md ({', '.join(VALID_ADAPTERS)})",
+    )
     args = parser.parse_args()
 
     project_root = Path(__file__).resolve().parent
@@ -166,6 +230,8 @@ def main() -> None:
 
     if args.dry_run:
         print(output)
+        if args.adapter:
+            _run_adapter(args.adapter, project_root, output, dry_run=True)
         return
 
     _invoke_build_context(project_root, ctx["task_type"])
@@ -180,6 +246,9 @@ def main() -> None:
     print(f"    Task type    : {ctx['task_type'] or 'unset'}")
     print(f"    Workflow     : {ctx['workflow_key']}")
     print(f"    Validators   : {len(ctx['validators'])}")
+
+    if args.adapter:
+        _run_adapter(args.adapter, project_root, output, dry_run=False)
 
 
 if __name__ == "__main__":

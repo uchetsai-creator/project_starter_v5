@@ -1,0 +1,25 @@
+# project_starter workflow rules
+
+## Before starting any task
+
+1. Run `python3 orchestrator.py` in the project root
+2. Read `.ai/AI_CONTEXT.md` — ordered context for the current task
+3. Read `.ai/WORKFLOW.md` — deterministic workflow plan
+
+## Current workflow snapshot
+
+{{WORKFLOW_CONTENT}}
+
+## Post-task
+
+Run all validators listed under "Post-task validators" in `.ai/WORKFLOW.md` in order before committing.
+
+## Constraint
+
+Document selection logic lives exclusively in `document-registry.yaml` and `orchestrator.py`. Do not add selection logic to adapter files.
+
+## Regenerate
+
+```bash
+python3 orchestrator.py --adapter cursor
+```

@@ -30,6 +30,15 @@ project_starter/                     ← this repo (template only)
 ├── .ai/                             ← generated context (gitignored); recreate with orchestrator.py
 │   ├── AI_CONTEXT.md               ← ordered read list for the current task
 │   └── WORKFLOW.md                 ← deterministic workflow plan (pre-task, validators, closeout)
+├── adapters/                        ← agent adapter layer (translate WORKFLOW.md to each tool's native format)
+│   ├── claude/
+│   │   ├── start-task.md           ← slash command template (copy to .claude/commands/ in your project)
+│   │   └── stop-hook.sh            ← writes task-log row on Claude Code session end
+│   ├── codex/
+│   │   ├── setup.md                ← Codex setup instructions with orchestrator quickstart
+│   │   └── task-instructions.md    ← task instructions template; WORKFLOW.md injected at render time
+│   └── cursor/
+│       └── .cursorrules            ← Cursor rules template; WORKFLOW.md injected at render time
 ├── docs/                            ← framework design documents (not copied to projects)
 │   ├── architecture-analysis.md    ← current coupling problems + responsibility boundaries
 │   ├── refactoring-plan.md         ← 3-phase migration plan (registry → context builder → orchestrator)
@@ -429,6 +438,66 @@ No validator logic lives in the orchestrator — separation of concerns is stric
 
 **`workflow-registry.yaml`** maps each task type to an ordered validator list. Add a new entry
 when a new task type is introduced; update an existing entry when the validator set changes.
+
+---
+
+## Agent Adapters
+
+The orchestrator produces a tool-agnostic `.ai/WORKFLOW.md`. Adapters translate that output into
+each AI tool's native instruction format so developers do not need to wire up the orchestrator manually.
+
+```
+orchestrator.py --adapter [claude|codex|cursor]
+        │
+        ├── writes  .ai/WORKFLOW.md          (always)
+        │
+        ├── claude  → .claude/commands/start-task.md   (slash command with WORKFLOW.md injected)
+        ├── codex   → .codex/setup.md
+        │             .codex/task-instructions.md       (WORKFLOW.md injected)
+        └── cursor  → .cursorrules                      (WORKFLOW.md injected)
+```
+
+**Constraint:** adapters contain only format translation. Document selection logic stays in
+`document-registry.yaml` and `orchestrator.py` exclusively — any adapter that duplicates selection
+logic is a bug.
+
+### Usage
+
+```bash
+# Generate workflow + render Claude Code slash command:
+python3 orchestrator.py --adapter claude
+
+# Preview without writing any files:
+python3 orchestrator.py --adapter claude --dry-run
+
+# Codex or Cursor:
+python3 orchestrator.py --adapter codex
+python3 orchestrator.py --adapter cursor
+```
+
+### Per-tool setup
+
+**Claude Code**
+
+1. Run `python3 orchestrator.py --adapter claude` — this writes `.claude/commands/start-task.md`.
+2. In any future session, type `/start-task` to have Claude run the orchestrator and walk through
+   the current workflow plan.
+3. (Optional) Install the Stop hook so each session end is logged to `docs/task-log.md`:
+   add `adapters/claude/stop-hook.sh` to the `Stop` hook list in `.claude/settings.json`.
+
+**Codex**
+
+1. Run `python3 orchestrator.py --adapter codex` — this writes `.codex/setup.md` and
+   `.codex/task-instructions.md`.
+2. Codex reads `.codex/setup.md` on startup; `.codex/task-instructions.md` contains the current
+   workflow steps with the WORKFLOW.md snapshot injected.
+3. Re-run `--adapter codex` whenever the task or task type changes.
+
+**Cursor**
+
+1. Run `python3 orchestrator.py --adapter cursor` — this writes `.cursorrules` at the project root.
+2. Cursor picks up `.cursorrules` automatically; the workflow snapshot is injected into the rules.
+3. Re-run `--adapter cursor` whenever the task changes.
 
 ---
 

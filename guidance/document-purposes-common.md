@@ -815,6 +815,62 @@ Update when: the set of checks should change — e.g., a new consistency invaria
 
 ---
 
+## Adapter Files (adapters/)
+
+### adapters/claude/start-task.md
+**Applies to: All project types (Claude Code users)**
+
+Purpose:
+Template for the `/start-task` Claude Code slash command. When rendered by `orchestrator.py --adapter claude`,
+the `{{WORKFLOW_CONTENT}}` placeholder is replaced with the current `.ai/WORKFLOW.md` snapshot and the result
+is written to `.claude/commands/start-task.md` in the target project.
+
+The slash command instructs Claude to run `orchestrator.py`, read `.ai/AI_CONTEXT.md` and `.ai/WORKFLOW.md`,
+and present the workflow steps.
+
+Update when: the slash command instructions or the WORKFLOW.md injection format change.
+
+### adapters/claude/stop-hook.sh
+**Applies to: All project types (Claude Code users)**
+
+Purpose:
+Shell script invoked by Claude Code's Stop hook on session end. Reads `docs/current-state.md` to extract
+the current task name and appends one row to `docs/task-log.md` with a UTC timestamp.
+
+Install by adding to the `Stop` hook list in `.claude/settings.json`. No orchestrator involvement — install once per project clone.
+
+Update when: the task-log row format changes or `current-state.md` field names change.
+
+### adapters/codex/setup.md
+**Applies to: All project types (Codex users)**
+
+Purpose:
+Codex setup instructions. Explains how to run `orchestrator.py` before starting work and how to regenerate
+the adapter output. Written to `.codex/setup.md` in the target project by `orchestrator.py --adapter codex`.
+
+Update when: the orchestrator invocation pattern or setup steps change.
+
+### adapters/codex/task-instructions.md
+**Applies to: All project types (Codex users)**
+
+Purpose:
+Task instructions template for Codex. Contains a `{{WORKFLOW_CONTENT}}` placeholder that is replaced with the
+current WORKFLOW.md snapshot at render time. Written to `.codex/task-instructions.md` by `orchestrator.py --adapter codex`.
+
+Update when: the task instructions framing changes or the injection placeholder format changes.
+
+### adapters/cursor/.cursorrules
+**Applies to: All project types (Cursor users)**
+
+Purpose:
+Cursor rules template. Contains the workflow constraint (run orchestrator before starting work, run validators
+before committing) and a `{{WORKFLOW_CONTENT}}` placeholder injected at render time. Written to `.cursorrules`
+at the project root by `orchestrator.py --adapter cursor`.
+
+Update when: the workflow rules or the WORKFLOW.md injection format change.
+
+---
+
 ## Diagram Scripts Reference
 
 | Script | Input format | Output suffix | Embedded in |
