@@ -1990,13 +1990,7 @@ Detectors self-register via class-level metadata. The capability layer discovers
 
 ### Concept
 
-```
-class FastAPIDetector(Detector):
-    capability = "web-api"
-    framework  = "fastapi"
-```
-
-The discovery mechanism scans for `Detector` subclasses, reads their metadata, and routes `--framework fastapi` to the matching class — similar to pytest plugin discovery and setuptools entry points.
+Detectors declare their own capability and framework identity as metadata. The capability layer discovers available detectors at runtime without a central registry — similar to pytest plugin discovery and setuptools entry points.
 
 ### When to schedule
 
