@@ -1809,6 +1809,123 @@ Three internal design documents diverge from the implemented system:
 
 ---
 
+## Phase 45.5 — Adapter Plugin Refactor: Capability-Based Architecture
+
+**Discovered in post-Phase-47 architectural review.**
+
+Phases 45–47 established a working `FrameworkAdapter` interface but encoded the wrong abstraction boundary. Each adapter maps one-to-one with a specific framework (`FastAPIAdapter`, `AirflowAdapter`, `TerraformAdapter`). This model does not scale: adding Django, Spring Boot, NestJS, or Spark each requires a new top-level adapter, and the registry grows without bound. The underlying problem is that "framework" was used as the primary concept when "capability" should be.
+
+The correct model: a **Capability Adapter** declares what kind of contract it validates (HTTP API, Data Pipeline, CLI, IaC, Mobile, Library). A **Detector** encodes how to extract that contract from a specific framework's code. The capability adapter orchestrates detectors; it has no framework knowledge.
+
+**Goal:** Introduce the `Detector` plugin abstraction in `_base.py`. Reorganise all existing framework logic into a capability-based directory tree with per-framework detector modules. Keep full backward compatibility via legacy aliases in `ADAPTER_REGISTRY`. Add a separate `DETECTOR_REGISTRY` for `--framework` hints. The core validator (`verify_spec_code.py`) gains one optional flag (`--framework`) and no other changes.
+
+### Architecture
+
+```
+verify_spec_code.py
+        │  --adapter web-api  [--framework fastapi]
+        ▼
+Capability Adapter  (e.g. WebAPIAdapter)
+        │  extract_spec() — framework-agnostic Markdown parser
+        │  extract_code() — walks src, collects files, dispatches to detectors
+        ▼
+Detector  (e.g. FastAPIDetector)
+        │  extract(files: list[Path]) → list[NormalizedEndpoint]
+        │  receives pre-discovered files; never walks directories
+        ▼
+NormalizedForm  →  verify_spec_code.py compare()  →  MismatchReport
+```
+
+**Responsibility split:**
+
+| Layer | Owns | Does not own |
+|---|---|---|
+| Capability Adapter | spec parsing, file discovery, detector orchestration | framework names, routing patterns |
+| Detector | pattern matching for one framework | file discovery, NormalizedForm comparison |
+| `verify_spec_code.py` | comparison, reporting | any adapter or detector detail |
+
+### Directory structure
+
+```
+_spec_code_adapters/
+├── _base.py               add Detector ABC alongside FrameworkAdapter
+├── semantic.py            unchanged
+│
+├── api/
+│   ├── web_api.py         WebAPIAdapter
+│   └── detectors/
+│       ├── python/        one file per Python web framework
+│       └── javascript/    one file per JS web framework
+│
+├── pipeline/
+│   ├── data_pipeline.py   DataPipelineAdapter
+│   └── detectors/         one file per pipeline framework (Airflow, Dagster, Prefect, …)
+│
+├── cli/
+│   ├── command_line.py    CLIAdapter
+│   └── detectors/
+│
+├── iac/
+│   ├── infrastructure.py  IaCAdapter
+│   └── detectors/
+│
+├── mobile/
+│   ├── mobile_ui.py       MobileAdapter
+│   └── detectors/
+│
+└── library/
+    ├── library_api.py     LibraryAdapter
+    └── detectors/
+```
+
+### Registry design
+
+```python
+# Primary registry — capability keys only
+ADAPTER_REGISTRY = {
+    'web-api':       ('api.web_api',            'WebAPIAdapter'),
+    'data-pipeline': ('pipeline.data_pipeline',  'DataPipelineAdapter'),
+    'cli':           ('cli.command_line',         'CLIAdapter'),
+    'iac':           ('iac.infrastructure',       'IaCAdapter'),
+    'mobile':        ('mobile.mobile_ui',         'MobileAdapter'),
+    'library':       ('library.library_api',      'LibraryAdapter'),
+    # Legacy aliases — framework name → capability adapter, backward compat
+    'fastapi': ('api.web_api', 'WebAPIAdapter'), 'flask': ..., 'airflow': ..., ...
+}
+
+# Detector registry — framework hint → detector module
+DETECTOR_REGISTRY = {
+    'fastapi':  ('api.detectors.python.fastapi',   'FastAPIDetector'),
+    'flask':    ('api.detectors.python.flask',      'FlaskDetector'),
+    'airflow':  ('pipeline.detectors.airflow',      'AirflowDetector'),
+    ...
+}
+```
+
+`--framework` is optional. When omitted, the capability adapter runs all registered detectors for its capability and unions results. When specified, only that detector is used.
+
+### Changes
+
+| File | Change |
+|---|---|
+| `_spec_code_adapters/_base.py` | Add `Detector` ABC: `extract(files: list[Path]) -> list`; must return `[]` not raise |
+| `_spec_code_adapters/api/web_api.py` (new) | `WebAPIAdapter`: spec parser + file walker + detector dispatcher |
+| `_spec_code_adapters/api/detectors/python/` (new) | One detector per Python web framework (existing FastAPI, Flask logic migrated) |
+| `_spec_code_adapters/api/detectors/javascript/` (new) | One detector per JS web framework (existing Express logic migrated) |
+| `_spec_code_adapters/pipeline/data_pipeline.py` (new) | `DataPipelineAdapter` |
+| `_spec_code_adapters/pipeline/detectors/` (new) | One detector per pipeline framework (Airflow, Dagster, Prefect migrated) |
+| `_spec_code_adapters/cli/`, `iac/`, `mobile/`, `library/` (new) | Same pattern for remaining capabilities |
+| `_spec_code_adapters/airflow.py`, `fastapi.py`, … (delete) | Replaced by capability tree; legacy aliases in registry preserve backward compat |
+| `verify_spec_code.py` | Add `DETECTOR_REGISTRY`; add `--framework` optional flag; update `_load_adapter` to resolve detector via hint; update `--list-adapters` to show capability keys and available detectors per capability |
+| `_spec_code_adapters/_example_adapter.py` | Update to show two-layer pattern; add `_example_detector.py` as companion reference |
+| `docs/contributing-adapters.md` | Rewrite contributor guide: adding a new framework = adding a detector in the right capability directory, not a new top-level adapter |
+
+**Constraint:** After this phase, no top-level file in `_spec_code_adapters/` (other than `_base.py`, `semantic.py`, and the example files) should encode any framework-specific logic. All framework patterns live in `detectors/`.
+
+**Verification:** `--adapter fastapi` (legacy alias) and `--adapter web-api --framework fastapi` must produce identical output on the same inputs. `--adapter web-api` with no `--framework` must find endpoints regardless of whether the code uses FastAPI or Flask patterns.
+
+---
+
 ## Phase 53 — Deduplicate Shared Utilities
 
 **Discovered in post-Phase-48 audit.**

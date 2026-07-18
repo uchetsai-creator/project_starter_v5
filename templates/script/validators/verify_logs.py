@@ -26,11 +26,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _verify_common import _is_placeholder, _section_body
-
-VALID_TYPES = [
-    'web-app', 'cli-tool', 'library',
-    'data-pipeline', 'ml-pipeline', 'microservices', 'llm-app', 'iac', 'mobile-app',
-]
+from _registry import VALID_TYPES
 
 # Types where logging-spec.md is Required or Optional
 LOGGING_REQUIRED = {'web-app', 'cli-tool', 'data-pipeline', 'ml-pipeline', 'microservices', 'mobile-app'}

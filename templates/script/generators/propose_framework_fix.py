@@ -27,9 +27,6 @@ import sys
 import tempfile
 from pathlib import Path
 
-DEFAULT_FRAMEWORK_REPO = os.environ.get(
-    "PROJECT_STARTER_FRAMEWORK_REPO", "uchetsai-creator/project_starter_v4"
-)
 # Path inside the framework repo where templates live
 TEMPLATES_SUBPATH = "templates"
 
@@ -74,14 +71,24 @@ def main() -> int:
         help="Short name for the missing section (e.g. 'Error Handling')"
     )
     parser.add_argument(
-        "--framework-repo", default=DEFAULT_FRAMEWORK_REPO,
-        help="GitHub repo to open the PR on (owner/repo)"
+        "--framework-repo", default=os.environ.get("PROJECT_STARTER_FRAMEWORK_REPO"),
+        help="GitHub repo to open the PR on (owner/repo). "
+             "Defaults to $PROJECT_STARTER_FRAMEWORK_REPO."
     )
     parser.add_argument(
         "--dry-run", action="store_true",
         help="Print what would happen without cloning, committing, or creating a PR"
     )
     args = parser.parse_args()
+
+    if not args.framework_repo:
+        print(
+            "❌ PROJECT_STARTER_FRAMEWORK_REPO is not set.\n"
+            "   Export it before running:\n"
+            "     export PROJECT_STARTER_FRAMEWORK_REPO=your-org/your-repo",
+            file=sys.stderr,
+        )
+        return 1
 
     branch = build_branch_name(args.type, args.document, args.gap_description)
     template_repo_path = f"{TEMPLATES_SUBPATH}/{args.document}"
@@ -104,8 +111,8 @@ def main() -> int:
         print(f"[dry-run] PR title: {pr_title}")
         return 0
 
-    with tempfile.TemporaryDirectory(prefix="ps4-fix-") as tmpdir:
-        clone_dir = Path(tmpdir) / "ps4"
+    with tempfile.TemporaryDirectory(prefix="ps5-fix-") as tmpdir:
+        clone_dir = Path(tmpdir) / "ps5"
 
         # Clone the framework repo (shallow clone is fine)
         result = run(["gh", "repo", "clone", args.framework_repo, str(clone_dir), "--", "--depth=1"], check=False)

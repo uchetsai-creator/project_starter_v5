@@ -26,10 +26,8 @@ import re
 import subprocess
 import sys
 
-VALID_TYPES = [
-    'web-app', 'cli-tool', 'library',
-    'data-pipeline', 'ml-pipeline', 'microservices', 'llm-app', 'iac', 'mobile-app',
-]
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _registry import VALID_TYPES
 
 MODULE_TYPES = ['Pipeline Stage', 'Feature', 'Background Job', 'Shared Utility', 'Resource Group']
 

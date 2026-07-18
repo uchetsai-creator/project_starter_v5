@@ -22,7 +22,7 @@ This costs tokens on every task startup and produces inconsistent results across
 | `.project-starter.yml` | `project_type` | Registry lookup → required documents |
 | `.project-starter.yml` | `task_type` (new, optional) | Filter context to task-relevant documents |
 | `docs/current-state.md` | `Task Type:` field (new, optional) | Override or supplement `task_type` from yml |
-| `document-registry.yaml` | `context_priority`, `purpose`, `related`, `flags` | Rank and annotate output |
+| `document-registry.yaml` | `context_priority`, `purpose`, `related` | Rank and annotate output |
 
 ### `task_type` values
 
@@ -70,11 +70,14 @@ The AI reads the `Read (Required)` list on every startup. `Read (If Present)` it
 1. Load document-registry.yaml
 2. Resolve project_type from .project-starter.yml
 3. For each document in registry:
-   a. Get R/O/N status for this project_type
+   a. Compute R/O/N for this project_type:
+        - type in required_for → R
+        - type in optional_for → O
+        - otherwise → N
    b. If N: → Skip
    c. If R: → Read (Required)
    d. If O: apply task_type filter:
-        - task_type matches document.flags.relevant_for → Read (If Present)
+        - task_type is relevant (heuristic match on purpose/related fields) → Read (If Present)
         - otherwise → Skip
 4. Apply context_priority sort to Read (Required)
 5. Inject current-state.md at top of Read (Required) always
@@ -89,28 +92,18 @@ The AI reads the `Read (Required)` list on every startup. `Read (If Present)` it
 
 ```yaml
 documents:
-  pipeline-contract.md:
+  pipeline-contract:
+    file: pipeline-contract.md
     path: specs/pipeline-contract.md
-    purpose: "Define cross-stage input/output contracts and error handling"
-    types:
-      web-app:       N
-      cli-tool:      N
-      library:       N
-      data-pipeline: R
-      ml-pipeline:   R
-      microservices: N
-      llm-app:       N
-      iac:           N
-      mobile-app:    N
+    required_for: [data-pipeline, ml-pipeline]
+    optional_for: []
     context_priority: high    # high / medium / low — affects sort order in AI_CONTEXT.md
-    flags:
-      requires_logging: false
-      requires_trace_id: false
-      relevant_for: [pipeline-stage, sprint-end]
-    related:
-      - pipeline-debug.md
-      - data-model.md
+    purpose: "Define cross-stage input/output contracts and error handling"
+    used_by: [context-builder, validator, pdf]
+    related: [pipeline-debug, data-model]
 ```
+
+Required/Optional/N/A status is derived at runtime: a type in `required_for` → R, in `optional_for` → O, absent from both → N. There is no inline `types:` block or `flags:` subfield.
 
 `context_priority` values:
 - `high` — always near the top of the Read list; changes frequently during task work

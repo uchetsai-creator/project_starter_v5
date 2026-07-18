@@ -83,28 +83,28 @@ Each node is a file. Red = encodes the primary document × type matrix. Yellow =
 @startuml coupling-graph
 !theme plain
 
-rectangle "verify_docs.py\nMATRIX (42 docs × 9 types)\nVALID_TYPES\nFILE_LOCATIONS" as vd #LightCoral
-rectangle "verify_content.py\nTYPE_DOCS (9 types → doc lists)\nDOC_PATHS (38 entries)\nVALID_TYPES\nUNIVERSAL_DOCS" as vc #LightCoral
-rectangle "document-matrix.md\n42 docs × 9 types\n(markdown table)" as dm #LightCoral
+rectangle "_registry.py\nVALID_TYPES\nbuild_matrix()\nbuild_file_locations()" as reg #LightGreen
+rectangle "document-registry.yaml\n42 docs × 9 types\n(single source of truth)" as yaml #LightGreen
 
-rectangle "verify_logs.py\nVALID_TYPES\nLOGGING_REQUIRED\nTRACE_ID_TYPES" as vl #LightYellow
-rectangle "verify_tests.py\nVALID_TYPES\nPIPELINE_TYPES" as vt #LightYellow
+rectangle "verify_docs.py\n(MATRIX derived from registry)" as vd #LightYellow
+rectangle "verify_content.py\n(TYPE_DOCS, DOC_PATHS\nderived from registry)" as vc #LightYellow
+rectangle "document-matrix.md\n42 docs × 9 types\n(human-readable view)" as dm #LightYellow
+
+rectangle "verify_logs.py\nVALID_TYPES (from _registry)\nLOGGING_REQUIRED\nTRACE_ID_TYPES" as vl #LightYellow
+rectangle "verify_tests.py\nVALID_TYPES (from _registry)\nPIPELINE_TYPES" as vt #LightYellow
 rectangle "build_pdf.py\nVALID_PROJECT_TYPES\nAUTO_SCAN_TYPES" as bp #LightYellow
-rectangle "scan_codebase.py\nMODULE_VOCAB (9 entries)\nguess_type() branching" as sc #LightYellow
+rectangle "scan_codebase.py\nMODULE_VOCAB (9 entries)\nVALID_TYPES (from _registry)" as sc #LightYellow
 
-cloud "Project-type knowledge\n(9 types, 42 documents)" as K
+yaml --> reg : loaded by
+reg --> vd
+reg --> vc
+reg --> vl
+reg --> vt
+reg --> sc
 
-K --> vd
-K --> vc
-K --> dm
-K --> vl
-K --> vt
-K --> bp
-K --> sc
-
-note bottom of vd : Authoritative source\nfor Required/Optional/N/A
-note bottom of vc : Subset of MATRIX\n(Required docs only)
-note bottom of dm : Human copy of MATRIX\n(no automated sync check)
+note bottom of yaml : Single source of truth\nfor Required/Optional/N/A
+note bottom of reg : Shared loader — all scripts\nimport VALID_TYPES from here
+note bottom of dm : Synced to registry\nby verify_framework.py Check 11
 @enduml
 ```
 
@@ -112,72 +112,44 @@ note bottom of dm : Human copy of MATRIX\n(no automated sync check)
 
 ## Coupling Problem Catalogue
 
-### Problem 1 — VALID_TYPES declared in four separate scripts
+### ✅ Problem 1 — VALID_TYPES declared in four separate scripts (resolved)
 
-The list of 9 project types is hardcoded independently in:
+`_registry.py` is the single source. All scripts now import `VALID_TYPES` from it. Adding a new project type requires one edit to `_registry.py`.
 
-| File | Line | Declaration |
+### ✅ Problem 2 — Document × type matrix encoded in three places (resolved)
+
+`document-registry.yaml` is the single source. `verify_docs.py` derives `MATRIX` from it via `build_matrix()`. `verify_content.py` derives `TYPE_DOCS` and `DOC_PATHS` from it. `document-matrix.md` is kept as a human-readable view; `verify_framework.py` Check 11 validates it stays in sync with the registry.
+
+### ✅ Problem 3 — Document file paths encoded in two places (resolved)
+
+`document-registry.yaml` `path` field is the single source. `verify_docs.py` derives `FILE_LOCATIONS` via `build_file_locations()`. `verify_content.py` derives `DOC_PATHS` via `build_doc_paths()`. Moving a document requires one edit to the registry.
+
+### ⚠️ Problem 4 — Per-type behavioural flags scattered across scripts (open)
+
+`VALID_TYPES` is now centralised, but the per-type behavioural sets remain in individual scripts:
+
+| Script | Constant | Per-type rule |
 |---|---|---|
-| `verify_docs.py` | 22–26 | `VALID_TYPES = ['web-app', 'cli-tool', ...]` |
-| `verify_content.py` | 30–35 | `VALID_TYPES = ['web-app', 'cli-tool', ...]` |
-| `verify_logs.py` | 30–34 | `VALID_TYPES = ['web-app', 'cli-tool', ...]` |
-| `verify_tests.py` | 28–32 | `VALID_TYPES = ['web-app', 'cli-tool', ...]` |
-| `scan_codebase.py` | 112–124 | `MODULE_VOCAB` dict keys (implicit type list) |
-| `build_pdf.py` | ~200 | `VALID_PROJECT_TYPES` list |
+| `verify_logs.py` | `LOGGING_REQUIRED`, `TRACE_ID_TYPES` | Which types require logging-spec.md / trace_id propagation |
+| `verify_tests.py` | `PIPELINE_TYPES` | Which types use pipeline-specific test checks |
+| `verify_content.py` | `UNIVERSAL_DOCS` | 4 docs that apply to all types regardless |
+| `scan_codebase.py` | `guess_type()` | Per-type module naming heuristics |
 
-**Adding a new project type requires 6 edits.** `verify_framework.py` Check 8 cross-validates `scan_codebase.py` vs `verify_docs.py` only — the other four scripts have no guard.
+These remain local to each script. No cross-script consistency check exists for them.
 
-### Problem 2 — Document × type matrix encoded in three places
+### ✅ Problem 5 — AI startup cost: project type resolved by inference (resolved)
 
-The mapping "which documents are Required / Optional / N/A for each type" lives in:
-
-| File | Lines | Form | Guard |
-|---|---|---|---|
-| `verify_docs.py` | 32–80 | `MATRIX` dict (42 rows × 9-col R/O/N tuples) | Authoritative |
-| `verify_content.py` | 75–94 | `TYPE_DOCS` dict (type → list of docs to content-check) | Checked by `verify_framework.py` Check 10 |
-| `templates/init/document-matrix.md` | 10–52 | Markdown table (42 rows × 9 cols) | **No automated check** |
-
-**Adding a new document requires 3 edits.** `document-matrix.md` can silently drift from `MATRIX`.
-
-### Problem 3 — Document file paths encoded in two places
-
-| File | Lines | Form |
-|---|---|---|
-| `verify_docs.py` | 80–133 | `FILE_LOCATIONS` dict (doc → folder name, e.g. `'architecture'`) |
-| `verify_content.py` | 36–71 | `DOC_PATHS` dict (doc → relative path, e.g. `'architecture/database.md'`) |
-
-**Moving a document requires 2 edits.** No cross-check exists between the two.
-
-### Problem 4 — Per-type behavioural flags scattered across scripts
-
-| Script | Constant | Per-type rule | Line |
-|---|---|---|---|
-| `verify_logs.py` | `LOGGING_REQUIRED` | Which types require a logging-spec.md | 36 |
-| `verify_logs.py` | `TRACE_ID_TYPES` | Which types must propagate trace_id | 40 |
-| `verify_tests.py` | `PIPELINE_TYPES` | Which types use pipeline-specific test checks | 33 |
-| `verify_content.py` | `UNIVERSAL_DOCS` | 4 docs that apply to all types regardless | 72 |
-| `scan_codebase.py` | `guess_type()` | Per-type module naming heuristics | 193–230 |
-
-These flags cannot be validated against each other — if `data-pipeline` is added to `LOGGING_REQUIRED` in `verify_logs.py` but the corresponding flag is missing from `verify_content.py`'s `TYPE_DOCS`, no check catches the inconsistency.
-
-### Problem 5 — AI startup cost: project type resolved by inference
-
-When an AI agent starts a task, it must:
-1. Read `AGENTS.md` (~190 lines) to learn the startup sequence
-2. Read `docs/current-state.md` to find the current task
-3. Infer which documents to load from the Quick filter guide in `templates/sprint-sync.md`
-
-This inference step adds token cost on every task startup and produces inconsistent results across AI tools (Claude Code, Codex, Cursor, manual).
+`build-context.py` exists at the repo root. It reads `.project-starter.yml` + `document-registry.yaml` and writes `.ai/AI_CONTEXT.md` with a deterministic ordered read list. `orchestrator.py` provides the broader workflow plan. AI agents read `.ai/AI_CONTEXT.md` on startup rather than inferring from AGENTS.md prose.
 
 ---
 
-## Recommended Responsibility Boundaries (post-refactor)
+## Responsibility Boundaries (current)
 
-| Concern | Current owner | Target owner |
+| Concern | Owner | Status |
 |---|---|---|
-| Valid type list | `VALID_TYPES` in 4 scripts | `document-registry.yaml` |
-| Document → type mapping (R/O/N) | `MATRIX` in `verify_docs.py` | `document-registry.yaml` |
-| Document → path mapping | `FILE_LOCATIONS` + `DOC_PATHS` | `document-registry.yaml` |
-| Per-type behavioural flags | Scattered sets in 3 scripts | `document-registry.yaml` |
-| Human-readable matrix | `document-matrix.md` (manual copy) | Generated from registry |
-| Task startup context | AI inference from AGENTS.md rules | `build-context.py` output (`.ai/AI_CONTEXT.md`) |
+| Valid type list | `_registry.py` → imported by all scripts | ✅ Centralised |
+| Document → type mapping (R/O/N) | `document-registry.yaml` → `build_matrix()` | ✅ Centralised |
+| Document → path mapping | `document-registry.yaml` → `build_file_locations()` / `build_doc_paths()` | ✅ Centralised |
+| Human-readable matrix | `document-matrix.md` synced by Check 11 | ✅ Guarded |
+| Per-type behavioural flags | Scattered sets in `verify_logs.py`, `verify_tests.py`, `verify_content.py` | ⚠️ Open (Problem 4) |
+| Task startup context | `build-context.py` → `.ai/AI_CONTEXT.md` | ✅ Implemented |

@@ -52,6 +52,9 @@ import json
 import re
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / 'validators'))
+from _registry import VALID_TYPES
+
 # ---------------------------------------------------------------------------
 # Folders that are almost never feature modules — skip or mark as "—"
 # ---------------------------------------------------------------------------
@@ -121,7 +124,6 @@ MODULE_VOCAB: dict[str, tuple[str, str]] = {
     "mobile-app":    ("Screen",         "screens"),
 }
 
-VALID_PROJECT_TYPES = list(MODULE_VOCAB.keys())
 
 # ---------------------------------------------------------------------------
 # Scaffold stub template
@@ -622,10 +624,10 @@ def main():
     parser.add_argument(
         "--project-type",
         metavar="TYPE",
-        choices=VALID_PROJECT_TYPES,
+        choices=VALID_TYPES,
         help=(
             f"Project type — controls module boundary detection heuristic. "
-            f"Valid values: {', '.join(VALID_PROJECT_TYPES)}"
+            f"Valid values: {', '.join(VALID_TYPES)}"
         ),
     )
     parser.add_argument(

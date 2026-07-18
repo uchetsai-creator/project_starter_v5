@@ -68,8 +68,11 @@ class FlaskAdapter(FrameworkAdapter):
     """
 
     def extract_spec(self, spec_path: str) -> list[NormalizedEndpoint]:
-        with open(spec_path, encoding='utf-8') as f:
-            text = f.read()
+        try:
+            with open(spec_path, encoding='utf-8') as f:
+                text = f.read()
+        except OSError:
+            return []
 
         endpoints: list[NormalizedEndpoint] = []
         section_matches = list(re.finditer(

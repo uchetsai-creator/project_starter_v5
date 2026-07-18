@@ -4,47 +4,35 @@ Derived from `docs/architecture-analysis.md`. Addresses Problems 1–5 in three 
 
 ---
 
-## Phase 1 — Document Registry + Context Builder + AGENTS.md Reduction
+## ✅ Phase 1 — Document Registry + Context Builder + AGENTS.md Reduction (Complete)
 
 **Goal:** Eliminate duplicated project-type knowledge (Problems 1–4) and deterministic task startup context (Problem 5).
 
-**Risk:** Low — scripts are refactored to load from the registry; behaviour is unchanged. AGENTS.md shrinks but all rules remain enforced by the hook.
-
 ### Files affected
 
-| File | Change | Type |
+| File | Change | Status |
 |---|---|---|
-| `document-registry.yaml` (new) | Single source of truth for all document metadata | New |
-| `verify_docs.py` | Remove `MATRIX`, `FILE_LOCATIONS`, `VALID_TYPES`; load from registry | Refactor |
-| `verify_content.py` | Remove `TYPE_DOCS`, `DOC_PATHS`, `VALID_TYPES`, `UNIVERSAL_DOCS`; load from registry | Refactor |
-| `verify_logs.py` | Remove `VALID_TYPES`, `LOGGING_REQUIRED`, `TRACE_ID_TYPES`; load from registry | Refactor |
-| `verify_tests.py` | Remove `VALID_TYPES`, `PIPELINE_TYPES`; load from registry | Refactor |
-| `build_pdf.py` | Remove `VALID_PROJECT_TYPES`, `AUTO_SCAN_TYPES`; load from registry | Refactor |
-| `templates/init/document-matrix.md` | Replace static table with "generated from document-registry.yaml" note | Update |
-| `build-context.py` (new, repo root) | Reads `.project-starter.yml` + `current-state.md`; writes `.ai/AI_CONTEXT.md` | New |
-| `.project-starter.yml` | Add optional `task_type` field | Update |
-| `templates/current-state.md` | Add `Task Type:` field; add "run build-context.py" note | Update |
-| `AGENTS.md` | Remove startup discovery logic and Quick filter guide; add pointer to `build-context.py` | Simplify |
-| `.gitignore` | Add `.ai/` | Update |
-| `README.md` | Add Context Builder section | Update |
-| `guidance/document-purposes-common.md` | Add `build-context.py` and `.ai/AI_CONTEXT.md` entries | Update |
+| `document-registry.yaml` | Single source of truth for all document metadata | ✅ Done |
+| `templates/script/validators/_registry.py` | Shared loader: `load_registry()`, `VALID_TYPES`, `build_matrix()`, etc. | ✅ Done |
+| `verify_docs.py` | `MATRIX`, `FILE_LOCATIONS`, `VALID_TYPES` derived from registry | ✅ Done |
+| `verify_content.py` | `TYPE_DOCS`, `DOC_PATHS`, `VALID_TYPES`, `UNIVERSAL_DOCS` derived from registry | ✅ Done |
+| `verify_logs.py` | `VALID_TYPES` imported from `_registry` | ✅ Done (Phase 51) |
+| `verify_tests.py` | `VALID_TYPES` imported from `_registry` | ✅ Done (Phase 51) |
+| `verify_module_docs.py` | `VALID_TYPES` imported from `_registry` | ✅ Done (Phase 51) |
+| `verify_spec_code.py` | `VALID_TYPES` imported from `_registry` | ✅ Done (Phase 51) |
+| `scan_codebase.py` | `VALID_TYPES` imported from `_registry` | ✅ Done (Phase 51) |
+| `build-context.py` | Reads `.project-starter.yml` + registry; writes `.ai/AI_CONTEXT.md` | ✅ Done |
+| `templates/init/document-matrix.md` | Synced to registry by `verify_framework.py` Check 11 | ✅ Done |
 
-### Migration strategy
-
-1. Create `document-registry.yaml` with the full schema (see `docs/context-builder-design.md`)
-2. Add a thin registry loader (`_registry.py`) in `templates/script/`
-3. Refactor each script: replace hardcoded dicts with `load_registry()` calls
-4. Verify: run `verify_framework.py --strict` — all checks must pass
-5. Implement `build-context.py`
-6. Simplify `AGENTS.md`
-
-**No folder restructuring in this phase** — every script path reference stays the same. The value is gained from the registry and context builder alone, without rename churn.
+**Note:** `LOGGING_REQUIRED`, `TRACE_ID_TYPES`, and `PIPELINE_TYPES` remain hardcoded in individual validators (Problem 4) — not yet moved to registry.
 
 ---
 
-## Phase 2 — Workflow State Extraction
+## ⚠️ Phase 2 — Workflow State Extraction (Partially implemented)
 
 **Goal:** Extract the task-state machine (current-state.md, sprint-change-log.md, task-log.md update rules) from AGENTS.md prose into a structured `workflow-state.yaml`. AI agents read the YAML instead of parsing natural-language rules.
+
+**Status:** `workflow-registry.yaml` exists at the repo root and captures workflow step definitions. `workflow-state.yaml` (the task-lifecycle state machine) is not yet implemented. AGENTS.md prose rules remain.
 
 **Risk:** Medium — changes AGENTS.md structure agents rely on. Requires testing with Claude Code before merging.
 
@@ -66,9 +54,11 @@ Derived from `docs/architecture-analysis.md`. Addresses Problems 1–5 in three 
 
 ---
 
-## Phase 3 — Full Orchestrator + Agent Adapters
+## ⚠️ Phase 3 — Full Orchestrator + Agent Adapters (Partially implemented)
 
-**Goal:** Replace direct script calls with an orchestrator (`run.py` or `project-starter` CLI) that reads from the registry and workflow state. Add thin adapters for Claude Code MCP, Cursor, and Codex.
+**Goal:** Replace direct script calls with an orchestrator that reads from the registry and workflow state. Add thin adapters for Claude Code, Cursor, and Codex.
+
+**Status:** `orchestrator.py` exists at the repo root and generates `.ai/AI_CONTEXT.md` + `.ai/WORKFLOW.md`. `adapters/codex/` exists with `setup.md` and task instructions. Claude Code and Cursor adapters are not yet implemented. Direct script calls still work and are the primary interface.
 
 **Risk:** High — user-facing interface change. Requires deprecation path for direct script calls.
 

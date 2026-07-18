@@ -76,8 +76,11 @@ class PrefectAdapter(FrameworkAdapter):
     """
 
     def extract_spec(self, spec_path: str) -> list[NormalizedStageContract]:
-        with open(spec_path, encoding='utf-8') as f:
-            text = f.read()
+        try:
+            with open(spec_path, encoding='utf-8') as f:
+                text = f.read()
+        except OSError:
+            return []
 
         contracts: list[NormalizedStageContract] = []
         stage_matches = list(re.finditer(r'^### (.+?)$', text, re.MULTILINE))

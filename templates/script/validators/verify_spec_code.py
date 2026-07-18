@@ -54,10 +54,8 @@ import os
 import sys
 from pathlib import Path
 
-VALID_PROJECT_TYPES = [
-    'web-app', 'cli-tool', 'library', 'data-pipeline', 'ml-pipeline',
-    'microservices', 'llm-app', 'iac', 'mobile-app',
-]
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _registry import VALID_TYPES
 
 # adapter_name → (module_filename, class_name)
 ADAPTER_REGISTRY: dict[str, tuple[str, str]] = {
@@ -294,8 +292,8 @@ def main() -> None:
         description='Validate that source code matches what the spec declares.',
     )
     parser.add_argument(
-        '--project-type', choices=VALID_PROJECT_TYPES, metavar='TYPE',
-        help=f"Project type ({', '.join(VALID_PROJECT_TYPES)})",
+        '--project-type', choices=VALID_TYPES, metavar='TYPE',
+        help=f"Project type ({', '.join(VALID_TYPES)})",
     )
     parser.add_argument(
         '--adapter', metavar='NAME',

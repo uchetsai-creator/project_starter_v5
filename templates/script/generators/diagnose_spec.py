@@ -42,9 +42,8 @@ Usage:
   # Dry-run (no PRs opened, no files written):
   ... | python3 templates/script/generators/diagnose_spec.py --project-type web-app --dry-run
 
-Fork users: set the PROJECT_STARTER_FRAMEWORK_REPO environment variable to override
-the default repo target before running propose_framework_fix.py:
-  export PROJECT_STARTER_FRAMEWORK_REPO=your-org/your-fork
+Required: set PROJECT_STARTER_FRAMEWORK_REPO to your fork before running:
+  export PROJECT_STARTER_FRAMEWORK_REPO=your-org/your-repo
 """
 
 import argparse
@@ -57,10 +56,6 @@ from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 PROPOSE_SCRIPT = SCRIPT_DIR / "propose_framework_fix.py"
-
-DEFAULT_FRAMEWORK_REPO = os.environ.get(
-    "PROJECT_STARTER_FRAMEWORK_REPO", "uchetsai-creator/project_starter_v4"
-)
 
 # Maximum self-improving rounds before remaining gaps are logged for manual triage.
 MAX_ROUNDS = 2
@@ -179,8 +174,9 @@ def main() -> int:
              "(default: templates/ if present, else docs/)"
     )
     parser.add_argument(
-        "--framework-repo", default=DEFAULT_FRAMEWORK_REPO,
-        help="GitHub repo to open PRs on (owner/repo)"
+        "--framework-repo", default=os.environ.get("PROJECT_STARTER_FRAMEWORK_REPO"),
+        help="GitHub repo to open PRs on (owner/repo). "
+             "Defaults to $PROJECT_STARTER_FRAMEWORK_REPO."
     )
     parser.add_argument(
         "--logs-dir", default="logs",
@@ -191,6 +187,15 @@ def main() -> int:
         help="Show what would happen without creating PRs or writing files"
     )
     args = parser.parse_args()
+
+    if not args.framework_repo:
+        print(
+            "❌ PROJECT_STARTER_FRAMEWORK_REPO is not set.\n"
+            "   Export it before running:\n"
+            "     export PROJECT_STARTER_FRAMEWORK_REPO=your-org/your-repo",
+            file=sys.stderr,
+        )
+        return 1
 
     # Load verify_docs.py JSON output
     try:

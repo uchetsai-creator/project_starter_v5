@@ -56,8 +56,11 @@ class PythonLibraryAdapter(FrameworkAdapter):
     """
 
     def extract_spec(self, spec_path: str) -> list[NormalizedFunction]:
-        with open(spec_path, encoding='utf-8') as f:
-            text = f.read()
+        try:
+            with open(spec_path, encoding='utf-8') as f:
+                text = f.read()
+        except OSError:
+            return []
 
         functions: list[NormalizedFunction] = []
         section_matches = list(re.finditer(r'^### (`?)(\w+)\1', text, re.MULTILINE))

@@ -1,6 +1,6 @@
 # Codex Setup
 
-This project uses [project_starter](https://github.com/uchetsai-creator/project_starter_v5) for documentation-driven development.
+This project uses [project_starter](<your-fork-url>) for documentation-driven development.
 
 ## Before starting work
 
