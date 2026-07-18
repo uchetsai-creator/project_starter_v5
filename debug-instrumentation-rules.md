@@ -56,6 +56,26 @@ requested.
 Each layer lists: where to place the instrumentation, and what data to print. Map the layer name
 to whatever your framework calls that concept.
 
+The table below shows which layers typically apply to each project type.
+"–" means the layer is rarely needed or has no equivalent; individual flows may vary.
+
+| Layer | Web App | Microservices | CLI Tool | Library | Data Pipeline | ML Pipeline | AI/LLM App | IaC/DevOps | Mobile App |
+|---|---|---|---|---|---|---|---|---|---|
+| 1. Entry Point | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| 2. Client-Side Request Prep | ✅ | – | – | – | – | – | ✅ | – | ✅ |
+| 3. Outbound Call | ✅ | ✅ | ✅ | – | ✅ | – | ✅ | – | ✅ |
+| 4. Request Handling Entry | ✅ | ✅ | – | – | – | – | – | – | – |
+| 5. Validation | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | – | ✅ |
+| 6. Business Logic Entry | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | – | ✅ |
+| 7. Business Rule Decisions | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | – | ✅ |
+| 8. Data Access — Read | ✅ | ✅ | ✅ | – | ✅ | ✅ | ✅ | – | ✅ |
+| 9. Data Access — Write | ✅ | ✅ | ✅ | – | ✅ | ✅ | – | – | ✅ |
+| 10. Transactional Boundaries | ✅ | ✅ | – | – | ✅ | – | – | – | ✅ |
+| 11. Response Construction | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| 12. Client-Side Result Handling | ✅ | – | – | – | – | – | ✅ | – | ✅ |
+| 13. State/Cache Invalidation | ✅ | ✅ | – | – | – | – | – | – | ✅ |
+| 14. UI/Output Refresh | ✅ | – | ✅ | – | – | – | – | – | ✅ |
+
 ### 1. Entry Point (UI event, CLI command, request handler, queue message, pipeline trigger, or LLM call)
 
 Where the first external trigger enters the code. Map to whichever applies to this project type:
@@ -69,6 +89,8 @@ Where the first external trigger enters the code. Map to whichever applies to th
 | **ML Pipeline** | Stage entry — after input schema is validated, before processing begins |
 | **AI / LLM App** | Prompt assembly function — immediately before the LLM API call; also at each MCP tool call entry (tool name + input args) and tool response receipt |
 | **Background Job** | Consumer handler — first line after the queue message is received |
+| **IaC / DevOps** | CI/CD pipeline trigger — first step in the `terraform plan` or `apply` job; first task in an `ansible-playbook` run |
+| **Mobile App** | App launch handler (`onCreate` / `viewDidLoad`) for startup flows; deep-link handler entry for navigation flows; ViewModel / BLoC method entry for feature flows |
 
 Placement: immediately after the triggering input is captured, before any processing begins.
 

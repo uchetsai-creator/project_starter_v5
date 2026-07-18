@@ -134,19 +134,6 @@ Update when (if listed in current-state.md → Doc Checklist, update at task lev
 * A new failure mode is discovered and handled
 
 ### logging-spec.md
-**Applies to: Web App, CLI Tool, Data Pipeline, ML Pipeline, Microservices, AI / LLM Application**
-Not applicable to Library / SDK (libraries should not configure logging; callers own that).
-
-Purpose:
-Define logging rules, format, and module naming conventions.
-For AI / LLM App: includes the structured log format for every LLM call (see also llm-debug.md).
-Logger instantiation pattern is documented here in a language/framework-agnostic way.
-
-Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
-* New modules are added (add one line to the Module Naming Convention table)
-* Log format changes
-* Logger instantiation pattern changes
-* LLM call log format changes
-
-This file is the rule definition only — do not add module-specific logging content here.
-Module-specific log points live in docs/modules/[module]/log-[module].md.
+→ See `document-purposes-common.md § Specs — logging-spec.md`.
+AI / LLM App addition: also covers structured log format for every LLM call (see also `llm-debug.md`).
+Update also when: LLM call log format changes.

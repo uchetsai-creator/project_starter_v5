@@ -93,7 +93,6 @@ BFF (Backend for Frontend) or external API layer, push notification service, ana
 crash reporting integration, and offline storage (if used). Do not draw individual screens.
 
 ### logging-spec.md
-**Applies to: Mobile App** (shared — see document-purposes-common.md)
-
+→ See `document-purposes-common.md § Specs — logging-spec.md`.
 Mobile-specific note: covers crash reporting integration (Sentry / Firebase Crashlytics),
 analytics event naming, and log tag naming convention for mobile modules.

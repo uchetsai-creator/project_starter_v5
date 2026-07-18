@@ -54,22 +54,7 @@ After updating, regenerate both diagrams:
 * State diagram: `Edit the ```plantuml block in the file, then run build_pdf.py`
 
 ### logging-spec.md
-**Applies to: Web App, CLI Tool, Data Pipeline, ML Pipeline, Microservices, AI / LLM Application**
-Not applicable to Library / SDK (libraries should not configure logging; callers own that).
-
-Purpose:
-Define logging rules, format, and module naming conventions.
-Logger instantiation pattern is documented here in a language/framework-agnostic way —
-use whatever the project's logging library provides.
-All modules must follow this spec.
-
-Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
-* New modules are added (add one line to the Module Naming Convention table)
-* Log format changes
-* Logger instantiation pattern changes
-
-This file is the rule definition only — do not add module-specific logging content here.
-Module-specific log points live in docs/modules/[module]/log-[module].md.
+→ See `document-purposes-common.md § Specs — logging-spec.md`
 
 ---
 

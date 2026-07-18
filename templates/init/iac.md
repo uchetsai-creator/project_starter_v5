@@ -48,12 +48,18 @@ The following documents from other project types are **N/A** — do not create t
 10. (Optional) Set up `docs/codebase-map.md` using the template.
     Run `scan_codebase.py <src_dir> --project-type iac` to classify Terraform modules / resource groups.
 
-11. Install the verification hook — copy `.githooks/pre-commit` to `.git/hooks/` so `verify_docs.py --content` runs automatically on every `git commit`:
+11. Install the verification hook (see `README.md → Verification` for details):
     ```bash
     cp .githooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
     ```
 12. Create `.project-starter.yml` at the project root (used by the hook and all verify scripts):
     ```yaml
-    project_type: [your-type]   # e.g., web-app
+    project_type: iac
     docs_path: docs/
     ```
+
+**Optional — sprint workflow documents:**
+IaC projects do not require sprint planning documents, but if your team uses sprint-based workflow,
+create these from the standard templates: `project-plan.md`, `task-log.md`, `sprint-change-log.md`, `changelog.md`.
+These are not enforced by `verify_docs.py` for IaC projects and can be omitted if your team uses
+a different work-tracking system (Jira, Linear, GitHub Issues, etc.).

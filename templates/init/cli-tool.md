@@ -22,12 +22,12 @@
 20. Create docs/sprint-change-log.md from templates/sprint-change-log.md.
 21. Create docs/current-state.md from templates/current-state.md.
 
-22. Install the verification hook — copy `.githooks/pre-commit` to `.git/hooks/` so `verify_docs.py --content` runs automatically on every `git commit`:
+22. Install the verification hook (see `README.md → Verification` for details):
     ```bash
     cp .githooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
     ```
 23. Create `.project-starter.yml` at the project root (used by the hook and all verify scripts):
     ```yaml
-    project_type: [your-type]   # e.g., web-app
+    project_type: cli-tool
     docs_path: docs/
     ```

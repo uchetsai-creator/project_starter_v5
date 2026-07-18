@@ -7,22 +7,6 @@
   See document-purposes.md for the type-to-file lookup table.
 -->
 
-## How to use this file
-
-Load two files:
-1. This file (`document-purposes-common.md`) — entries that apply to all project types
-2. The file for your declared project type (see document-purposes.md for the lookup table)
-
-**Mixed / Hybrid types:** load this file + all per-type files matching your declared types.
-
-**Single project type:** create a document only if your declared type appears in its `Applies to` line.
-
-**Mixed / Hybrid project types** (e.g., `Project Type: Data Pipeline + Web App`):
-create a document if ANY of your declared types appears in its `Applies to` line.
-Skip only documents where ALL your declared types are absent from the `Applies to` line.
-
----
-
 ## Specs (docs/specs/)
 
 ### research.md
@@ -77,6 +61,25 @@ Update when (defer to Sprint Documentation Sync):
 * Bugs are found and fixed
 * Coverage changes significantly
 * Known Issues / Known Gaps section changes
+
+### logging-spec.md
+**Applies to: Web App, CLI Tool, Data Pipeline, ML Pipeline, Microservices, AI / LLM Application**
+Not applicable to Library / SDK (libraries should not configure logging; callers own that).
+Not applicable to IaC / DevOps (no application logging layer).
+
+Purpose:
+Define logging rules, format, and module naming conventions.
+Logger instantiation pattern is documented here in a language/framework-agnostic way —
+use whatever the project's logging library provides.
+All modules must follow this spec.
+
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
+* New modules are added (add one line to the Module Naming Convention table)
+* Log format changes
+* Logger instantiation pattern changes
+
+This file is the rule definition only — do not add module-specific logging content here.
+Module-specific log points live in docs/modules/[module]/log-[module].md.
 
 ---
 
@@ -182,7 +185,7 @@ when starting a new project of that type. Kept separate from AGENTS.md so the ag
 only the one relevant file (~200–300 words) instead of all 7 sequences (~1,200 words).
 
 Files: `init/web-app.md`, `init/cli-tool.md`, `init/library.md`, `init/data-pipeline.md`,
-`init/ml-pipeline.md`, `init/microservices.md`, `init/llm-app.md`
+`init/ml-pipeline.md`, `init/microservices.md`, `init/llm-app.md`, `init/iac.md`, `init/mobile-app.md`
 
 Load when: project is being initialized for the first time. Never needed for day-to-day tasks.
 Update when: a new required document is added or removed for that project type.

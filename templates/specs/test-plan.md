@@ -37,7 +37,7 @@ Six test levels — include only the levels that apply to your project type (see
 | **Data Pipeline** | Transform functions | Single stage with input/output mocked | Stage → real DB / real file read-write | Stage input/output schema contract | Full pipeline run on fixture dataset | Throughput (rows/sec); total run time |
 | **ML Pipeline** | Feature functions | Single stage with data mocked | Stage with real data batch | Model input/output schema contract | Train → eval → artifact export | Inference latency; memory footprint |
 | **AI / LLM App** | Prompt builder, parser | Full prompt round-trip with LLM mocked | Real LLM API call with known prompt | LLM output format matches downstream expectation | Full conversation turn + eval score | Time to first token; tokens/sec |
-| **IaC / DevOps** | Policy unit tests (OPA / tflint rules) | ❌ | `terraform plan` against sandbox; lint (`tflint`, `tfsec`) | Resource compliance policy contract | Full apply-verify-destroy cycle on sandbox | Apply time; resource count delta |
+| **IaC / DevOps** | Policy unit tests (OPA / tflint rules) | ❌ | `terraform plan` against sandbox; lint (`tflint`, `tfsec`) | Resource compliance policy tests (OPA / Sentinel): enforce tagging, CIDR, and IAM constraints — not service API contracts | Full apply-verify-destroy cycle on sandbox | Apply time; resource count delta |
 | **Mobile App** | Business logic (non-UI utils) | Single screen with navigation mocked | Screen + real backend (staging) | API contract between app and backend | Critical user flow (Detox / Maestro / XCUITest) | Cold start time; frame render latency |
 
 ---

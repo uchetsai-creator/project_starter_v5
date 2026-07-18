@@ -67,3 +67,19 @@ Update when (if listed in current-state.md → Doc Checklist, update at task lev
 * A registry or publish target is added, removed, or changed
 * Installation instructions change
 * CI/CD pipeline stages change
+
+---
+
+## Business (docs/business/)
+
+**Not applicable to Library / SDK.**
+Libraries have no user-facing business workflows or domain entities.
+Business logic belongs in the application that consumes the library, not in the library itself.
+
+---
+
+## Flows (docs/modules/)
+
+**Not applicable to Library / SDK** for business-process or background-job flows.
+Libraries use the Shared Utility flow format in `module-data-flow.md` for internal modules —
+see `document-purposes-common.md § Flows`.

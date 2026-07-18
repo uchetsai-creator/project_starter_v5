@@ -88,15 +88,13 @@ If continuing an existing project:
 1. `docs/current-state.md` — this is the only mandatory read at startup.
    It tells you the current task AND lists exactly which other documents to read.
 2. Required Context only — read the documents listed in `docs/current-state.md → Required Context`.
-   Nothing else.
+   Nothing else. Do not scan the repository.
 
 Do NOT read docs/project-plan.md, docs/project-requirements.md, or docs/changelog.md
 at startup unless docs/current-state.md explicitly lists them in Required Context.
 
 If docs/current-state.md is missing, empty, or ambiguous — read AGENTS.md to orient yourself,
 then determine the next step from project-plan.md. Do not read AGENTS.md otherwise.
-
-Do not scan repository.
 
 For what each document is for and when it changes, read guidance/document-purposes-common.md + guidance/document-purposes-[your-type].md — reference only, not required every task. See guidance/document-purposes.md for the type-to-file lookup table.
 
@@ -117,28 +115,13 @@ Record WHEN a rule changed in `changelog.md` — not in spec documents.
 
 ## Development Principles
 
-- Prefer maintainable architecture over temporary shortcuts
-- Maintainability First
-- Package First
-- Glue Code
-- Incremental Changes
-- No Unrelated Refactor
-
----
-
-## Package First
-
-Priority:
-1. Existing package
-2. Existing utility
-3. Framework convention
-4. Custom code
-
-Custom code only for:
-- Business Logic
-- Domain Rules
-- Data Mapping
-- System Integration
+- **Maintainability First** — prefer readable, changeable architecture over temporary shortcuts
+- **Package First** — use existing packages, utilities, and framework conventions before writing custom code
+  - Priority: existing package → existing utility → framework convention → custom code
+  - Custom code only for: business logic, domain rules, data mapping, system integration
+- **Glue Code** — keep integration code thin; logic belongs in packages, not connectors
+- **Incremental Changes** — make the smallest change that achieves the goal
+- **No Unrelated Refactor** — do not clean up code outside the current task scope
 
 ---
 
@@ -192,5 +175,4 @@ current-state.md is a state machine with two fields:
 
 ## Sprint Documentation Sync
 
-> **Load `templates/sprint-sync.md` now.** It contains the full sprint sync procedure and Document Update Checklist.
-> Do not load it during normal task work — only at sprint end.
+> Load `templates/sprint-sync.md` only at sprint end — not during normal task work. It contains the full sprint sync procedure and Document Update Checklist.

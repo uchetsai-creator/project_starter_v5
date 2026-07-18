@@ -32,4 +32,4 @@ Example: `Project Type: Data Pipeline + Web App` → load `document-purposes-com
 | IaC / DevOps | `document-purposes-iac.md` |
 | Mobile App | `document-purposes-mobile-app.md` |
 
-All files live at the same level as this file (repo root alongside AGENTS.md).
+All files live in the `guidance/` directory alongside this file (referenced as `guidance/document-purposes-*.md` from AGENTS.md and templates).

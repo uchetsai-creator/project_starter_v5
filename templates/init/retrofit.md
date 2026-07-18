@@ -18,7 +18,7 @@ Do not scan the entire repository at once. Work module by module.
 ## Step 1b — Run the module inventory scan
 
 ```
-python3 docs/script/scan_codebase.py <src_dir> --docs docs
+python3 docs/script/scan_codebase.py <src_dir> --project-type <type> --docs docs
 ```
 
 Review the output with the user:

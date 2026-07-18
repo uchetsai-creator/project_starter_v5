@@ -96,7 +96,7 @@ Fix any ❌ Missing Required items before beginning sprint work.
 
 **Step 12 — Install the verification hook**
 
-Copy `.githooks/pre-commit` to `.git/hooks/` so `verify_docs.py --content` runs automatically on every `git commit`:
+Install the verification hook (see `README.md → Verification` for details):
 
 ```bash
 cp .githooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit

@@ -10,20 +10,31 @@ Do not begin writing documentation until all High severity issues have been reso
 
 # Required Context
 
-Read ONLY the following documentation before inspecting code:
+Read the documents for your declared project type before inspecting code:
 
-- current-state.md
-- docs/architecture/*
-- docs/business/*
-- docs/specs/data-model.md
-- docs/specs/permissions.md
-- docs/project-plan.md
+| Project type | Read before inspecting |
+|---|---|
+| **Web App** | `current-state.md`, `docs/architecture/*`, `docs/business/*`, `docs/specs/data-model.md`, `docs/specs/permissions.md`, `docs/project-plan.md` |
+| **Microservices** | `current-state.md`, `docs/architecture/*`, `docs/business/*`, `docs/specs/data-model.md`, `docs/specs/permissions.md`, `docs/specs/service-catalog.md`, `docs/project-plan.md` |
+| **CLI Tool** | `current-state.md`, `docs/architecture/architecture.md`, `docs/specs/cli-contract.md`, `docs/project-plan.md` |
+| **Library / SDK** | `current-state.md`, `docs/architecture/architecture.md`, `docs/specs/public-api.md`, `docs/project-plan.md` |
+| **Data Pipeline** | `current-state.md`, `docs/architecture/architecture.md`, `docs/specs/pipeline-contract.md`, `docs/specs/data-model.md`, `docs/project-plan.md` |
+| **ML Pipeline** | `current-state.md`, `docs/architecture/architecture.md`, `docs/specs/pipeline-contract.md`, `docs/specs/model-contract.md`, `docs/project-plan.md` |
+| **AI / LLM App** | `current-state.md`, `docs/architecture/architecture.md`, `docs/specs/llm-contract.md`, `docs/specs/eval-spec.md`, `docs/project-plan.md` |
+| **IaC / DevOps** | `current-state.md`, `docs/architecture/topology.md`, `docs/specs/runbook.md`, `docs/specs/drift-policy.md`, `docs/project-plan.md` |
+| **Mobile App** | `current-state.md`, `docs/architecture/architecture.md`, `docs/architecture/frontend.md`, `docs/specs/mobile-contract.md`, `docs/project-plan.md` |
 
 Then inspect ONLY:
 
-1. Application entry point
-2. Data layer
-3. One complete vertical slice
+| Project type | What to inspect |
+|---|---|
+| **Web App / Microservices** | Application entry point; data layer; one complete vertical slice |
+| **CLI Tool** | Command parser; handler function; one complete command path |
+| **Library / SDK** | Public API function; one internal implementation path |
+| **Data Pipeline / ML Pipeline** | Pipeline entry; one stage; one output writer |
+| **AI / LLM App** | Prompt assembly; LLM call; response parser |
+| **IaC / DevOps** | Module input validation; one complete resource group definition |
+| **Mobile App** | App entry / screen component; ViewModel/Presenter; one complete navigation flow |
 
 Do NOT scan unrelated modules.
 
@@ -303,56 +314,32 @@ If no row count logging exists anywhere in the pipeline: **Medium.**
 
 ## Permission Consistency
 
-Read every:
+Read every `business/*-process.md` and collect every (Role, Action) pair.
+Cross-reference against `docs/specs/permissions.md` — API Endpoint Access table.
 
-business/*-process.md
+**Source evaluation:**
 
-Collect every:
+| Source type | Severity |
+|---|---|
+| Hardcoded in code | High |
+| Seeded default | Medium |
+| Missing Source column in `permissions.md` | High |
 
-(Role, Action)
-
-Cross-reference:
-
-permissions.md
-
-API Endpoint Access table.
-
-Evaluate Source:
-
-Hardcoded
-→ High
-
-Seeded default
-→ Medium
-
-Missing Source column
-→ High
-
-Recommendation:
-
-Grant access
-
-or
-
-Document why another workflow is used.
+**Recommendation:** Grant access, or document in `permissions.md` why a different workflow is used.
 
 ---
 
 ## State Machine Consistency
 
-Canonical source:
+Canonical source: `business/*-object.md`
 
-business/*-object.md
+Compare against: `docs/specs/data-model.md`
 
-Compare with:
+| Finding | Severity |
+|---|---|
+| State transitions in code differ from `business/*-object.md` | High |
 
-data-model.md
-
-If transitions differ:
-
-High severity.
-
-business object documentation is always the source of truth.
+Business object documentation is always the source of truth.
 
 ---
 
@@ -871,18 +858,6 @@ Do NOT:
 - Modify future sprints
 
 Append only.
-
----
-
-# Sprint Completion
-
-When the current sprint is completed:
-
-1. Review remaining incomplete tasks.
-2. Check whether completed work affects future tasks.
-3. Update affected task descriptions if necessary.
-4. Do not silently delete tasks.
-5. Preserve sprint history.
 
 ---
 

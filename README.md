@@ -303,44 +303,25 @@ For hybrid types and common combinations, see `AGENTS.md § Mixed / Hybrid Proje
 
 ## Working on an existing project
 
-The agent reads, in order:
-
-1. `docs/current-state.md` — the active task (the only mandatory read at startup)
-2. Only the docs the current task actually needs (it does **not** scan the whole repo)
-
-`AGENTS.md` is read only when `docs/current-state.md` is missing or empty — not on every startup.
-
-After finishing a task, it applies the filtered `Doc Checklist` in `docs/current-state.md`
-(pre-filled at task setup using the quick-filter guide). At sprint end, it loads `sprint-sync.md`
-and runs the full Document Update Checklist across all docs.
-
-When a task finishes **all** work for a module, three more things happen automatically:
-
-- Logger calls are inserted into the module's code (per `logging-spec.md`), and
-  `docs/modules/[module]/log-[module].md` is created/updated
-- You're asked whether to add temporary debug instrumentation (per `debug-instrumentation-rules.md`)
-- The English PDF is regenerated (`docs/project-documentation-en.pdf`)
+See `AGENTS.md → Startup sequence` for the full startup and task-completion protocol.
 
 ---
 
 ## Retrofitting an existing project
 
 If a project already has code but no documentation, use the retrofit flow in `templates/init/retrofit.md`.
-The flow has six steps:
+The flow follows Steps 1, 1b, 1c, 2, 3, 4, and 5:
 
-1. **Read the codebase** — entry point, schema, one complete module
-2. **Run the module inventory scan** — `scan_codebase.py` lists every source folder and flags which
-   are undocumented. You confirm the list before any documentation is written, so nothing gets missed
-3. **Code Quality Check** — the agent runs `code-quality-check.md` and produces a report
-   covering layering, Package First violations, naming, schema design, security, and error
-   handling. You decide whether to fix issues first or document the codebase as-is
-4. **Fill in architecture and spec documents** — describe what actually exists, not what should exist.
-   Templates are architecture-agnostic — use your actual layer names, not assumed patterns
-5. **Fill in module flow files** — one module at a time. Each module is classified as
-   Feature, Background Job, Pipeline Stage, Command, Namespace, Service, or Shared Utility —
-   each type has its own flow format
-6. **Fill in project status** — reconstruct requirements, mark existing modules as completed in
-   project-plan.md, generate the PDF
+- **Step 1** — Read the codebase (entry point, schema, one complete module)
+- **Step 1b** — Run the module inventory scan — `scan_codebase.py` lists every source folder and flags
+  undocumented ones. Confirm the list before any documentation is written
+- **Step 1c** — Code Quality Check — run `code-quality-check.md` and produce a report covering
+  layering, Package First violations, naming, schema design, security, and error handling
+- **Step 2** — Fill in architecture and spec documents — describe what actually exists, not what should
+  exist. Use your actual layer names, not assumed patterns
+- **Step 3** — Fill in module flow files — one module at a time, following the confirmed inventory
+- **Step 4** — Fill in project status — reconstruct requirements, mark existing modules as completed
+- **Step 5** — Generate the PDF
 
 `code-quality-check.md` can also be used independently at any time as a standalone code review checklist.
 
@@ -348,19 +329,11 @@ The flow has six steps:
 
 ## Module types
 
-`module-data-flow.md` supports four module types, each with its own flow format:
+`module-data-flow.md` supports four flow-file formats: **Feature**, **Background Job**, **Pipeline Stage**, and **Shared Utility**.
 
-| Type | Description | Entry point |
-|---|---|---|
-| **Feature** | Handles requests or commands — HTTP, GraphQL, CLI, RPC, WebSocket, etc. | Request / command |
-| **Background Job** | Runs outside the request cycle — queue consumer, cron, event handler, worker | Queue message / schedule / event |
-| **Pipeline Stage** | Consumes an upstream dataset or artifact, transforms or validates it, and produces a downstream dataset or artifact. Used in Data Pipeline and ML Pipeline projects. | Upstream data contract |
-| **Shared Utility** | No entry point — called by other modules | None (class block only) |
+See `templates/flows/module-data-flow-v2.md → Module Types` for the full description, entry-point rules, and Background Job vs Pipeline Stage disambiguation.
 
-**Background Job vs Pipeline Stage:** use Background Job when the module's primary concern is responding to an event or message. Use Pipeline Stage when the module's primary concern is transforming or validating data as part of a larger data flow — the distinguishing question is "does this module have an upstream data contract and a downstream data contract?"
-
-The flow format does not prescribe layer names. Use whatever names your architecture actually has
-(Controller, Handler, UseCase, Resolver, Model, etc.).
+`scan_codebase.py --project-type` uses type-specific scan labels (Command for CLI Tool, Namespace for Library / SDK, Service for Microservices) as vocabulary — these are classification labels, not separate flow formats. All three use the Feature or Shared Utility flow format in their module flow files.
 
 ---
 
@@ -669,7 +642,7 @@ with a clickable link to the original interactive HTML.
 ```bash
 pip install markdown weasyprint cairosvg --break-system-packages
 
-# System spec PDF — Introduction, Design, Build, Deployment only (for stakeholder handoff)
+# System spec PDF (stakeholder handoff)
 python3 docs/script/build_pdf.py docs --lang en --project-type data-pipeline --content spec
 
 # Full PDF — all six chapters including Plan and Test (for internal use)
@@ -701,11 +674,11 @@ and `specs/prompts/*-prompt.md` are auto-scanned and do not need to be added man
 - **Module inventory before documentation**: the retrofit flow requires running `scan_codebase.py`
   (with `--project-type` for correct vocabulary) and getting user confirmation before any
   documentation is written — so undocumented modules are caught at the start, not discovered at the end.
-- **Seven module types**: Feature (request-driven), Background Job (event/schedule-driven),
-  Pipeline Stage (data-contract-driven, Data Pipeline / ML Pipeline), Command (CLI Tool),
-  Namespace (Library / SDK), Service (Microservices), and Shared Utility (no entry point).
-  Each has its own flow format in `module-data-flow.md`. `scan_codebase.py --project-type`
-  selects the correct label automatically.
+- **Four flow-file formats**: Feature (request-driven), Background Job (event/schedule-driven),
+  Pipeline Stage (data-contract-driven, used in Data Pipeline / ML Pipeline), and Shared Utility
+  (no entry point). These are the formats defined in `module-data-flow.md`. Command (CLI Tool),
+  Namespace (Library / SDK), and Service (Microservices) are scan classification labels used by
+  `scan_codebase.py --project-type` — they select vocabulary, not separate flow formats.
 - **Six-chapter PDF structure**: the generated PDF is organized into Introduction / Plan /
   Design / Build / Test / Deployment — matching standard system analysis document conventions.
   The chapter each file belongs to is configured in `pdf_allowlist.py`.

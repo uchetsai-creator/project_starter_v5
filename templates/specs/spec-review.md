@@ -111,6 +111,11 @@ Apply the addendum for your declared project type in addition to the five criter
 - OS permission handling: what if the user denies a required permission?
 - Deep link edge cases: what if the app is not installed when a deep link is followed?
 
+**IaC / DevOps — also check:**
+- Topology completeness: are all declared resources defined with their required inputs and outputs in `topology.md`?
+- Runbook coverage: does every resource type in `topology.md` have a corresponding incident response procedure in `runbook.md`?
+- Drift-policy SLA: is the remediation SLA a measurable time value — not a vague term like "soon" or "as needed"?
+
 ---
 
 ## Output format
