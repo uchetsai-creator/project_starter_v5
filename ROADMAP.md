@@ -1839,11 +1839,14 @@ Capability Adapter
   owns: spec parsing, source discovery, detector orchestration
   does not know: framework names, routing patterns, annotation syntax
         │
-        ├── Detector A  (framework-specific extraction)
-        └── Detector B  (framework-specific extraction)
+        ├── Framework Detector A
+        └── Framework Detector B
                 │
                 ▼
-        NormalizedForm  →  compare()  →  MismatchReport
+        Normalized Representation
+                │
+                ▼
+        Validation Result
 ```
 
 **Responsibility boundaries:**
@@ -1859,7 +1862,7 @@ Capability Adapter
 - A detector must not perform file discovery — it operates on source artifacts provided by the capability layer.
 - Framework-specific logic must not appear in a capability adapter.
 - `verify_spec_code.py` must not contain framework-specific implementation logic.
-- Adding a new framework requires adding a detector, not a new adapter.
+- Adding a new framework implementation within an existing capability requires adding a detector, not a new adapter.
 
 ### Backward Compatibility
 
@@ -1921,7 +1924,7 @@ Three discoverability gaps:
 2. README Phase 14 history mentions `translate_docs.py` as one of the generator scripts. This file does not exist anywhere in the repo (likely planned but never implemented or since removed). The dead reference misleads readers looking for it.
 3. `verify_module_docs.py` has no automated trigger path. Neither `.githooks/pre-commit` nor `.githooks/run-verify.sh` calls it. Its only invocation path is manual, and this is not documented anywhere.
 
-**Goal:** Close all three gaps. Items are classified by fix type — "CI gate" items block commit; "contributor tool" items inform the developer but do not block.
+**Goal:** Close all three gaps. Items are classified as either automated gates or contributor tools. This phase intentionally avoids adding slow documentation checks into commit gates.
 
 ### Changes
 
