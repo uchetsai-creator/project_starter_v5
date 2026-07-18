@@ -562,7 +562,7 @@ LLM Judge (Phase 18) scores what is written. Spec Challenge finds what is missin
 
 ---
 
-## Phase 20 — Verification Trigger Layer 🔲 Planned
+## Phase 20 — Verification Trigger Layer ✅ Complete
 
 Phases 17–19 add three verification layers, but all three still depend on the developer (or AI agent) remembering to run them. The trigger mechanism must work regardless of which AI tool is being used — Claude Code, Codex, Cursor, or none.
 
