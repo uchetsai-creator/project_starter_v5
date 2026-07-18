@@ -16,11 +16,12 @@ Usage:
 
 import argparse
 import json
-import re
 import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+
+from _workflow_utils import _read_task_type_from_current_state, _resolve_task_type
 
 try:
     import yaml
@@ -35,27 +36,6 @@ VALID_ADAPTERS = ["claude", "codex", "cursor"]
 def _load_yaml(path: Path) -> dict:
     with path.open() as fh:
         return yaml.safe_load(fh) or {}
-
-
-def _read_task_type_from_current_state(path: Path) -> str | None:
-    if not path.exists():
-        return None
-    text = path.read_text()
-    m = re.search(r"\*\*Task Type:\*\*\s*(\S+)", text)
-    if m:
-        value = m.group(1).strip("[]")
-        if value and value not in ("task-type", ""):
-            return value
-    return None
-
-
-def _resolve_task_type(cfg: dict, current_state_path: Path, override: str | None) -> str | None:
-    if override:
-        return override
-    from_state = _read_task_type_from_current_state(current_state_path)
-    if from_state:
-        return from_state
-    return cfg.get("task_type") or None
 
 
 def _invoke_build_context(project_root: Path, task_type: str | None) -> None:

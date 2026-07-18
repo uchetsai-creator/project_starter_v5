@@ -19,7 +19,7 @@ import re
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / 'validators'))
 from _registry import VALID_TYPES as _REGISTRY_VALID_TYPES
 
 # Script lives at <root>/templates/script/framework/ — framework root is 4 levels up.

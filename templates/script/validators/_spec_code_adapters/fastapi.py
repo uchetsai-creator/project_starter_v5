@@ -18,22 +18,10 @@ import os
 import re
 
 from _base import Detector, FrameworkAdapter, NormalizedEndpoint, NormalizedField
+from _utils import _annotation_str
 
 _HTTP_METHODS = frozenset({'get', 'post', 'put', 'delete', 'patch', 'head', 'options'})
 _SKIP_PARAMS = frozenset({'self', 'request', 'response', 'db', 'session', 'background_tasks'})
-
-
-def _annotation_str(node) -> str:
-    if node is None:
-        return ''
-    try:
-        return ast.unparse(node)
-    except AttributeError:
-        if isinstance(node, ast.Name):
-            return node.id
-        if isinstance(node, ast.Attribute):
-            return f"{_annotation_str(node.value)}.{node.attr}"
-        return ''
 
 
 def _parse_field_table(section: str, header: str) -> list[NormalizedField]:

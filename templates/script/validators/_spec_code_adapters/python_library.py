@@ -18,23 +18,9 @@ import os
 import re
 
 from _base import Detector, FrameworkAdapter, NormalizedField, NormalizedFunction
+from _utils import _annotation_str
 
 _SKIP_PARAMS = frozenset({'self', 'cls', 'kwargs', 'args'})
-
-
-def _annotation_str(node) -> str:
-    if node is None:
-        return ''
-    try:
-        return ast.unparse(node)
-    except AttributeError:
-        if isinstance(node, ast.Name):
-            return node.id
-        if isinstance(node, ast.Constant):
-            return str(node.value)
-        if isinstance(node, ast.Attribute):
-            return f"{_annotation_str(node.value)}.{node.attr}"
-        return ''
 
 
 class PythonLibraryDetector(Detector):

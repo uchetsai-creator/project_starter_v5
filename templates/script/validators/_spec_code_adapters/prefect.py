@@ -18,24 +18,10 @@ import os
 import re
 
 from _base import Detector, FrameworkAdapter, NormalizedField, NormalizedStageContract
+from _utils import _annotation_str
 
 _PLACEHOLDER_NAMES = frozenset({'stage name', '[stage name]', 'stage', ''})
 _PREFECT_DECORATORS = frozenset({'task', 'flow'})
-
-
-def _annotation_str(node) -> str:
-    if node is None:
-        return ''
-    try:
-        return ast.unparse(node)
-    except AttributeError:
-        if isinstance(node, ast.Name):
-            return node.id
-        if isinstance(node, ast.Constant):
-            return str(node.value)
-        if isinstance(node, ast.Attribute):
-            return f"{_annotation_str(node.value)}.{node.attr}"
-        return ''
 
 
 def _parse_schema_value(value: str) -> list[NormalizedField]:

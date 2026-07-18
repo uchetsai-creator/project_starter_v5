@@ -1,0 +1,28 @@
+"""
+_workflow_utils.py — Shared task-type helpers for orchestrator.py and build-context.py.
+"""
+from __future__ import annotations
+
+import re
+from pathlib import Path
+
+
+def _read_task_type_from_current_state(path: Path) -> str | None:
+    if not path.exists():
+        return None
+    text = path.read_text()
+    m = re.search(r"\*\*Task Type:\*\*\s*(\S+)", text)
+    if m:
+        value = m.group(1).strip("[]")
+        if value and value not in ("task-type", ""):
+            return value
+    return None
+
+
+def _resolve_task_type(cfg: dict, current_state_path: Path, override: str | None) -> str | None:
+    if override:
+        return override
+    from_state = _read_task_type_from_current_state(current_state_path)
+    if from_state:
+        return from_state
+    return cfg.get("task_type") or None
