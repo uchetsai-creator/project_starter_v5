@@ -2,6 +2,7 @@
 .ai/
 # .ai/AI_CONTEXT.md  — written by build-context.py (called internally by orchestrator.py)
 # .ai/WORKFLOW.md    — written by orchestrator.py
+# .ai/telemetry/     — validator run logs and session boundaries (generated, not committed)
 
 __pycache__/
 *.pyc

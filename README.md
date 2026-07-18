@@ -29,7 +29,10 @@ project_starter/                     ← this repo (template only)
 ├── code-quality-check.md            ← code review checklist for retrofitting existing projects
 ├── .ai/                             ← generated context (gitignored); recreate with orchestrator.py
 │   ├── AI_CONTEXT.md               ← ordered read list for the current task
-│   └── WORKFLOW.md                 ← deterministic workflow plan (pre-task, validators, closeout)
+│   ├── WORKFLOW.md                 ← deterministic workflow plan (pre-task, validators, closeout)
+│   └── telemetry/                  ← validator run logs + session boundaries (generated, not committed)
+│       ├── validation-result.json  ← append-only: one entry per verify_docs/verify_content --telemetry run
+│       └── task-run.json           ← append-only: one entry per Claude Code session (written by stop-hook)
 ├── adapters/                        ← agent adapter layer (translate WORKFLOW.md to each tool's native format)
 │   ├── claude/
 │   │   ├── start-task.md           ← slash command template (copy to .claude/commands/ in your project)
@@ -736,6 +739,63 @@ Spec-facing documents (writing audience check): `business-rules.md`, `pipeline-c
 | Cursor | ✅ on `git commit` | ✅ | ❌ not applicable |
 | Manual (no AI) | ✅ on `git commit` | ✅ | ❌ not applicable |
 
+
+## Validation Telemetry
+
+The framework writes structured JSON after each validator run and each Claude Code session end,
+giving visibility into which validators fail most and how many orchestrator runs a task requires.
+All telemetry is gitignored under `.ai/telemetry/` — it never leaves the local machine.
+
+### What is logged
+
+| Data | Source | Written by |
+|---|---|---|
+| Validator pass/fail per document | verify scripts | `verify_docs.py`, `verify_content.py` with `--telemetry` |
+| Task session boundary | `current-state.md` + Stop hook | `adapters/claude/stop-hook.sh` |
+| Orchestrator run count per task | `orchestrator.py` state file | `orchestrator.py` on each run |
+| Token count | API response metadata | placeholder `null` — requires adapter-level data |
+
+### Schema — `validation-result.json` (append-only array)
+
+```json
+{ "ts": "2026-07-18T13:00:00Z", "project_type": "data-pipeline",
+  "validator": "verify_content.py", "level": "fail",
+  "warn_count": 0, "fail_count": 2,
+  "failed_docs": ["pipeline-contract.md", "architecture.md"] }
+```
+
+`level` is `"pass"` or `"fail"`. `warn_count` tracks missing-optional documents (verify_docs only).
+`failed_docs` lists document basenames for quick pattern analysis across runs.
+
+### Schema — `task-run.json` (append-only array)
+
+```json
+{ "ts": "2026-07-18T14:00:00Z", "task": "implement extract stage",
+  "adapter": "claude", "orchestrator_runs": 2, "token_count": null }
+```
+
+`orchestrator_runs` counts how many times `orchestrator.py` ran during the session (read from
+`.ai/telemetry/.orchestrator_runs.json`). `token_count` is `null` until the adapter exposes
+API response metadata — the field is reserved for a future phase.
+
+### Usage
+
+```bash
+# Run verify_docs with telemetry
+python3 docs/script/validators/verify_docs.py --project-type data-pipeline --telemetry
+
+# Run verify_content with telemetry
+python3 docs/script/validators/verify_content.py --project-type data-pipeline --telemetry
+
+# Telemetry is written to:
+# .ai/telemetry/validation-result.json  (validator results)
+# .ai/telemetry/task-run.json           (session boundaries, written by stop-hook on session end)
+```
+
+The Stop hook (`adapters/claude/stop-hook.sh`) writes to `task-run.json` automatically on
+Claude Code session end. No manual steps required once the hook is installed.
+
+---
 
 ## Self-improving loop
 

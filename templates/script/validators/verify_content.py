@@ -23,9 +23,11 @@ Hybrid types use +: data-pipeline+web-app
 import argparse
 import json
 import os
+import pathlib
 import re
 import subprocess
 import sys
+from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _verify_common import _is_placeholder, _section_body
@@ -1141,6 +1143,40 @@ def print_results_json(
 
 
 # ---------------------------------------------------------------------------
+# Telemetry
+# ---------------------------------------------------------------------------
+
+def _write_telemetry(project_type: str, doc_results: list[dict]) -> None:
+    failed = [
+        r['name'] for r in doc_results
+        if not r['present'] or r['quality'] == 'fail'
+    ]
+    fail_count = len(failed)
+    entry = {
+        'ts': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
+        'project_type': project_type,
+        'validator': 'verify_content.py',
+        'level': 'fail' if fail_count > 0 else 'pass',
+        'warn_count': 0,
+        'fail_count': fail_count,
+        'failed_docs': failed,
+    }
+    telemetry_dir = pathlib.Path('.ai') / 'telemetry'
+    telemetry_dir.mkdir(parents=True, exist_ok=True)
+    telemetry_file = telemetry_dir / 'validation-result.json'
+    rows: list[dict] = []
+    if telemetry_file.exists():
+        try:
+            rows = json.loads(telemetry_file.read_text())
+            if not isinstance(rows, list):
+                rows = []
+        except (json.JSONDecodeError, OSError):
+            rows = []
+    rows.append(entry)
+    telemetry_file.write_text(json.dumps(rows, indent=2))
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -1176,6 +1212,10 @@ def main() -> None:
         '--json', action='store_true', dest='json_output',
         help='Output results as JSON',
     )
+    parser.add_argument(
+        '--telemetry', action='store_true',
+        help='Append run result to .ai/telemetry/validation-result.json',
+    )
     args = parser.parse_args()
 
     project_types = parse_types(args.project_type)
@@ -1192,6 +1232,9 @@ def main() -> None:
         print_results_json(doc_results, module_results, args.project_type, docs_dir)
     else:
         print_results(doc_results, module_results, args.project_type)
+
+    if args.telemetry:
+        _write_telemetry(args.project_type, doc_results)
 
     if args.strict:
         has_failure = any(

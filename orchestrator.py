@@ -15,6 +15,7 @@ Usage:
 """
 
 import argparse
+import json
 import re
 import subprocess
 import sys
@@ -107,6 +108,7 @@ def _build_workflow(project_root: Path, task_type_override: str | None = None) -
         "task_type": task_type,
         "workflow_key": workflow_key,
         "validators": validators,
+        "docs_path": docs_path,
     }
 
 
@@ -144,6 +146,30 @@ def _render(ctx: dict) -> str:
         "",
     ]
     return "\n".join(lines)
+
+
+def _read_task_name(docs_path: Path) -> str:
+    state = docs_path / "current-state.md"
+    if not state.exists():
+        return "(unknown)"
+    text = state.read_text()
+    m = re.search(r"\*\*Task:\*\*\s*(.+)", text)
+    return m.group(1).strip() if m else "(unknown)"
+
+
+def _track_orchestrator_run(project_root: Path, task_name: str) -> None:
+    telemetry_dir = project_root / ".ai" / "telemetry"
+    telemetry_dir.mkdir(parents=True, exist_ok=True)
+    state_file = telemetry_dir / ".orchestrator_runs.json"
+    try:
+        state = json.loads(state_file.read_text()) if state_file.exists() else {}
+    except (json.JSONDecodeError, OSError):
+        state = {}
+    if state.get("task") == task_name:
+        state["runs"] = state.get("runs", 0) + 1
+    else:
+        state = {"task": task_name, "runs": 1}
+    state_file.write_text(json.dumps(state))
 
 
 def _render_adapter_file(template_path: Path, workflow_content: str) -> str:
@@ -240,6 +266,10 @@ def main() -> None:
     ai_dir.mkdir(exist_ok=True)
     out_path = ai_dir / "WORKFLOW.md"
     out_path.write_text(output)
+
+    docs_dir = project_root / ctx["docs_path"]
+    task_name = _read_task_name(docs_dir)
+    _track_orchestrator_run(project_root, task_name)
 
     print(f"✅  Written to {out_path}")
     print(f"    Project type : {ctx['project_type']}")

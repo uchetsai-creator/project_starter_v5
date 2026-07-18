@@ -16,8 +16,10 @@ Hybrid types use +: data-pipeline+web-app  (takes union of both type matrices)
 import argparse
 import json
 import os
+import pathlib
 import re
 import sys
+from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _registry import load_registry, build_matrix, build_file_locations, VALID_TYPES
@@ -287,6 +289,39 @@ def print_results(results, types):
     print()
 
 
+# ── Telemetry ─────────────────────────────────────────────────────────────────
+
+def _write_telemetry(project_type: str, results: list[dict]) -> None:
+    fail_count = sum(1 for r in results if r['status'] == 'missing_required')
+    warn_count = sum(1 for r in results if r['status'] == 'missing_optional')
+    failed_docs = [
+        os.path.basename(r['doc'])
+        for r in results if r['status'] == 'missing_required'
+    ]
+    entry = {
+        'ts': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
+        'project_type': project_type,
+        'validator': 'verify_docs.py',
+        'level': 'fail' if fail_count > 0 else 'pass',
+        'warn_count': warn_count,
+        'fail_count': fail_count,
+        'failed_docs': failed_docs,
+    }
+    telemetry_dir = pathlib.Path('.ai') / 'telemetry'
+    telemetry_dir.mkdir(parents=True, exist_ok=True)
+    telemetry_file = telemetry_dir / 'validation-result.json'
+    rows: list[dict] = []
+    if telemetry_file.exists():
+        try:
+            rows = json.loads(telemetry_file.read_text())
+            if not isinstance(rows, list):
+                rows = []
+        except (json.JSONDecodeError, OSError):
+            rows = []
+    rows.append(entry)
+    telemetry_file.write_text(json.dumps(rows, indent=2))
+
+
 # ── CLI ───────────────────────────────────────────────────────────────────────
 
 def main():
@@ -313,6 +348,10 @@ def main():
         '--content', action='store_true',
         help='Also check fill quality: placeholders, required sections, fill ratio',
     )
+    parser.add_argument(
+        '--telemetry', action='store_true',
+        help='Append run result to .ai/telemetry/validation-result.json',
+    )
     args = parser.parse_args()
 
     types = [t.strip() for t in args.project_type.split('+')]
@@ -335,6 +374,9 @@ def main():
         ))
     else:
         print_results(results, types)
+
+    if args.telemetry:
+        _write_telemetry(args.project_type, results)
 
     if args.strict and any(r['status'] == 'missing_required' for r in results):
         sys.exit(1)

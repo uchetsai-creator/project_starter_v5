@@ -512,6 +512,27 @@ Not committed (excluded by `.gitignore`). Recreate with `python3 orchestrator.py
 
 Do not edit manually — it is overwritten on each run of `orchestrator.py`.
 
+### .ai/telemetry/
+**Applies to: All project types**
+
+Purpose:
+Structured telemetry layer — captures validator run results and session boundaries for framework
+improvement. Contains two append-only JSON files:
+
+- **`validation-result.json`** — one entry per validator run (written by `verify_docs.py` and
+  `verify_content.py` when `--telemetry` is passed). Schema:
+  `{ ts, project_type, validator, level, warn_count, fail_count, failed_docs }`.
+  `level` is `"pass"` or `"fail"`. Use to identify which validators and documents fail most.
+
+- **`task-run.json`** — one entry per Claude Code session (written by `adapters/claude/stop-hook.sh`
+  on session end). Schema: `{ ts, task, adapter, orchestrator_runs, token_count }`.
+  `orchestrator_runs` is read from `.orchestrator_runs.json` (maintained by `orchestrator.py`).
+  `token_count` is `null` — placeholder until the adapter exposes API response metadata.
+
+Not committed (excluded by `.gitignore` via `.ai/`). Generated automatically; do not edit manually.
+
+Update when: telemetry schema changes or a new event type is added.
+
 ### .project-starter.yml
 **Applies to: All project types**
 
