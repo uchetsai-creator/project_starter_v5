@@ -8,9 +8,9 @@ synchronization are all in sync.
 Run after each Phase before merging.
 
 Usage:
-  python3 templates/script/verify_framework.py
-  python3 templates/script/verify_framework.py --strict
-  python3 templates/script/verify_framework.py --json
+  python3 templates/script/framework/verify_framework.py
+  python3 templates/script/framework/verify_framework.py --strict
+  python3 templates/script/framework/verify_framework.py --json
 """
 
 import argparse
@@ -22,8 +22,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _registry import VALID_TYPES as _REGISTRY_VALID_TYPES
 
-# Script lives at <root>/templates/script/ — framework root is 3 levels up.
-FRAMEWORK_ROOT = Path(__file__).resolve().parent.parent.parent
+# Script lives at <root>/templates/script/framework/ — framework root is 4 levels up.
+FRAMEWORK_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 
 AGENTS_MD       = FRAMEWORK_ROOT / "AGENTS.md"
 DOCUMENT_MATRIX = FRAMEWORK_ROOT / "templates/init/document-matrix.md"
@@ -390,8 +390,8 @@ def check_type_completeness() -> list[dict]:
 
 def check_script_type_sync() -> list[dict]:
     """Check 8: scan_codebase.py and verify_docs.py declare the same set of project types."""
-    scan_path  = TEMPLATES_DIR / "script" / "scan_codebase.py"
-    verify_path = TEMPLATES_DIR / "script" / "verify_docs.py"
+    scan_path  = TEMPLATES_DIR / "script" / "scanners" / "scan_codebase.py"
+    verify_path = TEMPLATES_DIR / "script" / "validators" / "verify_docs.py"
 
     for p in (scan_path, verify_path):
         if not p.exists():
@@ -430,7 +430,7 @@ def check_script_type_sync() -> list[dict]:
 
 def check_build_pdf_type_sync() -> list[dict]:
     """Check 9: build_pdf.py VALID_PROJECT_TYPES matches PURPOSES_FILES (all 9 types)."""
-    build_pdf_path = TEMPLATES_DIR / "script" / "build_pdf.py"
+    build_pdf_path = TEMPLATES_DIR / "script" / "generators" / "build_pdf.py"
     if not build_pdf_path.exists():
         return [_issue("build-pdf-type-sync", "error", "build_pdf.py not found")]
 
@@ -464,7 +464,7 @@ def check_content_coverage() -> list[dict]:
     """Check 10: document-registry.yaml exists with valid schema, and all document
     checker functions exist in verify_content.py."""
     registry_path = FRAMEWORK_ROOT / "document-registry.yaml"
-    script_path = TEMPLATES_DIR / "script" / "verify_content.py"
+    script_path = TEMPLATES_DIR / "script" / "validators" / "verify_content.py"
     issues = []
 
     # Validate registry exists and covers all 9 project types

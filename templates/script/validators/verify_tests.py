@@ -7,10 +7,10 @@ pass/fail recorded, Results by Module populated. For Data Pipeline / ML Pipeline
 also checks Contract Tests and Fault Injection sections are non-empty.
 
 Usage:
-  python3 docs/script/verify_tests.py --project-type TYPE
-  python3 docs/script/verify_tests.py --project-type TYPE --docs PATH
-  python3 docs/script/verify_tests.py --project-type TYPE --strict
-  python3 docs/script/verify_tests.py --project-type TYPE --json
+  python3 docs/script/validators/verify_tests.py --project-type TYPE
+  python3 docs/script/validators/verify_tests.py --project-type TYPE --docs PATH
+  python3 docs/script/validators/verify_tests.py --project-type TYPE --strict
+  python3 docs/script/validators/verify_tests.py --project-type TYPE --json
 
 Valid project types: web-app | cli-tool | library | data-pipeline | ml-pipeline |
                      microservices | llm-app | iac | mobile-app

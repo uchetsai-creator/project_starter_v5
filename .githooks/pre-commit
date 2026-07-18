@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# project_starter_v4 — verification pre-commit hook (Phase 20 + Phase 21 + Phase 23 + Phase 24 + Phase 33)
+# project_starter_v4 — verification pre-commit hook (Phase 20 + Phase 21 + Phase 23 + Phase 24 + Phase 33 + Phase 40)
 # Runs quality checks automatically on every git commit. Blocks on failure.
 #
 # Install (once per project clone):
@@ -17,9 +17,9 @@ STAGED=$(git diff --cached --name-only 2>/dev/null || true)
 # ── Phase 21 Check 1: Framework integrity ─────────────────────────────────────
 # Trigger: running inside the project_starter_v4 framework repo (templates/script/ present)
 # Catches: stale pointer, matrix gap, or token budget violation created mid-Phase
-if command -v python3 &>/dev/null && [ -f "templates/script/verify_framework.py" ]; then
+if command -v python3 &>/dev/null && [ -f "templates/script/framework/verify_framework.py" ]; then
     echo "  → verify_framework.py --strict ..."
-    python3 "templates/script/verify_framework.py" --strict 2>&1 || {
+    python3 "templates/script/framework/verify_framework.py" --strict 2>&1 || {
         echo "❌  pre-commit: framework integrity check failed — commit blocked."
         exit 1
     }
@@ -54,32 +54,32 @@ echo "pre-commit: project-type=$PROJECT_TYPE  docs=$DOCS_PATH"
 PASS=true
 
 # 1. Document completeness + content quality (Phase 17)
-if command -v python3 &>/dev/null && [ -f "docs/script/verify_docs.py" ]; then
+if command -v python3 &>/dev/null && [ -f "docs/script/validators/verify_docs.py" ]; then
     echo "  → verify_docs.py --content ..."
-    python3 "docs/script/verify_docs.py" \
+    python3 "docs/script/validators/verify_docs.py" \
         --project-type "$PROJECT_TYPE" --docs "$DOCS_PATH" --content --strict 2>&1 || PASS=false
 else
-    echo "  ⚠️  docs/script/verify_docs.py not found — skipping"
+    echo "  ⚠️  docs/script/validators/verify_docs.py not found — skipping"
 fi
 
 # 2. Log quality (Phase 23)
-if [ -f "docs/script/verify_logs.py" ]; then
+if [ -f "docs/script/validators/verify_logs.py" ]; then
     echo "  → verify_logs.py ..."
-    python3 "docs/script/verify_logs.py" \
+    python3 "docs/script/validators/verify_logs.py" \
         --project-type "$PROJECT_TYPE" --docs "$DOCS_PATH" --strict 2>&1 || PASS=false
 fi
 
 # 3. Test report quality (Phase 23)
-if [ -f "docs/script/verify_tests.py" ]; then
+if [ -f "docs/script/validators/verify_tests.py" ]; then
     echo "  → verify_tests.py ..."
-    python3 "docs/script/verify_tests.py" \
+    python3 "docs/script/validators/verify_tests.py" \
         --project-type "$PROJECT_TYPE" --docs "$DOCS_PATH" --strict 2>&1 || PASS=false
 fi
 
 # 4. Document content quality (Phase 24)
-if [ -f "docs/script/verify_content.py" ]; then
+if [ -f "docs/script/validators/verify_content.py" ]; then
     echo "  → verify_content.py ..."
-    python3 "docs/script/verify_content.py" \
+    python3 "docs/script/validators/verify_content.py" \
         --project-type "$PROJECT_TYPE" --docs "$DOCS_PATH" --strict 2>&1 || PASS=false
 fi
 

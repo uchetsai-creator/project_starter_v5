@@ -14,14 +14,14 @@ Outputs:
   --scaffold  Generate stub module-data-flow.md files for undocumented modules
 
 Usage:
-  python3 docs/script/scan_codebase.py <src_dir>
-  python3 docs/script/scan_codebase.py <src_dir> --project-type <type>
-  python3 docs/script/scan_codebase.py <src_dir> --depth 2
-  python3 docs/script/scan_codebase.py <src_dir> --format json
-  python3 docs/script/scan_codebase.py <src_dir> --scaffold
-  python3 docs/script/scan_codebase.py <src_dir> --tree
-  python3 docs/script/scan_codebase.py <src_dir> --coverage
-  python3 docs/script/scan_codebase.py <src_dir> --update docs/codebase-map.md
+  python3 docs/script/scanners/scan_codebase.py <src_dir>
+  python3 docs/script/scanners/scan_codebase.py <src_dir> --project-type <type>
+  python3 docs/script/scanners/scan_codebase.py <src_dir> --depth 2
+  python3 docs/script/scanners/scan_codebase.py <src_dir> --format json
+  python3 docs/script/scanners/scan_codebase.py <src_dir> --scaffold
+  python3 docs/script/scanners/scan_codebase.py <src_dir> --tree
+  python3 docs/script/scanners/scan_codebase.py <src_dir> --coverage
+  python3 docs/script/scanners/scan_codebase.py <src_dir> --update docs/codebase-map.md
 
 Project types (controls module boundary detection heuristic):
   web-app        Folders = Feature modules, Background Jobs, or Shared/Infrastructure (default)
@@ -35,13 +35,13 @@ Project types (controls module boundary detection heuristic):
   mobile-app     Folders = Screens or Shared/Infrastructure (navigation, components)
 
 Examples:
-  python3 docs/script/scan_codebase.py src
-  python3 docs/script/scan_codebase.py src --project-type data-pipeline
-  python3 docs/script/scan_codebase.py services --project-type microservices --depth 2
-  python3 docs/script/scan_codebase.py stages --project-type ml-pipeline --update docs/codebase-map.md
-  python3 docs/script/scan_codebase.py src --project-type cli-tool --coverage
-  python3 docs/script/scan_codebase.py src --project-type web-app --scaffold
-  python3 docs/script/scan_codebase.py src --format json
+  python3 docs/script/scanners/scan_codebase.py src
+  python3 docs/script/scanners/scan_codebase.py src --project-type data-pipeline
+  python3 docs/script/scanners/scan_codebase.py services --project-type microservices --depth 2
+  python3 docs/script/scanners/scan_codebase.py stages --project-type ml-pipeline --update docs/codebase-map.md
+  python3 docs/script/scanners/scan_codebase.py src --project-type cli-tool --coverage
+  python3 docs/script/scanners/scan_codebase.py src --project-type web-app --scaffold
+  python3 docs/script/scanners/scan_codebase.py src --format json
 """
 
 import sys

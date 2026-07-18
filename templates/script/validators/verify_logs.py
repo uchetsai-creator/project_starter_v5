@@ -7,10 +7,10 @@ log file (docs/modules/*/log-*.md) documents trace_id, structured fields, and
 no raw print statements. Per-type addenda: pipeline row count, LLM call log fields.
 
 Usage:
-  python3 docs/script/verify_logs.py --project-type TYPE
-  python3 docs/script/verify_logs.py --project-type TYPE --docs PATH
-  python3 docs/script/verify_logs.py --project-type TYPE --strict
-  python3 docs/script/verify_logs.py --project-type TYPE --json
+  python3 docs/script/validators/verify_logs.py --project-type TYPE
+  python3 docs/script/validators/verify_logs.py --project-type TYPE --docs PATH
+  python3 docs/script/validators/verify_logs.py --project-type TYPE --strict
+  python3 docs/script/validators/verify_logs.py --project-type TYPE --json
 
 Valid project types: web-app | cli-tool | library | data-pipeline | ml-pipeline |
                      microservices | llm-app | iac | mobile-app

@@ -3,11 +3,11 @@
 verify_docs.py — Document completeness audit for project_starter_v4 projects.
 
 Usage:
-  python3 docs/script/verify_docs.py --project-type TYPE
-  python3 docs/script/verify_docs.py --project-type TYPE --docs PATH
-  python3 docs/script/verify_docs.py --project-type TYPE --strict
-  python3 docs/script/verify_docs.py --project-type TYPE --json
-  python3 docs/script/verify_docs.py --project-type TYPE --content
+  python3 docs/script/validators/verify_docs.py --project-type TYPE
+  python3 docs/script/validators/verify_docs.py --project-type TYPE --docs PATH
+  python3 docs/script/validators/verify_docs.py --project-type TYPE --strict
+  python3 docs/script/validators/verify_docs.py --project-type TYPE --json
+  python3 docs/script/validators/verify_docs.py --project-type TYPE --content
 
 Valid project types: web-app | cli-tool | library | data-pipeline | ml-pipeline | microservices | llm-app | iac | mobile-app
 Hybrid types use +: data-pipeline+web-app  (takes union of both type matrices)

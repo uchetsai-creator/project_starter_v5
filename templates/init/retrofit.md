@@ -18,7 +18,7 @@ Do not scan the entire repository at once. Work module by module.
 ## Step 1b — Run the module inventory scan
 
 ```
-python3 docs/script/scan_codebase.py <src_dir> --project-type <type> --docs docs
+python3 docs/script/scanners/scan_codebase.py <src_dir> --project-type <type> --docs docs
 ```
 
 Review the output with the user:
@@ -68,7 +68,7 @@ Follow the confirmed inventory from Step 1b. For each module:
 
 After all modules are documented, re-run the inventory scan to confirm full coverage:
 ```
-python3 docs/script/scan_codebase.py <src_dir> --docs docs
+python3 docs/script/scanners/scan_codebase.py <src_dir> --docs docs
 ```
 If any ❌ remain, document those modules before proceeding to Step 4.
 
@@ -93,5 +93,5 @@ Before running `build_pdf.py`, verify flow tables are not empty:
 Do not generate the PDF with empty flow index tables.
 
 ```
-python3 docs/script/build_pdf.py docs --lang en -o docs/project-documentation-en.pdf
+python3 docs/script/generators/build_pdf.py docs --lang en -o docs/project-documentation-en.pdf
 ```

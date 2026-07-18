@@ -21,7 +21,7 @@ PDF section order:
   7. Project Status
 
 Usage:
-  python3 docs/script/build_pdf.py [docs_dir] [-o output.pdf] [--lang en|zh] [--project-type TYPE] [--clean]
+  python3 docs/script/generators/build_pdf.py [docs_dir] [-o output.pdf] [--lang en|zh] [--project-type TYPE] [--clean]
 
   --lang en              Section labels and UI text in English (default)
   --lang zh              Section labels and UI text in Traditional Chinese
@@ -118,7 +118,7 @@ Click "Open interactive version" to open the live draggable/zoomable version in 
 
 **To regenerate this PDF:**
 ```
-python3 docs/script/build_pdf.py docs --lang en -o docs/project-documentation-en.pdf
+python3 docs/script/generators/build_pdf.py docs --lang en -o docs/project-documentation-en.pdf
 ```
 """,
         "sections": {
@@ -160,7 +160,7 @@ python3 docs/script/build_pdf.py docs --lang en -o docs/project-documentation-en
 
 **重新生成 PDF：**
 ```
-python3 docs/script/build_pdf.py docs-zh --lang zh -o docs/project-documentation-zh.pdf
+python3 docs/script/generators/build_pdf.py docs-zh --lang zh -o docs/project-documentation-zh.pdf
 ```
 """,
         "sections": {

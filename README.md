@@ -125,21 +125,25 @@ project_starter/                     ← this repo (template only)
     │   └── module-flow-v2.md        ← index + rules for cross-module sequence files (per module)
     │
     └── script/
-        ├── plantuml.jar             ← download separately (see Setting up PlantUML)
-        ├── plantuml.cfg             ← PlantUML renderer configuration
-        ├── build_pdf.py             ← renders all ```plantuml blocks via PlantUML + merges docs/ into PDF
-        ├── pdf_allowlist.py         ← single source of truth for which files appear in the PDF
-        ├── schema_to_html.py        ← Prisma/SQL schema → ERD (interactive HTML + static SVG)
-        ├── scan_codebase.py         ← scans src/ and reports which modules are undocumented
-        ├── verify_docs.py           ← document completeness + fill quality audit
-        ├── verify_logs.py           ← log format + trace_id documentation audit
-        ├── verify_tests.py          ← test-report.md fill quality audit
-        ├── verify_module_docs.py    ← module flow coverage + quality audit
-        ├── verify_content.py        ← full document content quality gate (all Required docs × project type)
-        ├── verify_framework.py      ← framework internal consistency audit (run in framework repo)
-        ├── _verify_common.py        ← shared placeholder patterns imported by verify_docs, verify_logs, verify_content, verify_module_docs
-        ├── diagnose_spec.py         ← classifies spec fill gaps; triggers framework fix PRs
-        └── propose_framework_fix.py ← opens a PR on project_starter_v4 to add a missing template section
+        ├── validators/              ← shipped to user projects (docs/script/validators/)
+        │   ├── verify_docs.py       ← document completeness + fill quality audit
+        │   ├── verify_logs.py       ← log format + trace_id documentation audit
+        │   ├── verify_tests.py      ← test-report.md fill quality audit
+        │   ├── verify_module_docs.py ← module flow coverage + quality audit
+        │   ├── verify_content.py    ← full document content quality gate (all Required docs × project type)
+        │   ├── _verify_common.py    ← shared placeholder patterns imported by verify scripts
+        │   └── _registry.py         ← document registry loader
+        ├── generators/              ← shipped to user projects (docs/script/generators/)
+        │   ├── build_pdf.py         ← renders all ```plantuml blocks via PlantUML + merges docs/ into PDF
+        │   ├── pdf_allowlist.py     ← single source of truth for which files appear in the PDF
+        │   ├── plantuml.cfg         ← PlantUML renderer configuration
+        │   ├── plantuml.jar         ← download separately (see Setting up PlantUML)
+        │   ├── diagnose_spec.py     ← classifies spec fill gaps; triggers framework fix PRs
+        │   └── propose_framework_fix.py ← opens a PR on project_starter_v4 to add a missing template section
+        ├── scanners/                ← shipped to user projects (docs/script/scanners/)
+        │   └── scan_codebase.py     ← scans src/ and reports which modules are undocumented
+        └── framework/               ← framework-internal only — NOT copied to user projects
+            └── verify_framework.py  ← framework internal consistency audit (run in framework repo)
 ```
 
 When a new project starts, `templates/` is copied in and becomes `docs/` — see
@@ -176,7 +180,7 @@ new_project/
     ├── task-log.md
     ├── sprint-change-log.md
     ├── codebase-map.md
-    ├── specs/ architecture/ modules/ script/    ← vary by type (see below)
+    ├── specs/ architecture/ modules/ script/{validators,generators,scanners}/    ← vary by type (see below)
 ```
 
 The `docs/specs/`, `docs/architecture/`, and `docs/modules/` contents differ per project type:
@@ -420,7 +424,7 @@ appends a type suffix to output filenames to avoid collisions (e.g. `data-model-
 
 ```bash
 # All PlantUML diagrams are rendered automatically when you run:
-python3 docs/script/build_pdf.py docs --lang en -o docs/project-documentation-en.pdf
+python3 docs/script/generators/build_pdf.py docs --lang en -o docs/project-documentation-en.pdf
 
 # ERD only (schema_to_html.py is still used for the database diagram):
 python3 docs/script/schema_to_html.py path/to/schema.prisma -o docs/specs/schema.html
@@ -435,25 +439,25 @@ what exists and what is already documented:
 
 ```bash
 # Show tree view + coverage report (auto-detects module type from folder names)
-python3 docs/script/scan_codebase.py src
+python3 docs/script/scanners/scan_codebase.py src
 
 # Explicit project type — uses correct vocabulary (Feature / Pipeline Stage / Command / Namespace / Service)
-python3 docs/script/scan_codebase.py src --project-type data-pipeline
-python3 docs/script/scan_codebase.py src --project-type web-app
-python3 docs/script/scan_codebase.py src --project-type cli-tool
+python3 docs/script/scanners/scan_codebase.py src --project-type data-pipeline
+python3 docs/script/scanners/scan_codebase.py src --project-type web-app
+python3 docs/script/scanners/scan_codebase.py src --project-type cli-tool
 # Valid values: web-app | cli-tool | library | data-pipeline | ml-pipeline | microservices | llm-app | iac | mobile-app
 
 # Scan N levels deep — for monorepos or Microservices with per-service src/ folders
-python3 docs/script/scan_codebase.py services --project-type microservices --depth 2
+python3 docs/script/scanners/scan_codebase.py services --project-type microservices --depth 2
 
 # Machine-readable JSON output (for agent consumption)
-python3 docs/script/scan_codebase.py src --project-type web-app --format json
+python3 docs/script/scanners/scan_codebase.py src --project-type web-app --format json
 
 # Auto-generate stub module-data-flow.md files for undocumented modules (skips existing files)
-python3 docs/script/scan_codebase.py src --project-type web-app --scaffold
+python3 docs/script/scanners/scan_codebase.py src --project-type web-app --scaffold
 
 # Update the Project Structure and Coverage Summary sections in codebase-map.md automatically
-python3 docs/script/scan_codebase.py src --project-type web-app --update docs/codebase-map.md
+python3 docs/script/scanners/scan_codebase.py src --project-type web-app --update docs/codebase-map.md
 ```
 
 The scan detects folder names to classify folders by module type. Pass `--project-type` to
@@ -475,19 +479,19 @@ declared type exist in `docs/`:
 
 ```bash
 # Check completeness for a single project type
-python3 docs/script/verify_docs.py --project-type web-app
+python3 docs/script/validators/verify_docs.py --project-type web-app
 
 # Hybrid project — takes the union of both type matrices
-python3 docs/script/verify_docs.py --project-type data-pipeline+web-app
+python3 docs/script/validators/verify_docs.py --project-type data-pipeline+web-app
 
 # Exit with code 1 if any Required document is missing (for CI or pre-merge checks)
-python3 docs/script/verify_docs.py --project-type web-app --strict
+python3 docs/script/validators/verify_docs.py --project-type web-app --strict
 
 # Machine-readable JSON output (for agent consumption)
-python3 docs/script/verify_docs.py --project-type web-app --json
+python3 docs/script/validators/verify_docs.py --project-type web-app --json
 
 # Custom docs/ path
-python3 docs/script/verify_docs.py --project-type web-app --docs path/to/docs
+python3 docs/script/validators/verify_docs.py --project-type web-app --docs path/to/docs
 ```
 
 **Output statuses:**
@@ -511,9 +515,9 @@ Valid `--project-type` values: `web-app`, `cli-tool`, `library`, `data-pipeline`
 **Adding a new document:** edit `document-registry.yaml` only — `verify_docs.py` and `verify_content.py` derive their document lists from it automatically. Also update `templates/init/document-matrix.md` (human-readable copy) and the relevant `guidance/document-purposes-*.md` file.
 
 ```bash
-python3 templates/script/verify_framework.py
-python3 templates/script/verify_framework.py --strict   # exits 1 if any check warns or fails
-python3 templates/script/verify_framework.py --json     # machine-readable output
+python3 templates/script/framework/verify_framework.py
+python3 templates/script/framework/verify_framework.py --strict   # exits 1 if any check warns or fails
+python3 templates/script/framework/verify_framework.py --json     # machine-readable output
 ```
 
 **Checks performed:**
@@ -552,7 +556,7 @@ Any AI tool (Claude / Codex / Cursor / manual)
         ↓
  .githooks/pre-commit                  ← PRIMARY: tool-agnostic, always fires
         ↓
- [running in framework repo (templates/script/verify_framework.py present)]
+ [running in framework repo (templates/script/framework/verify_framework.py present)]
  verify_framework.py --strict          ← framework integrity (block)
         ↓
  verify_docs.py --content              ← doc completeness + fill quality (block)
@@ -640,21 +644,21 @@ diagnose_spec.py --round 2
 ```bash
 # Round 1 — diagnose and open PRs
 # Preferred — verify_content.py output (documents[].issues):
-python3 docs/script/verify_content.py --project-type TYPE --json \
-  | python3 templates/script/diagnose_spec.py --project-type TYPE
+python3 docs/script/validators/verify_content.py --project-type TYPE --json \
+  | python3 templates/script/generators/diagnose_spec.py --project-type TYPE
 
 # Alternative — verify_docs.py output (results[].content.unfilled_sections):
-python3 docs/script/verify_docs.py --project-type TYPE --content --json \
-  | python3 templates/script/diagnose_spec.py --project-type TYPE
+python3 docs/script/validators/verify_docs.py --project-type TYPE --content --json \
+  | python3 templates/script/generators/diagnose_spec.py --project-type TYPE
 
 # After reviewing and merging/skipping round-1 PRs:
 
 # Round 2 — re-diagnose; remaining gaps go to logs/framework-gaps.md
-python3 docs/script/verify_content.py --project-type TYPE --json \
-  | python3 templates/script/diagnose_spec.py --project-type TYPE --round 2
+python3 docs/script/validators/verify_content.py --project-type TYPE --json \
+  | python3 templates/script/generators/diagnose_spec.py --project-type TYPE --round 2
 
 # Dry-run mode (no PRs, no files written):
-... | python3 templates/script/diagnose_spec.py --project-type TYPE --dry-run
+... | python3 templates/script/generators/diagnose_spec.py --project-type TYPE --dry-run
 ```
 
 **Fork users:** set the `PROJECT_STARTER_FRAMEWORK_REPO` environment variable to override
@@ -688,7 +692,7 @@ All UML diagrams use [PlantUML](https://plantuml.com) syntax (` ```plantuml ` bl
 
 **Requirements:**
 1. Java (JDK 11+): `java -version`
-2. PlantUML jar: download from https://plantuml.com/download and place at `docs/script/plantuml.jar`
+2. PlantUML jar: download from https://plantuml.com/download and place at `docs/script/generators/plantuml.jar`
    Or set the environment variable: `export PLANTUML_JAR=/path/to/plantuml.jar`
 
 **Diagram syntax:** write your diagram inside a ` ```plantuml ` block in any `.md` file:
@@ -712,21 +716,21 @@ with a clickable link to the original interactive HTML.
 pip install markdown weasyprint cairosvg --break-system-packages
 
 # System spec PDF (stakeholder handoff)
-python3 docs/script/build_pdf.py docs --lang en --project-type data-pipeline --content spec
+python3 docs/script/generators/build_pdf.py docs --lang en --project-type data-pipeline --content spec
 
 # Full PDF — all six chapters including Plan and Test (for internal use)
-python3 docs/script/build_pdf.py docs --lang en --project-type data-pipeline -o docs/project-documentation-en.pdf
+python3 docs/script/generators/build_pdf.py docs --lang en --project-type data-pipeline -o docs/project-documentation-en.pdf
 
 # Hybrid project — comma-separate types
-python3 docs/script/build_pdf.py docs --lang en --project-type data-pipeline,web-app -o docs/project-documentation-en.pdf
+python3 docs/script/generators/build_pdf.py docs --lang en --project-type data-pipeline,web-app -o docs/project-documentation-en.pdf
 
 # No type filter — include all files that exist (backward-compatible)
-python3 docs/script/build_pdf.py docs --lang en -o docs/project-documentation-en.pdf
+python3 docs/script/generators/build_pdf.py docs --lang en -o docs/project-documentation-en.pdf
 ```
 
 `--content spec` omits Plan (project-plan, changelog) and Test (test-plan, test-report) chapters — use this when handing off the spec to stakeholders or clients. Default (`full`) includes all six chapters.
 
-To add a new document to the PDF, add it to **`docs/script/pdf_allowlist.py`** only —
+To add a new document to the PDF, add it to **`docs/script/generators/pdf_allowlist.py`** only —
 `build_pdf.py` imports from it automatically. Note that
 `business/*-process.md`, `business/*-object.md`, `modules/*/*-module-data-flow.md`,
 and `specs/prompts/*-prompt.md` are auto-scanned and do not need to be added manually.

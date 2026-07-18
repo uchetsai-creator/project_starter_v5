@@ -1330,7 +1330,7 @@ AGENTS.md currently contains the full document discovery logic: startup sequence
 
 ---
 
-## Phase 40 — Script Responsibility Reorganization
+## Phase 40 — Script Responsibility Reorganization ✅
 
 `templates/script/` currently holds a flat list of scripts with mixed responsibilities: validation, generation, scanning, and framework-internal auditing. As the toolset grows (orchestrator, adapters), this flat layout makes ownership unclear and raises the risk of shipping framework-internal tools to user projects by mistake.
 

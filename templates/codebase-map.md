@@ -91,7 +91,7 @@ Feature --> API : calls
     —   shared utility / infrastructure (does not need a flow file)
 
   To auto-generate and update this section, run:
-    python3 docs/script/scan_codebase.py <src_dir> --update docs/codebase-map.md
+    python3 docs/script/scanners/scan_codebase.py <src_dir> --update docs/codebase-map.md
 
   Re-run after every module is completed to keep coverage status current.
 -->

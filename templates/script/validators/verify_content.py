@@ -10,10 +10,10 @@ Documents already covered by verify_logs.py (logging-spec.md) and verify_tests.p
 Module flow files (docs/modules/) are delegated to verify_module_docs.py.
 
 Usage:
-  python3 docs/script/verify_content.py --project-type TYPE
-  python3 docs/script/verify_content.py --project-type TYPE --docs PATH
-  python3 docs/script/verify_content.py --project-type TYPE --strict
-  python3 docs/script/verify_content.py --project-type TYPE --json
+  python3 docs/script/validators/verify_content.py --project-type TYPE
+  python3 docs/script/validators/verify_content.py --project-type TYPE --docs PATH
+  python3 docs/script/validators/verify_content.py --project-type TYPE --strict
+  python3 docs/script/validators/verify_content.py --project-type TYPE --json
 
 Valid project types: web-app | cli-tool | library | data-pipeline | ml-pipeline |
                      microservices | llm-app | iac | mobile-app

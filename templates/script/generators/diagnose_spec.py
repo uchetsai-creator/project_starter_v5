@@ -24,23 +24,23 @@ opening more PRs, enforcing the 2-round iteration limit.
 
 Usage:
   # Pipe verify_content.py output directly (preferred):
-  python3 docs/script/verify_content.py --project-type web-app --json \\
-    | python3 templates/script/diagnose_spec.py --project-type web-app
+  python3 docs/script/validators/verify_content.py --project-type web-app --json \\
+    | python3 templates/script/generators/diagnose_spec.py --project-type web-app
 
   # Pipe verify_docs.py output directly:
-  python3 docs/script/verify_docs.py --project-type web-app --content --json \\
-    | python3 templates/script/diagnose_spec.py --project-type web-app
+  python3 docs/script/validators/verify_docs.py --project-type web-app --content --json \\
+    | python3 templates/script/generators/diagnose_spec.py --project-type web-app
 
   # Or from a saved file:
-  python3 templates/script/diagnose_spec.py \\
+  python3 templates/script/generators/diagnose_spec.py \\
       --project-type web-app --input verify-output.json
 
   # Round 2 (after merging round-1 PRs):
-  python3 docs/script/verify_docs.py --project-type web-app --content --json \\
-    | python3 templates/script/diagnose_spec.py --project-type web-app --round 2
+  python3 docs/script/validators/verify_docs.py --project-type web-app --content --json \\
+    | python3 templates/script/generators/diagnose_spec.py --project-type web-app --round 2
 
   # Dry-run (no PRs opened, no files written):
-  ... | python3 templates/script/diagnose_spec.py --project-type web-app --dry-run
+  ... | python3 templates/script/generators/diagnose_spec.py --project-type web-app --dry-run
 
 Fork users: set the PROJECT_STARTER_FRAMEWORK_REPO environment variable to override
 the default repo target before running propose_framework_fix.py:

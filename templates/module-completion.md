@@ -26,8 +26,8 @@ Creating these files mid-module causes repeated read/write cycles during review.
        If neither condition is met, skip the PDF rebuild — it will happen at sprint end.
 
        When rebuilding:
-       `python3 docs/script/build_pdf.py docs --lang en -o docs/project-documentation-en.pdf`
+       `python3 docs/script/generators/build_pdf.py docs --lang en -o docs/project-documentation-en.pdf`
        Chinese PDF is manual only — run when requested:
-       `python3 docs/script/build_pdf.py docs-zh --lang zh -o docs/project-documentation-zh.pdf`
-       Note: to add a new doc to the PDF, add it to docs/script/pdf_allowlist.py only —
+       `python3 docs/script/generators/build_pdf.py docs-zh --lang zh -o docs/project-documentation-zh.pdf`
+       Note: to add a new doc to the PDF, add it to docs/script/generators/pdf_allowlist.py only —
        do not edit build_pdf.py for this purpose.

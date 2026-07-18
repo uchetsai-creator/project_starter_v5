@@ -9,10 +9,10 @@ When --src is provided, cross-references against scan_codebase.py to detect undo
 modules. Without --src, audits only existing flow files in docs/modules/.
 
 Usage:
-  python3 docs/script/verify_module_docs.py --project-type TYPE
-  python3 docs/script/verify_module_docs.py --project-type TYPE --src PATH --docs PATH
-  python3 docs/script/verify_module_docs.py --project-type TYPE --strict
-  python3 docs/script/verify_module_docs.py --project-type TYPE --json
+  python3 docs/script/validators/verify_module_docs.py --project-type TYPE
+  python3 docs/script/validators/verify_module_docs.py --project-type TYPE --src PATH --docs PATH
+  python3 docs/script/validators/verify_module_docs.py --project-type TYPE --strict
+  python3 docs/script/validators/verify_module_docs.py --project-type TYPE --json
 
 Valid project types: web-app | cli-tool | library | data-pipeline | ml-pipeline |
                      microservices | llm-app | iac | mobile-app

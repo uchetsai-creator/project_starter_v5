@@ -15,7 +15,7 @@
   Files matching *-object.md are automatically included in the PDF.
   State diagrams are rendered automatically by build_pdf.py — no separate step needed.
   To regenerate the PDF after writing a new object file, run:
-  python3 docs/script/build_pdf.py docs --lang en -o docs/project-documentation-en.pdf
+  python3 docs/script/generators/build_pdf.py docs --lang en -o docs/project-documentation-en.pdf
 -->
 
 ---

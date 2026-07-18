@@ -332,7 +332,7 @@ is injected here so readers get a visual of the frontend structure before diving
 
 Update when:
 * Sprint Documentation Sync runs — add files touched during the sprint, refresh tree view
-* Re-run `python3 docs/script/scan_codebase.py <src_dir> --project-type <type> --update docs/codebase-map.md`
+* Re-run `python3 docs/script/scanners/scan_codebase.py <src_dir> --project-type <type> --update docs/codebase-map.md`
   to refresh the tree view and coverage summary
 * Frontend page/screen structure changes — update the component block in this file
 
@@ -407,7 +407,7 @@ not by agent memory. An AI tool or developer can silently violate them without t
 
 Install: `cp .githooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit`
 Requires `.project-starter.yml` at the project root with `project_type` set.
-Update when: a new verifier is added — add an `if [ -f "docs/script/[script].py" ]` block.
+Update when: a new verifier is added — add an `if [ -f "docs/script/validators/[script].py" ]` block.
 **Note:** The context builder (`build-context.py`) runs as pre-task setup — it is not part of this hook chain and does not run on commit.
 
 ### build-context.py
@@ -478,11 +478,11 @@ Run after retrofitting, after Sprint Documentation Sync, or any time you want to
 the project's docs/ folder matches what the declared type requires.
 
 ```bash
-python3 docs/script/verify_docs.py --project-type web-app
-python3 docs/script/verify_docs.py --project-type data-pipeline+web-app
-python3 docs/script/verify_docs.py --project-type web-app --strict   # exits 1 if Required missing
-python3 docs/script/verify_docs.py --project-type web-app --json     # machine-readable output
-python3 docs/script/verify_docs.py --project-type web-app --content  # also check fill quality
+python3 docs/script/validators/verify_docs.py --project-type web-app
+python3 docs/script/validators/verify_docs.py --project-type data-pipeline+web-app
+python3 docs/script/validators/verify_docs.py --project-type web-app --strict   # exits 1 if Required missing
+python3 docs/script/validators/verify_docs.py --project-type web-app --json     # machine-readable output
+python3 docs/script/validators/verify_docs.py --project-type web-app --content  # also check fill quality
 ```
 
 Output statuses: ✅ Present · ❌ Missing Required · ⚠️ Missing Optional · — N/A · 🔍 Orphan
@@ -508,12 +508,12 @@ and no raw print/console.log statements. Per-type addenda: pipeline row count fi
 LLM call log fields (llm-app).
 
 Run at sprint end as part of the quality gate (step 4 of Sprint Documentation Sync).
-Also runs automatically on `git commit` if `docs/script/verify_logs.py` is present.
+Also runs automatically on `git commit` if `docs/script/validators/verify_logs.py` is present.
 
 ```bash
-python3 docs/script/verify_logs.py --project-type web-app
-python3 docs/script/verify_logs.py --project-type data-pipeline --strict
-python3 docs/script/verify_logs.py --project-type web-app --json
+python3 docs/script/validators/verify_logs.py --project-type web-app
+python3 docs/script/validators/verify_logs.py --project-type data-pipeline --strict
+python3 docs/script/validators/verify_logs.py --project-type web-app --json
 ```
 
 Output statuses: ✅ pass · ⚠️ warn · ❌ fail. Per-file: trace_id, structured format, per-type fields.
@@ -531,12 +531,12 @@ For Data Pipeline and ML Pipeline: also checks that the Contract Tests (quality 
 and Fault Injection Tests section are non-empty.
 
 Run at sprint end as part of the quality gate (step 4 of Sprint Documentation Sync).
-Also runs automatically on `git commit` if `docs/script/verify_tests.py` is present.
+Also runs automatically on `git commit` if `docs/script/validators/verify_tests.py` is present.
 
 ```bash
-python3 docs/script/verify_tests.py --project-type web-app
-python3 docs/script/verify_tests.py --project-type data-pipeline --strict
-python3 docs/script/verify_tests.py --project-type web-app --json
+python3 docs/script/validators/verify_tests.py --project-type web-app
+python3 docs/script/validators/verify_tests.py --project-type data-pipeline --strict
+python3 docs/script/validators/verify_tests.py --project-type web-app --json
 ```
 
 Output: fill score (N / M checks passed), missing sections, Verdict PASS / WARN / FAIL.
@@ -606,13 +606,13 @@ Mobile App:
 - `mobile-contract.md` — ≥1 screen defined with non-placeholder title; Navigation structure described
 
 Run at sprint end as part of the quality gate (step 4 of Sprint Documentation Sync).
-Also runs automatically on `git commit` if `docs/script/verify_content.py` is present.
+Also runs automatically on `git commit` if `docs/script/validators/verify_content.py` is present.
 
 ```bash
-python3 docs/script/verify_content.py --project-type web-app
-python3 docs/script/verify_content.py --project-type data-pipeline+web-app --strict
-python3 docs/script/verify_content.py --project-type web-app --json
-python3 docs/script/verify_content.py --project-type web-app --docs path/to/docs
+python3 docs/script/validators/verify_content.py --project-type web-app
+python3 docs/script/validators/verify_content.py --project-type data-pipeline+web-app --strict
+python3 docs/script/validators/verify_content.py --project-type web-app --json
+python3 docs/script/validators/verify_content.py --project-type web-app --docs path/to/docs
 ```
 
 Output: per-document table (Required / Quality columns) followed by module flow results;
@@ -710,10 +710,10 @@ For source-code coverage checks, run directly with `--src`. See `templates/sprin
 
 ```bash
 # Coverage + quality (cross-reference against source code):
-python3 docs/script/verify_module_docs.py --project-type TYPE --src src --docs docs
+python3 docs/script/validators/verify_module_docs.py --project-type TYPE --src src --docs docs
 # Quality only (audits existing docs/modules/ files):
-python3 docs/script/verify_module_docs.py --project-type TYPE --strict
-python3 docs/script/verify_module_docs.py --project-type TYPE --json
+python3 docs/script/validators/verify_module_docs.py --project-type TYPE --strict
+python3 docs/script/validators/verify_module_docs.py --project-type TYPE --json
 ```
 
 Output: per-module table with flow file status and quality verdict; Coverage and Quality summary lines.
@@ -739,9 +739,9 @@ Ten checks performed:
 10. **Content coverage** — `verify_content.py` TYPE_DOCS covers all 9 project types and all document checker functions exist
 
 ```bash
-python3 templates/script/verify_framework.py
-python3 templates/script/verify_framework.py --strict   # exits 1 if any check fails or warns
-python3 templates/script/verify_framework.py --json     # machine-readable output
+python3 templates/script/framework/verify_framework.py
+python3 templates/script/framework/verify_framework.py --strict   # exits 1 if any check fails or warns
+python3 templates/script/framework/verify_framework.py --json     # machine-readable output
 ```
 
 Output statuses: ✅ Pass · ❌ Fail · ⚠️ Warning

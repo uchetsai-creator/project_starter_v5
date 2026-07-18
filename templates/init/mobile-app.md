@@ -75,13 +75,13 @@ Create `docs/specs/test-report.md` from `templates/specs/test-report.md` (fill i
 **Step 10 — Run the module inventory scan**
 
 ```bash
-python3 docs/script/scan_codebase.py src --project-type mobile-app
+python3 docs/script/scanners/scan_codebase.py src --project-type mobile-app
 ```
 
 For React Native / Flutter feature-based layouts, scan at depth 2:
 
 ```bash
-python3 docs/script/scan_codebase.py src/features --project-type mobile-app --depth 2
+python3 docs/script/scanners/scan_codebase.py src/features --project-type mobile-app --depth 2
 ```
 
 Creates `docs/codebase-map.md` entries for each screen module.
@@ -89,7 +89,7 @@ Creates `docs/codebase-map.md` entries for each screen module.
 **Step 11 — Verify documentation completeness**
 
 ```bash
-python3 docs/script/verify_docs.py --project-type mobile-app
+python3 docs/script/validators/verify_docs.py --project-type mobile-app
 ```
 
 Fix any ❌ Missing Required items before beginning sprint work.

@@ -31,7 +31,7 @@ Do NOT update changelog.md, project-plan.md, codebase-map.md, or any spec/archit
 | Config / environment | Start affected service, confirm healthy |
 | Network / infrastructure config | Verify connectivity between affected services (e.g. `docker exec serviceA ping serviceB`) |
 | Script / utility | Run the script, confirm expected output |
-| Documentation only | `python3 docs/script/build_pdf.py docs --lang en -o /tmp/test.pdf` |
+| Documentation only | `python3 docs/script/generators/build_pdf.py docs --lang en -o /tmp/test.pdf` |
 | Diagram (plantuml block) | Rebuild PDF, confirm diagram renders correctly |
 
 Verification must confirm the feature works — not just that no errors occurred.

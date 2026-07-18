@@ -95,10 +95,10 @@
 - **Doc Checklist + current-state.md** (1 edit): apply Doc Checklist items above; set Status → `Complete — Pending Sprint Doc Sync`; mark steps `[x]`; promote Next Task → Current Task; update Required Context + Doc Checklist for new task; set Status → `In Progress`
 - **Verify**: run the command in the Verify step and confirm expected output — "no errors" is not sufficient
 *(Replace `TYPE` in each command below with the value from `.project-starter.yml → project_type`.)*
-- **Doc verification**: run pre-commit hook (`git commit`) or manually: `python3 docs/script/verify_docs.py --project-type TYPE --content` — Required: __ / __ present
-- **Log verification**: `python3 docs/script/verify_logs.py --project-type TYPE --strict` — Verdict: ___
-- **Test report verification**: `python3 docs/script/verify_tests.py --project-type TYPE --strict` — Verdict: ___
-- **Content quality verification**: `python3 docs/script/verify_content.py --project-type TYPE --strict` — Verdict: ___
+- **Doc verification**: run pre-commit hook (`git commit`) or manually: `python3 docs/script/validators/verify_docs.py --project-type TYPE --content` — Required: __ / __ present
+- **Log verification**: `python3 docs/script/validators/verify_logs.py --project-type TYPE --strict` — Verdict: ___
+- **Test report verification**: `python3 docs/script/validators/verify_tests.py --project-type TYPE --strict` — Verdict: ___
+- **Content quality verification**: `python3 docs/script/validators/verify_content.py --project-type TYPE --strict` — Verdict: ___
 - **sprint-change-log.md**: append one entry — implementation summary, impact flags (Architecture/DB/API/Deployment/Module flow), status `Pending documentation synchronization`
 - **task-log.md**: write one row — all columns must be ✅ before writing
 
