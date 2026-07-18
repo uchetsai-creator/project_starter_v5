@@ -1535,6 +1535,8 @@ The framework manages documents, workflow, and validators but has no visibility 
 
 ## Phase 45 — Spec ↔ Code Validator: Core + Framework Adapter Interface
 
+> **Architecture note (Phase 52.5):** The framework-specific adapter design introduced here (`AirflowAdapter`, `ClickAdapter`) was superseded by the capability-based adapter + detector plugin architecture defined in Phase 52.5. The `NormalizedForm` contracts and the core `verify_spec_code.py` comparison engine remain unchanged. Phase 52.5 describes what the implementation actually looks like.
+
 Existing validators are structural — they check if documents are filled, not whether code matches what the spec declares. The biggest SDD risk is spec–code drift: a field renamed in code, a stage output changed, a flag removed — none of which current validators catch.
 
 **Goal:** Introduce `verify_spec_code.py` and the `FrameworkAdapter` interface. The core validator never knows about specific frameworks — it only compares `NormalizedForm` objects produced by adapters. Build two PoC adapters (Airflow, Click) to prove the interface works end-to-end, then wire into the existing pipeline.
@@ -1597,6 +1599,8 @@ verify_spec_code.py
 
 ## Phase 46 — Framework Adapter Expansion: Web App + Data Pipeline + Library/SDK
 
+> **Architecture note (Phase 52.5):** The individual framework adapters listed here (`FastAPIAdapter`, `FlaskAdapter`, `ExpressAdapter`, `DagsterAdapter`, `PrefectAdapter`, `PythonLibraryAdapter`) were superseded by the capability-based design in Phase 52.5. Each is now a **detector** inside the appropriate capability directory (`api/detectors/`, `pipeline/detectors/`, `library/detectors/`), not a top-level adapter. See Phase 52.5 for the current structure.
+
 Extend the adapter registry (Phase 45) to cover Web App, Microservices, Data Pipeline (additional frameworks), and Library/SDK. Each new adapter implements the same `FrameworkAdapter` interface — no changes to `verify_spec_code.py` core.
 
 ### New adapters
@@ -1629,6 +1633,8 @@ Extend the adapter registry (Phase 45) to cover Web App, Microservices, Data Pip
 ---
 
 ## Phase 47 — Framework Adapter Expansion: LLM App + IaC + Mobile + Custom Adapter SDK
+
+> **Architecture note (Phase 52.5):** The individual framework adapters listed here (`ToolSchemaAdapter`, `TerraformAdapter`, `PulumiAdapter`, `ReactNativeAdapter`, `FlutterAdapter`) were superseded by the capability-based design in Phase 52.5. Each is now a **detector** inside the appropriate capability directory (`library/detectors/`, `iac/detectors/`, `mobile/detectors/`). The Custom Adapter SDK (`_example_adapter.py`, `docs/contributing-adapters.md`) is updated in Phase 52.5 to reflect the two-layer pattern.
 
 Extend the adapter registry to the remaining three project types. Simultaneously ship the Custom Adapter SDK so the community can contribute adapters for frameworks not covered here — without modifying the core validator.
 
@@ -1809,7 +1815,7 @@ Three internal design documents diverge from the implemented system:
 
 ---
 
-## Phase 45.5 — Adapter Plugin Refactor: Capability-Based Architecture
+## Phase 52.5 — Adapter Plugin Refactor: Capability-Based Architecture
 
 **Discovered in post-Phase-47 architectural review.**
 
@@ -1928,12 +1934,12 @@ DETECTOR_REGISTRY = {
 
 ## Phase 53 — Deduplicate Shared Utilities
 
-**Discovered in post-Phase-48 audit.**
+**Discovered in post-Phase-48 audit. Scope updated after Phase 52.5.**
 
 Three duplication problems:
 
 1. `templates/script/validators/_registry.py` and `templates/script/framework/_registry.py` are byte-for-byte identical. Both must be updated in sync; there is no mechanism to detect drift.
-2. `_annotation_str()` — an AST-annotation-to-string helper — is independently defined in `airflow.py`, `fastapi.py`, and `_example_adapter.py` with identical logic. Any bug in this function must be fixed in all three (and in any new adapter that copies the pattern).
+2. `_annotation_str()` — an AST-annotation-to-string helper — is independently defined across detector files and `_example_adapter.py` with identical logic. After Phase 52.5, the copies live in `pipeline/detectors/airflow.py`, `api/detectors/python/fastapi.py`, and `_example_adapter.py` (the old flat `airflow.py` / `fastapi.py` no longer exist).
 3. `_read_task_type_from_current_state()` and `_resolve_task_type()` are duplicated between `orchestrator.py` and `build-context.py`.
 
 **Goal:** Single source of truth for each piece of shared logic.
@@ -1944,7 +1950,9 @@ Three duplication problems:
 |---|---|
 | `templates/script/validators/_registry.py` | Canonical location — no change |
 | `templates/script/framework/_registry.py` | Delete; update `verify_framework.py` import to point to the validators copy |
-| `templates/script/validators/_spec_code_adapters/_utils.py` (new) | Extract `_annotation_str()` here; update `airflow.py`, `fastapi.py`, `_example_adapter.py` to import from `_utils` |
+| `templates/script/validators/_spec_code_adapters/_utils.py` (new) | Extract `_annotation_str()` here; detectors in subdirectories import it via `sys.path` (the adapter root is already on `sys.path` at load time — same pattern used by `_base.py` imports) |
+| All detector files that define `_annotation_str()` locally | Replace local definition with `from _utils import _annotation_str` |
+| `_example_adapter.py` | Same import update |
 | `build-context.py` | Remove `_read_task_type_from_current_state()` and `_resolve_task_type()`; import from `orchestrator.py` (or a shared `_workflow_utils.py`) |
 | `docs/contributing-adapters.md` | Add note: import `_annotation_str` from `_utils.py` instead of copying |
 
