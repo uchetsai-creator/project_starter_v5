@@ -345,10 +345,10 @@ Update when: the post-task procedure changes.
 
 Purpose:
 Shell script that enforces process rules on every `git commit` — no AI tool dependency.
-Runs `verify_docs.py --content` (Phase 17) plus five process checks (Phase 21):
+Runs three quality verifiers (Phase 17 + Phase 23): `verify_docs.py --content`,
+`verify_logs.py`, and `verify_tests.py`. Also enforces five process checks (Phase 21):
 framework integrity, AGENTS.md token budget, changelog audit trail, closeout completeness,
 and Writing Audience violations in spec-facing documents.
-Once Phase 23 ships, also runs `verify_logs.py` and `verify_tests.py`.
 Blocks the commit and shows output on failure. Works with Claude Code, Codex, Cursor, or manual commits.
 Optional Claude Code Stop hook (`.claude/settings.json`) calls the same scripts for
 mid-session fast feedback, writing results to `logs/verify-{timestamp}.json`.
@@ -358,7 +358,7 @@ not by agent memory. An AI tool or developer can silently violate them without t
 
 Install: `cp .githooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit`
 Requires `.project-starter.yml` at the project root with `project_type` set.
-Update when: Phase 23 ships — add `verify_logs.py` and `verify_tests.py` calls.
+Update when: a new verifier is added — add an `if [ -f "docs/script/[script].py" ]` block.
 
 ### .project-starter.yml
 **Applies to: All project types**
@@ -405,6 +405,55 @@ need the LLM Judge rubric.
 
 Update when: a new document is added to the framework and its Required/Optional/N/A status
 per project type is defined — update the MATRIX dict in the script to match document-matrix.md.
+
+### verify_logs.py
+**Applies to: All project types where logging-spec.md is Required or Optional**
+(web-app, cli-tool, data-pipeline, ml-pipeline, microservices, mobile-app, llm-app — not library or iac)
+
+Purpose:
+Audits log documentation quality. Checks two things:
+(1) `docs/specs/logging-spec.md` has required sections filled (Log Output Format, Required Log Points,
+Module Naming Convention) and documents trace_id for types that need request tracing.
+(2) Each `docs/modules/[module]/log-[module].md` file documents trace_id, structured JSON/key=value fields,
+and no raw print/console.log statements. Per-type addenda: pipeline row count field (data-pipeline, ml-pipeline),
+LLM call log fields (llm-app).
+
+Run at sprint end as part of the quality gate (step 4 of Sprint Documentation Sync).
+Also runs automatically on `git commit` if `docs/script/verify_logs.py` is present.
+
+```bash
+python3 docs/script/verify_logs.py --project-type web-app
+python3 docs/script/verify_logs.py --project-type data-pipeline --strict
+python3 docs/script/verify_logs.py --project-type web-app --json
+```
+
+Output statuses: ✅ pass · ⚠️ warn · ❌ fail. Per-file: trace_id, structured format, per-type fields.
+Verdict: PASS · WARN · FAIL. `--strict` exits 1 on any FAIL.
+
+Update when: new per-type log field requirements are added (e.g., a new project type is introduced).
+
+### verify_tests.py
+**Applies to: All project types** (test-report.md is Required for all types)
+
+Purpose:
+Audits test report quality. Checks that `docs/specs/test-report.md` contains real results:
+test count > 0, overall pass/fail status recorded, Results by Module populated with actual rows.
+For Data Pipeline and ML Pipeline: also checks that the Contract Tests (quality gate) section
+and Fault Injection Tests section are non-empty.
+
+Run at sprint end as part of the quality gate (step 4 of Sprint Documentation Sync).
+Also runs automatically on `git commit` if `docs/script/verify_tests.py` is present.
+
+```bash
+python3 docs/script/verify_tests.py --project-type web-app
+python3 docs/script/verify_tests.py --project-type data-pipeline --strict
+python3 docs/script/verify_tests.py --project-type web-app --json
+```
+
+Output: fill score (N / M checks passed), missing sections, Verdict PASS / WARN / FAIL.
+`--strict` exits 1 on any FAIL.
+
+Update when: the test-report.md template gains a new required section that should be enforced.
 
 ### spec-review.md
 **Applies to: All project types**

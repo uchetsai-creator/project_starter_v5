@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# project_starter_v4 — verification pre-commit hook (Phase 20 + Phase 21)
+# project_starter_v4 — verification pre-commit hook (Phase 20 + Phase 21 + Phase 23)
 # Runs quality checks automatically on every git commit. Blocks on failure.
 #
 # Install (once per project clone):
@@ -53,13 +53,14 @@ else
     echo "  ⚠️  docs/script/verify_docs.py not found — skipping"
 fi
 
-# 2. Log quality (Phase 23 — skipped until script ships)
+# 2. Log quality (Phase 23)
 if [ -f "docs/script/verify_logs.py" ]; then
     echo "  → verify_logs.py ..."
-    python3 "docs/script/verify_logs.py" --project-type "$PROJECT_TYPE" --strict 2>&1 || PASS=false
+    python3 "docs/script/verify_logs.py" \
+        --project-type "$PROJECT_TYPE" --docs "$DOCS_PATH" --strict 2>&1 || PASS=false
 fi
 
-# 3. Test report quality (Phase 23 — skipped until script ships)
+# 3. Test report quality (Phase 23)
 if [ -f "docs/script/verify_tests.py" ]; then
     echo "  → verify_tests.py ..."
     python3 "docs/script/verify_tests.py" \

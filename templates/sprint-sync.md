@@ -15,18 +15,26 @@ Run at the end of each sprint (or when `docs/sprint-change-log.md` has accumulat
    - Update only the affected documents — do not check unaffected ones
    - Mark the entry **Status: Documentation synchronized — [date]**
 3. Run Module Completion Check for any modules touched during the sprint
-4. **Spec quality review** — for each Required spec document updated this sprint:
+4. **Quality gate** — run all three verifiers and record combined verdict:
+   ```bash
+   python3 docs/script/verify_docs.py --project-type TYPE --content
+   python3 docs/script/verify_logs.py --project-type TYPE
+   python3 docs/script/verify_tests.py --project-type TYPE
+   ```
+   Record in `docs/task-log.md`: `verify_docs`, `verify_logs`, `verify_tests` verdict (PASS / WARN / FAIL).
+   All three must reach PASS or WARN before proceeding — resolve any FAIL before continuing.
+5. **Spec quality review** — for each Required spec document updated this sprint:
    a. Run content audit: `python3 docs/script/verify_docs.py --project-type TYPE --content`
    b. For any document with ⚠️ or ❌ fill result: load `templates/specs/spec-review.md`, paste the document, run the LLM Judge rubric.
    c. Resolve all FAIL items (score < 4 on any criterion) before proceeding.
    d. Record result in `docs/specs/test-report.md → Spec Review` section: document name, date, overall score, PASS/FAIL.
-5. **Spec challenge** — for each Required spec document that passed Spec Review this sprint:
+6. **Spec challenge** — for each Required spec document that passed Spec Review this sprint:
    a. Load `templates/specs/spec-challenge.md`, paste the document.
    b. LLM outputs an Unresolved Questions list — Critical / Major / Minor.
    c. For each Critical question: update the spec to answer it.
    d. Repeat until the round's Critical list is empty.
    e. Record final round count in `docs/specs/test-report.md → Spec Challenge` section.
-6. **(Optional) Self-improving loop** — run only if step 4 found fill-quality issues (⚠️ or ❌):
+7. **(Optional) Self-improving loop** — run only if step 5 found fill-quality issues (⚠️ or ❌):
    a. **Round 1** — diagnose and open framework fix PRs:
       ```bash
       python3 docs/script/verify_docs.py --project-type TYPE --content --json \
@@ -40,8 +48,8 @@ Run at the end of each sprint (or when `docs/sprint-change-log.md` has accumulat
       ```
       Check `logs/framework-gaps.md` for remaining gaps that need manual attention.
    ⏹ **Stop after round 2.** Do not run further rounds — remaining gaps are in the log.
-7. Rebuild PDF: `python3 docs/script/build_pdf.py docs --lang en -o docs/project-documentation-en.pdf`
-8. Confirm PDF renders correctly
+8. Rebuild PDF: `python3 docs/script/build_pdf.py docs --lang en -o docs/project-documentation-en.pdf`
+9. Confirm PDF renders correctly
 
 ---
 
