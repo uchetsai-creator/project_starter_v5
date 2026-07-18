@@ -1,5 +1,9 @@
 """
-terraform.py — TerraformAdapter for project_starter_v5.
+terraform.py — TerraformDetector (+ legacy TerraformAdapter) for project_starter_v5.
+
+Phase 52.5: TerraformDetector is the primary class — it receives pre-discovered
+files from IaCAdapter and returns NormalizedResource objects.
+TerraformAdapter is kept as a backward-compatible shim.
 
 Extracts NormalizedResource objects from:
   - Spec: topology.md (### label (resource_type) sections with #### Configuration tables)
@@ -12,7 +16,7 @@ from __future__ import annotations
 import os
 import re
 
-from _base import FrameworkAdapter, NormalizedResource
+from _base import Detector, FrameworkAdapter, NormalizedResource
 
 _TF_EXTENSIONS = ('.tf',)
 
@@ -35,6 +39,48 @@ def _parse_config_table(section: str) -> list[str]:
             continue
         keys.append(key)
     return keys
+
+
+class TerraformDetector(Detector):
+    """
+    Framework detector for Terraform HCL (Phase 52.5).
+
+    Receives pre-discovered .tf files from IaCAdapter.
+    Returns NormalizedResource for each resource block.
+    Must not perform file discovery.
+    """
+
+    def extract(self, files: list[str]) -> list[NormalizedResource]:
+        resources: list[NormalizedResource] = []
+        for fpath in files:
+            if any(fpath.endswith(ext) for ext in _TF_EXTENSIONS):
+                resources.extend(self._parse_file(fpath))
+        return resources
+
+    def _parse_file(self, fpath: str) -> list[NormalizedResource]:
+        try:
+            with open(fpath, encoding='utf-8') as f:
+                source = f.read()
+        except OSError:
+            return []
+
+        resources: list[NormalizedResource] = []
+        block_pattern = re.compile(
+            r'\bresource\s+"([^"]+)"\s+"([^"]+)"\s*\{([^}]*(?:\{[^}]*\}[^}]*)*)\}',
+            re.DOTALL,
+        )
+        for m in block_pattern.finditer(source):
+            rtype = m.group(1)
+            label = m.group(2)
+            body = m.group(3)
+            config_keys = re.findall(r'^\s{0,4}(\w+)\s*=', body, re.MULTILINE)
+            resources.append(NormalizedResource(
+                name=label,
+                resource_type=rtype,
+                config_keys=config_keys,
+            ))
+
+        return resources
 
 
 class TerraformAdapter(FrameworkAdapter):

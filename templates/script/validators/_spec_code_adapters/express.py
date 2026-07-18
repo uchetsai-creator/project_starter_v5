@@ -1,5 +1,9 @@
 """
-express.py — ExpressAdapter for project_starter_v5.
+express.py — ExpressDetector (+ legacy ExpressAdapter) for project_starter_v5.
+
+Phase 52.5: ExpressDetector is the primary class — it receives pre-discovered
+files from WebAPIAdapter and returns NormalizedEndpoint objects.
+ExpressAdapter is kept as a backward-compatible shim.
 
 Extracts NormalizedEndpoint objects from:
   - Spec: api-contract.md (### METHOD /path sections with #### Request Body / #### Response Body tables)
@@ -12,7 +16,7 @@ from __future__ import annotations
 import os
 import re
 
-from _base import FrameworkAdapter, NormalizedEndpoint, NormalizedField
+from _base import Detector, FrameworkAdapter, NormalizedEndpoint, NormalizedField
 
 _HTTP_METHODS = frozenset({'get', 'post', 'put', 'delete', 'patch', 'head', 'options'})
 _JS_EXTENSIONS = ('.js', '.ts', '.mjs', '.cjs')
@@ -37,6 +41,42 @@ def _parse_field_table(section: str, header: str) -> list[NormalizedField]:
             continue
         fields.append(NormalizedField(name=name, type=type_str))
     return fields
+
+
+class ExpressDetector(Detector):
+    """
+    Framework detector for Express / Node.js (Phase 52.5).
+
+    Receives pre-discovered .js/.ts files from WebAPIAdapter.
+    Returns NormalizedEndpoint for each router.method() / app.method() call.
+    Must not perform file discovery.
+    """
+
+    def extract(self, files: list[str]) -> list[NormalizedEndpoint]:
+        endpoints: list[NormalizedEndpoint] = []
+        for fpath in files:
+            if any(fpath.endswith(ext) for ext in _JS_EXTENSIONS):
+                endpoints.extend(self._parse_file(fpath))
+        return endpoints
+
+    def _parse_file(self, fpath: str) -> list[NormalizedEndpoint]:
+        try:
+            with open(fpath, encoding='utf-8') as f:
+                source = f.read()
+        except OSError:
+            return []
+
+        endpoints: list[NormalizedEndpoint] = []
+        pattern = re.compile(
+            r'\b\w+\.(get|post|put|delete|patch|head|options)\s*\(\s*[\'"`]([^\'"` \n]+)[\'"`]',
+            re.IGNORECASE,
+        )
+        for m in pattern.finditer(source):
+            method = m.group(1).upper()
+            path = m.group(2)
+            endpoints.append(NormalizedEndpoint(method=method, path=path))
+
+        return endpoints
 
 
 class ExpressAdapter(FrameworkAdapter):

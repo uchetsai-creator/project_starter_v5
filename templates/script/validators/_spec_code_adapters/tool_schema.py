@@ -1,5 +1,9 @@
 """
-tool_schema.py — ToolSchemaAdapter for project_starter_v5.
+tool_schema.py — ToolSchemaDetector (+ legacy ToolSchemaAdapter) for project_starter_v5.
+
+Phase 52.5: ToolSchemaDetector is the primary class — it receives pre-discovered
+files from LLMAdapter and returns NormalizedTool objects.
+ToolSchemaAdapter is kept as a backward-compatible shim.
 
 Extracts NormalizedTool objects from:
   - Spec: llm-contract.md (### tool_name sections with #### Parameters tables)
@@ -15,7 +19,7 @@ import json
 import os
 import re
 
-from _base import FrameworkAdapter, NormalizedField, NormalizedTool
+from _base import Detector, FrameworkAdapter, NormalizedField, NormalizedTool
 
 _SKIP_PARAMS = frozenset({'self', 'cls', 'kwargs', 'args'})
 
@@ -66,6 +70,76 @@ def _parse_docstring_args(docstring: str) -> list[NormalizedField]:
         if m:
             fields.append(NormalizedField(name=m.group(1), type=m.group(2) or ''))
     return fields
+
+
+class ToolSchemaDetector(Detector):
+    """
+    Framework detector for AI / LLM App tool schemas (Phase 52.5).
+
+    Receives pre-discovered .py and .json files from LLMAdapter.
+    Returns NormalizedTool for each tool function or JSON schema entry.
+    Must not perform file discovery.
+    """
+
+    def extract(self, files: list[str]) -> list[NormalizedTool]:
+        tools: list[NormalizedTool] = []
+        for fpath in files:
+            if fpath.endswith('.json'):
+                tools.extend(self._parse_json(fpath))
+            elif fpath.endswith('.py'):
+                tools.extend(self._parse_python(fpath))
+        return tools
+
+    def _parse_json(self, fpath: str) -> list[NormalizedTool]:
+        try:
+            with open(fpath, encoding='utf-8') as f:
+                data = json.load(f)
+        except (OSError, json.JSONDecodeError):
+            return []
+
+        tools: list[NormalizedTool] = []
+        entries = data if isinstance(data, list) else [data]
+        for entry in entries:
+            if not isinstance(entry, dict) or 'name' not in entry:
+                continue
+            props = (entry.get('parameters') or {}).get('properties') or {}
+            params = [
+                NormalizedField(name=k, type=(v.get('type') or '') if isinstance(v, dict) else '')
+                for k, v in props.items()
+            ]
+            tools.append(NormalizedTool(name=entry['name'], parameters=params))
+        return tools
+
+    def _parse_python(self, fpath: str) -> list[NormalizedTool]:
+        try:
+            with open(fpath, encoding='utf-8') as f:
+                source = f.read()
+            tree = ast.parse(source, filename=fpath)
+        except (OSError, SyntaxError):
+            return []
+
+        tools: list[NormalizedTool] = []
+        for node in ast.walk(tree):
+            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            if node.name.startswith('_'):
+                continue
+
+            params = [
+                NormalizedField(name=a.arg, type=_annotation_str(a.annotation))
+                for a in node.args.args
+                if a.arg not in _SKIP_PARAMS
+            ]
+
+            if not any(p.type for p in params):
+                docstring = ast.get_docstring(node) or ''
+                if docstring:
+                    params = _parse_docstring_args(docstring) or params
+
+            if params:
+                tools.append(NormalizedTool(name=node.name, parameters=params))
+
+        return tools
 
 
 class ToolSchemaAdapter(FrameworkAdapter):

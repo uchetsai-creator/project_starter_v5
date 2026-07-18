@@ -2,17 +2,34 @@
 """
 verify_spec_code.py — Spec ↔ code drift validator for project_starter_v5.
 
-Compares what the spec declares against what the code implements. Adapters
-translate both spec and code into NormalizedForm objects; the core compares
-them. No framework-specific logic lives here — all of that belongs in adapters.
+Phase 52.5 introduces a capability-based adapter layer:
 
-Usage:
+  verify_spec_code.py
+          │
+          ▼
+  Capability Adapter  (spec parsing + file discovery + detector orchestration)
+          │
+          ├── Framework Detector A
+          └── Framework Detector B
+                  │
+                  ▼
+          Normalized Representation → Validation Result
+
+Compares what the spec declares against what the code implements. Capability
+adapters translate both spec and code into NormalizedForm objects; the core
+compares them. No framework-specific logic lives here.
+
+Usage (capability adapters — new in Phase 52.5):
+  python3 verify_spec_code.py --project-type data-pipeline --adapter data-pipeline \\
+      --spec docs/specs/pipeline-contract.md --src src/stages/ --strict
+  python3 verify_spec_code.py --adapter web-api \\
+      --spec docs/specs/api-contract.md --src src/ --framework fastapi --strict
+
+Usage (legacy framework names — still work identically):
   python3 verify_spec_code.py --project-type data-pipeline --adapter airflow \\
       --spec docs/specs/pipeline-contract.md --src src/stages/ --strict
   python3 verify_spec_code.py --project-type cli-tool --adapter click \\
       --spec docs/specs/cli-contract.md --src src/cli.py --strict
-  python3 verify_spec_code.py --project-type data-pipeline --adapter airflow \\
-      --spec docs/specs/pipeline-contract.md --src src/ --json
 
 If --adapter / --spec / --src are not supplied (e.g. when called from the
 pre-commit hook on an unconfigured project), the validator prints a warning
@@ -22,19 +39,24 @@ Valid project types:
   web-app | cli-tool | library | data-pipeline | ml-pipeline |
   microservices | llm-app | iac | mobile-app
 
-Valid adapters (Phase 45):
+Capability adapters (Phase 52.5):
+  data-pipeline   — Data Pipeline / ML Pipeline  (auto-detects: airflow, dagster, prefect)
+  web-api         — Web App / Microservices       (auto-detects: fastapi, flask, express)
+  cli             — CLI Tool                      (auto-detects: click)
+  library         — Library / SDK                 (auto-detects: python_library)
+  llm-app         — AI / LLM App                  (auto-detects: tool_schema)
+  iac             — IaC / DevOps                  (auto-detects: terraform, pulumi)
+  mobile          — Mobile App                    (auto-detects: react_native, flutter)
+
+Legacy adapter names (Phase 45-47) — still work, now route through capability adapters:
   airflow         — Data Pipeline / ML Pipeline (Apache Airflow)
   click           — CLI Tool (Click)
-
-Valid adapters (Phase 46):
   fastapi         — Web App / Microservices (FastAPI)
   flask           — Web App / Microservices (Flask)
   express         — Web App / Microservices (Express / Node.js)
   dagster         — Data Pipeline / ML Pipeline (Dagster)
   prefect         — Data Pipeline / ML Pipeline (Prefect)
   python_library  — Library / SDK (Python __all__ + type hints)
-
-Valid adapters (Phase 47):
   tool_schema     — AI / LLM App (Python docstrings / OpenAI tool schema JSON)
   terraform       — IaC / DevOps (Terraform HCL)
   pulumi          — IaC / DevOps (Pulumi Python)
@@ -57,30 +79,49 @@ from pathlib import Path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _registry import VALID_TYPES
 
-# adapter_name → (module_filename, class_name)
-ADAPTER_REGISTRY: dict[str, tuple[str, str]] = {
-    # Phase 45
-    'airflow':        ('airflow',         'AirflowAdapter'),
-    'click':          ('click',           'ClickAdapter'),
-    # Phase 46
-    'fastapi':        ('fastapi',         'FastAPIAdapter'),
-    'flask':          ('flask',           'FlaskAdapter'),
-    'express':        ('express',         'ExpressAdapter'),
-    'dagster':        ('dagster',         'DagsterAdapter'),
-    'prefect':        ('prefect',         'PrefectAdapter'),
-    'python_library': ('python_library',  'PythonLibraryAdapter'),
-    # Phase 47
-    'tool_schema':    ('tool_schema',     'ToolSchemaAdapter'),
-    'terraform':      ('terraform',       'TerraformAdapter'),
-    'pulumi':         ('pulumi',          'PulumiAdapter'),
-    'react_native':   ('react_native',    'ReactNativeAdapter'),
-    'flutter':        ('flutter',         'FlutterAdapter'),
+# adapter_name → (module_filename, class_name, framework_hint | None)
+# Phase 52.5: 3-tuple. framework_hint is passed to the capability adapter's
+# __init__(framework=...) to restrict which detector(s) are run.
+ADAPTER_REGISTRY: dict[str, tuple[str, str, str | None]] = {
+    # Capability adapters (Phase 52.5) — primary interface
+    'data-pipeline':  ('_capability_pipeline', 'DataPipelineAdapter', None),
+    'web-api':        ('_capability_web_api',  'WebAPIAdapter',       None),
+    'cli':            ('_capability_cli',      'CLIAdapter',          None),
+    'library':        ('_capability_library',  'LibraryAdapter',      None),
+    'llm-app':        ('_capability_llm',      'LLMAdapter',          None),
+    'iac':            ('_capability_iac',       'IaCAdapter',          None),
+    'mobile':         ('_capability_mobile',   'MobileAdapter',       None),
+    # Legacy aliases (Phase 45-47) — route through capability adapters with framework hint
+    'airflow':        ('_capability_pipeline', 'DataPipelineAdapter', 'airflow'),
+    'dagster':        ('_capability_pipeline', 'DataPipelineAdapter', 'dagster'),
+    'prefect':        ('_capability_pipeline', 'DataPipelineAdapter', 'prefect'),
+    'fastapi':        ('_capability_web_api',  'WebAPIAdapter',       'fastapi'),
+    'flask':          ('_capability_web_api',  'WebAPIAdapter',       'flask'),
+    'express':        ('_capability_web_api',  'WebAPIAdapter',       'express'),
+    'click':          ('_capability_cli',      'CLIAdapter',          'click'),
+    'python_library': ('_capability_library',  'LibraryAdapter',      'python_library'),
+    'tool_schema':    ('_capability_llm',      'LLMAdapter',          'tool_schema'),
+    'terraform':      ('_capability_iac',       'IaCAdapter',          'terraform'),
+    'pulumi':         ('_capability_iac',       'IaCAdapter',          'pulumi'),
+    'react_native':   ('_capability_mobile',   'MobileAdapter',       'react_native'),
+    'flutter':        ('_capability_mobile',   'MobileAdapter',       'flutter'),
 }
 
 _ADAPTER_DIR = Path(__file__).resolve().parent / '_spec_code_adapters'
 
 
-def _load_adapter(adapter_name: str):
+def _load_adapter(adapter_name: str, framework_hint: str | None = None):
+    """
+    Load a capability adapter by name and return an instantiated adapter object.
+
+    Args:
+        adapter_name:   Key into ADAPTER_REGISTRY (e.g. 'airflow', 'data-pipeline').
+        framework_hint: Value of --framework CLI flag. Explicit --framework takes
+                        precedence over the registry's built-in hint.
+
+    Returns:
+        Instantiated FrameworkAdapter subclass.
+    """
     entry = ADAPTER_REGISTRY.get(adapter_name)
     if not entry:
         print(
@@ -89,11 +130,18 @@ def _load_adapter(adapter_name: str):
             file=sys.stderr,
         )
         sys.exit(2)
-    module_name, class_name = entry
+    module_name, class_name, registry_hint = entry
+    # Explicit --framework flag takes precedence over the registry's built-in hint
+    effective_framework = framework_hint or registry_hint
     sys.path.insert(0, str(_ADAPTER_DIR))
     try:
         module = importlib.import_module(module_name)
-        return getattr(module, class_name)()
+        cls = getattr(module, class_name)
+        # Pass framework hint if the adapter accepts it
+        try:
+            return cls(framework=effective_framework)
+        except TypeError:
+            return cls()
     except (ImportError, AttributeError) as exc:
         print(f"error: could not load adapter '{adapter_name}': {exc}", file=sys.stderr)
         sys.exit(2)
@@ -324,6 +372,14 @@ def main() -> None:
         help='Print all registered adapter names and exit',
     )
     parser.add_argument(
+        '--framework', metavar='NAME',
+        help=(
+            'Framework hint for explicit detector selection within a capability adapter '
+            '(e.g. --adapter data-pipeline --framework airflow). '
+            'Overrides the registry hint for legacy names.'
+        ),
+    )
+    parser.add_argument(
         '--semantic', action='store_true',
         help=(
             'Wrap the selected adapter with SemanticAdapter for LLM-assisted field matching '
@@ -333,10 +389,23 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.list_adapters:
-        print("Registered adapters:")
-        for name in sorted(ADAPTER_REGISTRY):
-            module, cls = ADAPTER_REGISTRY[name]
+        # Group by capability (module) for readability
+        capability_adapters = {
+            name: entry for name, entry in ADAPTER_REGISTRY.items()
+            if entry[2] is None  # no built-in framework hint → primary capability
+        }
+        legacy_adapters = {
+            name: entry for name, entry in ADAPTER_REGISTRY.items()
+            if entry[2] is not None  # has built-in framework hint → legacy alias
+        }
+        print("Capability adapters (Phase 52.5):")
+        for name in sorted(capability_adapters):
+            module, cls, _ = ADAPTER_REGISTRY[name]
             print(f"  {name:<16}  {cls}  (module: {module})")
+        print("\nLegacy framework aliases (route through capability adapters):")
+        for name in sorted(legacy_adapters):
+            module, cls, hint = ADAPTER_REGISTRY[name]
+            print(f"  {name:<16}  {cls}  (framework: {hint})")
         sys.exit(0)
 
     # Graceful skip when not fully configured — pre-commit hook may call this
@@ -355,7 +424,7 @@ def main() -> None:
         print(f"error: src path not found: {args.src}", file=sys.stderr)
         sys.exit(2)
 
-    adapter_obj = _load_adapter(args.adapter)
+    adapter_obj = _load_adapter(args.adapter, framework_hint=getattr(args, 'framework', None))
     if args.semantic:
         sys.path.insert(0, str(_ADAPTER_DIR))
         from semantic import SemanticAdapter  # noqa: PLC0415

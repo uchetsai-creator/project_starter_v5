@@ -1,5 +1,9 @@
 """
-dagster.py — DagsterAdapter for project_starter_v5.
+dagster.py — DagsterDetector (+ legacy DagsterAdapter) for project_starter_v5.
+
+Phase 52.5: DagsterDetector is the primary class — it receives pre-discovered
+files from DataPipelineAdapter and returns NormalizedStageContract objects.
+DagsterAdapter is kept as a backward-compatible shim.
 
 Extracts NormalizedStageContract objects from:
   - Spec: pipeline-contract.md (### Stage sections with #### Input/Output Contract tables)
@@ -13,7 +17,7 @@ import ast
 import os
 import re
 
-from _base import FrameworkAdapter, NormalizedField, NormalizedStageContract
+from _base import Detector, FrameworkAdapter, NormalizedField, NormalizedStageContract
 
 _PLACEHOLDER_NAMES = frozenset({'stage name', '[stage name]', 'stage', ''})
 _DAGSTER_DECORATORS = frozenset({'op', 'asset', 'graph', 'job'})
@@ -52,6 +56,58 @@ def _is_dagster_decorator(dec) -> bool:
     if isinstance(dec, ast.Call):
         return _is_dagster_decorator(dec.func)
     return False
+
+
+class DagsterDetector(Detector):
+    """
+    Framework detector for Dagster (Phase 52.5).
+
+    Receives pre-discovered .py files from DataPipelineAdapter.
+    Returns NormalizedStageContract for each @op/@asset decorated function.
+    Must not perform file discovery.
+    """
+
+    def extract(self, files: list[str]) -> list[NormalizedStageContract]:
+        contracts: list[NormalizedStageContract] = []
+        for fpath in files:
+            if fpath.endswith('.py'):
+                contracts.extend(self._parse_file(fpath))
+        return contracts
+
+    def _parse_file(self, fpath: str) -> list[NormalizedStageContract]:
+        try:
+            with open(fpath, encoding='utf-8') as f:
+                source = f.read()
+            tree = ast.parse(source, filename=fpath)
+        except (OSError, SyntaxError):
+            return []
+
+        contracts: list[NormalizedStageContract] = []
+        for node in ast.walk(tree):
+            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            if not any(_is_dagster_decorator(d) for d in node.decorator_list):
+                continue
+
+            input_fields = [
+                NormalizedField(name=a.arg, type=_annotation_str(a.annotation))
+                for a in node.args.args
+                if a.arg not in ('self', 'context', 'kwargs', 'args')
+            ]
+            output_fields = []
+            if node.returns:
+                ret = _annotation_str(node.returns)
+                if ret and ret.lower() not in ('none', 'any'):
+                    output_fields.append(NormalizedField(name='return', type=ret))
+
+            if input_fields or output_fields:
+                contracts.append(NormalizedStageContract(
+                    stage_name=node.name,
+                    input_fields=input_fields,
+                    output_fields=output_fields,
+                ))
+
+        return contracts
 
 
 class DagsterAdapter(FrameworkAdapter):

@@ -1,5 +1,9 @@
 """
-python_library.py — PythonLibraryAdapter for project_starter_v5.
+python_library.py — PythonLibraryDetector (+ legacy PythonLibraryAdapter) for project_starter_v5.
+
+Phase 52.5: PythonLibraryDetector is the primary class — it receives pre-discovered
+files from LibraryAdapter and returns NormalizedFunction objects.
+PythonLibraryAdapter is kept as a backward-compatible shim.
 
 Extracts NormalizedFunction objects from:
   - Spec: public-api.md (### function_name sections with #### Parameters / #### Returns tables)
@@ -13,7 +17,7 @@ import ast
 import os
 import re
 
-from _base import FrameworkAdapter, NormalizedField, NormalizedFunction
+from _base import Detector, FrameworkAdapter, NormalizedField, NormalizedFunction
 
 _SKIP_PARAMS = frozenset({'self', 'cls', 'kwargs', 'args'})
 
@@ -31,6 +35,85 @@ def _annotation_str(node) -> str:
         if isinstance(node, ast.Attribute):
             return f"{_annotation_str(node.value)}.{node.attr}"
         return ''
+
+
+class PythonLibraryDetector(Detector):
+    """
+    Framework detector for Python Library / SDK (Phase 52.5).
+
+    Receives pre-discovered .py files from LibraryAdapter.
+    Returns NormalizedFunction for each public function in __all__.
+    Must not perform file discovery.
+    """
+
+    def extract(self, files: list[str]) -> list[NormalizedFunction]:
+        py_files = [f for f in files if f.endswith('.py')]
+
+        # Collect __all__ names across all files
+        public_names: set[str] = set()
+        for fpath in py_files:
+            public_names.update(self._extract_all_names(fpath))
+
+        functions: list[NormalizedFunction] = []
+        seen: set[str] = set()
+        for fpath in py_files:
+            for fn in self._parse_file(fpath, public_names):
+                if fn.name not in seen:
+                    seen.add(fn.name)
+                    functions.append(fn)
+        return functions
+
+    def _extract_all_names(self, fpath: str) -> list[str]:
+        try:
+            with open(fpath, encoding='utf-8') as f:
+                source = f.read()
+            tree = ast.parse(source, filename=fpath)
+        except (OSError, SyntaxError):
+            return []
+
+        names: list[str] = []
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Assign):
+                continue
+            for target in node.targets:
+                if isinstance(target, ast.Name) and target.id == '__all__':
+                    if isinstance(node.value, ast.List):
+                        names.extend(
+                            elt.value for elt in node.value.elts
+                            if isinstance(elt, ast.Constant) and isinstance(elt.value, str)
+                        )
+        return names
+
+    def _parse_file(self, fpath: str, public_names: set[str]) -> list[NormalizedFunction]:
+        try:
+            with open(fpath, encoding='utf-8') as f:
+                source = f.read()
+            tree = ast.parse(source, filename=fpath)
+        except (OSError, SyntaxError):
+            return []
+
+        functions: list[NormalizedFunction] = []
+        for node in ast.walk(tree):
+            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            if public_names and node.name not in public_names:
+                continue
+            if not public_names and node.name.startswith('_'):
+                continue
+
+            params = [
+                NormalizedField(name=a.arg, type=_annotation_str(a.annotation))
+                for a in node.args.args
+                if a.arg not in _SKIP_PARAMS
+            ]
+            return_type = _annotation_str(node.returns) if node.returns else ''
+            functions.append(NormalizedFunction(
+                name=node.name,
+                params=params,
+                return_type=return_type,
+            ))
+
+        return functions
 
 
 class PythonLibraryAdapter(FrameworkAdapter):

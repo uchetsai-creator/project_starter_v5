@@ -1,14 +1,31 @@
 """
-_base.py — FrameworkAdapter abstract base class and NormalizedForm dataclasses.
+_base.py — FrameworkAdapter / Detector abstract base classes and NormalizedForm dataclasses.
 
-Every adapter must inherit from FrameworkAdapter and implement extract_spec()
-and extract_code(). The core validator (verify_spec_code.py) uses only
-NormalizedForm objects — it never imports framework-specific code.
+Phase 52.5 architecture:
+  verify_spec_code.py
+          │
+          ▼
+  Capability Adapter  (spec parsing + file discovery + detector orchestration)
+          │
+          ├── Framework Detector A
+          └── Framework Detector B
+                  │
+                  ▼
+          Normalized Representation → Validation Result
+
+Every capability adapter must inherit from FrameworkAdapter and implement
+extract_spec() and extract_code(). The core validator (verify_spec_code.py)
+uses only NormalizedForm objects — it never imports framework-specific code.
+
+Every framework detector must inherit from Detector and implement extract().
+Detectors must not perform file discovery — they receive pre-discovered files
+from the capability adapter.
 
 Constraints:
 - No comparison logic here — comparison lives in verify_spec_code.py only.
 - No framework-specific imports at module level — import lazily inside methods.
 - extract_spec() and extract_code() must never raise; return [] on any error.
+- extract() must never raise; return [] on any error.
 
 Custom Adapter SDK:
 - See _example_adapter.py for a fully annotated reference implementation.
@@ -165,6 +182,41 @@ class NormalizedScreen:
     """
     name: str
     props: list[NormalizedField] = field(default_factory=list)
+
+
+# ---------------------------------------------------------------------------
+# Detector — abstract base class for framework-specific code extractors
+# ---------------------------------------------------------------------------
+
+class Detector(ABC):
+    """
+    Framework-specific code extractor (Phase 52.5).
+
+    A Detector receives pre-discovered source files from a capability adapter
+    and returns normalized forms for its capability. It must not perform file
+    discovery and must not return framework-specific objects.
+
+    Invariants:
+        - Must not call os.walk() or any file-system enumeration.
+        - extract() must return [] (not raise) on any error condition.
+        - Returns NormalizedForm objects, never framework-specific types.
+        - Only handles files it understands; returns [] for unsupported files.
+    """
+
+    @abstractmethod
+    def extract(self, files: list[str]) -> list:
+        """
+        Extract normalized items from a pre-discovered list of source files.
+
+        Args:
+            files: Absolute paths to source files provided by the capability adapter.
+                   The detector should silently skip files it cannot parse.
+
+        Returns:
+            List of NormalizedForm objects.
+            Must return [] (not raise) on any error.
+        """
+        ...
 
 
 # ---------------------------------------------------------------------------

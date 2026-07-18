@@ -1,5 +1,9 @@
 """
-click.py — ClickAdapter for project_starter_v5.
+click.py — ClickDetector (+ legacy ClickAdapter) for project_starter_v5.
+
+Phase 52.5: ClickDetector is the primary class — it receives pre-discovered
+files from CLIAdapter and returns NormalizedCommand objects.
+ClickAdapter is kept as a backward-compatible shim.
 
 Extracts NormalizedCommand objects from:
   - Spec: cli-contract.md (### `tool subcommand` sections with #### Flags tables)
@@ -14,7 +18,7 @@ import ast
 import os
 import re
 
-from _base import FrameworkAdapter, NormalizedCommand, NormalizedField
+from _base import Detector, FrameworkAdapter, NormalizedCommand, NormalizedField
 
 _PLACEHOLDER_CMD_NAMES = frozenset({'subcommand', '[subcommand]', 'tool-name', ''})
 
@@ -22,6 +26,86 @@ _PLACEHOLDER_CMD_NAMES = frozenset({'subcommand', '[subcommand]', 'tool-name', '
 def _clean_flag_name(raw: str) -> str:
     """Strip backticks, leading dashes, and angle brackets."""
     return re.sub(r'[`<>]', '', raw).strip().lstrip('-').replace('-', '_')
+
+
+class ClickDetector(Detector):
+    """
+    Framework detector for Click (Phase 52.5).
+
+    Receives pre-discovered .py files from CLIAdapter.
+    Returns NormalizedCommand for each @cli.command() decorated function.
+    Must not perform file discovery.
+    """
+
+    def extract(self, files: list[str]) -> list[NormalizedCommand]:
+        commands: list[NormalizedCommand] = []
+        for fpath in files:
+            if fpath.endswith('.py'):
+                commands.extend(self._parse_file(fpath))
+        return commands
+
+    def _parse_file(self, fpath: str) -> list[NormalizedCommand]:
+        try:
+            with open(fpath, encoding='utf-8') as f:
+                source = f.read()
+            tree = ast.parse(source, filename=fpath)
+        except (OSError, SyntaxError):
+            return []
+
+        commands: list[NormalizedCommand] = []
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.FunctionDef):
+                continue
+
+            cmd_name = None
+            for dec in node.decorator_list:
+                if not isinstance(dec, ast.Call):
+                    continue
+                func = dec.func
+                if not (hasattr(func, 'attr') and func.attr == 'command'):
+                    continue
+                cmd_name = node.name
+                if dec.args and isinstance(dec.args[0], ast.Constant):
+                    cmd_name = str(dec.args[0].value)
+                break
+
+            if cmd_name is None:
+                continue
+
+            flags: list[NormalizedField] = []
+            for dec in node.decorator_list:
+                if not isinstance(dec, ast.Call):
+                    continue
+                func = dec.func
+                if not (hasattr(func, 'attr') and func.attr in ('option', 'argument')):
+                    continue
+
+                flag_name = ''
+                flag_type = 'str'
+                for arg in dec.args:
+                    if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
+                        if arg.value.startswith('--'):
+                            flag_name = _clean_flag_name(arg.value)
+                        elif arg.value.startswith('-') and len(arg.value) == 2:
+                            pass
+                        elif not arg.value.startswith('-'):
+                            flag_name = _clean_flag_name(arg.value)
+                for kw in dec.keywords:
+                    if kw.arg == 'type':
+                        if isinstance(kw.value, ast.Name):
+                            flag_type = kw.value.id
+                        elif isinstance(kw.value, ast.Attribute):
+                            flag_type = kw.value.attr
+                    elif kw.arg == 'is_flag':
+                        if isinstance(kw.value, ast.Constant) and kw.value.value:
+                            flag_type = 'bool'
+
+                if flag_name:
+                    flags.append(NormalizedField(name=flag_name, type=flag_type))
+
+            commands.append(NormalizedCommand(name=cmd_name, flags=flags))
+
+        return commands
 
 
 class ClickAdapter(FrameworkAdapter):

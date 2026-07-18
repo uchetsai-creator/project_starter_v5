@@ -1,5 +1,9 @@
 """
-airflow.py — AirflowAdapter for project_starter_v5.
+airflow.py — AirflowDetector (+ legacy AirflowAdapter) for project_starter_v5.
+
+Phase 52.5: AirflowDetector is the primary class — it receives pre-discovered
+files from DataPipelineAdapter and returns NormalizedStageContract objects.
+AirflowAdapter is kept as a backward-compatible shim.
 
 Extracts NormalizedStageContract objects from:
   - Spec: pipeline-contract.md (### Stage sections with #### Input/Output Contract tables)
@@ -13,7 +17,7 @@ import ast
 import os
 import re
 
-from _base import FrameworkAdapter, NormalizedField, NormalizedStageContract
+from _base import Detector, FrameworkAdapter, NormalizedField, NormalizedStageContract
 
 # Placeholder stage names to skip when parsing the spec template
 _PLACEHOLDER_NAMES = frozenset({'stage name', '[stage name]', 'stage', ''})
@@ -44,6 +48,67 @@ def _parse_schema_value(value: str) -> list[NormalizedField]:
             fields.append(NormalizedField(name=m.group(1).strip(),
                                           type=m.group(2).strip()))
     return fields
+
+
+class AirflowDetector(Detector):
+    """
+    Framework detector for Apache Airflow (Phase 52.5).
+
+    Receives pre-discovered .py files from DataPipelineAdapter.
+    Returns NormalizedStageContract for each @task-decorated function.
+    Must not perform file discovery.
+    """
+
+    def extract(self, files: list[str]) -> list[NormalizedStageContract]:
+        contracts: list[NormalizedStageContract] = []
+        for fpath in files:
+            if fpath.endswith('.py'):
+                contracts.extend(self._parse_file(fpath))
+        return contracts
+
+    def _parse_file(self, fpath: str) -> list[NormalizedStageContract]:
+        try:
+            with open(fpath, encoding='utf-8') as f:
+                source = f.read()
+            tree = ast.parse(source, filename=fpath)
+        except (OSError, SyntaxError):
+            return []
+
+        contracts: list[NormalizedStageContract] = []
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.FunctionDef):
+                continue
+
+            is_task = any(
+                (isinstance(d, ast.Name) and d.id == 'task') or
+                (isinstance(d, ast.Attribute) and d.attr == 'task')
+                for d in node.decorator_list
+            )
+            has_annotations = any(
+                a.annotation is not None for a in node.args.args
+            )
+            if not is_task and not has_annotations:
+                continue
+
+            input_fields = [
+                NormalizedField(name=a.arg, type=_annotation_str(a.annotation))
+                for a in node.args.args
+                if a.arg not in ('self', 'context', 'kwargs', 'args')
+            ]
+            output_fields = []
+            if node.returns:
+                ret = _annotation_str(node.returns)
+                if ret and ret.lower() not in ('none', 'any'):
+                    output_fields.append(NormalizedField(name='return', type=ret))
+
+            if input_fields or output_fields:
+                contracts.append(NormalizedStageContract(
+                    stage_name=node.name,
+                    input_fields=input_fields,
+                    output_fields=output_fields,
+                ))
+
+        return contracts
 
 
 class AirflowAdapter(FrameworkAdapter):

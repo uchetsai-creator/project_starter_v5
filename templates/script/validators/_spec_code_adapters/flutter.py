@@ -1,5 +1,9 @@
 """
-flutter.py — FlutterAdapter for project_starter_v5.
+flutter.py — FlutterDetector (+ legacy FlutterAdapter) for project_starter_v5.
+
+Phase 52.5: FlutterDetector is the primary class — it receives pre-discovered
+files from MobileAdapter and returns NormalizedScreen objects.
+FlutterAdapter is kept as a backward-compatible shim.
 
 Extracts NormalizedScreen objects from:
   - Spec: mobile-contract.md (### ScreenName sections with #### Props tables)
@@ -12,7 +16,7 @@ from __future__ import annotations
 import os
 import re
 
-from _base import FrameworkAdapter, NormalizedField, NormalizedScreen
+from _base import Detector, FrameworkAdapter, NormalizedField, NormalizedScreen
 
 _DART_EXTENSIONS = ('.dart',)
 _WIDGET_BASES = frozenset({'StatelessWidget', 'StatefulWidget', 'ConsumerWidget', 'HookWidget'})
@@ -37,6 +41,55 @@ def _parse_props_table(section: str) -> list[NormalizedField]:
             continue
         fields.append(NormalizedField(name=name, type=type_str))
     return fields
+
+
+class FlutterDetector(Detector):
+    """
+    Framework detector for Flutter / Dart (Phase 52.5).
+
+    Receives pre-discovered .dart files from MobileAdapter.
+    Returns NormalizedScreen for each Widget class.
+    Must not perform file discovery.
+    """
+
+    def extract(self, files: list[str]) -> list[NormalizedScreen]:
+        screens: list[NormalizedScreen] = []
+        seen: set[str] = set()
+        for fpath in files:
+            if any(fpath.endswith(ext) for ext in _DART_EXTENSIONS):
+                for screen in self._parse_file(fpath):
+                    if screen.name not in seen:
+                        seen.add(screen.name)
+                        screens.append(screen)
+        return screens
+
+    def _parse_file(self, fpath: str) -> list[NormalizedScreen]:
+        try:
+            with open(fpath, encoding='utf-8') as f:
+                source = f.read()
+        except OSError:
+            return []
+
+        screens: list[NormalizedScreen] = []
+        class_pattern = re.compile(
+            r'\bclass\s+([A-Z]\w*)\s+extends\s+(\w+)\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}',
+            re.DOTALL,
+        )
+        for m in class_pattern.finditer(source):
+            class_name = m.group(1)
+            base = m.group(2)
+            if base not in _WIDGET_BASES:
+                continue
+            body = m.group(3)
+            field_pattern = re.compile(r'\bfinal\s+(\w[\w<>, ?]*?)\s+(\w+)\s*;')
+            props = [
+                NormalizedField(name=fm.group(2), type=fm.group(1).strip())
+                for fm in field_pattern.finditer(body)
+                if fm.group(2) not in ('key',)
+            ]
+            screens.append(NormalizedScreen(name=class_name, props=props))
+
+        return screens
 
 
 class FlutterAdapter(FrameworkAdapter):

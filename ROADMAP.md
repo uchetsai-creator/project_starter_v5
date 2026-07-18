@@ -1380,7 +1380,7 @@ templates/script/
 
 ---
 
-## Phase 41 — Orchestrator: Workflow Manager
+## Phase 41 — Orchestrator: Workflow Manager ✅ Complete
 
 `build-context.py` (Phase 38) solves context assembly for a known task type. But choosing *which* workflow to run, sequencing validators, and deciding when to stop still require the AI agent to read AGENTS.md and reason about the right order. This reasoning is implicit and varies by tool.
 
@@ -1433,7 +1433,7 @@ Generated: 2026-07-18T10:00:00
 
 ---
 
-## Phase 42 — Agent Adapters
+## Phase 42 — Agent Adapters ✅ Complete
 
 The orchestrator (Phase 41) produces a tool-agnostic workflow plan. Different AI tools consume instructions differently: Claude Code reads AGENTS.md + slash commands; Codex reads `.codex/` config; Cursor reads `.cursorrules`. Without adapters, each tool user must manually wire up the orchestrator.
 
@@ -1464,7 +1464,7 @@ The orchestrator (Phase 41) produces a tool-agnostic workflow plan. Different AI
 
 ---
 
-## Phase 43 — Post-Phase-42 Audit Fixes
+## Phase 43 — Post-Phase-42 Audit Fixes ✅ Complete
 
 Full-project audit after Phase 42 surfaced eight issues: a shell syntax error, a missing `--adapter` mention in AGENTS.md, two Stop-hook wiring gaps, a missing registry ↔ matrix sync check, a Codex adapter UX gap, a README ambiguity about `adapters/` scope, and stale `v4` references in docstrings.
 
@@ -1488,7 +1488,7 @@ Full-project audit after Phase 42 surfaced eight issues: a shell syntax error, a
 
 ---
 
-## Phase 44 — Validation Telemetry
+## Phase 44 — Validation Telemetry ✅ Complete
 
 The framework manages documents, workflow, and validators but has no visibility into AI agent behavior over time — which validators fail most, which tasks retry, which specs change most. Without this data, framework improvement is based on intuition, not evidence.
 
@@ -1533,7 +1533,7 @@ The framework manages documents, workflow, and validators but has no visibility 
 
 ---
 
-## Phase 45 — Spec ↔ Code Validator: Core + Framework Adapter Interface
+## Phase 45 — Spec ↔ Code Validator: Core + Framework Adapter Interface ✅ Complete
 
 > **Architecture note (Phase 52.5):** The framework-specific adapter design introduced here (`AirflowAdapter`, `ClickAdapter`) was superseded by the capability-based adapter + detector plugin architecture defined in Phase 52.5. The `NormalizedForm` contracts and the core `verify_spec_code.py` comparison engine remain unchanged. Phase 52.5 describes what the implementation actually looks like.
 
@@ -1597,7 +1597,7 @@ verify_spec_code.py
 
 ---
 
-## Phase 46 — Framework Adapter Expansion: Web App + Data Pipeline + Library/SDK
+## Phase 46 — Framework Adapter Expansion: Web App + Data Pipeline + Library/SDK ✅ Complete
 
 > **Architecture note (Phase 52.5):** The individual framework adapters listed here (`FastAPIAdapter`, `FlaskAdapter`, `ExpressAdapter`, `DagsterAdapter`, `PrefectAdapter`, `PythonLibraryAdapter`) were superseded by the capability-based design in Phase 52.5. Each is now a **detector** inside the appropriate capability directory (`api/detectors/`, `pipeline/detectors/`, `library/detectors/`), not a top-level adapter. See Phase 52.5 for the current structure.
 
@@ -1632,7 +1632,7 @@ Extend the adapter registry (Phase 45) to cover Web App, Microservices, Data Pip
 
 ---
 
-## Phase 47 — Framework Adapter Expansion: LLM App + IaC + Mobile + Custom Adapter SDK
+## Phase 47 — Framework Adapter Expansion: LLM App + IaC + Mobile + Custom Adapter SDK ✅ Complete
 
 > **Architecture note (Phase 52.5):** The individual framework adapters listed here (`ToolSchemaAdapter`, `TerraformAdapter`, `PulumiAdapter`, `ReactNativeAdapter`, `FlutterAdapter`) were superseded by the capability-based design in Phase 52.5. Each is now a **detector** inside the appropriate capability directory (`library/detectors/`, `iac/detectors/`, `mobile/detectors/`). The Custom Adapter SDK (`_example_adapter.py`, `docs/contributing-adapters.md`) is updated in Phase 52.5 to reflect the two-layer pattern.
 
@@ -1675,7 +1675,7 @@ Extend the adapter registry to the remaining three project types. Simultaneously
 
 ---
 
-## Phase 48 — Semantic Adapter (LLM-Assisted Matching)
+## Phase 48 — Semantic Adapter (LLM-Assisted Matching) ✅ Complete
 
 Phases 45–47 catch structural mismatches (field absent, route path wrong, flag renamed). They cannot catch semantic mismatches: `order_id: string` in spec, `id: int` in code — same concept, different name and type. Detecting this reliably requires LLM inference.
 
@@ -1729,7 +1729,7 @@ LLM pass:
 
 ---
 
-## Phase 49 — Adapter Contract Hardening
+## Phase 49 — Adapter Contract Hardening ✅ Complete
 
 **Discovered in post-Phase-48 audit.**
 
@@ -1749,7 +1749,7 @@ LLM pass:
 
 ---
 
-## Phase 50 — Remove Hardcoded Personal URLs from Generator Scripts
+## Phase 50 — Remove Hardcoded Personal URLs from Generator Scripts ✅ Complete
 
 **Discovered in post-Phase-48 audit.**
 
@@ -1769,7 +1769,7 @@ LLM pass:
 
 ---
 
-## Phase 51 — Complete VALID_TYPES Centralization
+## Phase 51 — Complete VALID_TYPES Centralization ✅ Complete
 
 **Discovered in post-Phase-48 audit.**
 
@@ -1791,7 +1791,7 @@ LLM pass:
 
 ---
 
-## Phase 52 — Sync Design Docs to Current Implementation
+## Phase 52 — Sync Design Docs to Current Implementation ✅ Complete
 
 **Discovered in post-Phase-48 audit.**
 
@@ -1815,7 +1815,7 @@ Three internal design documents diverge from the implemented system:
 
 ---
 
-## Phase 52.5 — Capability-Based Adapter Architecture
+## Phase 52.5 — Capability-Based Adapter Architecture ✅ Complete
 
 **Discovered in post-Phase-47 architectural review.**
 

@@ -1,0 +1,154 @@
+"""
+_capability_pipeline.py — DataPipelineAdapter for project_starter_v5 (Phase 52.5).
+
+Capability adapter for data / ML pipelines.
+Orchestrates: AirflowDetector, DagsterDetector, PrefectDetector.
+
+Architecture:
+  DataPipelineAdapter (this file)
+      │  extract_spec() — parses pipeline-contract.md
+      │  extract_code() — discovers .py files, delegates to detector(s)
+      ├── AirflowDetector
+      ├── DagsterDetector
+      └── PrefectDetector
+
+Invariants:
+  - No framework-specific parsing logic here.
+  - Detector selection is the only framework-awareness in this adapter.
+  - File discovery lives here, not in detectors.
+  - extract_spec() / extract_code() never raise; return [] on any error.
+"""
+from __future__ import annotations
+
+import os
+import re
+
+from _base import FrameworkAdapter, NormalizedField, NormalizedStageContract
+
+# Lazy imports for detectors — avoids circular-import issues and keeps
+# module-level imports framework-agnostic.
+_PLACEHOLDER_NAMES = frozenset({'stage name', '[stage name]', 'stage', ''})
+
+_DETECTORS: dict[str, str] = {
+    'airflow':  'AirflowDetector',
+    'dagster':  'DagsterDetector',
+    'prefect':  'PrefectDetector',
+}
+
+
+def _parse_schema_value(value: str) -> list[NormalizedField]:
+    """Parse 'field: type, field2: type2' or 'field (type)' patterns."""
+    fields = []
+    for part in re.split(r'[,\n;]', value):
+        part = part.strip().strip('`')
+        m = re.match(r'([a-zA-Z_]\w*)\s*[:(]\s*(\w[\w\[\], ]*)', part)
+        if m:
+            fields.append(NormalizedField(name=m.group(1).strip(),
+                                          type=m.group(2).strip()))
+    return fields
+
+
+class DataPipelineAdapter(FrameworkAdapter):
+    """
+    Capability adapter for data / ML pipeline projects (Phase 52.5).
+
+    Recognized frameworks: airflow, dagster, prefect.
+
+    Args:
+        framework: Optional framework hint (e.g. 'airflow'). When supplied,
+                   only the matching detector is run. When None, all detectors
+                   run and results are unioned.
+    """
+
+    def __init__(self, framework: str | None = None) -> None:
+        self._framework = framework
+
+    # ------------------------------------------------------------------ spec
+
+    def extract_spec(self, spec_path: str) -> list[NormalizedStageContract]:
+        """
+        Parse a pipeline-contract.md spec file.
+
+        All pipeline frameworks share the same spec format:
+          ### StageName
+          #### Input Contract
+          | Schema | field: type, field2: type2 |
+          #### Output Contract
+          | Schema | out_field: type |
+        """
+        try:
+            with open(spec_path, encoding='utf-8') as f:
+                text = f.read()
+        except OSError:
+            return []
+
+        contracts: list[NormalizedStageContract] = []
+        stage_matches = list(re.finditer(r'^### (.+?)$', text, re.MULTILINE))
+
+        for idx, match in enumerate(stage_matches):
+            raw_name = match.group(1).strip().strip('`[]')
+            if raw_name.lower() in _PLACEHOLDER_NAMES:
+                continue
+
+            section_start = match.end()
+            section_end = (stage_matches[idx + 1].start()
+                           if idx + 1 < len(stage_matches) else len(text))
+            section = text[section_start:section_end]
+
+            contracts.append(NormalizedStageContract(
+                stage_name=raw_name,
+                input_fields=self._contract_fields(section, 'Input'),
+                output_fields=self._contract_fields(section, 'Output'),
+            ))
+
+        return contracts
+
+    def _contract_fields(self, section: str, kind: str) -> list[NormalizedField]:
+        header = re.search(rf'^#### {kind} Contract', section, re.MULTILINE)
+        if not header:
+            return []
+        subsection = section[header.end():]
+        next_header = re.search(r'^#{3,4} ', subsection, re.MULTILINE)
+        if next_header:
+            subsection = subsection[:next_header.start()]
+        schema_m = re.search(r'\|\s*Schema\s*\|\s*(.+?)\s*\|', subsection)
+        if not schema_m:
+            return []
+        return _parse_schema_value(schema_m.group(1))
+
+    # ------------------------------------------------------------------ code
+
+    def extract_code(self, src_path: str) -> list[NormalizedStageContract]:
+        """
+        Discover .py files and delegate to pipeline detector(s).
+
+        With framework hint: only the matching detector runs.
+        Without hint: all detectors run and results are unioned.
+        """
+        files = (
+            [src_path] if os.path.isfile(src_path)
+            else [
+                os.path.join(root, fname)
+                for root, _, fnames in os.walk(src_path)
+                for fname in fnames
+                if fname.endswith('.py')
+            ]
+        )
+
+        active_detectors = (
+            {self._framework: _DETECTORS[self._framework]}
+            if self._framework and self._framework in _DETECTORS
+            else _DETECTORS
+        )
+
+        results: list[NormalizedStageContract] = []
+        for detector_name, detector_class_name in active_detectors.items():
+            try:
+                import importlib
+                mod = importlib.import_module(detector_name)
+                cls = getattr(mod, detector_class_name)
+                results.extend(cls().extract(files))
+            except Exception:  # noqa: BLE001
+                pass
+
+        return results

@@ -1,5 +1,9 @@
 """
-react_native.py — ReactNativeAdapter for project_starter_v5.
+react_native.py — ReactNativeDetector (+ legacy ReactNativeAdapter) for project_starter_v5.
+
+Phase 52.5: ReactNativeDetector is the primary class — it receives pre-discovered
+files from MobileAdapter and returns NormalizedScreen objects.
+ReactNativeAdapter is kept as a backward-compatible shim.
 
 Extracts NormalizedScreen objects from:
   - Spec: mobile-contract.md (### ScreenName sections with #### Props tables)
@@ -12,7 +16,7 @@ from __future__ import annotations
 import os
 import re
 
-from _base import FrameworkAdapter, NormalizedField, NormalizedScreen
+from _base import Detector, FrameworkAdapter, NormalizedField, NormalizedScreen
 
 _RN_EXTENSIONS = ('.tsx', '.jsx', '.ts', '.js')
 
@@ -36,6 +40,64 @@ def _parse_props_table(section: str) -> list[NormalizedField]:
             continue
         fields.append(NormalizedField(name=name, type=type_str))
     return fields
+
+
+class ReactNativeDetector(Detector):
+    """
+    Framework detector for React Native (Phase 52.5).
+
+    Receives pre-discovered .tsx/.jsx/.ts/.js files from MobileAdapter.
+    Returns NormalizedScreen for each React function/const component.
+    Must not perform file discovery.
+    """
+
+    def extract(self, files: list[str]) -> list[NormalizedScreen]:
+        screens: list[NormalizedScreen] = []
+        seen: set[str] = set()
+        for fpath in files:
+            if any(fpath.endswith(ext) for ext in _RN_EXTENSIONS):
+                for screen in self._parse_file(fpath):
+                    if screen.name not in seen:
+                        seen.add(screen.name)
+                        screens.append(screen)
+        return screens
+
+    def _parse_file(self, fpath: str) -> list[NormalizedScreen]:
+        try:
+            with open(fpath, encoding='utf-8') as f:
+                source = f.read()
+        except OSError:
+            return []
+
+        screens: list[NormalizedScreen] = []
+
+        fn_pattern = re.compile(
+            r'\bfunction\s+([A-Z]\w*)\s*\(\s*\{([^}]*)\}',
+        )
+        for m in fn_pattern.finditer(source):
+            name = m.group(1)
+            props = self._extract_destructured_props(m.group(2))
+            screens.append(NormalizedScreen(name=name, props=props))
+
+        const_pattern = re.compile(
+            r'\bconst\s+([A-Z]\w*)\s*(?::\s*\S+)?\s*=\s*\(\s*\{([^}]*)\}',
+        )
+        for m in const_pattern.finditer(source):
+            name = m.group(1)
+            props = self._extract_destructured_props(m.group(2))
+            if not any(s.name == name for s in screens):
+                screens.append(NormalizedScreen(name=name, props=props))
+
+        return screens
+
+    def _extract_destructured_props(self, destructure_body: str) -> list[NormalizedField]:
+        fields: list[NormalizedField] = []
+        for part in re.split(r',', destructure_body):
+            part = part.strip()
+            m = re.match(r'^(\w+)', part)
+            if m and m.group(1) not in ('', 'children'):
+                fields.append(NormalizedField(name=m.group(1), type=''))
+        return fields
 
 
 class ReactNativeAdapter(FrameworkAdapter):
