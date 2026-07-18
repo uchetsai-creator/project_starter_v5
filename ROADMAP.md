@@ -1720,3 +1720,190 @@ LLM pass:
 **Constraint:** `--semantic` must never run automatically in pre-commit or default workflow sequences. It is a developer-invoked analysis tool, not a gate. Any PR that adds `--semantic` to a default sequence is a bug.
 
 **Verification:** spec field `order_id: string`, code field `id: int`; run `verify_spec_code.py --adapter fastapi --semantic --project-type web-app`; confirm LLM reports field name mismatch with reasoning; confirm same run without `--semantic` also catches it via structural pass.
+
+---
+
+## Phase 49 — Adapter Contract Hardening
+
+**Discovered in post-Phase-48 audit.**
+
+`_base.py` contract states: `extract_spec()` and `extract_code()` must return `[]` on any error — never raise. `airflow.py` and `click.py` both call `open()` directly inside `extract_spec()` without try/except, violating this invariant. A missing or unreadable spec file crashes the validator instead of returning `[]`. All other error paths in these files already catch exceptions, making this a gap in an otherwise consistent pattern.
+
+**Goal:** Wrap all bare `open()` calls inside `extract_spec()` (and `extract_code()` if any) in every adapter with try/except, returning `[]` on failure. Audit every adapter for this pattern — not just the two confirmed cases.
+
+### Changes
+
+| File | Change |
+|---|---|
+| `_spec_code_adapters/airflow.py` | Wrap `open()` in `extract_spec()` with `try/except OSError` → return `[]` |
+| `_spec_code_adapters/click.py` | Same fix |
+| All other adapters | Audit and fix any bare `open()` in `extract_spec()` / `extract_code()` |
+
+**Verification:** pass a non-existent path to `extract_spec()` on each adapter; confirm `[]` is returned and no exception propagates.
+
+---
+
+## Phase 50 — Remove Hardcoded Personal URLs from Generator Scripts
+
+**Discovered in post-Phase-48 audit.**
+
+`diagnose_spec.py` and `propose_framework_fix.py` both hardcode `DEFAULT_FRAMEWORK_REPO = "uchetsai-creator/project_starter_v4"`. A user who runs either script without setting `PROJECT_STARTER_FRAMEWORK_REPO` will open GitHub PRs against someone else's v4 repository. `adapters/codex/setup.md` also hardcodes the same personal GitHub URL in a user-facing link.
+
+**Goal:** Eliminate the default fallback in both generator scripts so a missing env var produces a clear error rather than silently misdirecting. Update `adapters/codex/setup.md` to use a generic placeholder.
+
+### Changes
+
+| File | Change |
+|---|---|
+| `templates/script/generators/diagnose_spec.py` | Remove `DEFAULT_FRAMEWORK_REPO` constant; exit with actionable error if `PROJECT_STARTER_FRAMEWORK_REPO` is not set |
+| `templates/script/generators/propose_framework_fix.py` | Same; also rename temp dir prefix from `ps4-fix-` → `ps5-fix-` |
+| `adapters/codex/setup.md` | Replace personal GitHub URL with `<your-fork-url>` placeholder |
+
+**Verification:** run `diagnose_spec.py` without `PROJECT_STARTER_FRAMEWORK_REPO`; confirm error message names the missing variable and exits non-zero.
+
+---
+
+## Phase 51 — Complete VALID_TYPES Centralization
+
+**Discovered in post-Phase-48 audit.**
+
+`verify_docs.py` and `verify_content.py` were refactored to import `VALID_TYPES` from `_registry.py`. Three validators were not updated: `verify_logs.py`, `verify_tests.py`, and `verify_module_docs.py` each declare their own independent hardcoded list. `verify_spec_code.py` has a fifth independent declaration (`VALID_PROJECT_TYPES`). `scan_codebase.py` derives a sixth from `MODULE_VOCAB.keys()`. Adding a new project type to `document-registry.yaml` will not propagate to any of these scripts automatically.
+
+**Goal:** All validators and scan_codebase.py derive their valid-type list from `_registry.py` at runtime. No hardcoded list remains except inside `_registry.py` itself.
+
+### Changes
+
+| File | Change |
+|---|---|
+| `templates/script/validators/verify_logs.py` | Replace hardcoded `VALID_TYPES` list with `from _registry import VALID_TYPES` |
+| `templates/script/validators/verify_tests.py` | Same |
+| `templates/script/validators/verify_module_docs.py` | Same |
+| `templates/script/validators/verify_spec_code.py` | Replace `VALID_PROJECT_TYPES` list with import from `_registry`; rename to `VALID_TYPES` for consistency |
+| `templates/script/scanners/scan_codebase.py` | Derive valid types from `_registry.VALID_TYPES` instead of `MODULE_VOCAB.keys()` |
+
+**Verification:** add a dummy type to `document-registry.yaml`; confirm all five scripts accept it as valid without code changes; remove dummy entry.
+
+---
+
+## Phase 52 — Sync Design Docs to Current Implementation
+
+**Discovered in post-Phase-48 audit.**
+
+Three internal design documents diverge from the implemented system:
+
+1. `docs/context-builder-design.md` documents a `document-registry.yaml` schema (`types:` block with inline R/N/O values and a `flags:` subfield) that was never implemented. The actual schema uses `required_for: [list]` / `optional_for: [list]`. A new contributor following the design doc would write invalid registry entries.
+2. `docs/architecture-analysis.md` is the "before" snapshot of coupling problems. Several problems it lists as open are partially or fully resolved (`MATRIX` dict removed, `_registry.py` added, Check 11 added). The PlantUML diagram still shows nodes that no longer exist.
+3. `docs/refactoring-plan.md` describes Phase 1 (Document Registry) as future planned work; it is fully implemented. Phases 2 and 3 have no status markers.
+
+**Goal:** Update all three documents to reflect current reality. These are internal docs — accuracy matters more than preserving history.
+
+### Changes
+
+| File | Change |
+|---|---|
+| `docs/context-builder-design.md` | Rewrite schema section to show the actual `required_for` / `optional_for` format with real examples from `document-registry.yaml` |
+| `docs/architecture-analysis.md` | Mark resolved problems ✅; update PlantUML to remove `MATRIX` node; correct "no automated check" claim for document-matrix drift |
+| `docs/refactoring-plan.md` | Mark Phase 1 ✅ Complete; add status to Phases 2–3; note which sub-items remain open (VALID_TYPES in 3 validators — tracked in Phase 51) |
+
+**Verification:** read each updated doc; confirm it matches the current file structure; grep for removed artifacts (`MATRIX`, `translate_docs`, stale schema keys) to confirm none remain.
+
+---
+
+## Phase 53 — Deduplicate Shared Utilities
+
+**Discovered in post-Phase-48 audit.**
+
+Three duplication problems:
+
+1. `templates/script/validators/_registry.py` and `templates/script/framework/_registry.py` are byte-for-byte identical. Both must be updated in sync; there is no mechanism to detect drift.
+2. `_annotation_str()` — an AST-annotation-to-string helper — is independently defined in `airflow.py`, `fastapi.py`, and `_example_adapter.py` with identical logic. Any bug in this function must be fixed in all three (and in any new adapter that copies the pattern).
+3. `_read_task_type_from_current_state()` and `_resolve_task_type()` are duplicated between `orchestrator.py` and `build-context.py`.
+
+**Goal:** Single source of truth for each piece of shared logic.
+
+### Changes
+
+| File | Change |
+|---|---|
+| `templates/script/validators/_registry.py` | Canonical location — no change |
+| `templates/script/framework/_registry.py` | Delete; update `verify_framework.py` import to point to the validators copy |
+| `templates/script/validators/_spec_code_adapters/_utils.py` (new) | Extract `_annotation_str()` here; update `airflow.py`, `fastapi.py`, `_example_adapter.py` to import from `_utils` |
+| `build-context.py` | Remove `_read_task_type_from_current_state()` and `_resolve_task_type()`; import from `orchestrator.py` (or a shared `_workflow_utils.py`) |
+| `docs/contributing-adapters.md` | Add note: import `_annotation_str` from `_utils.py` instead of copying |
+
+**Verification:** run all validator self-tests; run `verify_framework.py`; confirm no import errors after consolidation.
+
+---
+
+## Phase 54 — v4 → v5 Naming Sweep
+
+**Discovered in post-Phase-48 audit.**
+
+A large number of files still refer to `project_starter_v4` in docstrings, CLI descriptions, comments, and headers. Only `orchestrator.py`, `verify_framework.py`, `verify_spec_code.py`, and the Phase 45–48 adapter files correctly say v5. The stale references create confusion about which version a file belongs to and erode confidence in the codebase's internal consistency.
+
+**Affected files:** `ROADMAP.md` (title), `document-registry.yaml` (header comment), `build-context.py` (docstring), both `_registry.py` copies (docstring + user-facing error message), `verify_docs.py`, `verify_content.py`, `verify_logs.py`, `verify_tests.py`, `verify_module_docs.py` (all: docstrings + argparse descriptions), `docs/architecture-analysis.md`, `docs/refactoring-plan.md` (headers), `.project-starter.yml` (comment), `.githooks/pre-commit` (banner comment), `propose_framework_fix.py` (temp dir prefix `ps4-fix-`).
+
+**Goal:** Replace every `project_starter_v4` reference with `project_starter_v5` (or remove the version suffix where not needed). Change `ps4-fix-` temp prefix to `ps5-fix-` in `propose_framework_fix.py`.
+
+### Changes
+
+All files listed above: search-replace `project_starter_v4` → `project_starter_v5` and `ps4-fix-` → `ps5-fix-`. No logic changes.
+
+**Verification:** `grep -r "project_starter_v4" templates/ *.py *.md *.yaml .githooks/` returns zero results after the sweep.
+
+---
+
+## Phase 55 — Fix Missing Cross-References and Dead References
+
+**Discovered in post-Phase-48 audit.**
+
+Three discoverability gaps:
+
+1. `docs/contributing-adapters.md` is the canonical guide for writing new framework adapters. It is referenced from `_base.py` and `_example_adapter.py` but does not appear in the README file tree — a contributor reading the README cannot find it.
+2. README Phase 14 history mentions `translate_docs.py` as one of the generator scripts. This file does not exist anywhere in the repo (likely planned but never implemented or since removed). The dead reference misleads readers looking for it.
+3. `verify_module_docs.py` has no automated trigger path. Neither `.githooks/pre-commit` nor `.githooks/run-verify.sh` calls it. Its only invocation path is manual, and this is not documented anywhere.
+
+**Goal:** Close all three gaps.
+
+### Changes
+
+| File | Change |
+|---|---|
+| `README.md` file tree | Add `docs/contributing-adapters.md` under the `docs/` section |
+| `README.md` Phase 14 history note | Remove `translate_docs.py` reference; note only `build_pdf.py` and `schema_to_html.py` exist |
+| `.githooks/run-verify.sh` | Add `verify_module_docs.py` call (or add a comment explaining why it is intentionally excluded) |
+| `README.md` § Spec ↔ Code Validator or a new § Module Docs | Add note that `verify_module_docs.py` must be invoked manually; explain when to use it |
+
+**Verification:** `grep -r "translate_docs" .` returns zero results; `docs/contributing-adapters.md` appears in README tree; `verify_module_docs.py` has a documented or automated trigger.
+
+---
+
+## Phase 56 — Code Quality Sweep
+
+**Discovered in post-Phase-48 audit.**
+
+A collection of minor code quality issues across multiple files, none individually blocking but collectively lowering the codebase's internal consistency bar.
+
+### Issues
+
+| Location | Issue |
+|---|---|
+| `adapters/claude/stop-hook.sh` embedded Python | Two bare `except Exception: pass` blocks silently swallow all errors; telemetry corruption is invisible |
+| `verify_spec_code.py` `_item_fields()` | `sys.path.insert(0, str(_ADAPTER_DIR))` runs inside the function body on every call; should be at module level (already done for other functions) |
+| `_spec_code_adapters/semantic.py` | Model ID `'claude-haiku-4-5-20251001'` is hardcoded inline; should be a named constant with a comment explaining the model-tier choice |
+| `templates/script/generators/build_pdf.py` | `import sys, os, re, glob` — multiple names on one import line (PEP 8) |
+| `templates/script/generators/schema_to_html.py` | `import sys, re, os, json, math` — same PEP 8 violation |
+| `templates/init/document-matrix.md` | `event-catalog.md` row has a trailing extra cell beyond the 10-column table definition; any programmatic parser will misalign this row |
+
+### Changes
+
+| File | Change |
+|---|---|
+| `adapters/claude/stop-hook.sh` | Replace bare `except Exception: pass` with `except Exception as e: print(f"telemetry error: {e}", file=sys.stderr, flush=True)` |
+| `verify_spec_code.py` | Move `sys.path.insert(0, str(_ADAPTER_DIR))` to module level alongside `_ADAPTER_DIR` declaration |
+| `_spec_code_adapters/semantic.py` | Extract `_SEMANTIC_MODEL = 'claude-haiku-4-5-20251001'` constant; add comment: `# Haiku: lowest cost for single-label classification` |
+| `build_pdf.py` | Split into one import per line |
+| `schema_to_html.py` | Split into one import per line |
+| `templates/init/document-matrix.md` | Remove trailing extra cell from `event-catalog.md` row |
+
+**Verification:** `python3 -m py_compile` on all modified Python files; manually inspect document-matrix.md table column counts.
