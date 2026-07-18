@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# project_starter_v5 — verification pre-commit hook (Phase 20 + Phase 21 + Phase 23 + Phase 24 + Phase 33 + Phase 40 + Phase 45)
+# project_starter_v5 — verification pre-commit hook (Phase 20 + Phase 21 + Phase 23 + Phase 24 + Phase 33 + Phase 40 + Phase 45 + Phase 46)
 # Runs quality checks automatically on every git commit. Blocks on failure.
 #
 # Install (once per project clone):
@@ -151,12 +151,15 @@ if [ -n "$SPEC_FACING_STAGED" ]; then
     [ "$FOUND_VIOLATIONS" = true ] && PASS=false
 fi
 
-# ── Phase 45: Spec ↔ Code validation ──────────────────────────────────────────
-# Trigger: pipeline-contract.md or cli-contract.md staged (spec contract changed)
+# ── Phase 45 + Phase 46: Spec ↔ Code validation ───────────────────────────────
+# Trigger: any spec contract document staged (spec change → validate code still matches)
 # Catches: spec–code drift introduced alongside a spec update
 # Note: verify_spec_code.py exits 0 if --adapter/--spec/--src are not configured.
+#
+# Phase 45 contracts: pipeline-contract.md (airflow), cli-contract.md (click)
+# Phase 46 contracts: api-contract.md (fastapi/flask/express), public-api.md (python_library)
 SPEC_CONTRACT_STAGED=$(printf '%s\n' "$STAGED" \
-    | grep -E '(pipeline-contract|cli-contract)\.md$' || true)
+    | grep -E '(pipeline-contract|cli-contract|api-contract|public-api)\.md$' || true)
 if [ -n "$SPEC_CONTRACT_STAGED" ] && [ -f "docs/script/validators/verify_spec_code.py" ]; then
     echo "  → verify_spec_code.py (spec contract staged) ..."
     python3 "docs/script/validators/verify_spec_code.py" --strict 2>&1 || PASS=false

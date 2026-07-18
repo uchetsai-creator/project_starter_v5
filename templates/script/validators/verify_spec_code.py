@@ -23,8 +23,16 @@ Valid project types:
   microservices | llm-app | iac | mobile-app
 
 Valid adapters (Phase 45):
-  airflow  — Data Pipeline / ML Pipeline (Apache Airflow)
-  click    — CLI Tool (Click)
+  airflow         — Data Pipeline / ML Pipeline (Apache Airflow)
+  click           — CLI Tool (Click)
+
+Valid adapters (Phase 46):
+  fastapi         — Web App / Microservices (FastAPI)
+  flask           — Web App / Microservices (Flask)
+  express         — Web App / Microservices (Express / Node.js)
+  dagster         — Data Pipeline / ML Pipeline (Dagster)
+  prefect         — Data Pipeline / ML Pipeline (Prefect)
+  python_library  — Library / SDK (Python __all__ + type hints)
 """
 
 import argparse
@@ -41,8 +49,16 @@ VALID_PROJECT_TYPES = [
 
 # adapter_name → (module_filename, class_name)
 ADAPTER_REGISTRY: dict[str, tuple[str, str]] = {
-    'airflow': ('airflow', 'AirflowAdapter'),
-    'click':   ('click',   'ClickAdapter'),
+    # Phase 45
+    'airflow':        ('airflow',         'AirflowAdapter'),
+    'click':          ('click',           'ClickAdapter'),
+    # Phase 46
+    'fastapi':        ('fastapi',         'FastAPIAdapter'),
+    'flask':          ('flask',           'FlaskAdapter'),
+    'express':        ('express',         'ExpressAdapter'),
+    'dagster':        ('dagster',         'DagsterAdapter'),
+    'prefect':        ('prefect',         'PrefectAdapter'),
+    'python_library': ('python_library',  'PythonLibraryAdapter'),
 }
 
 _ADAPTER_DIR = Path(__file__).resolve().parent / '_spec_code_adapters'

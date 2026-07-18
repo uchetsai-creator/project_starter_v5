@@ -150,7 +150,13 @@ project_starter/                     ← this repo (template only)
         │   ├── _spec_code_adapters/ ← framework adapters (one per framework)
         │   │   ├── _base.py         ← FrameworkAdapter ABC + all NormalizedForm dataclasses
         │   │   ├── airflow.py       ← AirflowAdapter (Data Pipeline / ML Pipeline)
-        │   │   └── click.py         ← ClickAdapter (CLI Tool)
+        │   │   ├── click.py         ← ClickAdapter (CLI Tool)
+        │   │   ├── fastapi.py       ← FastAPIAdapter (Web App / Microservices)
+        │   │   ├── flask.py         ← FlaskAdapter (Web App / Microservices)
+        │   │   ├── express.py       ← ExpressAdapter (Web App / Microservices — Node.js)
+        │   │   ├── dagster.py       ← DagsterAdapter (Data Pipeline / ML Pipeline)
+        │   │   ├── prefect.py       ← PrefectAdapter (Data Pipeline / ML Pipeline)
+        │   │   └── python_library.py ← PythonLibraryAdapter (Library / SDK)
         │   ├── _verify_common.py    ← shared placeholder patterns imported by verify scripts
         │   └── _registry.py         ← document registry loader
         ├── generators/              ← shipped to user projects (docs/script/generators/)
@@ -845,12 +851,18 @@ logic is a bug.
 | IaC / DevOps | `NormalizedResource` | resource name, resource type, config keys |
 | Mobile App | `NormalizedScreen` | screen name, props (name + type) |
 
-### Adapters (Phase 45 — PoC)
+### Adapters
 
 | Adapter | Framework | Project type | Spec source | Code source |
 |---|---|---|---|---|
 | `airflow` | Apache Airflow | Data Pipeline / ML Pipeline | `pipeline-contract.md` `### Stage` + `#### Input/Output Contract \| Schema \|` | `@task`-decorated Python functions |
 | `click` | Click | CLI Tool | `cli-contract.md` `### \`cmd\`` + `#### Flags` table | `@click.command()` + `@click.option()` Python functions |
+| `fastapi` | FastAPI | Web App / Microservices | `api-contract.md` `### METHOD /path` + `#### Request Body` / `#### Response Body` tables | `@app.{method}("/path")` / `@router.{method}` decorated functions |
+| `flask` | Flask | Web App / Microservices | `api-contract.md` `### METHOD /path` + `#### Request Body` / `#### Response Body` tables | `@app.route('/path', methods=[...])` decorated functions |
+| `express` | Express | Web App / Microservices | `api-contract.md` `### METHOD /path` + `#### Request Body` / `#### Response Body` tables | `router.{method}('/path', ...)` in JS/TS files |
+| `dagster` | Dagster | Data Pipeline / ML Pipeline | `pipeline-contract.md` `### Stage` + `#### Input/Output Contract \| Schema \|` | `@op` / `@asset`-decorated Python functions |
+| `prefect` | Prefect | Data Pipeline / ML Pipeline | `pipeline-contract.md` `### Stage` + `#### Input/Output Contract \| Schema \|` | `@task` / `@flow`-decorated Python functions |
+| `python_library` | Python `__all__` | Library / SDK | `public-api.md` `### function_name` + `#### Parameters` table | Functions listed in `__all__` + type-annotated signatures |
 
 ### Spec format (Airflow)
 
@@ -882,6 +894,36 @@ python3 docs/script/validators/verify_spec_code.py \
 python3 docs/script/validators/verify_spec_code.py \
     --project-type cli-tool --adapter click \
     --spec docs/specs/cli-contract.md --src src/cli.py --strict
+
+# Web App — validate HTTP endpoints against FastAPI code
+python3 docs/script/validators/verify_spec_code.py \
+    --project-type web-app --adapter fastapi \
+    --spec docs/specs/api-contract.md --src src/ --strict
+
+# Web App — validate HTTP endpoints against Flask code
+python3 docs/script/validators/verify_spec_code.py \
+    --project-type web-app --adapter flask \
+    --spec docs/specs/api-contract.md --src src/ --strict
+
+# Microservices — validate HTTP endpoints against Express (Node.js) code
+python3 docs/script/validators/verify_spec_code.py \
+    --project-type microservices --adapter express \
+    --spec docs/specs/api-contract.md --src src/ --strict
+
+# Data Pipeline — validate stage contracts against Dagster code
+python3 docs/script/validators/verify_spec_code.py \
+    --project-type data-pipeline --adapter dagster \
+    --spec docs/specs/pipeline-contract.md --src src/ --strict
+
+# Data Pipeline — validate stage contracts against Prefect code
+python3 docs/script/validators/verify_spec_code.py \
+    --project-type data-pipeline --adapter prefect \
+    --spec docs/specs/pipeline-contract.md --src src/ --strict
+
+# Library / SDK — validate public API against Python __all__ + signatures
+python3 docs/script/validators/verify_spec_code.py \
+    --project-type library --adapter python_library \
+    --spec docs/specs/public-api.md --src src/ --strict
 
 # JSON output for agent consumption
 python3 docs/script/validators/verify_spec_code.py \
