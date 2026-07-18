@@ -7,7 +7,7 @@ mkdir -p logs
 if [ ! -f .project-starter.yml ] || [ ! -f docs/script/validators/verify_docs.py ]; then
     exit 0
 fi
-TYPE=$(grep '^project_type:' .project-starter.yml | sed 's/project_type:[[:space:]]*//' | tr -d ""' ")
+TYPE=$(grep '^project_type:' .project-starter.yml | sed 's/project_type:[[:space:]]*//' | tr -d "\"'")
 [ -z "$TYPE" ] && exit 0
 STAMP=$(date +%Y%m%d-%H%M%S)
 {

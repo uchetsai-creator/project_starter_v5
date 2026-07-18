@@ -198,6 +198,10 @@ new_project/
     ├── specs/ architecture/ modules/ script/{validators,generators,scanners}/    ← vary by type (see below)
 ```
 
+> **Note:** `adapters/` stays in the framework repo — it is **not** copied to user projects.
+> The adapter output (`.claude/commands/start-task.md`, `.codex/`, `.cursorrules`) is generated
+> into your project by running `orchestrator.py --adapter <tool>`.
+
 The `docs/specs/`, `docs/architecture/`, and `docs/modules/` contents differ per project type:
 
 ### Web App
@@ -664,6 +668,7 @@ python3 templates/script/framework/verify_framework.py --json     # machine-read
 | Script type sync | `scan_codebase.py` and `document-registry.yaml` declare the same set of project types |
 | Build-PDF type sync | `build_pdf.py` VALID_PROJECT_TYPES matches all declared project types |
 | Content coverage | `document-registry.yaml` schema valid; `verify_content.py` covers all document checkers |
+| Registry ↔ matrix sync | Every `document-registry.yaml` entry has a row in `document-matrix.md`, and vice versa |
 
 **Output:**
 

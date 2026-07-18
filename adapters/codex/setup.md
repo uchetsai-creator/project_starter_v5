@@ -16,6 +16,8 @@ This writes:
 
 Then read `.codex/task-instructions.md` for the current workflow steps.
 
+> **Note:** if `.codex/task-instructions.md` shows `{{WORKFLOW_CONTENT}}` as literal text, run `python3 orchestrator.py --adapter codex` first to inject the current workflow snapshot.
+
 ## Regenerating adapter output
 
 ```bash

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-orchestrator.py — Workflow Manager for project_starter_v4.
+orchestrator.py — Workflow Manager for project_starter_v5.
 
 Reads .project-starter.yml + docs/current-state.md, selects the correct
 validator sequence from workflow-registry.yaml, invokes build-context.py

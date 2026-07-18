@@ -790,7 +790,7 @@ Purpose:
 Framework self-audit — checks internal consistency of the project_starter_v4 framework itself.
 Run after each Phase completes, before merging.
 
-Ten checks performed:
+Eleven checks performed:
 1. **Stale pointer** — every `.md` reference in AGENTS.md resolves to an existing file
 2. **Token budget** — AGENTS.md is ≤ 200 lines
 3. **Matrix ↔ template** — every matrix row has a template file; every template has a matrix row
@@ -801,6 +801,7 @@ Ten checks performed:
 8. **Script type sync** — `scan_codebase.py` and `verify_docs.py` declare the same set of project types
 9. **build_pdf type sync** — `build_pdf.py` VALID_PROJECT_TYPES matches PURPOSES_FILES (all 9 types)
 10. **Content coverage** — `verify_content.py` TYPE_DOCS covers all 9 project types and all document checker functions exist
+11. **Registry ↔ matrix sync** — every `document-registry.yaml` entry has a row in `document-matrix.md`, and vice versa
 
 ```bash
 python3 templates/script/framework/verify_framework.py

@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-verify_framework.py — Internal consistency audit for the project_starter_v4 framework.
+verify_framework.py — Internal consistency audit for the project_starter_v5 framework.
 
 Checks that file references, token budget, document matrix, sprint-sync checklist,
-document-purposes coverage, cross-references, type completeness, and script type
-synchronization are all in sync.
+document-purposes coverage, cross-references, type completeness, script type
+synchronization, and registry ↔ matrix sync are all in sync.
 Run after each Phase before merging.
 
 Usage:
@@ -562,6 +562,49 @@ def check_content_coverage() -> list[dict]:
     return issues
 
 
+def check_registry_matrix_sync() -> list[dict]:
+    """Check 11: Every entry in document-registry.yaml has a row in document-matrix.md,
+    and every matrix row has a registry entry."""
+    registry_path = FRAMEWORK_ROOT / "document-registry.yaml"
+    issues = []
+
+    if not registry_path.exists():
+        return [_issue("registry-matrix-sync", "error", "document-registry.yaml not found")]
+    matrix_content = read_text(DOCUMENT_MATRIX)
+    if not matrix_content:
+        return [_issue("registry-matrix-sync", "error", "document-matrix.md not found")]
+
+    # Registry keys are YAML keys like `architecture:` at 2-space indent
+    registry_text = registry_path.read_text(encoding="utf-8")
+    registry_keys: set[str] = set()
+    for line in registry_text.splitlines():
+        m = re.match(r'^  ([a-z][a-z0-9-]+):$', line.rstrip())
+        if m:
+            registry_keys.add(m.group(1))
+
+    # Matrix rows: `| \`architecture.md\` |` — strip path components and .md suffix
+    matrix_keys: set[str] = set()
+    for line in matrix_content.splitlines():
+        m = re.match(r'^\| `([^`]+)` \|', line)
+        if m:
+            name = re.sub(r'\.md$', '', Path(m.group(1)).name)
+            matrix_keys.add(name)
+
+    in_registry_not_matrix = registry_keys - matrix_keys
+    in_matrix_not_registry = matrix_keys - registry_keys
+
+    for key in sorted(in_registry_not_matrix):
+        issues.append(_issue("registry-matrix-sync", "warn",
+                             f"Registry entry `{key}` has no row in document-matrix.md"))
+    for key in sorted(in_matrix_not_registry):
+        issues.append(_issue("registry-matrix-sync", "warn",
+                             f"Matrix row `{key}.md` has no registry entry"))
+
+    if not issues:
+        return [_issue("registry-matrix-sync", "pass",
+                       f"Registry and matrix are in sync ({len(registry_keys)} documents)")]
+    return issues
+
 
 # ---------------------------------------------------------------------------
 # Issue factory and output
@@ -582,19 +625,21 @@ CHECK_ORDER = [
     "script-type-sync",
     "build-pdf-type-sync",
     "content-coverage",
+    "registry-matrix-sync",
 ]
 
 CHECK_LABELS = {
-    "stale-pointer":       "Stale pointer check          (AGENTS.md .md file refs)",
-    "token-budget":        "Token budget check           (AGENTS.md ≤ 200 lines)",
-    "matrix-templates":    "Matrix ↔ template consistency",
-    "sprint-sync":         "Sprint-sync coverage",
-    "purposes-coverage":   "Per-type purposes coverage   (Required docs only)",
-    "cross-ref":           "Cross-reference integrity    (document-purposes → templates)",
-    "type-completeness":   "Type completeness            (init file + purposes file per type)",
-    "script-type-sync":    "Script type sync             (scan_codebase.py ↔ verify_docs.py)",
-    "build-pdf-type-sync": "Build PDF type sync          (build_pdf.py VALID_PROJECT_TYPES)",
-    "content-coverage":    "Content coverage             (verify_content.py completeness)",
+    "stale-pointer":        "Stale pointer check          (AGENTS.md .md file refs)",
+    "token-budget":         "Token budget check           (AGENTS.md ≤ 200 lines)",
+    "matrix-templates":     "Matrix ↔ template consistency",
+    "sprint-sync":          "Sprint-sync coverage",
+    "purposes-coverage":    "Per-type purposes coverage   (Required docs only)",
+    "cross-ref":            "Cross-reference integrity    (document-purposes → templates)",
+    "type-completeness":    "Type completeness            (init file + purposes file per type)",
+    "script-type-sync":     "Script type sync             (scan_codebase.py ↔ verify_docs.py)",
+    "build-pdf-type-sync":  "Build PDF type sync          (build_pdf.py VALID_PROJECT_TYPES)",
+    "content-coverage":     "Content coverage             (verify_content.py completeness)",
+    "registry-matrix-sync": "Registry ↔ matrix sync      (document-registry.yaml ↔ document-matrix.md)",
 }
 
 LEVEL_ICON = {"pass": "✅", "warn": "⚠️ ", "fail": "❌", "error": "❌"}
@@ -648,7 +693,7 @@ def print_results(all_issues: list[dict]) -> None:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Audit internal consistency of the project_starter_v4 framework.",
+        description="Audit internal consistency of the project_starter_v5 framework.",
     )
     parser.add_argument(
         "--strict", action="store_true",
@@ -678,6 +723,7 @@ def main():
     all_issues += check_script_type_sync()
     all_issues += check_build_pdf_type_sync()
     all_issues += check_content_coverage()
+    all_issues += check_registry_matrix_sync()
 
     if args.json_output:
         print(json.dumps(

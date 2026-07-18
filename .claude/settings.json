@@ -7,6 +7,10 @@
           {
             "type": "command",
             "command": "bash .githooks/run-verify.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash adapters/claude/stop-hook.sh"
           }
         ]
       }

@@ -1461,3 +1461,27 @@ The orchestrator (Phase 41) produces a tool-agnostic workflow plan. Different AI
 **Constraint:** Adapters must not contain document selection logic — that stays in `document-registry.yaml` + `orchestrator.py`. Any adapter that duplicates selection logic is a bug.
 
 **Verification:** run `orchestrator.py --adapter claude --dry-run`; confirm `.claude/commands/start-task.md` is generated with correct WORKFLOW.md content injected.
+
+---
+
+## Phase 43 — Post-Phase-42 Audit Fixes
+
+Full-project audit after Phase 42 surfaced eight issues: a shell syntax error, a missing `--adapter` mention in AGENTS.md, two Stop-hook wiring gaps, a missing registry ↔ matrix sync check, a Codex adapter UX gap, a README ambiguity about `adapters/` scope, and stale `v4` references in docstrings.
+
+**Goal:** Fix all eight issues and add a new `verify_framework.py` check (Check 11) so future additions to `document-registry.yaml` are automatically validated against `document-matrix.md`.
+
+### Changes
+
+| File | Change |
+|---|---|
+| `.githooks/run-verify.sh` | Fix shell syntax error: `tr -d ""' "` → `tr -d "\"'"` (malformed quote caused parse failure on line 10) |
+| `orchestrator.py` | Docstring: `project_starter_v4` → `project_starter_v5` |
+| `AGENTS.md` § Starting work | Add one-line note that `--adapter [claude\|codex\|cursor]` can be passed to also render the tool-native instruction file |
+| `.claude/settings.json` | Add `adapters/claude/stop-hook.sh` as a second Stop hook command alongside `run-verify.sh` (separate concerns: verification logs vs. task-log row) |
+| `adapters/codex/setup.md` | Add prerequisite note: if `task-instructions.md` shows `{{WORKFLOW_CONTENT}}` as literal text, run `--adapter codex` first |
+| `README.md` § Project Initialization | Add explicit note that `adapters/` is not copied to user projects; adapter output is generated via `orchestrator.py --adapter <tool>` |
+| `README.md` § Framework maintenance | Add Check 11 row to the checks table |
+| `guidance/document-purposes-common.md` § verify_framework.py | Update check count (ten → eleven); add Check 11 description |
+| `templates/script/framework/verify_framework.py` | Docstring `v4` → `v5`; add `check_registry_matrix_sync` (Check 11): warns when a document-registry.yaml key has no matrix row or vice versa; wire into `CHECK_ORDER`, `CHECK_LABELS`, and `main()` |
+
+**Verification:** run `bash -n .githooks/run-verify.sh` (no parse error); run `python3 templates/script/framework/verify_framework.py --strict` and confirm Check 11 (Registry ↔ matrix sync) passes.
