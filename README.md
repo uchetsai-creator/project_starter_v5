@@ -511,17 +511,17 @@ Any AI tool (Claude / Codex / Cursor / manual)
  .githooks/pre-commit                  ← PRIMARY: tool-agnostic, always fires
         ↓
  [running in framework repo (templates/script/verify_framework.py present)]
- verify_framework.py --strict          ← Phase 21: framework integrity (block)
+ verify_framework.py --strict          ← framework integrity (block)
         ↓
- verify_docs.py --content              ← Phase 17: doc completeness + fill quality (block)
- verify_logs.py                        ← Phase 23: log format + trace_id (when present, block)
- verify_tests.py                       ← Phase 23: test-report.md fill quality (when present, block)
- verify_module_docs.py                 ← Phase 24: module flow coverage + quality (when present, block)
+ verify_docs.py --content              ← doc completeness + fill quality (block)
+ verify_logs.py                        ← log format + trace_id (when present, block)
+ verify_tests.py                       ← test-report.md fill quality (when present, block)
+ verify_module_docs.py                 ← module flow coverage + quality (when present, block)
         ↓
- [AGENTS.md staged]      line count ≤ 200            ← Phase 21: token budget (block)
- [specs/*.md staged]     changelog.md also staged?   ← Phase 21: audit trail (warn)
- [current-state.md + Status:Complete]  Closeout filled? ← Phase 21: closeout (block)
- [spec-facing doc staged] no Sprint/Task refs         ← Phase 21: writing audience (block)
+ [AGENTS.md staged]      line count ≤ 200            ← token budget (block)
+ [specs/*.md staged]     changelog.md also staged?   ← audit trail (warn)
+ [current-state.md + Status:Complete]  Closeout filled? ← closeout (block)
+ [spec-facing doc staged] no Sprint/Task refs         ← writing audience (block)
         ↓
  PASS → commit proceeds
  FAIL → commit blocked, output shown to developer
@@ -532,17 +532,17 @@ Optional fast-feedback (Claude Code only):
 
 ### Check table
 
-| Check | Trigger | Severity | Phase |
-|---|---|---|---|
-| Doc completeness + content quality | Every commit (with `project_type` set) | ❌ Block | 17 |
-| Log format + trace_id | `docs/script/verify_logs.py` present | ❌ Block | 23 |
-| Test-report fill quality | `docs/script/verify_tests.py` present | ❌ Block | 23 |
-| Module flow coverage + quality | `docs/script/verify_module_docs.py` present | ❌ Block | 24 |
-| Framework integrity (`verify_framework.py --strict`) | Framework repo detected (`templates/script/verify_framework.py` present) | ❌ Block | 21 |
-| AGENTS.md token budget (> 200 lines) | `AGENTS.md` staged | ❌ Block | 21 |
-| Spec/arch changed without changelog entry | Any `specs/*.md` or `architecture/*.md` staged | ⚠️ Warn | 21 |
-| Closeout unfilled on task completion | `current-state.md` staged with `Status: Complete` | ❌ Block | 21 |
-| Writing Audience violations (sprint/task refs in stakeholder docs) | Any spec-facing doc staged | ❌ Block | 21 |
+| Check | Trigger | Severity |
+|---|---|---|
+| Doc completeness + content quality | Every commit (with `project_type` set) | ❌ Block |
+| Log format + trace_id | `docs/script/verify_logs.py` present | ❌ Block |
+| Test-report fill quality | `docs/script/verify_tests.py` present | ❌ Block |
+| Module flow coverage + quality | `docs/script/verify_module_docs.py` present | ❌ Block |
+| Framework integrity (`verify_framework.py --strict`) | Framework repo detected (`templates/script/verify_framework.py` present) | ❌ Block |
+| AGENTS.md token budget (> 200 lines) | `AGENTS.md` staged | ❌ Block |
+| Spec/arch changed without changelog entry | Any `specs/*.md` or `architecture/*.md` staged | ⚠️ Warn |
+| Closeout unfilled on task completion | `current-state.md` staged with `Status: Complete` | ❌ Block |
+| Writing Audience violations (sprint/task refs in stakeholder docs) | Any spec-facing doc staged | ❌ Block |
 
 Spec-facing documents (Writing Audience check): `business-rules.md`, `pipeline-contract.md`, `research.md`, `quickstart.md`, `architecture/*.md`, `modules/*/*-module-data-flow.md`
 
@@ -561,7 +561,7 @@ Spec-facing documents (Writing Audience check): `business-rules.md`, `pipeline-c
 
 ### Tool compatibility
 
-| AI tool | Pre-commit hook fires? | All Phase 21 checks fire? | Claude Code Stop hook? |
+| AI tool | Pre-commit hook fires? | All checks fire? | Claude Code Stop hook? |
 |---|---|---|---|
 | Claude Code | ✅ on `git commit` | ✅ | ✅ optional |
 | Codex | ✅ on `git commit` | ✅ | ❌ not applicable |
@@ -569,7 +569,7 @@ Spec-facing documents (Writing Audience check): `business-rules.md`, `pipeline-c
 | Manual (no AI) | ✅ on `git commit` | ✅ | ❌ not applicable |
 
 
-## Self-improving loop *(Phase 22)*
+## Self-improving loop
 
 When a spec has fill-quality issues, the root cause is either:
 - **Project-level** — the template has the section, but the project didn't fill it in.
