@@ -15,6 +15,11 @@
 
 **Goal:** [What this task needs to achieve]
 
+**Task Type:** [task-type]
+<!-- Valid values: feature | pipeline-stage | bug-fix | sprint-end | eval-run | iac-change
+     Used by build-context.py to filter .ai/AI_CONTEXT.md to relevant documents.
+     Leave as [task-type] placeholder if unknown — script falls back to all Required docs. -->
+
 **Status:** In Progress
 <!-- When done: "Complete — Pending Sprint Doc Sync" -->
 

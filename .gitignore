@@ -1,0 +1,5 @@
+# Generated context — not committed; recreate with: python3 build-context.py
+.ai/
+
+__pycache__/
+*.pyc

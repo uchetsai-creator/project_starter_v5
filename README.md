@@ -20,9 +20,13 @@ scaffolding under `templates/`. Copy `templates/` into a new project's `docs/` f
 ```
 project_starter/                     ← this repo (template only)
 ├── AGENTS.md
+├── build-context.py                 ← context builder: writes .ai/AI_CONTEXT.md from registry
 ├── document-registry.yaml           ← single source of truth for all document metadata
+├── .gitignore                       ← excludes .ai/ (generated, not committed)
 ├── debug-instrumentation-rules.md
 ├── code-quality-check.md            ← code review checklist for retrofitting existing projects
+├── .ai/                             ← generated context (gitignored); recreate with build-context.py
+│   └── AI_CONTEXT.md               ← ordered read list for the current task
 ├── docs/                            ← framework design documents (not copied to projects)
 │   ├── architecture-analysis.md    ← current coupling problems + responsibility boundaries
 │   ├── refactoring-plan.md         ← 3-phase migration plan (registry → context builder → orchestrator)
@@ -309,6 +313,57 @@ For hybrid types and common combinations, see `AGENTS.md § Mixed / Hybrid Proje
 ## Working on an existing project
 
 See `AGENTS.md → Startup sequence` for the full startup and task-completion protocol.
+
+---
+
+## Context Builder
+
+`build-context.py` generates `.ai/AI_CONTEXT.md` — a deterministic read list for the current
+task. AI tools read this file instead of inferring context from scratch on every startup.
+
+```bash
+# Generate context for the current task:
+python3 build-context.py
+
+# Override task type (sprint-end shows all Required docs):
+python3 build-context.py --task-type sprint-end
+
+# Preview without writing:
+python3 build-context.py --dry-run
+```
+
+**Inputs:**
+
+| Source | Field | Used for |
+|---|---|---|
+| `.project-starter.yml` | `project_type` | Registry lookup → required documents |
+| `.project-starter.yml` | `task_type` (optional) | Filter to task-relevant documents |
+| `docs/current-state.md` | `Task Type:` field (optional) | Override task_type per task |
+| `document-registry.yaml` | `context_priority`, `purpose` | Sort and annotate output |
+
+**Output — `.ai/AI_CONTEXT.md`:**
+
+```markdown
+# AI Context — data-pipeline / pipeline-stage
+Generated: 2026-07-18T10:00:00
+
+## Read (Required)
+- docs/current-state.md   # Active task: goal, steps, and required context
+- docs/specs/pipeline-contract.md   # Inter-stage input/output contracts
+
+## Read (If Present)
+- docs/specs/pipeline-debug.md   # Stage failure diagnosis guide
+
+## Skip
+- docs/changelog.md
+- docs/specs/test-report.md
+```
+
+`.ai/` is gitignored — generated context is not committed. Regenerate it whenever the task changes.
+
+**Task types:** `feature` · `pipeline-stage` · `bug-fix` · `sprint-end` · `eval-run` · `iac-change`
+
+See `docs/context-builder-design.md` for the full algorithm and token reduction analysis.
 
 ---
 

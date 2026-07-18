@@ -10,3 +10,9 @@ project_type: [your-project-type]
 
 docs_path: docs/
 # Path to your docs/ directory relative to the project root.
+
+task_type:
+# Optional. Filters .ai/AI_CONTEXT.md to task-relevant documents.
+# Valid values: feature | pipeline-stage | bug-fix | sprint-end | eval-run | iac-change
+# Leave blank to show all Required documents for the project type.
+# Can also be set per-task in docs/current-state.md → Task Type field (overrides this value).

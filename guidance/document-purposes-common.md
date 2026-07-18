@@ -409,17 +409,56 @@ Install: `cp .githooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/p
 Requires `.project-starter.yml` at the project root with `project_type` set.
 Update when: a new verifier is added — add an `if [ -f "docs/script/[script].py" ]` block.
 
+### build-context.py
+**Applies to: All project types**
+
+Purpose:
+Context Builder — generates `.ai/AI_CONTEXT.md`, a deterministic read list for the current task.
+Reads `.project-starter.yml` (project_type, task_type) and `docs/current-state.md` (Task Type field),
+then queries `document-registry.yaml` to produce three sections:
+- **Read (Required)** — Required documents for the declared project type, sorted high → medium → low priority
+- **Read (If Present)** — Optional documents relevant to the current task type
+- **Skip** — everything else (N/A for type, or Optional but not relevant to this task)
+
+`current-state.md` is always injected at the top of Read (Required).
+
+The `Task Type:` field in `docs/current-state.md` overrides the `task_type` field in `.project-starter.yml`.
+If neither is set, all Required documents for the project type are listed.
+
+```bash
+python3 build-context.py                          # generate for current task
+python3 build-context.py --task-type sprint-end   # override task type
+python3 build-context.py --dry-run                # preview without writing
+```
+
+`.ai/AI_CONTEXT.md` is gitignored — not committed. Regenerate whenever the task changes.
+**Note:** `build-context.py` runs as part of pre-task setup, not the `.githooks/pre-commit` chain.
+
+Update when: new task type mappings are needed, or `TASK_TYPE_DOCS` entries change.
+
+### .ai/AI_CONTEXT.md
+**Applies to: All project types**
+
+Purpose:
+Generated file — the ordered context list for the current task. Written by `build-context.py`.
+AI tools read this file at startup instead of inferring context from AGENTS.md rules.
+
+Not committed (excluded by `.gitignore`). Recreate with `python3 build-context.py`.
+
+Do not edit manually — it is overwritten on each run of `build-context.py`.
+
 ### .project-starter.yml
 **Applies to: All project types**
 
 Purpose:
-Single config file at the project root. Stores `project_type` and `docs_path`.
-Used by `.githooks/pre-commit` and all verify scripts so type/path flags do not
+Single config file at the project root. Stores `project_type`, `docs_path`, and optional `task_type`.
+Used by `.githooks/pre-commit`, all verify scripts, and `build-context.py` so type/path flags do not
 need to be passed on every manual invocation.
 
 ```yaml
 project_type: data-pipeline
 docs_path: docs/
+task_type:          # optional: feature | pipeline-stage | bug-fix | sprint-end | eval-run | iac-change
 ```
 
 Created at project initialization (last step in each `init/[type].md`).
