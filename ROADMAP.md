@@ -1485,3 +1485,238 @@ Full-project audit after Phase 42 surfaced eight issues: a shell syntax error, a
 | `templates/script/framework/verify_framework.py` | Docstring `v4` → `v5`; add `check_registry_matrix_sync` (Check 11): warns when a document-registry.yaml key has no matrix row or vice versa; wire into `CHECK_ORDER`, `CHECK_LABELS`, and `main()` |
 
 **Verification:** run `bash -n .githooks/run-verify.sh` (no parse error); run `python3 templates/script/framework/verify_framework.py --strict` and confirm Check 11 (Registry ↔ matrix sync) passes.
+
+---
+
+## Phase 44 — Validation Telemetry
+
+The framework manages documents, workflow, and validators but has no visibility into AI agent behavior over time — which validators fail most, which tasks retry, which specs change most. Without this data, framework improvement is based on intuition, not evidence.
+
+**Goal:** Add a `.ai/telemetry/` layer. Write structured JSON after each validator run and each task session boundary. Token usage is left as a placeholder — it requires adapter-level data that varies by AI tool and is addressed in a later phase.
+
+### What the framework can log without external dependencies
+
+| Data | Source | Written by |
+|---|---|---|
+| Validator pass/fail/warn per document | verify scripts | `verify_docs.py`, `verify_content.py` with `--telemetry` flag |
+| Task session boundary (task name, adapter) | `current-state.md` + hook | `adapters/claude/stop-hook.sh` |
+| Orchestrator run count per task | orchestrator | `orchestrator.py` |
+| Token count | API response metadata | placeholder `null` until adapter provides it |
+
+### Changes
+
+| File | Change |
+|---|---|
+| `.gitignore` | Add `.ai/telemetry/` (generated, not committed) |
+| `templates/script/validators/verify_docs.py` | Add `--telemetry` flag: appends run result to `.ai/telemetry/validation-result.json` |
+| `templates/script/validators/verify_content.py` | Same `--telemetry` flag and output format |
+| `adapters/claude/stop-hook.sh` | Also write `.ai/telemetry/task-run.json` row on session end |
+| `orchestrator.py` | On each run, increment `orchestrator_runs` in `.ai/telemetry/task-run.json` for the current task |
+| `README.md` | Add "Validation Telemetry" section: schema description, what is logged, what requires adapter data |
+| `guidance/document-purposes-common.md` | Add `.ai/telemetry/` directory entry |
+
+**Schema — `validation-result.json`** (append-only array):
+```json
+{ "ts": "2026-07-18T13:00:00Z", "project_type": "data-pipeline",
+  "validator": "verify_content.py", "level": "fail",
+  "warn_count": 0, "fail_count": 2,
+  "failed_docs": ["pipeline-contract.md", "architecture.md"] }
+```
+
+**Schema — `task-run.json`** (append-only array):
+```json
+{ "ts": "2026-07-18T14:00:00Z", "task": "implement extract stage",
+  "adapter": "claude", "orchestrator_runs": 2, "token_count": null }
+```
+
+**Verification:** run `verify_docs.py --project-type data-pipeline --telemetry`; confirm `.ai/telemetry/validation-result.json` is written with correct structure.
+
+---
+
+## Phase 45 — Spec ↔ Code Validator: Core + Framework Adapter Interface
+
+Existing validators are structural — they check if documents are filled, not whether code matches what the spec declares. The biggest SDD risk is spec–code drift: a field renamed in code, a stage output changed, a flag removed — none of which current validators catch.
+
+**Goal:** Introduce `verify_spec_code.py` and the `FrameworkAdapter` interface. The core validator never knows about specific frameworks — it only compares `NormalizedForm` objects produced by adapters. Build two PoC adapters (Airflow, Click) to prove the interface works end-to-end, then wire into the existing pipeline.
+
+### Architecture
+
+```
+verify_spec_code.py
+        │  receives --adapter, --spec, --src
+        ▼
+FrameworkAdapter (base class)
+        │
+        ├── extract_spec(spec_path) → NormalizedForm
+        ├── extract_code(src_path)  → NormalizedForm
+        └── normalize()             → NormalizedForm
+
+verify_spec_code.py
+        │  compare(NormalizedForm, NormalizedForm)
+        ▼
+    MismatchReport
+```
+
+`NormalizedForm` is per-project-type — `verify_spec_code.py` compares two instances of the same type and reports added / removed / renamed / type-changed items. It never contains framework-specific logic.
+
+### NormalizedForm per project type
+
+| Project type | NormalizedForm | Key fields |
+|---|---|---|
+| Web App / Microservices | `NormalizedEndpoint` | method, path, request fields, response fields |
+| Data Pipeline / ML Pipeline | `NormalizedStageContract` | stage name, input fields (name + type), output fields (name + type) |
+| CLI Tool | `NormalizedCommand` | command name, flags (name + type + required) |
+| Library / SDK | `NormalizedFunction` | function name, params (name + type), return type |
+| AI / LLM App | `NormalizedTool` | tool name, parameter schema |
+| IaC / DevOps | `NormalizedResource` | resource name, resource type, config keys |
+| Mobile App | `NormalizedScreen` | screen name, props (name + type) |
+
+### PoC adapters (this phase)
+
+| Adapter | Framework | Project type |
+|---|---|---|
+| `AirflowAdapter` | Apache Airflow (Python) | Data Pipeline |
+| `ClickAdapter` | Click (Python) | CLI Tool |
+
+### Changes
+
+| File | Change |
+|---|---|
+| `templates/script/validators/verify_spec_code.py` (new) | Core validator: `--project-type`, `--adapter`, `--spec`, `--src`, `--strict`, `--json`, `--dry-run`; loads adapter by name; calls `extract_spec` + `extract_code`; compares NormalizedForms; reports mismatches |
+| `templates/script/validators/_spec_code_adapters/` (new dir) | `_base.py` — `FrameworkAdapter` abstract base class + `NormalizedForm` dataclasses; `airflow.py` — `AirflowAdapter`; `click.py` — `ClickAdapter` |
+| `workflow-registry.yaml` | Add `verify_spec_code.py` to `pipeline-stage` and `feature` validators for `data-pipeline`, `ml-pipeline`, `cli-tool` |
+| `.githooks/pre-commit` | Run `verify_spec_code.py --strict` when `pipeline-contract.md` or `cli-contract.md` is staged |
+| `guidance/document-purposes-common.md` | Add `verify_spec_code.py` + `_spec_code_adapters/` entries |
+| `README.md` | Add "Spec ↔ Code Validator" section: architecture diagram, per-type NormalizedForm table, usage |
+
+**Constraint:** `verify_spec_code.py` must contain zero framework-specific logic. Any code that knows what Airflow or Click is belongs in an adapter. Any adapter that contains comparison logic is a bug.
+
+**Verification:** declare field `raw_amount: float` in `pipeline-contract.md`; rename to `amount: int` in Airflow stage code; run `verify_spec_code.py --project-type data-pipeline --adapter airflow --strict`; confirm exits 1 reporting field name and type mismatch.
+
+---
+
+## Phase 46 — Framework Adapter Expansion: Web App + Data Pipeline + Library/SDK
+
+Extend the adapter registry (Phase 45) to cover Web App, Microservices, Data Pipeline (additional frameworks), and Library/SDK. Each new adapter implements the same `FrameworkAdapter` interface — no changes to `verify_spec_code.py` core.
+
+### New adapters
+
+| Adapter | Framework | Language | Project type |
+|---|---|---|---|
+| `FastAPIAdapter` | FastAPI | Python | Web App / Microservices |
+| `FlaskAdapter` | Flask | Python | Web App / Microservices |
+| `ExpressAdapter` | Express | Node.js | Web App / Microservices |
+| `DagsterAdapter` | Dagster | Python | Data Pipeline / ML Pipeline |
+| `PrefectAdapter` | Prefect | Python | Data Pipeline / ML Pipeline |
+| `PythonLibraryAdapter` | Python `__all__` / type stubs | Python | Library / SDK |
+
+### Changes
+
+| File | Change |
+|---|---|
+| `_spec_code_adapters/fastapi.py` (new) | `FastAPIAdapter`: parses `@app.{method}("/path")` decorators + Pydantic model fields → `NormalizedEndpoint[]` |
+| `_spec_code_adapters/flask.py` (new) | `FlaskAdapter`: parses `@app.route` + `methods=[]` → `NormalizedEndpoint[]` |
+| `_spec_code_adapters/express.py` (new) | `ExpressAdapter`: parses `router.{method}('/path', ...)` → `NormalizedEndpoint[]` |
+| `_spec_code_adapters/dagster.py` (new) | `DagsterAdapter`: parses `@op` / `@asset` I/O definitions → `NormalizedStageContract[]` |
+| `_spec_code_adapters/prefect.py` (new) | `PrefectAdapter`: parses `@task` input/output type hints → `NormalizedStageContract[]` |
+| `_spec_code_adapters/python_library.py` (new) | `PythonLibraryAdapter`: reads `__all__` + function signatures → `NormalizedFunction[]` |
+| `workflow-registry.yaml` | Add `verify_spec_code.py` to validator sequences for `web-app`, `microservices`, `library` |
+| `.githooks/pre-commit` | Add trigger for `api-contract.md`, `public-api.md` staged |
+| `README.md` § Spec ↔ Code Validator | Update adapter registry table with all new adapters |
+
+**Verification:** spec has `POST /orders`, code has `POST /order` (FastAPI); run `verify_spec_code.py --project-type web-app --adapter fastapi --strict`; confirm exits 1 reporting route path mismatch.
+
+---
+
+## Phase 47 — Framework Adapter Expansion: LLM App + IaC + Mobile + Custom Adapter SDK
+
+Extend the adapter registry to the remaining three project types. Simultaneously ship the Custom Adapter SDK so the community can contribute adapters for frameworks not covered here — without modifying the core validator.
+
+### New adapters
+
+| Adapter | Framework | Project type |
+|---|---|---|
+| `ToolSchemaAdapter` | Python function docstrings / OpenAI tool schema | AI / LLM App |
+| `TerraformAdapter` | Terraform HCL | IaC / DevOps |
+| `PulumiAdapter` | Pulumi (Python) | IaC / DevOps |
+| `ReactNativeAdapter` | React Native | Mobile App |
+| `FlutterAdapter` | Flutter / Dart | Mobile App |
+
+### Custom Adapter SDK
+
+| Deliverable | Description |
+|---|---|
+| `_spec_code_adapters/_base.py` | Already exists (Phase 45); extended with richer docstrings and type annotations for external consumers |
+| `_spec_code_adapters/_example_adapter.py` (new) | Fully annotated reference implementation; every method documented with contract, expected input, expected output |
+| `docs/contributing-adapters.md` (new) | Step-by-step guide: implement `FrameworkAdapter`, register adapter name, write unit test, submit PR |
+
+### Changes
+
+| File | Change |
+|---|---|
+| `_spec_code_adapters/tool_schema.py` (new) | `ToolSchemaAdapter` → `NormalizedTool[]` |
+| `_spec_code_adapters/terraform.py` (new) | `TerraformAdapter` → `NormalizedResource[]` |
+| `_spec_code_adapters/pulumi.py` (new) | `PulumiAdapter` → `NormalizedResource[]` |
+| `_spec_code_adapters/react_native.py` (new) | `ReactNativeAdapter` → `NormalizedScreen[]` |
+| `_spec_code_adapters/flutter.py` (new) | `FlutterAdapter` → `NormalizedScreen[]` |
+| `_spec_code_adapters/_example_adapter.py` (new) | Reference implementation for SDK |
+| `docs/contributing-adapters.md` (new) | Custom Adapter SDK developer guide |
+| `workflow-registry.yaml` | Add `verify_spec_code.py` to validator sequences for `llm-app`, `iac`, `mobile-app` |
+| `.githooks/pre-commit` | Add trigger for `llm-contract.md`, `topology.md`, `mobile-contract.md` staged |
+| `README.md` § Spec ↔ Code Validator | Add "Writing a custom adapter" subsection pointing to SDK |
+
+**Verification:** run `verify_spec_code.py --list-adapters`; confirm all adapters from Phases 45–47 are listed; confirm `_example_adapter.py` passes its own unit test.
+
+---
+
+## Phase 48 — Semantic Adapter (LLM-Assisted Matching)
+
+Phases 45–47 catch structural mismatches (field absent, route path wrong, flag renamed). They cannot catch semantic mismatches: `order_id: string` in spec, `id: int` in code — same concept, different name and type. Detecting this reliably requires LLM inference.
+
+**Goal:** Add `SemanticAdapter` — a wrapper that implements the same `FrameworkAdapter` interface but adds an LLM comparison pass on top of any structural adapter's `NormalizedForm` output. `verify_spec_code.py` core is unchanged; `--semantic` simply selects `SemanticAdapter` as the adapter.
+
+### Architecture
+
+```
+verify_spec_code.py --semantic --adapter fastapi
+        │
+        ▼
+SemanticAdapter(wraps=FastAPIAdapter)
+        │
+        ├── extract_spec() → delegates to FastAPIAdapter → NormalizedEndpoint[]
+        ├── extract_code() → delegates to FastAPIAdapter → NormalizedEndpoint[]
+        └── compare()      → structural diff first
+                           → remaining ambiguous pairs → LLM
+                           → LLM returns { verdict, reasoning } per field
+```
+
+### How semantic matching works
+
+```
+Structural pass (always first):
+  spec field: order_id    code field: id
+  → name differs → MISMATCH (structural, no LLM needed)
+
+Structural pass finds no mismatch:
+  spec field: order_total: float
+  code field: price: Decimal
+  → name differs but not caught by normalisation → escalate to LLM
+
+LLM pass:
+  "spec declares order_total: float described as 'total price of the order';
+   code has price: Decimal — are these the same field?"
+  → LLM: likely same concept; float→Decimal compatible; name mismatch → WARNING
+```
+
+### Changes
+
+| File | Change |
+|---|---|
+| `_spec_code_adapters/semantic.py` (new) | `SemanticAdapter(wraps: FrameworkAdapter)`: delegates extract_spec/extract_code to wrapped adapter; adds LLM comparison pass; returns `NormalizedForm` annotated with semantic verdicts |
+| `verify_spec_code.py` | Add `--semantic` flag: when set, wraps the selected adapter with `SemanticAdapter`; structural pass always runs first |
+| `workflow-registry.yaml` | Semantic adapter is **not** added to any default validator sequence — opt-in only |
+| `README.md` § Spec ↔ Code Validator | Add "Semantic matching" subsection: when to use, token cost estimate, output format |
+
+**Constraint:** `--semantic` must never run automatically in pre-commit or default workflow sequences. It is a developer-invoked analysis tool, not a gate. Any PR that adds `--semantic` to a default sequence is a bug.
+
+**Verification:** spec field `order_id: string`, code field `id: int`; run `verify_spec_code.py --adapter fastapi --semantic --project-type web-app`; confirm LLM reports field name mismatch with reasoning; confirm same run without `--semantic` also catches it via structural pass.
