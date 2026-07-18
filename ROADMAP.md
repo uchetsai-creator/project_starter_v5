@@ -1856,14 +1856,14 @@ Capability Adapter
 
 ### Invariants
 
-- A detector must not perform file discovery — it receives already-discovered source files from the capability adapter.
+- A detector must not perform file discovery — it operates on source artifacts provided by the capability layer.
 - Framework-specific logic must not appear in a capability adapter.
-- `verify_spec_code.py` must not contain any framework or capability knowledge.
+- `verify_spec_code.py` must not contain framework-specific implementation logic.
 - Adding a new framework requires adding a detector, not a new adapter.
 
 ### Backward Compatibility
 
-Existing `--adapter fastapi` CLI usage must continue to work unchanged. Legacy framework names become aliases that resolve to the appropriate capability adapter. A new `--framework` flag allows explicit detector selection when the capability adapter cannot auto-detect.
+Existing `--adapter fastapi` CLI usage must continue to work unchanged. Legacy framework names become aliases that resolve to the appropriate capability adapter. Provide an optional mechanism to select a specific detector when automatic detection is insufficient.
 
 ### Migration Scope
 
@@ -1891,7 +1891,7 @@ Three duplication problems identified:
 | Area | Change |
 |---|---|
 | `_registry.py` duplication | Delete the framework copy; update `verify_framework.py` to import from the validators copy |
-| `_annotation_str()` duplication | Extract to a shared utility module within `_spec_code_adapters`; all adapters and detectors import from it |
+| `_annotation_str()` duplication | Extract to a shared utility module; all adapters and detectors import from it |
 | Task-type reader duplication | Extract to a shared location consumed by both `orchestrator.py` and `build-context.py` |
 | `docs/contributing-adapters.md` | Note that shared utilities exist and must be imported, not copied |
 
@@ -1903,17 +1903,11 @@ Three duplication problems identified:
 
 **Discovered in post-Phase-48 audit.**
 
-A large number of files still refer to `project_starter_v4` in docstrings, CLI descriptions, comments, and headers. Only `orchestrator.py`, `verify_framework.py`, `verify_spec_code.py`, and the Phase 45–48 adapter files correctly say v5. The stale references create confusion about which version a file belongs to and erode confidence in the codebase's internal consistency.
+A large number of files still refer to `project_starter_v4` in docstrings, CLI descriptions, comments, and headers. The stale references create confusion about which version a file belongs to and erode confidence in the codebase's internal consistency.
 
-**Affected files:** `ROADMAP.md` (title), `document-registry.yaml` (header comment), `build-context.py` (docstring), both `_registry.py` copies (docstring + user-facing error message), `verify_docs.py`, `verify_content.py`, `verify_logs.py`, `verify_tests.py`, `verify_module_docs.py` (all: docstrings + argparse descriptions), `docs/architecture-analysis.md`, `docs/refactoring-plan.md` (headers), `.project-starter.yml` (comment), `.githooks/pre-commit` (banner comment), `propose_framework_fix.py` (temp dir prefix `ps4-fix-`).
+**Goal:** Update all stale v4 references across documentation, comments, and user-facing metadata. No logic changes.
 
-**Goal:** Replace every `project_starter_v4` reference with `project_starter_v5` (or remove the version suffix where not needed). Change `ps4-fix-` temp prefix to `ps5-fix-` in `propose_framework_fix.py`.
-
-### Changes
-
-All files listed above: search-replace `project_starter_v4` → `project_starter_v5` and `ps4-fix-` → `ps5-fix-`. No logic changes.
-
-**Verification:** `grep -r "project_starter_v4" templates/ *.py *.md *.yaml .githooks/` returns zero results after the sweep.
+**Verification:** `grep -r "project_starter_v4"` returns zero results after the sweep.
 
 ---
 
@@ -1936,7 +1930,7 @@ Three discoverability gaps:
 | `README.md` file tree | Add `docs/contributing-adapters.md` under the `docs/` section | Contributor tool |
 | `README.md` Phase 14 history note | Remove `translate_docs.py` reference; note only `build_pdf.py` and `schema_to_html.py` exist | Dead-reference removal |
 | `README.md` § Module Docs (new subsection) | Explain that `verify_module_docs.py` is a contributor tool run manually before opening a PR, not a pre-commit gate; include the exact command | Contributor tool |
-| `.githooks/run-verify.sh` | Add an explicit comment: `# verify_module_docs.py is a contributor tool, not a pre-commit gate — see README § Module Docs` | Documentation in code |
+| Commit gate documentation | Document why module documentation validation is not part of commit gates | Documentation in code |
 
 `verify_module_docs.py` is intentionally **not** added to the pre-commit gate. The check is slow and produces noisy output on work-in-progress modules; it is better suited as a manual pre-PR step. The README addition makes this decision visible rather than leaving the script undiscoverable.
 
@@ -1944,11 +1938,13 @@ Three discoverability gaps:
 
 ---
 
-## Phase 56 — Code Quality Sweep
+## Phase 56 — Maintenance Quality Sweep
 
 **Discovered in post-Phase-48 audit.**
 
-A collection of minor code quality issues across multiple files, none individually blocking but collectively lowering the codebase's internal consistency bar.
+A collection of minor code quality issues across multiple files, none individually blocking but accumulated across several audit passes.
+
+**Goal:** Resolve accumulated low-risk quality issues discovered during audits.
 
 ### Issues
 
