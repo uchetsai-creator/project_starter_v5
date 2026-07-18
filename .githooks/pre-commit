@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# project_starter_v4 — verification pre-commit hook (Phase 20 + Phase 21 + Phase 23 + Phase 24 + Phase 33 + Phase 40)
+# project_starter_v5 — verification pre-commit hook (Phase 20 + Phase 21 + Phase 23 + Phase 24 + Phase 33 + Phase 40 + Phase 45)
 # Runs quality checks automatically on every git commit. Blocks on failure.
 #
 # Install (once per project clone):
@@ -149,6 +149,17 @@ if [ -n "$SPEC_FACING_STAGED" ]; then
         fi
     done <<< "$SPEC_FACING_STAGED"
     [ "$FOUND_VIOLATIONS" = true ] && PASS=false
+fi
+
+# ── Phase 45: Spec ↔ Code validation ──────────────────────────────────────────
+# Trigger: pipeline-contract.md or cli-contract.md staged (spec contract changed)
+# Catches: spec–code drift introduced alongside a spec update
+# Note: verify_spec_code.py exits 0 if --adapter/--spec/--src are not configured.
+SPEC_CONTRACT_STAGED=$(printf '%s\n' "$STAGED" \
+    | grep -E '(pipeline-contract|cli-contract)\.md$' || true)
+if [ -n "$SPEC_CONTRACT_STAGED" ] && [ -f "docs/script/validators/verify_spec_code.py" ]; then
+    echo "  → verify_spec_code.py (spec contract staged) ..."
+    python3 "docs/script/validators/verify_spec_code.py" --strict 2>&1 || PASS=false
 fi
 
 if [ "$PASS" = false ]; then

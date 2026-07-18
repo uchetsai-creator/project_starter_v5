@@ -146,6 +146,11 @@ project_starter/                     ← this repo (template only)
         │   ├── verify_tests.py      ← test-report.md fill quality audit
         │   ├── verify_module_docs.py ← module flow coverage + quality audit
         │   ├── verify_content.py    ← full document content quality gate (all Required docs × project type)
+        │   ├── verify_spec_code.py  ← spec ↔ code drift validator (core — no framework logic)
+        │   ├── _spec_code_adapters/ ← framework adapters (one per framework)
+        │   │   ├── _base.py         ← FrameworkAdapter ABC + all NormalizedForm dataclasses
+        │   │   ├── airflow.py       ← AirflowAdapter (Data Pipeline / ML Pipeline)
+        │   │   └── click.py         ← ClickAdapter (CLI Tool)
         │   ├── _verify_common.py    ← shared placeholder patterns imported by verify scripts
         │   └── _registry.py         ← document registry loader
         ├── generators/              ← shipped to user projects (docs/script/generators/)
@@ -794,6 +799,110 @@ python3 docs/script/validators/verify_content.py --project-type data-pipeline --
 
 The Stop hook (`adapters/claude/stop-hook.sh`) writes to `task-run.json` automatically on
 Claude Code session end. No manual steps required once the hook is installed.
+
+---
+
+## Spec ↔ Code Validator
+
+Existing validators check document presence and fill quality — they don't verify that code
+matches what the spec declares. `verify_spec_code.py` closes this gap by comparing both sides
+through a framework adapter interface, without any framework-specific logic in the core.
+
+### Architecture
+
+```
+verify_spec_code.py
+        │  --adapter, --spec, --src
+        ▼
+FrameworkAdapter (_spec_code_adapters/_base.py)
+        │
+        ├── extract_spec(spec_path) → list[NormalizedForm]
+        ├── extract_code(src_path)  → list[NormalizedForm]
+        └── (no comparison logic)
+
+verify_spec_code.py
+        │  compare(spec_items, code_items)
+        ▼
+    MismatchReport
+      missing_in_code  — declared in spec, absent in code
+      extra_in_code    — in code, not in spec
+      field_mismatches — removed_from_code | added_in_code | type_changed
+```
+
+**Constraint:** `verify_spec_code.py` contains zero framework-specific logic. Any code that
+knows what Airflow or Click is belongs in an adapter. Any adapter that contains comparison
+logic is a bug.
+
+### NormalizedForm per project type
+
+| Project type | NormalizedForm | Key fields |
+|---|---|---|
+| Web App / Microservices | `NormalizedEndpoint` | method, path, request fields, response fields |
+| Data Pipeline / ML Pipeline | `NormalizedStageContract` | stage name, input fields (name + type), output fields (name + type) |
+| CLI Tool | `NormalizedCommand` | command name, flags (name + type) |
+| Library / SDK | `NormalizedFunction` | function name, params (name + type), return type |
+| AI / LLM App | `NormalizedTool` | tool name, parameter schema |
+| IaC / DevOps | `NormalizedResource` | resource name, resource type, config keys |
+| Mobile App | `NormalizedScreen` | screen name, props (name + type) |
+
+### Adapters (Phase 45 — PoC)
+
+| Adapter | Framework | Project type | Spec source | Code source |
+|---|---|---|---|---|
+| `airflow` | Apache Airflow | Data Pipeline / ML Pipeline | `pipeline-contract.md` `### Stage` + `#### Input/Output Contract \| Schema \|` | `@task`-decorated Python functions |
+| `click` | Click | CLI Tool | `cli-contract.md` `### \`cmd\`` + `#### Flags` table | `@click.command()` + `@click.option()` Python functions |
+
+### Spec format (Airflow)
+
+Declare fields in the `Schema` row of each stage's Input/Output Contract:
+
+```markdown
+### extract
+
+#### Input Contract
+| Property | Value |
+|---|---|
+| Schema | raw_amount: float, customer_id: int |
+
+#### Output Contract
+| Property | Value |
+|---|---|
+| Schema | amount: float |
+```
+
+### Usage
+
+```bash
+# Data Pipeline — validate stage contracts against Airflow code
+python3 docs/script/validators/verify_spec_code.py \
+    --project-type data-pipeline --adapter airflow \
+    --spec docs/specs/pipeline-contract.md --src src/stages/ --strict
+
+# CLI Tool — validate subcommands and flags against Click code
+python3 docs/script/validators/verify_spec_code.py \
+    --project-type cli-tool --adapter click \
+    --spec docs/specs/cli-contract.md --src src/cli.py --strict
+
+# JSON output for agent consumption
+python3 docs/script/validators/verify_spec_code.py \
+    --project-type data-pipeline --adapter airflow \
+    --spec docs/specs/pipeline-contract.md --src src/ --json
+
+# Dry-run: show mismatches without exit code change
+python3 docs/script/validators/verify_spec_code.py \
+    --project-type data-pipeline --adapter airflow \
+    --spec docs/specs/pipeline-contract.md --src src/ --dry-run
+```
+
+The validator exits 0 with a warning if `--adapter`/`--spec`/`--src` are not provided —
+safe to include in the workflow registry and pre-commit hook for all projects.
+
+### Adding a new adapter
+
+1. Create `_spec_code_adapters/<framework>.py` implementing `FrameworkAdapter` from `_base.py`.
+2. Add an entry to `ADAPTER_REGISTRY` in `verify_spec_code.py`.
+3. Register in `workflow-registry.yaml` for relevant task types.
+4. Add a trigger in `.githooks/pre-commit` for the relevant spec file.
 
 ---
 

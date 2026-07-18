@@ -18,6 +18,10 @@ workflows:
         args: [--strict]
       - script: docs/script/validators/verify_content.py
         args: [--strict]
+      - script: docs/script/validators/verify_spec_code.py
+        args: [--strict]
+        # Requires --adapter / --spec / --src to be passed; skips gracefully if omitted.
+        # Relevant for data-pipeline, ml-pipeline, cli-tool projects.
 
   pipeline-stage:
     validators:
@@ -27,6 +31,9 @@ workflows:
         args: [--strict]
       - script: docs/script/validators/verify_content.py
         args: [--strict]
+      - script: docs/script/validators/verify_spec_code.py
+        args: [--strict]
+        # Requires --adapter / --spec / --src to be passed; skips gracefully if omitted.
 
   bug-fix:
     validators:

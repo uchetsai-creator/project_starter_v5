@@ -806,6 +806,54 @@ Output: per-module table with flow file status and quality verdict; Coverage and
 
 Update when: a new module type is added, or required sections for an existing module type change.
 
+### verify_spec_code.py
+**Applies to: data-pipeline, ml-pipeline, cli-tool, web-app, microservices, library, llm-app, iac, mobile-app**
+
+Purpose:
+Spec ↔ code drift validator. Compares what the spec document declares (stages, endpoints,
+commands, functions) against what the source code implements. Adapters translate both spec
+and code into framework-agnostic NormalizedForm objects; the core validator compares them.
+No framework-specific logic lives in verify_spec_code.py — that belongs in adapters.
+
+```bash
+python3 docs/script/validators/verify_spec_code.py \
+    --project-type data-pipeline --adapter airflow \
+    --spec docs/specs/pipeline-contract.md --src src/stages/ --strict
+python3 docs/script/validators/verify_spec_code.py \
+    --project-type cli-tool --adapter click \
+    --spec docs/specs/cli-contract.md --src src/cli.py --strict
+```
+
+Output: per-item mismatch report (missing_in_code, extra_in_code, field_mismatches).
+`--strict` exits 1 if any mismatch is found. Exits 0 (with warning) if `--adapter`/`--spec`/`--src`
+are not provided — safe to include in the pre-commit hook and workflow registry for all projects.
+
+Update when: a new adapter is added, or the comparison logic changes.
+
+### _spec_code_adapters/
+
+Purpose:
+Framework adapter directory — one file per framework. Each adapter implements
+`FrameworkAdapter` from `_base.py` and provides exactly two methods:
+- `extract_spec(spec_path)` → list of NormalizedForm objects parsed from the spec document
+- `extract_code(src_path)` → list of NormalizedForm objects parsed from source code
+
+**`_base.py`** — abstract base class + all NormalizedForm dataclasses
+(NormalizedStageContract, NormalizedEndpoint, NormalizedCommand, NormalizedFunction,
+NormalizedTool, NormalizedResource, NormalizedScreen).
+
+**`airflow.py`** (`AirflowAdapter`) — Data Pipeline / ML Pipeline.
+Spec: `### StageName` + `#### Input/Output Contract` table `| Schema | field: type |`.
+Code: Python files — `@task`-decorated functions and type-annotated callables.
+
+**`click.py`** (`ClickAdapter`) — CLI Tool.
+Spec: `### \`tool subcommand\`` + `#### Flags` table.
+Code: Python files — `@click.command()` + `@click.option()` decorated functions.
+
+Constraint: no comparison logic in any adapter. Any adapter containing comparison code is a bug.
+
+Update when: a new adapter file is added for a new framework (see Phase 46, Phase 47).
+
 ### verify_framework.py
 Purpose:
 Framework self-audit — checks internal consistency of the project_starter_v4 framework itself.
