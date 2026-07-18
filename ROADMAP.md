@@ -1823,7 +1823,7 @@ Phases 45–47 established a working `FrameworkAdapter` interface but encoded th
 
 The correct model: a **Capability Adapter** declares what kind of contract it validates (HTTP API, Data Pipeline, CLI, IaC, Mobile, Library). A **Detector** encodes how to extract that contract from a specific framework's code. The capability adapter orchestrates detectors; it has no framework knowledge.
 
-**Goal:** Introduce the `Detector` plugin abstraction in `_base.py`. Reorganise all existing framework logic into a capability-based directory tree with per-framework detector modules. Keep full backward compatibility via legacy aliases in `ADAPTER_REGISTRY`. Add a separate `DETECTOR_REGISTRY` for `--framework` hints. The core validator (`verify_spec_code.py`) gains one optional flag (`--framework`) and no other changes.
+**Goal:** Introduce the `Detector` plugin abstraction in `_base.py`. Reorganise all existing framework logic into a capability-based directory tree with per-framework detector modules. Keep full backward compatibility via legacy aliases in the adapter registry. Add a separate detector registry for `--framework` hints. The core validator (`verify_spec_code.py`) gains one optional flag (`--framework`) and no other changes.
 
 ### Architecture
 
@@ -1854,81 +1854,65 @@ NormalizedForm  →  verify_spec_code.py compare()  →  MismatchReport
 
 ```
 _spec_code_adapters/
-├── _base.py               add Detector ABC alongside FrameworkAdapter
+├── _base.py               FrameworkAdapter ABC + new Detector ABC
+├── _utils.py              shared utilities (e.g. _annotation_str)
 ├── semantic.py            unchanged
+├── _example_adapter.py    updated to show two-layer pattern
+├── _example_detector.py   (new) companion detector reference
 │
-├── api/
+├── api/                   HTTP API capability
 │   ├── web_api.py         WebAPIAdapter
-│   └── detectors/
-│       ├── python/        one file per Python web framework
-│       └── javascript/    one file per JS web framework
+│   └── detectors/         one subdir per language; one file per framework
 │
-├── pipeline/
+├── pipeline/              Data/ML pipeline capability
 │   ├── data_pipeline.py   DataPipelineAdapter
-│   └── detectors/         one file per pipeline framework (Airflow, Dagster, Prefect, …)
+│   └── detectors/         one file per pipeline framework
 │
-├── cli/
-│   ├── command_line.py    CLIAdapter
-│   └── detectors/
-│
-├── iac/
-│   ├── infrastructure.py  IaCAdapter
-│   └── detectors/
-│
-├── mobile/
-│   ├── mobile_ui.py       MobileAdapter
-│   └── detectors/
-│
-└── library/
-    ├── library_api.py     LibraryAdapter
-    └── detectors/
+├── cli/                   CLI capability
+├── iac/                   IaC capability
+├── mobile/                Mobile UI capability
+└── library/               Library/SDK capability
 ```
 
-### Registry design
+### Constraints
+
+- After this phase, no top-level file in `_spec_code_adapters/` (other than `_base.py`, `_utils.py`, `semantic.py`, and the example files) shall encode any framework-specific logic. All framework patterns live in `detectors/`.
+- Detectors receive `list[Path]` (pre-discovered by the capability adapter) and return `list[NormalizedForm]`. They must not walk directories or call `os.walk` / `glob` themselves.
+- Detector names must include the framework name (e.g. `FastAPIDetector`, not `PythonDetector`). A detector is per-framework, not per-language.
+- `--adapter fastapi` (legacy alias) and `--adapter web-api --framework fastapi` must produce identical output on the same inputs.
+- `--adapter web-api` with no `--framework` must find endpoints regardless of whether the project uses FastAPI, Flask, or Express patterns.
+- `docs/contributing-adapters.md` is rewritten so that "add a new framework" means "add one detector file in the right capability directory" — not "add a new top-level adapter."
+
+### Implementation notes
+
+<details>
+<summary>Registry shape (non-binding — exact keys decided during implementation)</summary>
+
+Two registries live in `verify_spec_code.py` (or a dedicated `_registry.py`):
 
 ```python
-# Primary registry — capability keys only
+# Primary registry — capability keys; legacy framework aliases for backward compat
 ADAPTER_REGISTRY = {
-    'web-api':       ('api.web_api',            'WebAPIAdapter'),
-    'data-pipeline': ('pipeline.data_pipeline',  'DataPipelineAdapter'),
-    'cli':           ('cli.command_line',         'CLIAdapter'),
-    'iac':           ('iac.infrastructure',       'IaCAdapter'),
-    'mobile':        ('mobile.mobile_ui',         'MobileAdapter'),
-    'library':       ('library.library_api',      'LibraryAdapter'),
-    # Legacy aliases — framework name → capability adapter, backward compat
-    'fastapi': ('api.web_api', 'WebAPIAdapter'), 'flask': ..., 'airflow': ..., ...
+    'web-api': ('api.web_api', 'WebAPIAdapter'),
+    'data-pipeline': ('pipeline.data_pipeline', 'DataPipelineAdapter'),
+    # ... one entry per capability
+    # Legacy aliases:
+    'fastapi': ('api.web_api', 'WebAPIAdapter'),
+    'airflow': ('pipeline.data_pipeline', 'DataPipelineAdapter'),
+    # ...
 }
 
 # Detector registry — framework hint → detector module
 DETECTOR_REGISTRY = {
-    'fastapi':  ('api.detectors.python.fastapi',   'FastAPIDetector'),
-    'flask':    ('api.detectors.python.flask',      'FlaskDetector'),
-    'airflow':  ('pipeline.detectors.airflow',      'AirflowDetector'),
-    ...
+    'fastapi': ('api.detectors.python.fastapi', 'FastAPIDetector'),
+    'flask':   ('api.detectors.python.flask',   'FlaskDetector'),
+    'airflow': ('pipeline.detectors.airflow',   'AirflowDetector'),
+    # ...
 }
 ```
 
 `--framework` is optional. When omitted, the capability adapter runs all registered detectors for its capability and unions results. When specified, only that detector is used.
-
-### Changes
-
-| File | Change |
-|---|---|
-| `_spec_code_adapters/_base.py` | Add `Detector` ABC: `extract(files: list[Path]) -> list`; must return `[]` not raise |
-| `_spec_code_adapters/api/web_api.py` (new) | `WebAPIAdapter`: spec parser + file walker + detector dispatcher |
-| `_spec_code_adapters/api/detectors/python/` (new) | One detector per Python web framework (existing FastAPI, Flask logic migrated) |
-| `_spec_code_adapters/api/detectors/javascript/` (new) | One detector per JS web framework (existing Express logic migrated) |
-| `_spec_code_adapters/pipeline/data_pipeline.py` (new) | `DataPipelineAdapter` |
-| `_spec_code_adapters/pipeline/detectors/` (new) | One detector per pipeline framework (Airflow, Dagster, Prefect migrated) |
-| `_spec_code_adapters/cli/`, `iac/`, `mobile/`, `library/` (new) | Same pattern for remaining capabilities |
-| `_spec_code_adapters/airflow.py`, `fastapi.py`, … (delete) | Replaced by capability tree; legacy aliases in registry preserve backward compat |
-| `verify_spec_code.py` | Add `DETECTOR_REGISTRY`; add `--framework` optional flag; update `_load_adapter` to resolve detector via hint; update `--list-adapters` to show capability keys and available detectors per capability |
-| `_spec_code_adapters/_example_adapter.py` | Update to show two-layer pattern; add `_example_detector.py` as companion reference |
-| `docs/contributing-adapters.md` | Rewrite contributor guide: adding a new framework = adding a detector in the right capability directory, not a new top-level adapter |
-
-**Constraint:** After this phase, no top-level file in `_spec_code_adapters/` (other than `_base.py`, `semantic.py`, and the example files) should encode any framework-specific logic. All framework patterns live in `detectors/`.
-
-**Verification:** `--adapter fastapi` (legacy alias) and `--adapter web-api --framework fastapi` must produce identical output on the same inputs. `--adapter web-api` with no `--framework` must find endpoints regardless of whether the code uses FastAPI or Flask patterns.
+</details>
 
 ---
 
@@ -1950,8 +1934,8 @@ Three duplication problems:
 |---|---|
 | `templates/script/validators/_registry.py` | Canonical location — no change |
 | `templates/script/framework/_registry.py` | Delete; update `verify_framework.py` import to point to the validators copy |
-| `templates/script/validators/_spec_code_adapters/_utils.py` (new) | Extract `_annotation_str()` here; detectors in subdirectories import it via `sys.path` (the adapter root is already on `sys.path` at load time — same pattern used by `_base.py` imports) |
-| All detector files that define `_annotation_str()` locally | Replace local definition with `from _utils import _annotation_str` |
+| `_spec_code_adapters/_utils.py` (new) | Extract `_annotation_str()` here; canonical location at the top of the `_spec_code_adapters` package |
+| All detector files that define `_annotation_str()` locally | Replace local definition with `from _spec_code_adapters._utils import _annotation_str` (absolute import; `verify_spec_code.py` already adds its parent dir to `sys.path` at module level so `_spec_code_adapters` is importable) |
 | `_example_adapter.py` | Same import update |
 | `build-context.py` | Remove `_read_task_type_from_current_state()` and `_resolve_task_type()`; import from `orchestrator.py` (or a shared `_workflow_utils.py`) |
 | `docs/contributing-adapters.md` | Add note: import `_annotation_str` from `_utils.py` instead of copying |
@@ -1988,18 +1972,20 @@ Three discoverability gaps:
 2. README Phase 14 history mentions `translate_docs.py` as one of the generator scripts. This file does not exist anywhere in the repo (likely planned but never implemented or since removed). The dead reference misleads readers looking for it.
 3. `verify_module_docs.py` has no automated trigger path. Neither `.githooks/pre-commit` nor `.githooks/run-verify.sh` calls it. Its only invocation path is manual, and this is not documented anywhere.
 
-**Goal:** Close all three gaps.
+**Goal:** Close all three gaps. Items are classified by fix type — "CI gate" items block commit; "contributor tool" items inform the developer but do not block.
 
 ### Changes
 
-| File | Change |
-|---|---|
-| `README.md` file tree | Add `docs/contributing-adapters.md` under the `docs/` section |
-| `README.md` Phase 14 history note | Remove `translate_docs.py` reference; note only `build_pdf.py` and `schema_to_html.py` exist |
-| `.githooks/run-verify.sh` | Add `verify_module_docs.py` call (or add a comment explaining why it is intentionally excluded) |
-| `README.md` § Spec ↔ Code Validator or a new § Module Docs | Add note that `verify_module_docs.py` must be invoked manually; explain when to use it |
+| File | Change | Type |
+|---|---|---|
+| `README.md` file tree | Add `docs/contributing-adapters.md` under the `docs/` section | Contributor tool |
+| `README.md` Phase 14 history note | Remove `translate_docs.py` reference; note only `build_pdf.py` and `schema_to_html.py` exist | Dead-reference removal |
+| `README.md` § Module Docs (new subsection) | Explain that `verify_module_docs.py` is a contributor tool run manually before opening a PR, not a pre-commit gate; include the exact command | Contributor tool |
+| `.githooks/run-verify.sh` | Add an explicit comment: `# verify_module_docs.py is a contributor tool, not a pre-commit gate — see README § Module Docs` | Documentation in code |
 
-**Verification:** `grep -r "translate_docs" .` returns zero results; `docs/contributing-adapters.md` appears in README tree; `verify_module_docs.py` has a documented or automated trigger.
+`verify_module_docs.py` is intentionally **not** added to the pre-commit gate. The check is slow and produces noisy output on work-in-progress modules; it is better suited as a manual pre-PR step. The README addition makes this decision visible rather than leaving the script undiscoverable.
+
+**Verification:** `grep -r "translate_docs" .` returns zero results; `docs/contributing-adapters.md` appears in README tree; README contains a § Module Docs section explaining when and how to run `verify_module_docs.py`.
 
 ---
 
