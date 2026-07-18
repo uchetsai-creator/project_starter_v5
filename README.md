@@ -1003,6 +1003,48 @@ python3 docs/script/validators/verify_spec_code.py --list-adapters
 python3 docs/script/validators/_spec_code_adapters/_example_adapter.py
 ```
 
+### Semantic matching
+
+`--semantic` adds an LLM-assisted pass on top of the structural diff. After the structural pass
+identifies field name differences (`removed_from_code` + `added_in_code` for the same item),
+Claude evaluates whether the differing names represent the same concept.
+
+**When to use:** when field names differ between spec and code (e.g., spec declares `order_id: string`,
+code has `id: int`) and you want reasoning about whether the rename is intentional drift or an
+undocumented refactor.
+
+**Not for automated use:** `--semantic` makes LLM API calls and is not suitable as a gate. Never add
+`--semantic` to `workflow-registry.yaml` or pre-commit sequences — it is a developer analysis tool only.
+
+**Requirements:** `pip install anthropic` and `ANTHROPIC_API_KEY` environment variable.
+
+**Token cost estimate:** ~200–400 tokens per field pair using claude-haiku-4-5. A typical endpoint
+with 3 field-name diffs costs ~600–1200 tokens (~$0.001 at Haiku pricing).
+
+**Output format:**
+
+```
+  Semantic matching (LLM-assisted):
+       ⚠️  POST /orders: spec='order_id':'string'  vs  code='id':'int'
+           → likely_same: order_id and id likely refer to the same order identifier; type widening is a mismatch worth reviewing
+       ❌  POST /orders: spec='order_total':'float'  vs  code='discount':'Decimal'
+           → different: order_total (total price) and discount (reduction amount) are unrelated concepts
+```
+
+**Usage:**
+
+```bash
+# Web App — structural + semantic pass
+python3 docs/script/validators/verify_spec_code.py \
+    --project-type web-app --adapter fastapi --semantic \
+    --spec docs/specs/api-contract.md --src src/
+
+# JSON output including semantic_verdicts array
+python3 docs/script/validators/verify_spec_code.py \
+    --project-type web-app --adapter fastapi --semantic --json \
+    --spec docs/specs/api-contract.md --src src/
+```
+
 ---
 
 ## Self-improving loop

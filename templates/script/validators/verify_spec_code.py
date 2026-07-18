@@ -40,6 +40,11 @@ Valid adapters (Phase 47):
   pulumi          — IaC / DevOps (Pulumi Python)
   react_native    — Mobile App (React Native TSX/JSX)
   flutter         — Mobile App (Flutter Dart)
+
+Phase 48 — Semantic matching (opt-in, not a registered adapter):
+  --semantic      Wrap the selected adapter with SemanticAdapter for LLM-assisted
+                  field matching. Requires ANTHROPIC_API_KEY. Never use in automated
+                  sequences (pre-commit, workflow-registry) — opt-in only.
 """
 
 import argparse
@@ -255,6 +260,32 @@ def print_report(report: dict, spec: str, src: str, adapter: str) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Semantic output
+# ---------------------------------------------------------------------------
+
+_VERDICT_ICON = {
+    'likely_same': '⚠️ ',
+    'different':   '❌',
+    'uncertain':   '❓',
+}
+
+
+def print_semantic_report(verdicts: list[dict]) -> None:
+    if not verdicts:
+        return
+    print("  Semantic matching (LLM-assisted):")
+    for v in verdicts:
+        icon = _VERDICT_ICON.get(v['verdict'], '❓')
+        print(
+            f"       {icon} {v['item']}: "
+            f"spec={v['spec_field']!r}:{v['spec_type']!r}  "
+            f"vs  code={v['code_field']!r}:{v['code_type']!r}\n"
+            f"           → {v['verdict']}: {v['reasoning']}"
+        )
+    print()
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -294,6 +325,13 @@ def main() -> None:
         '--list-adapters', action='store_true',
         help='Print all registered adapter names and exit',
     )
+    parser.add_argument(
+        '--semantic', action='store_true',
+        help=(
+            'Wrap the selected adapter with SemanticAdapter for LLM-assisted field matching '
+            '(requires ANTHROPIC_API_KEY; never use in automated sequences)'
+        ),
+    )
     args = parser.parse_args()
 
     if args.list_adapters:
@@ -320,9 +358,18 @@ def main() -> None:
         sys.exit(2)
 
     adapter_obj = _load_adapter(args.adapter)
+    if args.semantic:
+        sys.path.insert(0, str(_ADAPTER_DIR))
+        from semantic import SemanticAdapter  # noqa: PLC0415
+        adapter_obj = SemanticAdapter(wraps=adapter_obj)
+
     spec_items = adapter_obj.extract_spec(args.spec)
     code_items = adapter_obj.extract_code(args.src)
     report = compare(spec_items, code_items)
+
+    semantic_verdicts: list[dict] = []
+    if args.semantic and hasattr(adapter_obj, 'semantic_compare'):
+        semantic_verdicts = adapter_obj.semantic_compare(report, spec_items, code_items)
 
     if args.json_output:
         print(json.dumps({
@@ -331,9 +378,12 @@ def main() -> None:
             'spec': args.spec,
             'src': args.src,
             **report,
+            'semantic_verdicts': semantic_verdicts,
         }, indent=2))
     else:
         print_report(report, args.spec, args.src, args.adapter)
+        if semantic_verdicts:
+            print_semantic_report(semantic_verdicts)
 
     if args.strict and not args.dry_run and _has_mismatches(report):
         sys.exit(1)

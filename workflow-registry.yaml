@@ -7,6 +7,10 @@
 #
 # Task types: feature | pipeline-stage | bug-fix | sprint-end | eval-run | iac-change
 # If the current task type has no entry, the "default" workflow is used.
+#
+# Phase 48 — --semantic flag for verify_spec_code.py:
+#   --semantic is opt-in only. Do NOT add it to any sequence below.
+#   Adding --semantic here is a bug — it makes LLM API calls and is not a gate.
 
 workflows:
 
