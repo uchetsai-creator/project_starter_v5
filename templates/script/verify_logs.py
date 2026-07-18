@@ -24,6 +24,9 @@ import os
 import re
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _verify_common import _is_placeholder
+
 VALID_TYPES = [
     'web-app', 'cli-tool', 'library',
     'data-pipeline', 'ml-pipeline', 'microservices', 'llm-app', 'iac', 'mobile-app',
@@ -49,21 +52,6 @@ LOGGING_SPEC_SECTIONS = [
 
 MIN_SECTION_LINES = 3
 
-# Placeholder patterns (mirrors verify_docs.py)
-_PLACEHOLDER_RES = [
-    re.compile(r'<!--\s*TODO\b', re.IGNORECASE),
-    re.compile(r'<!--\s*TBD\b', re.IGNORECASE),
-    re.compile(r'\b_TBD_\b'),
-    re.compile(r'\[placeholder\]', re.IGNORECASE),
-    re.compile(r'\[your\s+\w', re.IGNORECASE),
-    re.compile(r'\[insert\s+', re.IGNORECASE),
-    re.compile(r'\[describe\s+', re.IGNORECASE),
-    re.compile(r'\[add\s+', re.IGNORECASE),
-    re.compile(r'\[fill\s+', re.IGNORECASE),
-    re.compile(r'^\s*_\s*$'),
-    re.compile(r'^\s*\.\.\.\s*$'),
-]
-
 # Module log file patterns
 _PRINT_RE = re.compile(r'\bprint\s*\(|console\.(log|error|warn)\s*\(', re.IGNORECASE)
 _STRUCTURED_RE = re.compile(r'(\{[^}]{2,}\}|key=value|→\s*\{|"trace_id"|structured|json payload|log payload)', re.IGNORECASE)
@@ -80,23 +68,16 @@ def _read_file(path):
         return None
 
 
-def _is_placeholder(line):
-    return any(p.search(line) for p in _PLACEHOLDER_RES)
-
-
-def _section_body(lines, header):
-    """Return lines belonging to the section that starts with the given ## header."""
-    body = []
-    in_section = False
-    for line in lines:
-        if line.strip() == header.strip():
-            in_section = True
-            continue
-        if in_section:
-            if line.startswith('## ') and line.strip() != header.strip():
-                break
-            body.append(line)
-    return body
+def _section_body(text: str, header_re: str) -> str | None:
+    """Return text from matching section header until next same-or-higher heading."""
+    m = re.search(header_re, text, re.IGNORECASE | re.MULTILINE)
+    if not m:
+        return None
+    hashes = re.match(r'^(#+)', m.group(0))
+    level = len(hashes.group(1)) if hashes else 1
+    after = text[m.end():]
+    boundary = re.search(r'(?m)^#{1,' + str(level) + r'}\s', after)
+    return after[:boundary.start()] if boundary else after
 
 
 def _filled_lines(body):
@@ -144,8 +125,8 @@ def check_logging_spec(docs_dir, types):
 
     # Required sections filled
     for section in LOGGING_SPEC_SECTIONS:
-        body = _section_body(lines, section)
-        filled = _filled_lines(body)
+        body = _section_body(full_text, re.escape(section))
+        filled = _filled_lines(body.splitlines() if body else [])
         if len(filled) < MIN_SECTION_LINES:
             results.append({
                 'file': 'specs/logging-spec.md',

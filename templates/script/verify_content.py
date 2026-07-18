@@ -93,27 +93,8 @@ TYPE_DOCS: dict[str, list[str]] = {
     'mobile-app':    ['mobile-contract.md', 'frontend.md', 'distribution.md'],
 }
 
-# Placeholder patterns shared across checkers
-_PLACEHOLDER_RES = [
-    re.compile(r'\[Component\]', re.IGNORECASE),
-    re.compile(r'\[Method\]', re.IGNORECASE),
-    re.compile(r'\[/path\]', re.IGNORECASE),
-    re.compile(r'\[your\s+', re.IGNORECASE),
-    re.compile(r'\[e\.g\.', re.IGNORECASE),
-    re.compile(r'<!--\s*TODO\b', re.IGNORECASE),
-    re.compile(r'\b_TBD_\b'),
-    re.compile(r'\[placeholder\]', re.IGNORECASE),
-    re.compile(r'\[insert\s+', re.IGNORECASE),
-    re.compile(r'\[describe\s+', re.IGNORECASE),
-    re.compile(r'\[add\s+', re.IGNORECASE),
-    re.compile(r'\[FunctionName\]', re.IGNORECASE),
-    re.compile(r'\[MODEL\]', re.IGNORECASE),
-    re.compile(r'\[Stage\s+Name\b', re.IGNORECASE),
-]
-
-
-def _is_placeholder(text: str) -> bool:
-    return any(r.search(text) for r in _PLACEHOLDER_RES)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _verify_common import _is_placeholder
 
 
 def _read_file(path: str) -> list[str] | None:

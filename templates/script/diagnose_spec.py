@@ -2,18 +2,31 @@
 """
 diagnose_spec.py — classify spec quality problems as project-level or framework-level.
 
-Reads `verify_docs.py --json --content` output and, for each fill-quality gap,
-checks whether the framework template already contains guidance for that section.
+Accepts either verify_content.py --json output (preferred) or
+verify_docs.py --content --json output. Format is auto-detected.
 
-  Project-level gap  → template has the section; the project didn't fill it in.
+  verify_content.py format: {"documents": [...]}  — documents[].{name, present, quality, issues}
+  verify_docs.py format:    {"results": [...]}     — results[].{doc, status, content}
+
+For verify_docs.py format, each fill-quality gap is classified by checking whether
+the framework template already contains guidance for that section:
+
+  Project-level gap   → template has the section; the project didn't fill it in.
   Framework-level gap → template is missing the section; no guidance was provided.
 
-For framework-level gaps, calls `propose_framework_fix.py` to open a PR on
-project_starter_v4 with a template placeholder (round 1).
+For verify_content.py format, all quality issues are treated as project-level gaps
+(checker-detected issues mean template sections exist but content is wrong or missing).
+
+For framework-level gaps (verify_docs.py format only), calls `propose_framework_fix.py`
+to open a PR on project_starter_v4 with a template placeholder (round 1).
 Round 2 writes remaining framework gaps to logs/framework-gaps.md instead of
 opening more PRs, enforcing the 2-round iteration limit.
 
 Usage:
+  # Pipe verify_content.py output directly (preferred):
+  python3 docs/script/verify_content.py --project-type web-app --json \\
+    | python3 templates/script/diagnose_spec.py --project-type web-app
+
   # Pipe verify_docs.py output directly:
   python3 docs/script/verify_docs.py --project-type web-app --content --json \\
     | python3 templates/script/diagnose_spec.py --project-type web-app
@@ -55,7 +68,7 @@ def find_template_content(doc_path: str, templates_dir: Path) -> str | None:
         return candidate.read_text(encoding="utf-8")
     # Try without subdir prefix (e.g. "architecture.md" → architecture/architecture.md)
     stem = Path(doc_path).name
-    for subdir in ("specs", "architecture", "business", "flows"):
+    for subdir in ("specs", "architecture", "business"):
         alt = templates_dir / subdir / stem
         if alt.exists():
             return alt.read_text(encoding="utf-8")
@@ -196,36 +209,47 @@ def main() -> int:
         else:
             templates_dir = cwd
 
-    results = data.get("results", [])
     project_type = args.project_type
 
     framework_gaps: list[dict] = []
     project_gaps: list[dict] = []
     missing_docs: list[str] = []
 
-    for r in results:
-        doc = r.get("doc", "")
-        status = r.get("status", "")
-        content_info = r.get("content") or {}
+    # Auto-detect input format: verify_content.py emits "documents"; verify_docs.py emits "results".
+    if "documents" in data:
+        # verify_content.py --json format: documents[].{name, present, quality, issues}
+        for r in data.get("documents", []):
+            doc = r.get("name", "")
+            if not r.get("present"):
+                missing_docs.append(doc)
+            elif r.get("quality") == "fail":
+                for issue in r.get("issues", []):
+                    project_gaps.append({"doc": doc, "section": issue, "type": project_type})
+    else:
+        # verify_docs.py --content --json format: results[].{doc, status, content}
+        for r in data.get("results", []):
+            doc = r.get("doc", "")
+            status = r.get("status", "")
+            content_info = r.get("content") or {}
 
-        if status == "missing_required":
-            missing_docs.append(doc)
-            continue
+            if status == "missing_required":
+                missing_docs.append(doc)
+                continue
 
-        if status != "present" or not content_info:
-            continue
+            if status != "present" or not content_info:
+                continue
 
-        content_status = content_info.get("status", "full")
-        unfilled = content_info.get("unfilled_sections") or []
+            content_status = content_info.get("status", "full")
+            unfilled = content_info.get("unfilled_sections") or []
 
-        if content_status in ("partial", "poor") and unfilled:
-            for section in unfilled:
-                cls = classify_gap(doc, section, templates_dir)
-                entry = {"doc": doc, "section": section, "type": project_type}
-                if cls == "framework":
-                    framework_gaps.append(entry)
-                else:
-                    project_gaps.append(entry)
+            if content_status in ("partial", "poor") and unfilled:
+                for section in unfilled:
+                    cls = classify_gap(doc, section, templates_dir)
+                    entry = {"doc": doc, "section": section, "type": project_type}
+                    if cls == "framework":
+                        framework_gaps.append(entry)
+                    else:
+                        project_gaps.append(entry)
 
     # ── Report ────────────────────────────────────────────────────────────────
     dry_tag = " [dry-run]" if args.dry_run else ""

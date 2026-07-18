@@ -58,7 +58,7 @@ from pathlib import Path
 SHARED_PATTERNS = {
     "lib", "libs", "utils", "util", "helpers", "helper",
     "common", "shared", "core", "types", "interfaces",
-    "config", "configs", "constants", "constants",
+    "config", "configs", "constants",
     "middleware", "middlewares",
     "scripts", "script",
     "migrations", "migration", "seeds", "seed",
@@ -343,10 +343,7 @@ def print_tree(src_dir: str, folders: list[dict], docs_dir: str = "docs") -> str
     except PermissionError:
         root_entries = []
 
-    SKIP_ROOT = {".git", ".github", "node_modules", "__pycache__", ".venv", "venv",
-                 "dist", "build", ".next", ".nuxt", "coverage", ".pdf_build_cache"}
-
-    visible = [e for e in root_entries if e.name not in SKIP_ROOT]
+    visible = [e for e in root_entries if e.name not in SKIP_DIRS]
 
     for i, entry in enumerate(visible):
         is_last = (i == len(visible) - 1)
@@ -360,7 +357,7 @@ def print_tree(src_dir: str, folders: list[dict], docs_dir: str = "docs") -> str
                 src_children = sorted(src_path.iterdir(), key=lambda x: (x.is_file(), x.name))
             except PermissionError:
                 src_children = []
-            src_visible = [e for e in src_children if e.name not in SKIP_ROOT]
+            src_visible = [e for e in src_children if e.name not in SKIP_DIRS]
             for j, sub in enumerate(src_visible):
                 sub_last = (j == len(src_visible) - 1)
                 sub_prefix = child_prefix + ("└── " if sub_last else "├── ")

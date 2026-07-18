@@ -49,26 +49,8 @@ PRIMARY_MODULE_TYPE = {
 MIN_EH_LINES = 3   # minimum non-blank lines required in an Error Handling section
 
 # Placeholder patterns shared across module types
-_PLACEHOLDER_RES = [
-    re.compile(r'\bactualFunctionName\b'),
-    re.compile(r'\bpath/to/file\b', re.IGNORECASE),
-    re.compile(r'\[method\]', re.IGNORECASE),
-    re.compile(r'\[module\s+name\]', re.IGNORECASE),
-    re.compile(r'\[your\s+', re.IGNORECASE),
-    re.compile(r'\[Stage\s+Name\b', re.IGNORECASE),
-    re.compile(r'\[Flow\s+Name\b', re.IGNORECASE),
-    re.compile(r'\[e\.g\.', re.IGNORECASE),
-    re.compile(r'<!--\s*TODO\b', re.IGNORECASE),
-    re.compile(r'\b_TBD_\b'),
-    re.compile(r'\[placeholder\]', re.IGNORECASE),
-    re.compile(r'\[insert\s+', re.IGNORECASE),
-    re.compile(r'\[describe\s+', re.IGNORECASE),
-    re.compile(r'\[add\s+', re.IGNORECASE),
-]
-
-
-def _is_placeholder(text: str) -> bool:
-    return any(r.search(text) for r in _PLACEHOLDER_RES)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _verify_common import _is_placeholder
 
 
 def _read_file(path: str) -> list[str] | None:
@@ -467,11 +449,10 @@ def print_results(results: list[dict], project_type: str, src: str | None) -> No
     total = len(results)
     present = sum(1 for r in results if r['flow_present'])
     fully_filled = sum(1 for r in results if r['flow_present'] and r['quality'] == 'pass')
-    present_count = sum(1 for r in results if r['flow_present'])
 
     if src:
         print(f"Coverage : {present} / {total} modules documented")
-    print(f"Quality  : {fully_filled} / {present_count} existing flow files fully filled")
+    print(f"Quality  : {fully_filled} / {present} existing flow files fully filled")
     print()
 
 

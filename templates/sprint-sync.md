@@ -42,13 +42,18 @@ Run at the end of each sprint (or when `docs/sprint-change-log.md` has accumulat
 7. **(Optional) Self-improving loop** — run only if step 5 found fill-quality issues (⚠️ or ❌):
    a. **Round 1** — diagnose and open framework fix PRs:
       ```bash
+      # Preferred — uses verify_content.py output (documents[].issues):
+      python3 docs/script/verify_content.py --project-type TYPE --json \
+        | python3 templates/script/diagnose_spec.py --project-type TYPE
+
+      # Alternative — uses verify_docs.py output (results[].content.unfilled_sections):
       python3 docs/script/verify_docs.py --project-type TYPE --content --json \
         | python3 templates/script/diagnose_spec.py --project-type TYPE
       ```
       Review each PR opened on `project_starter_v4`; merge those that look correct; skip others.
    b. **Round 2** — re-diagnose; log any remaining gaps for manual triage:
       ```bash
-      python3 docs/script/verify_docs.py --project-type TYPE --content --json \
+      python3 docs/script/verify_content.py --project-type TYPE --json \
         | python3 templates/script/diagnose_spec.py --project-type TYPE --round 2
       ```
       Check `logs/framework-gaps.md` for remaining gaps that need manual attention.

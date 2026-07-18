@@ -962,7 +962,7 @@ A post-Phase-24 audit found three correctness bugs in `verify_content.py` and se
 
 ---
 
-## Phase 26 — Dead Code Removal 🔲 Not Started
+## Phase 26 — Dead Code Removal ✅ Complete
 
 Four instances of dead code identified across existing scripts. Low risk; each is an isolated, self-contained fix.
 
@@ -977,7 +977,7 @@ Four instances of dead code identified across existing scripts. Low risk; each i
 
 ---
 
-## Phase 27 — Cross-Script Refactor: Shared Utilities + diagnose_spec.py Update 🔲 Not Started
+## Phase 27 — Cross-Script Refactor: Shared Utilities + diagnose_spec.py Update ✅ Complete
 
 A systematic audit revealed four categories of cross-script maintenance risk. Phase 27 addresses the highest-impact ones.
 

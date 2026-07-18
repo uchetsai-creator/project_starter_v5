@@ -123,20 +123,8 @@ SCANNED_DIRS = ('specs', 'architecture', 'business')
 
 # ── Content quality constants (used by --content) ────────────────────────────
 
-# Lines matching any of these patterns are considered unfilled template content.
-_PLACEHOLDER_RES = [
-    re.compile(r'<!--\s*TODO\b', re.IGNORECASE),
-    re.compile(r'<!--\s*TBD\b', re.IGNORECASE),
-    re.compile(r'\b_TBD_\b'),
-    re.compile(r'\[placeholder\]', re.IGNORECASE),
-    re.compile(r'\[your\s+\w', re.IGNORECASE),
-    re.compile(r'\[insert\s+', re.IGNORECASE),
-    re.compile(r'\[describe\s+', re.IGNORECASE),
-    re.compile(r'\[add\s+', re.IGNORECASE),
-    re.compile(r'\[fill\s+', re.IGNORECASE),
-    re.compile(r'^\s*_\s*$'),
-    re.compile(r'^\s*\.\.\.\s*$'),
-]
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _verify_common import _is_placeholder
 
 # A section must have at least this many non-empty, non-placeholder lines to
 # be considered "filled".
@@ -202,10 +190,6 @@ def _is_content_line(line):
     return True
 
 
-def _is_placeholder(line):
-    return any(p.search(line) for p in _PLACEHOLDER_RES)
-
-
 def scan_content(filepath, doc_name):
     """Analyse fill quality of a single document.
 
@@ -252,7 +236,7 @@ def scan_content(filepath, doc_name):
 
     if fill_pct >= 80 and not unfilled_sections:
         status = 'full'
-    elif fill_pct >= 50 or fill_pct >= 80:
+    elif fill_pct >= 50:
         status = 'partial'
     else:
         status = 'poor'

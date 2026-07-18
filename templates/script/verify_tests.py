@@ -40,11 +40,6 @@ _OVERALL_STATUS_FILLED = re.compile(r'\*\*Overall status:\*\*\s*(✅|❌)\s*(Pas
 _PLACEHOLDER_ROW = re.compile(r'\[e\.g\.,|\[N\]|\[Module\]|\[Stage\]|\[Source', re.IGNORECASE)
 _REAL_ROW = re.compile(r'^\|\s*[^[\]|]+\s*\|')  # table row without [ ] placeholders
 
-# Per-type section headers to look for
-_CONTRACT_HEADERS = re.compile(r'contract tests|quality gate', re.IGNORECASE)
-_FAULT_HEADERS = re.compile(r'fault injection', re.IGNORECASE)
-_MODULE_RESULTS_HEADER = re.compile(r'^##\s+Results by Module', re.IGNORECASE)
-_SUMMARY_HEADER = re.compile(r'^##\s+Summary', re.IGNORECASE)
 
 
 def _read_file(path):
@@ -55,25 +50,16 @@ def _read_file(path):
         return None
 
 
-def _section_body(lines, header_re):
-    """Return (header_text, body_lines) for the first section matching header_re.
-
-    Uses search() so the pattern can match anywhere in the header line —
-    needed for template headers like '## [Data Pipeline] Contract Tests'.
-    """
-    body = []
-    header_text = None
-    in_section = False
-    for line in lines:
-        if not in_section and header_re.search(line.strip()):
-            in_section = True
-            header_text = line.strip()
-            continue
-        if in_section:
-            if line.startswith('## ') and not header_re.search(line.strip()):
-                break
-            body.append(line)
-    return header_text, body
+def _section_body(text: str, header_re: str) -> str | None:
+    """Return text from matching section header until next same-or-higher heading."""
+    m = re.search(header_re, text, re.IGNORECASE | re.MULTILINE)
+    if not m:
+        return None
+    hashes = re.match(r'^(#+)', m.group(0))
+    level = len(hashes.group(1)) if hashes else 1
+    after = text[m.end():]
+    boundary = re.search(r'(?m)^#{1,' + str(level) + r'}\s', after)
+    return after[:boundary.start()] if boundary else after
 
 
 def _real_table_rows(body):
@@ -125,8 +111,9 @@ def check_test_report(docs_dir, types):
     full_text = '\n'.join(lines)
 
     # ── Check 1: Summary table has real test counts ───────────────────────────
-    _, summary_body = _section_body(lines, _SUMMARY_HEADER)
-    number_rows = [l for l in summary_body if _NUMBER_IN_ROW.search(l) and not _PLACEHOLDER_ROW.search(l)]
+    summary_body = _section_body(full_text, r'^##\s+Summary')
+    number_rows = [l for l in (summary_body.splitlines() if summary_body else [])
+                   if _NUMBER_IN_ROW.search(l) and not _PLACEHOLDER_ROW.search(l)]
     has_counts = len(number_rows) > 0
 
     # Verify at least one Total > 0
@@ -181,8 +168,8 @@ def check_test_report(docs_dir, types):
     # ── Check 3: Results by Module populated (non-pipeline) ──────────────────
     is_pipeline = any(t in PIPELINE_TYPES for t in types)
     if not is_pipeline:
-        _, module_body = _section_body(lines, _MODULE_RESULTS_HEADER)
-        real_rows = _real_table_rows(module_body)
+        module_body = _section_body(full_text, r'^##\s+Results by Module')
+        real_rows = _real_table_rows(module_body.splitlines() if module_body else [])
         if real_rows:
             results.append({
                 'file': TEST_REPORT_PATH,
@@ -201,8 +188,8 @@ def check_test_report(docs_dir, types):
     # ── Checks 4 & 5: Pipeline-specific sections ─────────────────────────────
     if is_pipeline:
         # Contract Tests section
-        contract_header, contract_body = _section_body(lines, _CONTRACT_HEADERS)
-        if contract_header is None:
+        contract_body = _section_body(full_text, r'contract tests|quality gate')
+        if contract_body is None:
             results.append({
                 'file': TEST_REPORT_PATH,
                 'check': 'Contract Tests section present',
@@ -210,10 +197,11 @@ def check_test_report(docs_dir, types):
                 'detail': 'No "Contract Tests" section found — add from the pipeline template',
             })
         else:
-            real_rows = _real_table_rows(contract_body)
+            _contract_lines = contract_body.splitlines() if contract_body else []
+            real_rows = _real_table_rows(_contract_lines)
             # Also check for Result: line with actual data (not a template placeholder)
             result_lines = [
-                l for l in contract_body
+                l for l in _contract_lines
                 if re.search(r'\*\*Result:\*\*.*success=', l, re.IGNORECASE)
                 and not _PLACEHOLDER_ROW.search(l)
                 and not re.search(r'=\[|\[True|\[False', l)
@@ -228,8 +216,8 @@ def check_test_report(docs_dir, types):
             })
 
         # Fault Injection section
-        fault_header, fault_body = _section_body(lines, _FAULT_HEADERS)
-        if fault_header is None:
+        fault_body = _section_body(full_text, r'fault injection')
+        if fault_body is None:
             results.append({
                 'file': TEST_REPORT_PATH,
                 'check': 'Fault Injection section present',
@@ -237,7 +225,7 @@ def check_test_report(docs_dir, types):
                 'detail': 'No "Fault Injection Tests" section found — add from the pipeline template',
             })
         else:
-            real_rows = _real_table_rows(fault_body)
+            real_rows = _real_table_rows(fault_body.splitlines() if fault_body else [])
             results.append({
                 'file': TEST_REPORT_PATH,
                 'check': 'Fault Injection section filled',
