@@ -33,6 +33,13 @@ Valid adapters (Phase 46):
   dagster         — Data Pipeline / ML Pipeline (Dagster)
   prefect         — Data Pipeline / ML Pipeline (Prefect)
   python_library  — Library / SDK (Python __all__ + type hints)
+
+Valid adapters (Phase 47):
+  tool_schema     — AI / LLM App (Python docstrings / OpenAI tool schema JSON)
+  terraform       — IaC / DevOps (Terraform HCL)
+  pulumi          — IaC / DevOps (Pulumi Python)
+  react_native    — Mobile App (React Native TSX/JSX)
+  flutter         — Mobile App (Flutter Dart)
 """
 
 import argparse
@@ -59,6 +66,12 @@ ADAPTER_REGISTRY: dict[str, tuple[str, str]] = {
     'dagster':        ('dagster',         'DagsterAdapter'),
     'prefect':        ('prefect',         'PrefectAdapter'),
     'python_library': ('python_library',  'PythonLibraryAdapter'),
+    # Phase 47
+    'tool_schema':    ('tool_schema',     'ToolSchemaAdapter'),
+    'terraform':      ('terraform',       'TerraformAdapter'),
+    'pulumi':         ('pulumi',          'PulumiAdapter'),
+    'react_native':   ('react_native',    'ReactNativeAdapter'),
+    'flutter':        ('flutter',         'FlutterAdapter'),
 }
 
 _ADAPTER_DIR = Path(__file__).resolve().parent / '_spec_code_adapters'
@@ -277,7 +290,18 @@ def main() -> None:
         '--dry-run', action='store_true',
         help='Run checks but never exit with a non-zero code',
     )
+    parser.add_argument(
+        '--list-adapters', action='store_true',
+        help='Print all registered adapter names and exit',
+    )
     args = parser.parse_args()
+
+    if args.list_adapters:
+        print("Registered adapters:")
+        for name in sorted(ADAPTER_REGISTRY):
+            module, cls = ADAPTER_REGISTRY[name]
+            print(f"  {name:<16}  {cls}  (module: {module})")
+        sys.exit(0)
 
     # Graceful skip when not fully configured — pre-commit hook may call this
     # before the project has set up --adapter / --spec / --src.

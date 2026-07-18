@@ -23,6 +23,7 @@ workflows:
         # Requires --adapter / --spec / --src to be passed; skips gracefully if omitted.
         # Relevant for: data-pipeline, ml-pipeline, cli-tool (Phase 45)
         #               web-app, microservices, library (Phase 46)
+        #               llm-app, mobile-app (Phase 47)
 
   pipeline-stage:
     validators:
@@ -72,6 +73,11 @@ workflows:
         args: [--content]
       - script: docs/script/validators/verify_content.py
         args: [--strict]
+      - script: docs/script/validators/verify_spec_code.py
+        args: [--strict]
+        # Catches topology drift when IaC code changes without updating topology.md.
+        # Skips gracefully if --adapter / --spec / --src are not configured.
+        # Relevant for: iac (terraform, pulumi adapters)
 
   default:
     validators:

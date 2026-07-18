@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# project_starter_v5 — verification pre-commit hook (Phase 20 + Phase 21 + Phase 23 + Phase 24 + Phase 33 + Phase 40 + Phase 45 + Phase 46)
+# project_starter_v5 — verification pre-commit hook (Phase 20 + Phase 21 + Phase 23 + Phase 24 + Phase 33 + Phase 40 + Phase 45 + Phase 46 + Phase 47)
 # Runs quality checks automatically on every git commit. Blocks on failure.
 #
 # Install (once per project clone):
@@ -158,8 +158,9 @@ fi
 #
 # Phase 45 contracts: pipeline-contract.md (airflow), cli-contract.md (click)
 # Phase 46 contracts: api-contract.md (fastapi/flask/express), public-api.md (python_library)
+# Phase 47 contracts: llm-contract.md (tool_schema), topology.md (terraform/pulumi), mobile-contract.md (react_native/flutter)
 SPEC_CONTRACT_STAGED=$(printf '%s\n' "$STAGED" \
-    | grep -E '(pipeline-contract|cli-contract|api-contract|public-api)\.md$' || true)
+    | grep -E '(pipeline-contract|cli-contract|api-contract|public-api|llm-contract|topology|mobile-contract)\.md$' || true)
 if [ -n "$SPEC_CONTRACT_STAGED" ] && [ -f "docs/script/validators/verify_spec_code.py" ]; then
     echo "  → verify_spec_code.py (spec contract staged) ..."
     python3 "docs/script/validators/verify_spec_code.py" --strict 2>&1 || PASS=false

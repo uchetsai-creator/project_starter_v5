@@ -148,15 +148,21 @@ project_starter/                     ← this repo (template only)
         │   ├── verify_content.py    ← full document content quality gate (all Required docs × project type)
         │   ├── verify_spec_code.py  ← spec ↔ code drift validator (core — no framework logic)
         │   ├── _spec_code_adapters/ ← framework adapters (one per framework)
-        │   │   ├── _base.py         ← FrameworkAdapter ABC + all NormalizedForm dataclasses
-        │   │   ├── airflow.py       ← AirflowAdapter (Data Pipeline / ML Pipeline)
-        │   │   ├── click.py         ← ClickAdapter (CLI Tool)
-        │   │   ├── fastapi.py       ← FastAPIAdapter (Web App / Microservices)
-        │   │   ├── flask.py         ← FlaskAdapter (Web App / Microservices)
-        │   │   ├── express.py       ← ExpressAdapter (Web App / Microservices — Node.js)
-        │   │   ├── dagster.py       ← DagsterAdapter (Data Pipeline / ML Pipeline)
-        │   │   ├── prefect.py       ← PrefectAdapter (Data Pipeline / ML Pipeline)
-        │   │   └── python_library.py ← PythonLibraryAdapter (Library / SDK)
+        │   │   ├── _base.py              ← FrameworkAdapter ABC + all NormalizedForm dataclasses
+        │   │   ├── _example_adapter.py   ← Custom Adapter SDK reference implementation (self-tests)
+        │   │   ├── airflow.py            ← AirflowAdapter (Data Pipeline / ML Pipeline)
+        │   │   ├── click.py              ← ClickAdapter (CLI Tool)
+        │   │   ├── dagster.py            ← DagsterAdapter (Data Pipeline / ML Pipeline)
+        │   │   ├── express.py            ← ExpressAdapter (Web App / Microservices — Node.js)
+        │   │   ├── fastapi.py            ← FastAPIAdapter (Web App / Microservices)
+        │   │   ├── flask.py              ← FlaskAdapter (Web App / Microservices)
+        │   │   ├── flutter.py            ← FlutterAdapter (Mobile App — Dart)
+        │   │   ├── prefect.py            ← PrefectAdapter (Data Pipeline / ML Pipeline)
+        │   │   ├── pulumi.py             ← PulumiAdapter (IaC / DevOps — Python)
+        │   │   ├── python_library.py     ← PythonLibraryAdapter (Library / SDK)
+        │   │   ├── react_native.py       ← ReactNativeAdapter (Mobile App — TSX/JSX)
+        │   │   ├── terraform.py          ← TerraformAdapter (IaC / DevOps — HCL)
+        │   │   └── tool_schema.py        ← ToolSchemaAdapter (AI / LLM App)
         │   ├── _verify_common.py    ← shared placeholder patterns imported by verify scripts
         │   └── _registry.py         ← document registry loader
         ├── generators/              ← shipped to user projects (docs/script/generators/)
@@ -863,6 +869,11 @@ logic is a bug.
 | `dagster` | Dagster | Data Pipeline / ML Pipeline | `pipeline-contract.md` `### Stage` + `#### Input/Output Contract \| Schema \|` | `@op` / `@asset`-decorated Python functions |
 | `prefect` | Prefect | Data Pipeline / ML Pipeline | `pipeline-contract.md` `### Stage` + `#### Input/Output Contract \| Schema \|` | `@task` / `@flow`-decorated Python functions |
 | `python_library` | Python `__all__` | Library / SDK | `public-api.md` `### function_name` + `#### Parameters` table | Functions listed in `__all__` + type-annotated signatures |
+| `tool_schema` | Python docstrings / OpenAI JSON | AI / LLM App | `llm-contract.md` `### tool_name` + `#### Parameters` table | Type-annotated Python functions or OpenAI-compatible JSON schema |
+| `terraform` | Terraform HCL | IaC / DevOps | `topology.md` `### label (resource_type)` + `#### Configuration` table | `resource "type" "name" { ... }` blocks in `.tf` files |
+| `pulumi` | Pulumi (Python) | IaC / DevOps | `topology.md` `### label (resource_type)` + `#### Configuration` table | `ResourceClass("name", key=val, ...)` constructor calls in Python |
+| `react_native` | React Native | Mobile App | `mobile-contract.md` `### ScreenName` + `#### Props` table | Function/const components with destructured props in `.tsx`/`.jsx` |
+| `flutter` | Flutter / Dart | Mobile App | `mobile-contract.md` `### ScreenName` + `#### Props` table | `class ScreenName extends StatelessWidget` with `final` fields in `.dart` |
 
 ### Spec format (Airflow)
 
@@ -925,6 +936,34 @@ python3 docs/script/validators/verify_spec_code.py \
     --project-type library --adapter python_library \
     --spec docs/specs/public-api.md --src src/ --strict
 
+# AI / LLM App — validate tool definitions against Python functions or OpenAI JSON schema
+python3 docs/script/validators/verify_spec_code.py \
+    --project-type llm-app --adapter tool_schema \
+    --spec docs/specs/llm-contract.md --src src/ --strict
+
+# IaC — validate topology against Terraform HCL
+python3 docs/script/validators/verify_spec_code.py \
+    --project-type iac --adapter terraform \
+    --spec docs/specs/topology.md --src infra/ --strict
+
+# IaC — validate topology against Pulumi Python
+python3 docs/script/validators/verify_spec_code.py \
+    --project-type iac --adapter pulumi \
+    --spec docs/specs/topology.md --src infra/ --strict
+
+# Mobile App — validate screen contracts against React Native TSX/JSX
+python3 docs/script/validators/verify_spec_code.py \
+    --project-type mobile-app --adapter react_native \
+    --spec docs/specs/mobile-contract.md --src src/screens/ --strict
+
+# Mobile App — validate screen contracts against Flutter Dart
+python3 docs/script/validators/verify_spec_code.py \
+    --project-type mobile-app --adapter flutter \
+    --spec docs/specs/mobile-contract.md --src lib/screens/ --strict
+
+# List all registered adapters
+python3 docs/script/validators/verify_spec_code.py --list-adapters
+
 # JSON output for agent consumption
 python3 docs/script/validators/verify_spec_code.py \
     --project-type data-pipeline --adapter airflow \
@@ -939,12 +978,30 @@ python3 docs/script/validators/verify_spec_code.py \
 The validator exits 0 with a warning if `--adapter`/`--spec`/`--src` are not provided —
 safe to include in the workflow registry and pre-commit hook for all projects.
 
-### Adding a new adapter
+### Writing a custom adapter
 
-1. Create `_spec_code_adapters/<framework>.py` implementing `FrameworkAdapter` from `_base.py`.
-2. Add an entry to `ADAPTER_REGISTRY` in `verify_spec_code.py`.
-3. Register in `workflow-registry.yaml` for relevant task types.
-4. Add a trigger in `.githooks/pre-commit` for the relevant spec file.
+The Custom Adapter SDK (Phase 47) lets you add support for any framework not covered here without modifying the core validator.
+
+**Quick steps:**
+
+1. Create `_spec_code_adapters/<framework>.py` subclassing `FrameworkAdapter` from `_base.py`.
+2. Implement `extract_spec(spec_path)` → `list[NormalizedForm]` and `extract_code(src_path)` → same type.
+3. Add an entry to `ADAPTER_REGISTRY` in `verify_spec_code.py`.
+4. Write a self-test (`python3 _spec_code_adapters/<framework>.py` → prints `✅  self-test passed`).
+5. Register in `workflow-registry.yaml` and add a pre-commit trigger for your spec file (optional).
+
+**Reference files:**
+- `_spec_code_adapters/_example_adapter.py` — fully annotated implementation with a self-test
+- `_spec_code_adapters/_base.py` — all NormalizedForm types + FrameworkAdapter contract
+- `docs/contributing-adapters.md` — complete step-by-step contributor guide
+
+```bash
+# List all registered adapters
+python3 docs/script/validators/verify_spec_code.py --list-adapters
+
+# Run the reference implementation self-test
+python3 docs/script/validators/_spec_code_adapters/_example_adapter.py
+```
 
 ---
 

@@ -1,0 +1,143 @@
+"""
+pulumi.py — PulumiAdapter for project_starter_v5.
+
+Extracts NormalizedResource objects from:
+  - Spec: topology.md (### label (resource_type) sections with #### Configuration tables)
+  - Code: Python files — ResourceType("name", key=value, ...) resource constructor calls
+
+No comparison logic here. All comparison lives in verify_spec_code.py.
+"""
+from __future__ import annotations
+
+import ast
+import os
+import re
+
+from _base import FrameworkAdapter, NormalizedResource
+
+
+def _parse_config_table(section: str) -> list[str]:
+    h = re.search(r'^#### Configuration', section, re.MULTILINE)
+    if not h:
+        return []
+    table_text = section[h.end():]
+    next_h = re.search(r'^#{3,4} ', table_text, re.MULTILINE)
+    if next_h:
+        table_text = table_text[:next_h.start()]
+
+    keys: list[str] = []
+    for row in re.finditer(r'(?m)^\|(.+)\|$', table_text):
+        cols = [c.strip().strip('`') for c in row.group(1).split('|')]
+        key = cols[0] if cols else ''
+        if not key or re.match(r'^[-:]+$', key) or key.lower() in ('key', 'name', 'attribute', 'property'):
+            continue
+        keys.append(key)
+    return keys
+
+
+def _class_name_to_snake(name: str) -> str:
+    """Convert CamelCase resource type to rough snake_case provider.resource label."""
+    s = re.sub(r'([A-Z])', r'_\1', name).lower().lstrip('_')
+    return s
+
+
+class PulumiAdapter(FrameworkAdapter):
+    """
+    Adapter for Pulumi (Python) IaC / DevOps projects.
+
+    Spec format (topology.md): same as TerraformAdapter.
+      ### web_server (aws:ec2/instance:Instance)
+      #### Configuration
+      | Key | Value | Description |
+      | instance_type | t3.micro | EC2 instance type |
+
+    Code format (Python):
+      server = aws.ec2.Instance("web_server",
+          instance_type="t3.micro",
+          ami="ami-0abc",
+      )
+    """
+
+    def extract_spec(self, spec_path: str) -> list[NormalizedResource]:
+        with open(spec_path, encoding='utf-8') as f:
+            text = f.read()
+
+        resources: list[NormalizedResource] = []
+        section_matches = list(re.finditer(
+            r'^### (`?)(\w+)\1(?:\s+\(([^)]+)\))?',
+            text, re.MULTILINE,
+        ))
+
+        for idx, match in enumerate(section_matches):
+            label = match.group(2)
+            rtype = (match.group(3) or '').strip()
+            section_start = match.end()
+            section_end = (section_matches[idx + 1].start()
+                           if idx + 1 < len(section_matches) else len(text))
+            section = text[section_start:section_end]
+
+            resources.append(NormalizedResource(
+                name=label,
+                resource_type=rtype,
+                config_keys=_parse_config_table(section),
+            ))
+
+        return resources
+
+    def extract_code(self, src_path: str) -> list[NormalizedResource]:
+        files = (
+            [src_path] if os.path.isfile(src_path)
+            else [
+                os.path.join(root, fname)
+                for root, _, fnames in os.walk(src_path)
+                for fname in fnames
+                if fname.endswith('.py')
+            ]
+        )
+        resources: list[NormalizedResource] = []
+        for fpath in files:
+            resources.extend(self._parse_file(fpath))
+        return resources
+
+    def _parse_file(self, fpath: str) -> list[NormalizedResource]:
+        try:
+            with open(fpath, encoding='utf-8') as f:
+                source = f.read()
+            tree = ast.parse(source, filename=fpath)
+        except (OSError, SyntaxError):
+            return []
+
+        resources: list[NormalizedResource] = []
+        for node in ast.walk(tree):
+            # Match: var = SomeModule.ResourceClass("name", key=val, ...)
+            # at assignment level
+            if not isinstance(node, ast.Assign):
+                continue
+            val = node.value
+            if not isinstance(val, ast.Call):
+                continue
+            func = val.func
+            # Class name must start with uppercase (heuristic for Pulumi resource)
+            class_name = ''
+            if isinstance(func, ast.Attribute):
+                class_name = func.attr
+            elif isinstance(func, ast.Name):
+                class_name = func.id
+            if not class_name or not class_name[0].isupper():
+                continue
+
+            # First positional arg is the resource name
+            if not val.args or not isinstance(val.args[0], ast.Constant):
+                continue
+            resource_name = str(val.args[0].value)
+
+            config_keys = [kw.arg for kw in val.keywords if kw.arg and kw.arg != 'opts']
+
+            if config_keys:
+                resources.append(NormalizedResource(
+                    name=resource_name,
+                    resource_type=class_name,
+                    config_keys=config_keys,
+                ))
+
+        return resources
