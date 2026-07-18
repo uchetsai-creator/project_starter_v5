@@ -1,4 +1,4 @@
-"""Shared loader for document-registry.yaml (project_starter_v4 schema).
+"""Shared loader for document-registry.yaml (project_starter_v5 schema).
 
 Searches for document-registry.yaml starting at CWD, then at the framework root
 derived from this file's location — covers both user projects (scripts in docs/script/)
@@ -30,14 +30,14 @@ def _find_registry_path() -> Path:
     raise FileNotFoundError(
         'document-registry.yaml not found. '
         f'Searched: {[str(c) for c in candidates]}. '
-        'Copy it from the project_starter_v4 repo root to your project root.'
+        'Copy it from the project_starter_v5 repo root to your project root.'
     )
 
 
 def _parse_registry(text: str) -> dict[str, Any]:
     """Parse document-registry.yaml without external dependencies.
 
-    Handles the project_starter_v4 schema only (flat, 2-level nesting, inline lists).
+    Handles the project_starter_v5 schema only (flat, 2-level nesting, inline lists).
     """
     documents: dict[str, Any] = {}
     current_doc: str | None = None

@@ -1,4 +1,4 @@
-# Architecture Analysis — project_starter_v4
+# Architecture Analysis — project_starter_v5
 
 ## Current Architecture
 
@@ -13,7 +13,7 @@ The framework consists of 12 Python scripts, one shared utility module, and 9 AI
 
 **Support layer** — run at sprint end or on demand:
 - `diagnose_spec.py` — classify verify output → project-level vs framework-level gaps
-- `propose_framework_fix.py` — open PRs on project_starter_v4 for framework gaps
+- `propose_framework_fix.py` — open PRs on project_starter_v5 for framework gaps
 - `build_pdf.py` — render docs/ to PDF via PlantUML
 
 **Task layer** — run during normal task work:

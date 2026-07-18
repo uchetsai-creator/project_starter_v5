@@ -1,7 +1,7 @@
 # Project Initialization — Mobile App
 
 <!--
-  Load this file when setting up a new Mobile App project with project_starter_v4.
+  Load this file when setting up a new Mobile App project with project_starter_v5.
   Mobile App = native or cross-platform mobile (React Native, Flutter, iOS/Swift, Android/Kotlin).
   For hybrid types (e.g., Mobile App + AI/LLM App), load this file AND the other type's init file;
   union the step lists and skip duplicates.

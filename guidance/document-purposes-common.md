@@ -856,7 +856,7 @@ Update when: a new adapter file is added for a new framework (see Phase 46, Phas
 
 ### verify_framework.py
 Purpose:
-Framework self-audit — checks internal consistency of the project_starter_v4 framework itself.
+Framework self-audit — checks internal consistency of the project_starter_v5 framework itself.
 Run after each Phase completes, before merging.
 
 Eleven checks performed:

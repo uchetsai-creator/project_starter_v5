@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-verify_logs.py — Log documentation quality audit for project_starter_v4 projects.
+verify_logs.py — Log documentation quality audit for project_starter_v5 projects.
 
 Checks that logging-spec.md has required sections filled, and that each module
 log file (docs/modules/*/log-*.md) documents trace_id, structured fields, and
@@ -297,7 +297,7 @@ def print_results(spec_results, log_results, log_file_count, types):
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Audit log documentation quality for a project_starter_v4 project.',
+        description='Audit log documentation quality for a project_starter_v5 project.',
     )
     parser.add_argument(
         '--project-type', required=True,

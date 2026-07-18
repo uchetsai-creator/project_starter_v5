@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-propose_framework_fix.py — open a PR on project_starter_v4 for a framework template gap.
+propose_framework_fix.py — open a PR on project_starter_v5 for a framework template gap.
 
 Creates a branch, appends a placeholder section to the relevant template, and opens a PR
 via `gh pr create`. The PR contains no project-specific content — a human reviews it before

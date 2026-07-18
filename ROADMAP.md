@@ -1,8 +1,8 @@
-# project_starter_v4 — Roadmap
+# project_starter_v5 — Roadmap
 
 ## Vision
 
-project_starter_v4 started as a Web App framework. This roadmap tracks the expansion to support all major software project types so the same AI-agent workflow can be applied to any project without producing empty or irrelevant documents.
+project_starter_v5 started as a Web App framework. This roadmap tracks the expansion to support all major software project types so the same AI-agent workflow can be applied to any project without producing empty or irrelevant documents.
 
 ---
 
@@ -665,7 +665,7 @@ Optional Claude Code fast-feedback: `PostToolUse` hooks in `.claude/settings.jso
 
 When a project's spec has quality problems, the cause is either (a) the project's content is insufficient, or (b) the framework template for that project type doesn't give enough guidance. Type (b) is a framework gap — it affects every future project of the same type, not just this one.
 
-**Goal:** Automatically diagnose whether a spec problem is project-level or framework-level, and for framework-level gaps, open a PR on `project_starter_v4` with a generic template fix — no project content included.
+**Goal:** Automatically diagnose whether a spec problem is project-level or framework-level, and for framework-level gaps, open a PR on `project_starter_v5` with a generic template fix — no project content included.
 
 ### Iteration limit
 
@@ -689,7 +689,7 @@ already include guidance on this?
     ├── Yes → project/AI execution issue → feedback to project only
     └── No  → framework gap (max 2 rounds)
                 → auto-generate generic template improvement
-                → open PR on project_starter_v4
+                → open PR on project_starter_v5
                 → PR contains: type + document + missing guidance
                 → no project-specific content
 ```
@@ -706,7 +706,7 @@ already include guidance on this?
 
 | Script | Input | Output |
 |---|---|---|
-| `templates/script/propose_framework_fix.py` | `--type`, `--document`, `--gap-description` | Creates branch on `project_starter_v4`, edits template, opens PR via `gh pr create` |
+| `templates/script/propose_framework_fix.py` | `--type`, `--document`, `--gap-description` | Creates branch on `project_starter_v5`, edits template, opens PR via `gh pr create` |
 
 ### PR format (auto-generated)
 
@@ -1475,7 +1475,7 @@ Full-project audit after Phase 42 surfaced eight issues: a shell syntax error, a
 | File | Change |
 |---|---|
 | `.githooks/run-verify.sh` | Fix shell syntax error: `tr -d ""' "` → `tr -d "\"'"` (malformed quote caused parse failure on line 10) |
-| `orchestrator.py` | Docstring: `project_starter_v4` → `project_starter_v5` |
+| `orchestrator.py` | Docstring updated to `project_starter_v5` |
 | `AGENTS.md` § Starting work | Add one-line note that `--adapter [claude\|codex\|cursor]` can be passed to also render the tool-native instruction file |
 | `.claude/settings.json` | Add `adapters/claude/stop-hook.sh` as a second Stop hook command alongside `run-verify.sh` (separate concerns: verification logs vs. task-log row) |
 | `adapters/codex/setup.md` | Add prerequisite note: if `task-instructions.md` shows `{{WORKFLOW_CONTENT}}` as literal text, run `--adapter codex` first |
@@ -1753,7 +1753,7 @@ LLM pass:
 
 **Discovered in post-Phase-48 audit.**
 
-`diagnose_spec.py` and `propose_framework_fix.py` both hardcode `DEFAULT_FRAMEWORK_REPO = "uchetsai-creator/project_starter_v4"`. A user who runs either script without setting `PROJECT_STARTER_FRAMEWORK_REPO` will open GitHub PRs against someone else's v4 repository. `adapters/codex/setup.md` also hardcodes the same personal GitHub URL in a user-facing link.
+`diagnose_spec.py` and `propose_framework_fix.py` both hardcode a `DEFAULT_FRAMEWORK_REPO` pointing to the old v4 repository. A user who runs either script without setting `PROJECT_STARTER_FRAMEWORK_REPO` will open GitHub PRs against someone else's repository. `adapters/codex/setup.md` also hardcodes the same personal GitHub URL in a user-facing link.
 
 **Goal:** Eliminate the default fallback in both generator scripts so a missing env var produces a clear error rather than silently misdirecting. Update `adapters/codex/setup.md` to use a generic placeholder.
 
@@ -1903,19 +1903,19 @@ Three duplication problems identified:
 
 ---
 
-## Phase 54 — v4 → v5 Naming Sweep
+## Phase 54 — v4 → v5 Naming Sweep ✅ Complete
 
 **Discovered in post-Phase-48 audit.**
 
-A large number of files still refer to `project_starter_v4` in docstrings, CLI descriptions, comments, and headers. The stale references create confusion about which version a file belongs to and erode confidence in the codebase's internal consistency.
+A large number of files still referred to v4 in docstrings, CLI descriptions, comments, and headers. The stale references created confusion about which version a file belongs to and eroded confidence in the codebase's internal consistency.
 
 **Goal:** Update all stale v4 references across documentation, comments, and user-facing metadata. No logic changes.
 
-**Verification:** `grep -r "project_starter_v4"` returns zero results after the sweep.
+**Verification:** Grep for the old v4 name across the repo returns zero results after the sweep.
 
 ---
 
-## Phase 55 — Fix Missing Cross-References and Dead References
+## Phase 55 — Fix Missing Cross-References and Dead References ✅ Complete
 
 **Discovered in post-Phase-48 audit.**
 
@@ -1942,7 +1942,7 @@ Three discoverability gaps:
 
 ---
 
-## Phase 56 — Maintenance Quality Sweep
+## Phase 56 — Maintenance Quality Sweep ✅ Complete
 
 **Discovered in post-Phase-48 audit.**
 

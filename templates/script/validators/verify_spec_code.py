@@ -108,6 +108,7 @@ ADAPTER_REGISTRY: dict[str, tuple[str, str, str | None]] = {
 }
 
 _ADAPTER_DIR = Path(__file__).resolve().parent / '_spec_code_adapters'
+sys.path.insert(0, str(_ADAPTER_DIR))
 
 
 def _load_adapter(adapter_name: str, framework_hint: str | None = None):
@@ -133,7 +134,6 @@ def _load_adapter(adapter_name: str, framework_hint: str | None = None):
     module_name, class_name, registry_hint = entry
     # Explicit --framework flag takes precedence over the registry's built-in hint
     effective_framework = framework_hint or registry_hint
-    sys.path.insert(0, str(_ADAPTER_DIR))
     try:
         module = importlib.import_module(module_name)
         cls = getattr(module, class_name)
@@ -169,7 +169,6 @@ def _item_label(item) -> str:
 
 def _item_fields(item) -> list:
     """Return the list of NormalizedField objects for any NormalizedForm."""
-    sys.path.insert(0, str(_ADAPTER_DIR))
     from _base import (  # noqa: PLC0415
         NormalizedField, NormalizedStageContract, NormalizedEndpoint,
         NormalizedCommand, NormalizedFunction, NormalizedTool,
@@ -426,7 +425,6 @@ def main() -> None:
 
     adapter_obj = _load_adapter(args.adapter, framework_hint=getattr(args, 'framework', None))
     if args.semantic:
-        sys.path.insert(0, str(_ADAPTER_DIR))
         from semantic import SemanticAdapter  # noqa: PLC0415
         adapter_obj = SemanticAdapter(wraps=adapter_obj)
 

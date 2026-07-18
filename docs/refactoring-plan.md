@@ -1,4 +1,4 @@
-# Refactoring Plan — project_starter_v4
+# Refactoring Plan — project_starter_v5
 
 Derived from `docs/architecture-analysis.md`. Addresses Problems 1–5 in three sequential phases.
 

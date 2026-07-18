@@ -45,7 +45,8 @@ project_starter/                     ← this repo (template only)
 ├── docs/                            ← framework design documents (not copied to projects)
 │   ├── architecture-analysis.md    ← current coupling problems + responsibility boundaries
 │   ├── refactoring-plan.md         ← 3-phase migration plan (registry → context builder → orchestrator)
-│   └── context-builder-design.md   ← build-context.py design: inputs, outputs, algorithm
+│   ├── context-builder-design.md   ← build-context.py design: inputs, outputs, algorithm
+│   └── contributing-adapters.md    ← guide for writing new framework adapters
 ├── guidance/
 │   ├── document-purposes.md         ← index: type → per-type file lookup
 │   ├── document-purposes-common.md  ← applies to all project types
@@ -171,7 +172,7 @@ project_starter/                     ← this repo (template only)
         │   ├── plantuml.cfg         ← PlantUML renderer configuration
         │   ├── plantuml.jar         ← download separately (see Setting up PlantUML)
         │   ├── diagnose_spec.py     ← classifies spec fill gaps; triggers framework fix PRs
-        │   └── propose_framework_fix.py ← opens a PR on project_starter_v4 to add a missing template section
+        │   └── propose_framework_fix.py ← opens a PR on project_starter_v5 to add a missing template section
         ├── scanners/                ← shipped to user projects (docs/script/scanners/)
         │   └── scan_codebase.py     ← scans src/ and reports which modules are undocumented
         └── framework/               ← framework-internal only — NOT copied to user projects
@@ -662,6 +663,18 @@ Valid `--project-type` values: `web-app`, `cli-tool`, `library`, `data-pipeline`
 
 ---
 
+## Module Docs
+
+`verify_module_docs.py` audits module flow file coverage and quality — checking that every module in `docs/modules/` has a complete `*-module-flow.md` and, for pipeline stages, a `*-module-data-flow.md`.
+
+This script is a **contributor tool**: run it manually before opening a PR, not at every commit. It is intentionally excluded from the pre-commit gate because it is slow and produces noisy output on work-in-progress modules.
+
+```bash
+python3 docs/script/validators/verify_module_docs.py --docs docs/
+```
+
+---
+
 ## Framework maintenance
 
 `verify_framework.py` audits the framework's own internal consistency. Run it after any framework update, or any time you modify `document-registry.yaml`, AGENTS.md, document-matrix.md, sprint-sync.md, or any document-purposes file.
@@ -1053,7 +1066,7 @@ When a spec has fill-quality issues, the root cause is either:
 - **Project-level** — the template has the section, but the project didn't fill it in.
 - **Framework-level** — the template is missing guidance for that section entirely.
 
-`diagnose_spec.py` classifies each gap by inspecting the framework template. Framework gaps trigger a PR on `project_starter_v4` via `propose_framework_fix.py`. The loop runs at most **2 rounds** to avoid runaway PR creation.
+`diagnose_spec.py` classifies each gap by inspecting the framework template. Framework gaps trigger a PR on `project_starter_v5` via `propose_framework_fix.py`. The loop runs at most **2 rounds** to avoid runaway PR creation.
 
 ### Architecture
 
@@ -1066,7 +1079,7 @@ diagnose_spec.py --round 1        (auto-detects input format)
         ↓
   classify each unfilled section
   ├── project-level  → print for manual fix (no PR)
-  └── framework-level → propose_framework_fix.py → PR on project_starter_v4
+  └── framework-level → propose_framework_fix.py → PR on project_starter_v5
         ↓
   [merge or skip PRs]
         ↓

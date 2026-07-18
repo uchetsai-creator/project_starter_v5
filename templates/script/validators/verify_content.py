@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-verify_content.py — Full document content quality gate for project_starter_v4.
+verify_content.py — Full document content quality gate for project_starter_v5.
 
 For every Required document in the project's declared type, verifies that each
 document's required sections contain real content, gated by document × project type.
@@ -1194,7 +1194,7 @@ def parse_types(raw: str) -> list[str]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Audit document content quality for project_starter_v4 projects.",
+        description="Audit document content quality for project_starter_v5 projects.",
     )
     parser.add_argument(
         '--project-type', required=True, metavar='TYPE',

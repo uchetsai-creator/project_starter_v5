@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-verify_docs.py — Document completeness audit for project_starter_v4 projects.
+verify_docs.py — Document completeness audit for project_starter_v5 projects.
 
 Usage:
   python3 docs/script/validators/verify_docs.py --project-type TYPE
@@ -326,7 +326,7 @@ def _write_telemetry(project_type: str, results: list[dict]) -> None:
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Audit document completeness for a project_starter_v4 project.',
+        description='Audit document completeness for a project_starter_v5 project.',
     )
     parser.add_argument(
         '--project-type', required=True,

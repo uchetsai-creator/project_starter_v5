@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-verify_tests.py — Test report quality audit for project_starter_v4 projects.
+verify_tests.py — Test report quality audit for project_starter_v5 projects.
 
 Checks that docs/specs/test-report.md is filled with real results: test count > 0,
 pass/fail recorded, Results by Module populated. For Data Pipeline / ML Pipeline:
@@ -261,7 +261,7 @@ def print_results(results, types):
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Audit test report quality for a project_starter_v4 project.',
+        description='Audit test report quality for a project_starter_v5 project.',
     )
     parser.add_argument(
         '--project-type', required=True,

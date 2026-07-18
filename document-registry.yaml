@@ -1,4 +1,4 @@
-# document-registry.yaml — project_starter_v4
+# document-registry.yaml — project_starter_v5
 # Single source of truth for all document metadata.
 # Replaces: verify_docs.py MATRIX + FILE_LOCATIONS, verify_content.py TYPE_DOCS + DOC_PATHS,
 #           and templates/init/document-matrix.md (which is now a human-readable view only).

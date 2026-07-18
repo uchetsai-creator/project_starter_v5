@@ -26,6 +26,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+# Haiku: lowest cost for single-label classification
+_SEMANTIC_MODEL = 'claude-haiku-4-5-20251001'
+
 
 class SemanticAdapter:
     """
@@ -173,7 +176,7 @@ def _ask_llm(client, item_label: str, pairs: list[dict]) -> list[dict]:
 
     try:
         response = client.messages.create(
-            model='claude-haiku-4-5-20251001',
+            model=_SEMANTIC_MODEL,
             max_tokens=1024,
             messages=[{'role': 'user', 'content': prompt}],
         )

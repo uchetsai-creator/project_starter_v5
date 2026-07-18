@@ -40,8 +40,8 @@ if os.path.exists(orch_state_file):
         state = json.loads(open(orch_state_file).read())
         if state.get('task') == task_name:
             orchestrator_runs = state.get('runs', 0)
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"telemetry error: {e}", file=sys.stderr, flush=True)
 
 rows = []
 if os.path.exists(task_run_file):
@@ -49,7 +49,8 @@ if os.path.exists(task_run_file):
         rows = json.loads(open(task_run_file).read())
         if not isinstance(rows, list):
             rows = []
-    except Exception:
+    except Exception as e:
+        print(f"telemetry error: {e}", file=sys.stderr, flush=True)
         rows = []
 
 rows.append({

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-verify_module_docs.py — Module flow coverage & quality audit for project_starter_v4 projects.
+verify_module_docs.py — Module flow coverage & quality audit for project_starter_v5 projects.
 
 Checks that every module has a flow file in docs/modules/ and that each flow file
 has required sections filled, gated by module type × project type.
@@ -501,7 +501,7 @@ def parse_types(raw: str) -> list[str]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Audit module flow file coverage and quality for project_starter_v4 projects.",
+        description="Audit module flow file coverage and quality for project_starter_v5 projects.",
     )
     parser.add_argument(
         '--project-type', required=True, metavar='TYPE',

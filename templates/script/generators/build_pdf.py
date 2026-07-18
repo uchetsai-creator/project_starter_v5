@@ -41,7 +41,10 @@ To add a file to the PDF: add it to PDF_ALLOWLIST below. Do not change the disco
 
 Requires: pip install markdown weasyprint cairosvg --break-system-packages
 """
-import sys, os, re, glob
+import sys
+import os
+import re
+import glob
 import markdown
 from weasyprint import HTML, CSS
 import cairosvg

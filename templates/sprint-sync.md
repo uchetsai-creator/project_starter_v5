@@ -54,7 +54,7 @@ Run at the end of each sprint (or when `docs/sprint-change-log.md` has accumulat
       python3 docs/script/validators/verify_docs.py --project-type TYPE --content --json \
         | python3 templates/script/generators/diagnose_spec.py --project-type TYPE
       ```
-      Review each PR opened on `project_starter_v4`; merge those that look correct; skip others.
+      Review each PR opened on `project_starter_v5`; merge those that look correct; skip others.
    b. **Round 2** — re-diagnose; log any remaining gaps for manual triage:
       ```bash
       python3 docs/script/validators/verify_content.py --project-type TYPE --json \

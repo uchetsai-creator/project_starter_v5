@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-build-context.py — Context Builder for project_starter_v4.
+build-context.py — Context Builder for project_starter_v5.
 
 Reads .project-starter.yml + docs/current-state.md, queries document-registry.yaml,
 and writes .ai/AI_CONTEXT.md listing exactly which files the AI must read.

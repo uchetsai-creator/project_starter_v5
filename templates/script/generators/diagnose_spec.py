@@ -18,7 +18,7 @@ For verify_content.py format, all quality issues are treated as project-level ga
 (checker-detected issues mean template sections exist but content is wrong or missing).
 
 For framework-level gaps (verify_docs.py format only), calls `propose_framework_fix.py`
-to open a PR on project_starter_v4 with a template placeholder (round 1).
+to open a PR on project_starter_v5 with a template placeholder (round 1).
 Round 2 writes remaining framework gaps to logs/framework-gaps.md instead of
 opening more PRs, enforcing the 2-round iteration limit.
 

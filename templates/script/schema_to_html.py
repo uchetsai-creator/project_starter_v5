@@ -5,7 +5,11 @@ Outputs two files:
   <name>.html — interactive draggable/zoomable ERD (for browser use)
   <name>.svg  — static diagram with identical layout (for PDF embedding, screenshots, printing)
 """
-import sys, re, os, json, math
+import sys
+import re
+import os
+import json
+import math
 
 def detect_and_parse(content, ext):
     if ext == ".prisma" or re.search(r'\bmodel\s+\w+\s*\{', content):

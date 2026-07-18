@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-_verify_common.py — Shared utilities for project_starter_v4 verify scripts.
+_verify_common.py — Shared utilities for project_starter_v5 verify scripts.
 
 Import _is_placeholder from this module in any verify_*.py script.
 This file must be co-located with the other verify scripts (templates/script/ in the framework; docs/script/ in user projects).
