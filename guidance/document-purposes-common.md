@@ -408,6 +408,7 @@ not by agent memory. An AI tool or developer can silently violate them without t
 Install: `cp .githooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit`
 Requires `.project-starter.yml` at the project root with `project_type` set.
 Update when: a new verifier is added — add an `if [ -f "docs/script/[script].py" ]` block.
+**Note:** The context builder (`build-context.py`) runs as pre-task setup — it is not part of this hook chain and does not run on commit.
 
 ### build-context.py
 **Applies to: All project types**

@@ -81,25 +81,6 @@ Not needed during normal task work on an established project.
 
 ---
 
-If continuing an existing project:
-
-**Startup sequence — read in this order, stop as soon as you have enough context:**
-
-1. `docs/current-state.md` — this is the only mandatory read at startup.
-   It tells you the current task AND lists exactly which other documents to read.
-2. Required Context only — read the documents listed in `docs/current-state.md → Required Context`.
-   Nothing else. Do not scan the repository.
-
-Do NOT read docs/project-plan.md, docs/project-requirements.md, or docs/changelog.md
-at startup unless docs/current-state.md explicitly lists them in Required Context.
-
-If docs/current-state.md is missing, empty, or ambiguous — read AGENTS.md to orient yourself,
-then determine the next step from project-plan.md. Do not read AGENTS.md otherwise.
-
-For what each document is for and when it changes, read guidance/document-purposes-common.md + guidance/document-purposes-[your-type].md — reference only, not required every task. See guidance/document-purposes.md for the type-to-file lookup table.
-
----
-
 ## Writing Audience
 
 Spec PDF documents are read by external stakeholders — no internal tracking references allowed:
@@ -132,14 +113,7 @@ everything needed to start work and to close out the task when done.
 
 ### Starting work
 
-1. Read `docs/current-state.md`.
-2. If **Current Task** is filled in:
-   - Read the files listed under **Required Context**.
-   - Start implementation.
-3. If **Current Task** is empty or says "See project-plan.md":
-   - Read `docs/project-plan.md` (this is the only time you need to).
-   - Copy the next incomplete task's name, goal, required context, and the task after that into current-state.md.
-   - Start implementation.
+Run `python3 build-context.py` → read `.ai/AI_CONTEXT.md` → follow the Read list.
 
 ### Closing out a task
 
@@ -149,8 +123,6 @@ current-state.md is a state machine with two fields:
 - **Next Task** → pre-filled when current task was set up; becomes the new Current Task on closeout
 
 **When setting up a new Current Task** (not at closeout):
-- Use the quick filter guide in `templates/sprint-sync.md → Document Update Checklist → Quick filter guide` to populate the checklist.
-  For task types not covered, load the full `templates/sprint-sync.md → Document Update Checklist`.
 - Write the filtered list into `docs/current-state.md → Doc Checklist`.
 - Do not re-open AGENTS.md at task closeout — the filtered list in current-state.md is sufficient.
 - If the task adds or removes files, add any ASCII file-tree diagrams in README.md (or equivalent docs) to the Doc Checklist — update the tree to reflect the new layout.

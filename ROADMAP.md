@@ -1307,7 +1307,7 @@ Generated: 2026-07-18T10:00:00
 
 ---
 
-## Phase 39 — AGENTS.md Simplification via Context Builder
+## Phase 39 — AGENTS.md Simplification via Context Builder ✅ Complete
 
 AGENTS.md currently contains the full document discovery logic: startup sequence rules, Required Context inference, Doc Checklist filter guide. Now that `build-context.py` handles discovery deterministically, these rules can be replaced with a single instruction.
 
@@ -1327,3 +1327,137 @@ AGENTS.md currently contains the full document discovery logic: startup sequence
 **Token reduction:** removing the startup discovery logic and quick filter guide from AGENTS.md frees ~30–40 lines, bringing total to ≤ 150 — well below the 200-line budget.
 
 **Verification:** run `verify_framework.py --strict` after changes; token budget check will pass at new lower count.
+
+---
+
+## Phase 40 — Script Responsibility Reorganization
+
+`templates/script/` currently holds a flat list of scripts with mixed responsibilities: validation, generation, scanning, and framework-internal auditing. As the toolset grows (orchestrator, adapters), this flat layout makes ownership unclear and raises the risk of shipping framework-internal tools to user projects by mistake.
+
+**Goal:** Introduce responsibility-based subdirectories inside `templates/script/` without changing external-facing paths. Separate scripts shipped to user projects from scripts that are framework-internal only. No script logic changes.
+
+### Proposed layout
+
+```
+templates/script/
+├── validators/           # shipped to user projects
+│   ├── verify_docs.py
+│   ├── verify_content.py
+│   ├── verify_logs.py
+│   ├── verify_tests.py
+│   └── verify_module_docs.py
+├── generators/           # shipped to user projects
+│   ├── build_pdf.py
+│   └── diagnose_spec.py
+├── scanners/             # shipped to user projects
+│   └── scan_codebase.py
+└── framework/            # framework-internal only — NOT copied to user projects
+    └── verify_framework.py
+```
+
+`build-context.py` remains at repo root — it is user-facing and shipped as-is.
+
+### Changes
+
+| File | Change |
+|---|---|
+| `templates/script/validators/` (new dir) | Move `verify_docs.py`, `verify_content.py`, `verify_logs.py`, `verify_tests.py`, `verify_module_docs.py` here |
+| `templates/script/generators/` (new dir) | Move `build_pdf.py`, `diagnose_spec.py` here |
+| `templates/script/scanners/` (new dir) | Move `scan_codebase.py` here |
+| `templates/script/framework/` (new dir) | Move `verify_framework.py` here; update README note: not for user projects |
+| `.githooks/pre-commit` | Update script paths to match new subdirectory layout |
+| `guidance/document-purposes-common.md` | Update all `docs/script/` references to new subdirectory paths |
+| `templates/sprint-sync.md` | Update verify script invocation paths |
+| `templates/current-state.md` | Update verify script invocation paths in Closeout section |
+| `README.md` | Update file tree; add "framework-internal vs user-project scripts" distinction note |
+| `templates/init/*.md` (all init files) | Update script copy instructions to use new subdirectory paths |
+
+**Risk:** Path references are scattered across many files — run `grep -r "docs/script/" templates/ .githooks/` before starting to generate the full change list.
+
+**Backward compatibility:** User projects that already copied scripts to `docs/script/` are unaffected — only the source paths in the framework template change.
+
+**Verification:** run `verify_framework.py --strict`; all stale-pointer checks must pass after path updates.
+
+---
+
+## Phase 41 — Orchestrator: Workflow Manager
+
+`build-context.py` (Phase 38) solves context assembly for a known task type. But choosing *which* workflow to run, sequencing validators, and deciding when to stop still require the AI agent to read AGENTS.md and reason about the right order. This reasoning is implicit and varies by tool.
+
+**Goal:** Create `orchestrator.py` at repo root — a deterministic workflow manager that reads the current task, selects the correct validator sequence, and writes `.ai/WORKFLOW.md` alongside `.ai/AI_CONTEXT.md`. AI agents follow the workflow plan mechanically rather than reasoning about it.
+
+### Inputs
+
+| Source | Field | Used for |
+|---|---|---|
+| `.project-starter.yml` | `project_type`, `task_type` | Select workflow template |
+| `docs/current-state.md` | `Task Type:` | Override task_type at task level |
+| `document-registry.yaml` | `used_by`, `context_priority` | Determine validator scope |
+
+### Output format — `.ai/WORKFLOW.md`
+
+```markdown
+# Workflow Plan — bug-fix / data-pipeline
+Generated: 2026-07-18T10:00:00
+
+## Pre-task
+1. Run `python3 build-context.py` → read `.ai/AI_CONTEXT.md`
+
+## Implementation
+- Follow Steps in `docs/current-state.md`
+
+## Post-task validators (run in order)
+1. `python3 docs/script/validators/verify_docs.py --project-type data-pipeline --content`
+2. `python3 docs/script/validators/verify_logs.py --project-type data-pipeline --strict`
+3. `python3 docs/script/validators/verify_content.py --project-type data-pipeline --strict`
+
+## Closeout
+- Follow Closeout section in `docs/current-state.md`
+```
+
+### Changes
+
+| File | Change |
+|---|---|
+| `orchestrator.py` (new, repo root) | Reads `.project-starter.yml` + `current-state.md`; selects workflow template; calls `build-context.py`; writes `.ai/WORKFLOW.md` |
+| `workflow-registry.yaml` (new, repo root) | Maps `task_type` → ordered validator sequence + pre/post steps |
+| `.ai/WORKFLOW.md` | Generated output; gitignored alongside `AI_CONTEXT.md` |
+| `.gitignore` | Add `.ai/WORKFLOW.md` |
+| `AGENTS.md` `## Current State → Starting work` | Replace `build-context.py` pointer with `orchestrator.py` pointer (orchestrator calls context builder internally) |
+| `guidance/document-purposes-common.md` | Add `orchestrator.py`, `workflow-registry.yaml`, `.ai/WORKFLOW.md` entries |
+| `README.md` | Add "Orchestrator" section |
+
+**Token impact:** AGENTS.md shrinks further — validator sequence is now in WORKFLOW.md, not recalled from agent memory.
+
+**Verification:** run `orchestrator.py --dry-run`; confirm WORKFLOW.md matches expected validator sequence for each task type.
+
+---
+
+## Phase 42 — Agent Adapters
+
+The orchestrator (Phase 41) produces a tool-agnostic workflow plan. Different AI tools consume instructions differently: Claude Code reads AGENTS.md + slash commands; Codex reads `.codex/` config; Cursor reads `.cursorrules`. Without adapters, each tool user must manually wire up the orchestrator.
+
+**Goal:** Create a thin adapter layer that translates `.ai/WORKFLOW.md` output into the native instruction format of each supported AI tool. Core logic stays in the orchestrator; adapters contain only format translation.
+
+### Adapter responsibilities
+
+| Adapter | Input | Output |
+|---|---|---|
+| Claude Code | `.ai/WORKFLOW.md` | `.claude/commands/start-task.md` slash command; Stop hook writes task log |
+| Codex | `.ai/WORKFLOW.md` | `.codex/setup.md` + `.codex/task-instructions.md` |
+| Cursor | `.ai/WORKFLOW.md` | `.cursorrules` (task-scoped rule injection) |
+
+### Changes
+
+| File | Change |
+|---|---|
+| `adapters/claude/` (new dir) | `start-task.md` — slash command that runs orchestrator then presents WORKFLOW.md to agent; `stop-hook.sh` — writes task-log row on session end |
+| `adapters/codex/` (new dir) | `setup.md`, `task-instructions.md` templates populated from WORKFLOW.md |
+| `adapters/cursor/` (new dir) | `.cursorrules` template with WORKFLOW.md injection points |
+| `orchestrator.py` | Add `--adapter [claude|codex|cursor]` flag; calls adapter render after writing WORKFLOW.md |
+| `README.md` | Add "Agent Adapters" section: per-tool setup instructions, adapter architecture diagram |
+| `guidance/document-purposes-common.md` | Add `adapters/` directory entry |
+
+**Constraint:** Adapters must not contain document selection logic — that stays in `document-registry.yaml` + `orchestrator.py`. Any adapter that duplicates selection logic is a bug.
+
+**Verification:** run `orchestrator.py --adapter claude --dry-run`; confirm `.claude/commands/start-task.md` is generated with correct WORKFLOW.md content injected.

@@ -77,9 +77,8 @@
 
 <!--
   WHEN TO FILL: when this task is first set up — not at closeout.
-  HOW TO FILL: use the Quick filter guide in `templates/sprint-sync.md → Document Update Checklist`
-  to identify which docs need updating. The canonical guide lives there — load it when setting up
-  a new task. Do not load AGENTS.md for this.
+  HOW TO FILL: Run `python3 build-context.py` to generate `.ai/AI_CONTEXT.md` before starting.
+  The Doc Checklist section in the generated file lists which documents to update for this task type.
 
   WHEN TO RUN: at task completion (Task Completion step 1a).
   Apply each item listed here — do NOT re-open AGENTS.md at closeout.

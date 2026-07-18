@@ -100,22 +100,7 @@ After applying the type filter, apply the sprint-content pre-filter below.
 Only check items whose trigger condition could plausibly be true given what this sprint actually changed.
 Skip an item immediately if the sprint did not touch the relevant area — do not read the item's full detail.
 
-**Quick filter guide** *(canonical — also referenced by `docs/current-state.md → Doc Checklist` for task-level filtering)*:
-| If the sprint only touched… | Skip these checklist items entirely |
-|---|---|
-| Python/JS scripts only | architecture.md, backend.md, frontend.md, database.md, data-model.md, business-objects.md |
-| Frontend UI only | data-model.md, api-contract.md (unless new endpoints), backend.md, deployment.md, business-rules.md |
-| DB schema only | frontend.md, codebase-map.md page structure, business-process.md, module-flow.md |
-| Documentation only | All code-related items (data-model, api-contract, permissions, architecture, backend, frontend) |
-| Config / env vars only | All items except deployment.md and quickstart.md |
-| Pipeline stage logic only | frontend.md, api-contract.md, permissions.md, business-objects.md, business-process.md |
-| ML model / experiment only | frontend.md, api-contract.md, permissions.md, business-objects.md, business-process.md, deployment.md |
-| Library / SDK public API only | frontend.md, deployment.md, permissions.md, business-objects.md, business-process.md, data-model.md |
-| CLI subcommand only | frontend.md, deployment.md, permissions.md, business-objects.md, business-process.md, data-model.md |
-| Prompt / LLM changes only | architecture.md, backend.md, frontend.md, database.md, data-model.md, business-objects.md, deployment.md |
-| MCP server changes only | architecture.md, backend.md, frontend.md, database.md, data-model.md, business-objects.md |
-| IaC / infra changes only | All items except topology.md, runbook.md, drift-policy.md, research.md, quickstart.md |
-| Mobile screen / nav only | backend.md, database.md, api-contract.md, data-model.md, deployment.md, business-objects.md, business-rules.md |
+Run `python3 build-context.py --task-type sprint-end` to generate `.ai/AI_CONTEXT.md` — it produces a filtered document list for the sprint-end task type. Use the generated file to determine which documents to check.
 
 Apply this filter first. Then run only the remaining items.
 
