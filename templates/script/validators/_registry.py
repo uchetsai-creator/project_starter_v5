@@ -68,6 +68,15 @@ def _parse_registry(text: str) -> dict[str, Any]:
                 inner = val[1:-1]
                 items = [x.strip().strip("'\"") for x in inner.split(',') if x.strip()]
                 documents[current_doc][key] = items
+            elif val.startswith('{') and val.endswith('}'):
+                inner = val[1:-1]
+                mapping: dict[str, str] = {}
+                for pair in inner.split(','):
+                    pair = pair.strip()
+                    if ':' in pair:
+                        k, v = pair.split(':', 1)
+                        mapping[k.strip().strip("'\"")] = v.strip().strip("'\"")
+                documents[current_doc][key] = mapping
             elif val.startswith('"') or val.startswith("'"):
                 documents[current_doc][key] = val.strip('"\'')
             else:
@@ -152,3 +161,17 @@ def build_valid_task_types(registry: dict[str, Any]) -> list[str]:
         for t in meta.get('task_types', []):
             seen.add(t)
     return sorted(seen)
+
+
+def build_replaces_for(registry: dict[str, Any]) -> dict[str, dict[str, str]]:
+    """Return {doc.md: {type: replacement-doc.md}} for docs with replaces_for entries."""
+    result: dict[str, dict[str, str]] = {}
+    for name, meta in registry.items():
+        rf = meta.get('replaces_for')
+        if rf and isinstance(rf, dict):
+            doc_name = name if name.endswith('.md') else f'{name}.md'
+            result[doc_name] = {
+                t: (repl if repl.endswith('.md') else f'{repl}.md')
+                for t, repl in rf.items()
+            }
+    return result

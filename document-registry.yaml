@@ -8,6 +8,8 @@
 #   path:             path relative to docs/ root
 #   required_for:     project types where this document is Required (R)
 #   optional_for:     project types where this document is Optional (O)
+#   replaces_for:     optional — {type: replacement-doc-key} — for N/A types, the
+#                     replacement document that serves the same purpose for that type
 #   context_priority: high | medium | low  (used by build-context.py)
 #   purpose:          one-line description for AI context headers
 #   used_by:          which tools consume this document
@@ -27,6 +29,7 @@ documents:
     path: architecture/architecture.md
     required_for: [web-app, cli-tool, data-pipeline, ml-pipeline, microservices, llm-app, mobile-app]
     optional_for: [library]
+    replaces_for: {iac: topology}
     context_priority: medium
     task_types: [feature]
     purpose: "Current system components and data-flow diagram"
@@ -69,6 +72,7 @@ documents:
     path: architecture/deployment.md
     required_for: [web-app, data-pipeline, ml-pipeline, microservices]
     optional_for: [llm-app]
+    replaces_for: {cli-tool: distribution, library: distribution, mobile-app: distribution}
     context_priority: medium
     purpose: "Services, environment variables, and build/deploy flow"
     used_by: [context-builder, validator, pdf]
@@ -102,6 +106,7 @@ documents:
     path: specs/api-contract.md
     required_for: [web-app, microservices]
     optional_for: [llm-app, mobile-app]
+    replaces_for: {cli-tool: cli-contract, library: public-api, data-pipeline: pipeline-contract, ml-pipeline: pipeline-contract}
     context_priority: high
     task_types: [feature, bug-fix]
     purpose: "REST/GraphQL/WebSocket endpoint contracts, error codes, and validation rules"

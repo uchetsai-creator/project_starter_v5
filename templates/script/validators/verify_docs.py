@@ -22,11 +22,12 @@ import sys
 from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from _registry import load_registry, build_matrix, build_file_locations, VALID_TYPES
+from _registry import load_registry, build_matrix, build_file_locations, build_replaces_for, VALID_TYPES
 
 _reg = load_registry()
 MATRIX = build_matrix(_reg)
 FILE_LOCATIONS = build_file_locations(_reg)
+REPLACES_FOR = build_replaces_for(_reg)
 TYPE_INDEX = {t: i for i, t in enumerate(VALID_TYPES)}
 
 SCANNED_DIRS = ('specs', 'architecture', 'business')
@@ -198,10 +199,16 @@ def run_audit(types, docs_dir, check_content=False):
         path = f'{location}/{doc_name}'
 
         if status == 'N':
+            replacement = next(
+                (REPLACES_FOR[doc_name][t] for t in types if doc_name in REPLACES_FOR and t in REPLACES_FOR[doc_name]),
+                None,
+            )
+            na_note = (f'N/A for {"+".join(types)} but file exists' if file_exists
+                       else (f'→ use {replacement}' if replacement else ''))
             entry = {
                 'doc': path, 'status': 'orphan' if file_exists else 'na',
                 'label': '🔍 Orphan' if file_exists else '—  N/A',
-                'note': f'N/A for {"+".join(types)} but file exists' if file_exists else '',
+                'note': na_note,
             }
         elif status == 'R':
             entry = {
