@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# project_starter_v5 — verification pre-commit hook (Phase 20 + Phase 21 + Phase 23 + Phase 24 + Phase 33 + Phase 40 + Phase 45 + Phase 46 + Phase 47)
+# project_starter_v5 — verification pre-commit hook
 # Runs quality checks automatically on every git commit. Blocks on failure.
 #
 # Install (once per project clone):
@@ -14,9 +14,9 @@ set -euo pipefail
 # Staged file list — collected once, used by multiple checks
 STAGED=$(git diff --cached --name-only 2>/dev/null || true)
 
-# ── Phase 21 Check 1: Framework integrity ─────────────────────────────────────
-# Trigger: running inside the project_starter_v4 framework repo (templates/script/ present)
-# Catches: stale pointer, matrix gap, or token budget violation created mid-Phase
+# ── Framework integrity ────────────────────────────────────────────────────────
+# Trigger: running inside the project_starter_v5 framework repo (templates/script/ present)
+# Catches: stale pointer, matrix gap, or token budget violation
 if command -v python3 &>/dev/null && [ -f "templates/script/framework/verify_framework.py" ]; then
     echo "  → verify_framework.py --strict ..."
     python3 "templates/script/framework/verify_framework.py" --strict 2>&1 || {
@@ -41,7 +41,7 @@ if [ -z "$PROJECT_TYPE" ]; then
     exit 0
 fi
 
-# ── Phase 33: Placeholder guard ───────────────────────────────────────────────
+# ── Placeholder guard ─────────────────────────────────────────────────────────
 # Catches: committing with the template placeholder value still in project_type
 if echo "$PROJECT_TYPE" | grep -qE '^\[.+\]$'; then
     echo "❌  pre-commit: .project-starter.yml project_type is still a placeholder ('$PROJECT_TYPE')."
@@ -53,7 +53,7 @@ fi
 echo "pre-commit: project-type=$PROJECT_TYPE  docs=$DOCS_PATH"
 PASS=true
 
-# 1. Document completeness + content quality (Phase 17)
+# 1. Document completeness + content quality
 if command -v python3 &>/dev/null && [ -f "docs/script/validators/verify_docs.py" ]; then
     echo "  → verify_docs.py --content ..."
     python3 "docs/script/validators/verify_docs.py" \
@@ -62,30 +62,30 @@ else
     echo "  ⚠️  docs/script/validators/verify_docs.py not found — skipping"
 fi
 
-# 2. Log quality (Phase 23)
+# 2. Log quality
 if [ -f "docs/script/validators/verify_logs.py" ]; then
     echo "  → verify_logs.py ..."
     python3 "docs/script/validators/verify_logs.py" \
         --project-type "$PROJECT_TYPE" --docs "$DOCS_PATH" --strict 2>&1 || PASS=false
 fi
 
-# 3. Test report quality (Phase 23)
+# 3. Test report quality
 if [ -f "docs/script/validators/verify_tests.py" ]; then
     echo "  → verify_tests.py ..."
     python3 "docs/script/validators/verify_tests.py" \
         --project-type "$PROJECT_TYPE" --docs "$DOCS_PATH" --strict 2>&1 || PASS=false
 fi
 
-# 4. Document content quality (Phase 24)
+# 4. Document content quality
 if [ -f "docs/script/validators/verify_content.py" ]; then
     echo "  → verify_content.py ..."
     python3 "docs/script/validators/verify_content.py" \
         --project-type "$PROJECT_TYPE" --docs "$DOCS_PATH" --strict 2>&1 || PASS=false
 fi
 
-# ── Phase 21 Check 2: AGENTS.md token budget ──────────────────────────────────
+# ── AGENTS.md token budget ─────────────────────────────────────────────────────
 # Trigger: AGENTS.md in staged files
-# Catches: token budget drift — AGENTS.md growing past the 200-line limit
+# Catches: AGENTS.md growing past the 200-line limit
 AGENTS_FILE=$(printf '%s\n' "$STAGED" | grep -E '(^|/)AGENTS\.md$' | head -1 || true)
 if [ -n "$AGENTS_FILE" ]; then
     AGENTS_LINES=$(git show ":$AGENTS_FILE" 2>/dev/null | wc -l || echo 0)
@@ -97,7 +97,7 @@ if [ -n "$AGENTS_FILE" ]; then
     fi
 fi
 
-# ── Phase 21 Check 3: Changelog audit trail ───────────────────────────────────
+# ── Changelog audit trail ──────────────────────────────────────────────────────
 # Trigger: any specs/*.md or architecture/*.md staged
 # Severity: warn (non-blocking) — reminder only
 # Catches: silent spec changes with no audit trail entry in changelog.md
@@ -109,7 +109,7 @@ if [ -n "$SPEC_ARCH_STAGED" ]; then
     fi
 fi
 
-# ── Phase 21 Check 4: Closeout completeness ───────────────────────────────────
+# ── Closeout completeness ──────────────────────────────────────────────────────
 # Trigger: current-state.md staged with Status containing "Complete"
 # Catches: task marked done but Closeout section left with unfilled placeholders
 CS_FILE=$(printf '%s\n' "$STAGED" | grep -E '(^|/)current-state\.md$' | head -1 || true)
@@ -125,7 +125,7 @@ if [ -n "$CS_FILE" ]; then
     fi
 fi
 
-# ── Phase 21 Check 5: Writing Audience violations ─────────────────────────────
+# ── Writing Audience violations ────────────────────────────────────────────────
 # Trigger: any spec-facing document staged
 # Spec-facing: business-rules.md, pipeline-contract.md, research.md, quickstart.md,
 #              architecture/*.md, modules/*/*-module-data-flow.md
@@ -151,14 +151,10 @@ if [ -n "$SPEC_FACING_STAGED" ]; then
     [ "$FOUND_VIOLATIONS" = true ] && PASS=false
 fi
 
-# ── Phase 45 + Phase 46: Spec ↔ Code validation ───────────────────────────────
+# ── Spec ↔ Code validation ─────────────────────────────────────────────────────
 # Trigger: any spec contract document staged (spec change → validate code still matches)
 # Catches: spec–code drift introduced alongside a spec update
 # Note: verify_spec_code.py exits 0 if --adapter/--spec/--src are not configured.
-#
-# Phase 45 contracts: pipeline-contract.md (airflow), cli-contract.md (click)
-# Phase 46 contracts: api-contract.md (fastapi/flask/express), public-api.md (python_library)
-# Phase 47 contracts: llm-contract.md (tool_schema), topology.md (terraform/pulumi), mobile-contract.md (react_native/flutter)
 SPEC_CONTRACT_STAGED=$(printf '%s\n' "$STAGED" \
     | grep -E '(pipeline-contract|cli-contract|api-contract|public-api|llm-contract|topology|mobile-contract)\.md$' || true)
 if [ -n "$SPEC_CONTRACT_STAGED" ] && [ -f "docs/script/validators/verify_spec_code.py" ]; then

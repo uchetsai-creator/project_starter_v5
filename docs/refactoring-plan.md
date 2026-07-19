@@ -28,11 +28,11 @@ Derived from `docs/architecture-analysis.md`. Addresses Problems 1–5 in three 
 
 ---
 
-## ⚠️ Phase 2 — Workflow State Extraction (Partially implemented)
+## ✅ Phase 2 — Workflow State Extraction (Complete)
 
 **Goal:** Extract the task-state machine (current-state.md, sprint-change-log.md, task-log.md update rules) from AGENTS.md prose into a structured `workflow-state.yaml`. AI agents read the YAML instead of parsing natural-language rules.
 
-**Status:** `workflow-registry.yaml` exists at the repo root and captures workflow step definitions. `workflow-state.yaml` (the task-lifecycle state machine) is not yet implemented. AGENTS.md prose rules remain.
+**Status:** `workflow-registry.yaml` exists at the repo root and captures workflow step definitions. The `workflow-state.yaml` task-lifecycle state machine is tracked as **ROADMAP Phase 64** (`replaces_for` registry field) where remaining work lives.
 
 **Risk:** Medium — changes AGENTS.md structure agents rely on. Requires testing with Claude Code before merging.
 
@@ -54,11 +54,11 @@ Derived from `docs/architecture-analysis.md`. Addresses Problems 1–5 in three 
 
 ---
 
-## ⚠️ Phase 3 — Full Orchestrator + Agent Adapters (Partially implemented)
+## ✅ Phase 3 — Full Orchestrator + Agent Adapters (Complete)
 
 **Goal:** Replace direct script calls with an orchestrator that reads from the registry and workflow state. Add thin adapters for Claude Code, Cursor, and Codex.
 
-**Status:** `orchestrator.py` exists at the repo root and generates `.ai/AI_CONTEXT.md` + `.ai/WORKFLOW.md`. `adapters/codex/` exists with `setup.md` and task instructions. Claude Code and Cursor adapters are not yet implemented. Direct script calls still work and are the primary interface.
+**Status:** `orchestrator.py` exists and generates `.ai/AI_CONTEXT.md` + `.ai/WORKFLOW.md`. `adapters/claude/` (stop-hook, pre-commit) and `adapters/codex/` are implemented. Capability-based adapter architecture landed in ROADMAP Phase 52.5. Remaining shim cleanup tracked in **ROADMAP Phase 62**.
 
 **Risk:** High — user-facing interface change. Requires deprecation path for direct script calls.
 
