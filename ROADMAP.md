@@ -2238,74 +2238,60 @@ Phase 52.5 introduced capability adapters (`_capability_*.py`) as the authoritat
 
 ---
 
-## Phase 65 — Framework Test Suite
+## Phase 65 — Framework Test Suite (Overview)
 
 **Discovered in post-Phase-56 audit.**
 
-The framework's core Python modules (`orchestrator.py`, `build-context.py`, `_registry.py`, validator scripts) have no tests of any kind. The only automated correctness checks are `verify_framework.py` (structural integrity — file pointers, matrix, token budget) and `_example_adapter.py` (adapter self-test). Neither catches logic regressions: a change to `_classify()` that silently breaks `ml-pipeline` behavior, or a registry schema change that corrupts output for all 9 project types, would go undetected until a real project fails.
+The framework's core Python modules (`orchestrator.py`, `build-context.py`, `_registry.py`, validator scripts) have no tests of any kind. The only automated correctness checks are `verify_framework.py` (structural integrity) and `_example_adapter.py` (adapter self-test). Neither catches logic regressions.
 
-This phase introduces four test layers that map to the framework's actual architecture — no web bias; the concepts are adapted from standard practice to fit a file-in / file-out Python script pipeline.
+Split into four implementable sub-phases, each independently committable:
 
-### Test layer overview
-
-| Layer | What it tests | Primary tool |
+| Sub-phase | What it delivers | Dependency |
 |---|---|---|
-| **Unit** | Pure functions in isolation | `pytest` |
-| **Snapshot** | Script output against golden files | `pytest` + `syrupy` (or `pytest-snapshot`) |
-| **Contract** | Interface conformance: ABC implementations, registry schema, NormalizedForm types | `pytest` |
-| **E2E** | Full orchestrator pipeline on fixture projects (no PDF — skips plantuml.jar) | `pytest` + `subprocess` |
+| **65.1** Unit Tests + Scaffolding | `tests/unit/`, `conftest.py`, `pyproject.toml`, Check 14 | none |
+| **65.2** Contract Tests | `tests/contract/`: adapter ABC, registry schema, NormalizedForm, workflow scripts | 65.1 |
+| **65.3** Snapshot Tests + Minimal Fixtures | `tests/snapshot/`, `tests/fixtures/{type}/` (files exist, not filled) | 65.1 |
+| **65.4** E2E Tests + Filled Fixtures | `tests/e2e/`, filled fixture docs passing `verify_content`, README | 65.3 |
+
+**Token impact:** zero — AGENTS.md unchanged across all sub-phases.
 
 ---
 
-### Layer 1 — Unit Tests
+## Phase 65.1 — Unit Tests + Test Scaffolding
 
-Target: pure functions with deterministic output. Highest coverage per line of test code.
+### Goal
 
-| Function | Module | What to assert |
-|---|---|---|
-| `_classify(key, meta, project_type, task_type)` | `build-context.py` | Returns `required` / `if_present` / `skip` correctly for all 9 types; hybrid type (`data-pipeline+web-app`) takes union; `sprint-end` treats optional as required |
-| `_resolve_task_type(cfg, path, override)` | `_workflow_utils.py` | Override wins; current-state field wins over yml; yml fallback; all-None returns None |
-| `_read_task_type_from_current_state(path)` | `_workflow_utils.py` | Parses `**Task Type:** pipeline-stage` correctly; returns None if field absent or placeholder |
-| `_is_placeholder(text)` | `_verify_common.py` | Detects `<!-- TODO -->`, `_TBD_`, `[placeholder]`; passes real content |
-| `_section_body(text, pattern)` | `_verify_common.py` | Returns body string; stops at same-level heading; returns None when section absent |
-| `_build_workflow(root, override)` | `orchestrator.py` | Selects correct workflow key; falls back to `default`; exits non-zero on unset project_type |
-| `_render(ctx)` | `orchestrator.py` | Output contains all validator commands; task label correct |
+Set up the test infrastructure and implement unit tests for all pure functions. Highest value per line of test code — no fixtures or external processes required.
 
----
+### Scaffold
 
-### Layer 2 — Snapshot / Golden Output Tests
+| File | Change |
+|---|---|
+| `pyproject.toml` (new) | `[tool.pytest.ini_options]` `testpaths = ["tests"]`; dev deps: `pytest`, `syrupy` |
+| `.gitignore` | Add `.pytest_cache/` |
+| `tests/conftest.py` (new) | `REPO_ROOT` constant; `VALID_TYPES` list; `setup_fixture()` helper stub (used in 65.3/65.4) |
+| `templates/script/framework/verify_framework.py` | Add **Check 14** (`test-suite-exists`): warn if `tests/` is absent or has zero `test_*.py` files |
 
-Target: whole-script behavior. A single snapshot test covers every codepath that contributes to the output — any unintended change to logic, registry loading, or output formatting is caught automatically.
+### Unit tests
 
-**Strategy:** create minimal fixture docs directories for each project type → invoke scripts via `subprocess` or direct function call → compare output to a committed golden file. On first run, golden files are generated. On every subsequent run, output is diffed.
+| File | Functions under test |
+|---|---|
+| `tests/unit/test_classify.py` | `_classify()` from `build-context.py`: required/if_present/skip for all 9 types; hybrid type (`data-pipeline+web-app`); `sprint-end` makes optional → required; `task_types` field filtering (Phase 60) |
+| `tests/unit/test_workflow_utils.py` | `_resolve_task_type()`: override wins; current-state field wins over yml; yml fallback; all-None returns None. `_read_task_type_from_current_state()`: parses `**Task Type:** pipeline-stage`; returns None if absent or placeholder |
+| `tests/unit/test_verify_common.py` | `_is_placeholder()`: detects `<!-- TODO -->`, `_TBD_`, `[placeholder]`; passes real content. `_section_body()`: returns body; stops at same-level heading; returns None when absent |
+| `tests/unit/test_orchestrator_render.py` | `_render()` from `orchestrator.py`: output contains validator commands; task label correct |
 
-```
-tests/
-└── snapshots/
-    ├── verify_docs__web-app.json        ← golden output for web-app
-    ├── verify_docs__data-pipeline.json
-    ├── verify_docs__iac.json
-    ├── verify_content__web-app.txt
-    ├── build_context__web-app__feature.md
-    ├── build_context__data-pipeline__pipeline-stage.md
-    └── orchestrator__web-app__feature.md
-```
-
-| Script | Fixture inputs | Golden output |
-|---|---|---|
-| `verify_docs.py --json` | `fixtures/{type}/docs/` with all Required files present | Per-type JSON snapshot |
-| `verify_docs.py --json` with missing files | `fixtures/{type}-missing/` | Snapshot showing ❌ rows |
-| `verify_content.py` | Filled fixture docs | Per-type text snapshot |
-| `build-context.py` | `.project-starter.yml` (type + task_type) | `AI_CONTEXT.md` snapshot |
-| `orchestrator.py --dry-run` | `.project-starter.yml` + `workflow-registry.yaml` | `WORKFLOW.md` snapshot |
-
-Rationale: snapshot tests catch regressions in the output contract. When a snapshot diff appears after a code change, it forces a conscious decision: is this change intentional? If yes, update the golden file. If no, fix the regression.
+**Verification:** `pytest tests/unit/ -v` exits 0; Check 14 passes in `verify_framework.py --strict`.
 
 ---
 
-### Layer 3 — Contract Tests
+## Phase 65.2 — Contract Tests
 
-Target: interface conformance across module boundaries. No web/HTTP involved — the contracts here are Python ABCs, YAML schemas, and dataclass type guarantees.
+### Goal
+
+Test interface conformance across module boundaries: adapter ABC guarantees, registry schema invariants, NormalizedForm type contracts, workflow registry completeness. No fixtures or external processes required.
+
+### Contract tests
 
 **Contract 1 — Adapter ABC: `extract_spec()` and `extract_code()` never raise**
 
@@ -2323,7 +2309,7 @@ def test_extract_code_returns_empty_on_missing_dir(adapter_class):
     assert adapter.extract_code("/nonexistent/src/") == []
 ```
 
-**Contract 2 — Registry schema: every entry has required fields**
+**Contract 2 — Registry schema: every entry has required fields and valid types**
 
 ```python
 def test_registry_all_entries_have_required_fields():
@@ -2361,17 +2347,83 @@ def test_workflow_registry_all_scripts_exist():
             assert Path(v["script"]).exists(), f"Missing script: {v['script']} (task_type={task_type})"
 ```
 
+### Changes
+
+| File | Change |
+|---|---|
+| `tests/contract/test_adapter_contracts.py` | Contracts 1 and 3 above |
+| `tests/contract/test_registry_schema.py` | Contract 2 above — also regression guard for `import re` bug (Phase 57) |
+| `tests/contract/test_workflow_registry.py` | Contract 4 above |
+
+**Verification:** `pytest tests/contract/ -v` exits 0.
+
 ---
 
-### Layer 4 — End-to-End Tests
+## Phase 65.3 — Snapshot Tests + Minimal Fixtures
 
-Target: full pipeline from fixture `.project-starter.yml` → final output. Covers cross-component integration. PDF generation is skipped (requires `plantuml.jar`; not suitable for CI).
+### Goal
+
+Catch whole-script output regressions. Minimal fixture docs (files must exist, not necessarily filled with meaningful content) are sufficient — `verify_docs.py --json` checks presence, not content.
+
+### Fixture layout (minimal — files exist, placeholder content acceptable)
+
+```
+tests/fixtures/
+├── web-app/docs/
+│   ├── specs/api-contract.md
+│   ├── specs/permissions.md
+│   ├── architecture/architecture.md
+│   └── ...  (all Required docs for web-app — empty or placeholder)
+├── data-pipeline/docs/
+├── llm-app/docs/
+├── cli-tool/docs/
+├── library/docs/
+├── iac/docs/
+├── mobile-app/docs/
+├── ml-pipeline/docs/
+└── microservices/docs/
+```
+
+### Golden files
+
+```
+tests/snapshots/
+├── verify_docs__web-app.json
+├── verify_docs__data-pipeline.json
+├── verify_docs__iac.json
+├── build_context__web-app__feature.md
+├── build_context__data-pipeline__pipeline-stage.md
+└── orchestrator__web-app__feature.md
+```
+
+Generated on first run (`--snapshot-update`), committed, auto-diffed on every subsequent run.
+
+### Changes
+
+| File | Change |
+|---|---|
+| `tests/fixtures/{type}/` (9 dirs) | Minimal placeholder docs satisfying `verify_docs.py` presence checks |
+| `tests/snapshot/test_verify_docs_snapshots.py` | `verify_docs.py --json` golden output per type |
+| `tests/snapshot/test_build_context_snapshots.py` | `build-context.py` `AI_CONTEXT.md` golden output for 3 representative type+task_type combos |
+| `tests/snapshot/test_orchestrator_snapshots.py` | `orchestrator.py --dry-run` `WORKFLOW.md` golden output |
+| `tests/conftest.py` | Fill in `setup_fixture()` with fixture path resolution |
+
+**Verification:** `pytest tests/snapshot/ -v` exits 0; golden files committed under `tests/snapshots/`.
+
+---
+
+## Phase 65.4 — E2E Tests + Filled Fixtures
+
+### Goal
+
+Test the full pipeline end-to-end: fixture `.project-starter.yml` → orchestrator → `AI_CONTEXT.md` + `WORKFLOW.md` → validators exit 0. Fixture docs must be filled with real content passing `verify_content.py` checks.
+
+### E2E tests
 
 ```python
 def test_e2e_web_app(tmp_path):
     setup_fixture(tmp_path, project_type="web-app", task_type="feature")
 
-    # Step 1: orchestrator writes WORKFLOW.md and calls build-context internally
     result = subprocess.run(
         ["python3", str(REPO_ROOT / "orchestrator.py"), "--dry-run"],
         cwd=tmp_path, capture_output=True, text=True
@@ -2380,13 +2432,11 @@ def test_e2e_web_app(tmp_path):
     assert "verify_docs.py" in result.stdout
     assert "verify_content.py" in result.stdout
 
-    # Step 2: build-context writes AI_CONTEXT.md
     subprocess.run(["python3", str(REPO_ROOT / "build-context.py")], cwd=tmp_path, check=True)
     context = (tmp_path / ".ai/AI_CONTEXT.md").read_text()
     assert "api-contract.md" in context
     assert "permissions.md" in context
 
-    # Step 3: verify_docs exits 0 on complete fixture
     result = subprocess.run(
         ["python3", "docs/script/validators/verify_docs.py", "--project-type", "web-app"],
         cwd=tmp_path, capture_output=True
@@ -2403,67 +2453,21 @@ def test_e2e_all_types_orchestrator_dry_run(tmp_path, project_type):
     assert result.returncode == 0, f"orchestrator failed for {project_type}: {result.stderr}"
 ```
 
----
-
-### Fixture design
-
-```
-tests/
-├── conftest.py                  ← shared fixtures: setup_fixture(), REPO_ROOT, VALID_TYPES
-├── fixtures/
-│   ├── web-app/                 ← minimal but valid docs/ for web-app
-│   │   └── docs/
-│   │       ├── specs/api-contract.md      (filled, passes verify_content)
-│   │       ├── specs/permissions.md
-│   │       ├── architecture/architecture.md
-│   │       └── ...
-│   ├── data-pipeline/
-│   ├── llm-app/
-│   ├── cli-tool/
-│   ├── library/
-│   ├── iac/
-│   ├── mobile-app/
-│   ├── ml-pipeline/
-│   └── microservices/
-├── snapshots/                   ← golden files (committed, updated with --snapshot-update)
-├── unit/
-│   ├── test_classify.py
-│   ├── test_verify_common.py
-│   ├── test_workflow_utils.py
-│   └── test_orchestrator_render.py
-├── snapshot/
-│   ├── test_verify_docs_snapshots.py
-│   ├── test_verify_content_snapshots.py
-│   └── test_build_context_snapshots.py
-├── contract/
-│   ├── test_adapter_contracts.py
-│   ├── test_registry_schema.py
-│   └── test_workflow_registry.py
-└── e2e/
-    ├── test_full_pipeline.py
-    └── test_all_types_orchestrator.py
-```
+**PDF E2E (local only):** `tests/e2e/test_pdf_generation.py` checks `build_pdf.py` exits 0 and produces a non-empty `.pdf`. Skipped when `plantuml.jar` is absent (`pytest.mark.skipif`).
 
 ### Changes
 
 | File | Change |
 |---|---|
-| `tests/` (new directory tree) | Full test suite as described above |
-| `tests/conftest.py` | `setup_fixture()` helper; `REPO_ROOT` constant; `VALID_TYPES` parametrize list |
-| `tests/fixtures/{type}/` | One minimal filled docs directory per project type (9 total) |
-| `tests/snapshots/` | Golden output files — generated on first run, committed, updated intentionally |
-| `pyproject.toml` (new) | `[tool.pytest.ini_options]` with `testpaths = ["tests"]`; `[project]` with `pytest`, `syrupy` in dev deps |
-| `templates/script/framework/verify_framework.py` | Add **Check 14** (`test-suite-exists`): warn if `tests/` directory is absent or contains zero `test_*.py` files |
-| `README.md` | Add "Running the test suite" section: `pip install pytest syrupy && pytest tests/`; note that `--snapshot-update` regenerates golden files |
-| `.gitignore` | Add `.pytest_cache/` |
-
-**PDF E2E (manual / optional CI):** `build_pdf.py` requires `plantuml.jar` which is downloaded separately and not committed. PDF generation is excluded from the standard CI test run. A separate `tests/e2e/test_pdf_generation.py` is provided for local validation: it checks that `build_pdf.py` exits 0 and produces a non-empty `.pdf` file, but is skipped automatically when `plantuml.jar` is absent (`pytest.mark.skipif`). This covers GPT's "blank template → orchestrator → AI_CONTEXT → WORKFLOW → verify → PDF — 全部跑一次" as a local smoke test rather than a CI gate.
+| `tests/fixtures/{type}/docs/` (9 dirs) | Upgrade placeholder fixtures to filled content passing `verify_content.py` |
+| `tests/e2e/test_full_pipeline.py` | `test_e2e_web_app` + 2 more representative type tests |
+| `tests/e2e/test_all_types_orchestrator.py` | Parametrized `test_e2e_all_types_orchestrator_dry_run` over all 9 types |
+| `tests/e2e/test_pdf_generation.py` | PDF smoke test; `skipif plantuml.jar absent` |
+| `README.md` | Add "Running the test suite": `pip install pytest syrupy && pytest tests/`; note `--snapshot-update` |
 
 **Not in scope:** visual regression, load testing, consumer-driven contract testing (no HTTP services).
 
-**Token impact:** zero — AGENTS.md unchanged.
-
-**Verification:** `pytest tests/ -v` exits 0; snapshot tests produce committed golden files; `verify_framework.py --strict` Check 14 passes; `pytest tests/contract/ -v` catches the `import re` bug in Phase 57 (regression guard).
+**Verification:** `pytest tests/ -v` exits 0; `verify_framework.py --strict` Check 14 passes.
 
 ---
 
