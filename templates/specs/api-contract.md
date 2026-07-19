@@ -459,66 +459,7 @@ input [InputName] {
 | `INVALID_ARGUMENT` | [scenario] |
 | `PERMISSION_DENIED` | [scenario] |
 
----
-
-## CLI Commands
-
 <!--
-  Include this section if your project exposes a CLI interface.
-  Remove it if your project does not have a CLI.
-
-  Document every command and subcommand.
-  Use the actual binary name from your project.
+  CLI Tool projects: document CLI commands in docs/specs/cli-contract.md, not here.
+  api-contract.md covers REST/GraphQL/WebSocket endpoints only.
 -->
-
-**Binary:** `[e.g., myapp / npx myapp / python -m myapp]`
-
-### Command Overview
-
-| Command | Description |
-|---|---|
-| `[binary] [command]` | [description] |
-| `[binary] [command] [subcommand]` | [description] |
-
-### `[binary] [command]`
-
-**Description:** [what this command does]
-
-**Usage:**
-
-```bash
-[binary] [command] [flags] [arguments]
-```
-
-**Flags:**
-
-| Flag | Short | Required | Default | Description |
-|---|---|---|---|---|
-| `--[flag]` | `-[f]` | ✅ | — | [description] |
-| `--[flag]` | — | ❌ | `[default]` | [description] |
-
-**Arguments:**
-
-| Argument | Required | Description |
-|---|---|---|
-| `[arg]` | ✅ | [description] |
-
-**Output:**
-
-```
-[example output format]
-```
-
-**Exit codes:**
-
-| Code | Meaning |
-|---|---|
-| `0` | Success |
-| `1` | [error scenario] |
-
-**Examples:**
-
-```bash
-# [example description]
-[binary] [command] --[flag] [value]
-```

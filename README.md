@@ -567,7 +567,7 @@ appends a type suffix to output filenames to avoid collisions (e.g. `data-model-
 | Tool | Input | Diagram type | Where it's embedded |
 |---|---|---|---|
 | `build_pdf.py` (via PlantUML) | Any ` ```plantuml ` block in any `.md` | All UML types | Wherever the block appears in the PDF |
-| `schema_to_html.py` | Prisma / SQL file | ERD | `specs/data-model.md` |
+| `generators/schema_to_html.py` | Prisma / SQL file | ERD | `specs/data-model.md` |
 
 > **Multiple blocks per file:** `build_pdf.py` supports multiple diagram blocks in a
 > single `.md` file. Each block generates its own HTML + SVG pair, named by its `title:`
@@ -584,7 +584,7 @@ appends a type suffix to output filenames to avoid collisions (e.g. `data-model-
 python3 docs/script/generators/build_pdf.py docs --lang en -o docs/project-documentation-en.pdf
 
 # ERD only (schema_to_html.py is still used for the database diagram):
-python3 docs/script/schema_to_html.py path/to/schema.prisma -o docs/specs/schema.html
+python3 docs/script/generators/schema_to_html.py path/to/schema.prisma -o docs/specs/schema.html
 ```
 
 ---

@@ -946,7 +946,7 @@ Update when: the workflow rules or the WORKFLOW.md injection format change.
 | Script | Input format | Output suffix | Embedded in |
 |---|---|---|---|
 | `PlantUML (via build_pdf.py)` | plantuml block in architecture.md | `.html` / `.svg` | `architecture/architecture.md` |
-| `schema_to_html.py` | Prisma / SQL file | `.html` / `.svg` | `specs/data-model.md` |
+| `generators/schema_to_html.py` | Prisma / SQL file | `.html` / `.svg` | `specs/data-model.md` |
 | `PlantUML (via build_pdf.py)` | state block in any .md | `-state.html` / `.svg` | `specs/data-model.md`, `business/*-object.md` |
 | `PlantUML (via build_pdf.py)` | usecase block in any .md | `-usecase.html` / `.svg` | `specs/permissions.md` |
 | `PlantUML (via build_pdf.py)` | activity block in any .md | `-activity.html` / `.svg` | `business/*-process.md` |

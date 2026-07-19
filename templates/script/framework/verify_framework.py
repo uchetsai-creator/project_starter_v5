@@ -35,6 +35,14 @@ AGENTS_LINE_BUDGET = 200
 
 TEMPLATE_SUBDIRS = ["architecture", "specs", "business"]
 
+# Generator scripts that must exist in templates/script/generators/
+SHIPPED_GENERATORS = [
+    "build_pdf.py",
+    "schema_to_html.py",
+    "diagnose_spec.py",
+    "propose_framework_fix.py",
+]
+
 PURPOSES_FILES = {
     "web-app":       "document-purposes-web-app.md",
     "cli-tool":      "document-purposes-cli-tool.md",
@@ -429,10 +437,18 @@ def check_script_type_sync() -> list[dict]:
 
 
 def check_build_pdf_type_sync() -> list[dict]:
-    """Check 9: build_pdf.py VALID_PROJECT_TYPES matches PURPOSES_FILES (all 9 types)."""
-    build_pdf_path = TEMPLATES_DIR / "script" / "generators" / "build_pdf.py"
+    """Check 9: all shipped generator scripts exist; build_pdf.py VALID_PROJECT_TYPES matches PURPOSES_FILES."""
+    generators_dir = TEMPLATES_DIR / "script" / "generators"
+    issues = []
+
+    for script in SHIPPED_GENERATORS:
+        if not (generators_dir / script).exists():
+            issues.append(_issue("build-pdf-type-sync", "fail",
+                                 f"Shipped generator script missing: templates/script/generators/{script}"))
+
+    build_pdf_path = generators_dir / "build_pdf.py"
     if not build_pdf_path.exists():
-        return [_issue("build-pdf-type-sync", "error", "build_pdf.py not found")]
+        return issues or [_issue("build-pdf-type-sync", "error", "build_pdf.py not found")]
 
     pdf_types: set[str] = set()
     in_valid = False
@@ -446,7 +462,6 @@ def check_build_pdf_type_sync() -> list[dict]:
                 in_valid = False
 
     expected = set(PURPOSES_FILES.keys())
-    issues = []
     for t in sorted(expected - pdf_types):
         issues.append(_issue("build-pdf-type-sync", "fail",
                              f"`{t}` is a known project type but missing from build_pdf.py VALID_PROJECT_TYPES"))
@@ -456,6 +471,7 @@ def check_build_pdf_type_sync() -> list[dict]:
 
     if not issues:
         return [_issue("build-pdf-type-sync", "pass",
+                       f"All {len(SHIPPED_GENERATORS)} generator scripts present; "
                        f"build_pdf.py VALID_PROJECT_TYPES matches all {len(expected)} known project types")]
     return issues
 
