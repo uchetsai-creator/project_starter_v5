@@ -660,6 +660,20 @@ def check_no_new_shims() -> list[dict]:
     return issues
 
 
+def check_test_suite_exists() -> list[dict]:
+    """Check 14: Warn if tests/ directory is absent or contains zero test_*.py files."""
+    tests_dir = FRAMEWORK_ROOT / "tests"
+    if not tests_dir.exists():
+        return [_issue("test-suite-exists", "warn",
+                       "tests/ directory not found — run Phase 65.1 to add the test suite")]
+    test_files = list(tests_dir.rglob("test_*.py"))
+    if not test_files:
+        return [_issue("test-suite-exists", "warn",
+                       "tests/ exists but contains zero test_*.py files")]
+    return [_issue("test-suite-exists", "pass",
+                   f"tests/ contains {len(test_files)} test file(s)")]
+
+
 def check_registry_matrix_sync() -> list[dict]:
     """Check 11: Every entry in document-registry.yaml has a row in document-matrix.md,
     and every matrix row has a registry entry."""
@@ -726,6 +740,7 @@ CHECK_ORDER = [
     "registry-matrix-sync",
     "task-types-field-sync",
     "no-new-shims",
+    "test-suite-exists",
 ]
 
 CHECK_LABELS = {
@@ -742,6 +757,7 @@ CHECK_LABELS = {
     "registry-matrix-sync": "Registry ↔ matrix sync      (document-registry.yaml ↔ document-matrix.md)",
     "task-types-field-sync": "Task-types field sync        (document-registry.yaml task_types ↔ workflow-registry.yaml)",
     "no-new-shims":         "No new shims                 (_spec_code_adapters/ *Adapter class guard)",
+    "test-suite-exists":    "Test suite exists            (tests/ with ≥1 test_*.py file)",
 }
 
 LEVEL_ICON = {"pass": "✅", "warn": "⚠️ ", "fail": "❌", "error": "❌"}
@@ -828,6 +844,7 @@ def main():
     all_issues += check_registry_matrix_sync()
     all_issues += check_task_types_field_sync()
     all_issues += check_no_new_shims()
+    all_issues += check_test_suite_exists()
 
     if args.json_output:
         print(json.dumps(
