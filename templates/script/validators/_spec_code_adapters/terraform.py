@@ -131,28 +131,4 @@ class TerraformAdapter(FrameworkAdapter):
         return resources
 
     def _parse_file(self, fpath: str) -> list[NormalizedResource]:
-        try:
-            with open(fpath, encoding='utf-8') as f:
-                source = f.read()
-        except OSError:
-            return []
-
-        resources: list[NormalizedResource] = []
-        # Match: resource "type" "name" { ... }
-        block_pattern = re.compile(
-            r'\bresource\s+"([^"]+)"\s+"([^"]+)"\s*\{([^}]*(?:\{[^}]*\}[^}]*)*)\}',
-            re.DOTALL,
-        )
-        for m in block_pattern.finditer(source):
-            rtype = m.group(1)
-            label = m.group(2)
-            body = m.group(3)
-            # Extract top-level attribute keys (skip nested blocks)
-            config_keys = re.findall(r'^\s{0,4}(\w+)\s*=', body, re.MULTILINE)
-            resources.append(NormalizedResource(
-                name=label,
-                resource_type=rtype,
-                config_keys=config_keys,
-            ))
-
-        return resources
+        return TerraformDetector()._parse_file(fpath)

@@ -161,45 +161,4 @@ class AirflowAdapter(FrameworkAdapter):
         return contracts
 
     def _parse_file(self, fpath: str) -> list[NormalizedStageContract]:
-        try:
-            with open(fpath, encoding='utf-8') as f:
-                source = f.read()
-            tree = ast.parse(source, filename=fpath)
-        except (OSError, SyntaxError):
-            return []
-
-        contracts: list[NormalizedStageContract] = []
-        for node in ast.walk(tree):
-            if not isinstance(node, ast.FunctionDef):
-                continue
-
-            is_task = any(
-                (isinstance(d, ast.Name) and d.id == 'task') or
-                (isinstance(d, ast.Attribute) and d.attr == 'task')
-                for d in node.decorator_list
-            )
-            has_annotations = any(
-                a.annotation is not None for a in node.args.args
-            )
-            if not is_task and not has_annotations:
-                continue
-
-            input_fields = [
-                NormalizedField(name=a.arg, type=_annotation_str(a.annotation))
-                for a in node.args.args
-                if a.arg not in ('self', 'context', 'kwargs', 'args')
-            ]
-            output_fields = []
-            if node.returns:
-                ret = _annotation_str(node.returns)
-                if ret and ret.lower() not in ('none', 'any'):
-                    output_fields.append(NormalizedField(name='return', type=ret))
-
-            if input_fields or output_fields:
-                contracts.append(NormalizedStageContract(
-                    stage_name=node.name,
-                    input_fields=input_fields,
-                    output_fields=output_fields,
-                ))
-
-        return contracts
+        return AirflowDetector()._parse_file(fpath)

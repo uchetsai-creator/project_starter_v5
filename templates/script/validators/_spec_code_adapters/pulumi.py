@@ -146,44 +146,4 @@ class PulumiAdapter(FrameworkAdapter):
         return resources
 
     def _parse_file(self, fpath: str) -> list[NormalizedResource]:
-        try:
-            with open(fpath, encoding='utf-8') as f:
-                source = f.read()
-            tree = ast.parse(source, filename=fpath)
-        except (OSError, SyntaxError):
-            return []
-
-        resources: list[NormalizedResource] = []
-        for node in ast.walk(tree):
-            # Match: var = SomeModule.ResourceClass("name", key=val, ...)
-            # at assignment level
-            if not isinstance(node, ast.Assign):
-                continue
-            val = node.value
-            if not isinstance(val, ast.Call):
-                continue
-            func = val.func
-            # Class name must start with uppercase (heuristic for Pulumi resource)
-            class_name = ''
-            if isinstance(func, ast.Attribute):
-                class_name = func.attr
-            elif isinstance(func, ast.Name):
-                class_name = func.id
-            if not class_name or not class_name[0].isupper():
-                continue
-
-            # First positional arg is the resource name
-            if not val.args or not isinstance(val.args[0], ast.Constant):
-                continue
-            resource_name = str(val.args[0].value)
-
-            config_keys = [kw.arg for kw in val.keywords if kw.arg and kw.arg != 'opts']
-
-            if config_keys:
-                resources.append(NormalizedResource(
-                    name=resource_name,
-                    resource_type=class_name,
-                    config_keys=config_keys,
-                ))
-
-        return resources
+        return PulumiDetector()._parse_file(fpath)

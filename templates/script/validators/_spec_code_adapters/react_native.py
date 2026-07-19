@@ -168,42 +168,4 @@ class ReactNativeAdapter(FrameworkAdapter):
         return screens
 
     def _parse_file(self, fpath: str) -> list[NormalizedScreen]:
-        try:
-            with open(fpath, encoding='utf-8') as f:
-                source = f.read()
-        except OSError:
-            return []
-
-        screens: list[NormalizedScreen] = []
-
-        # Pattern 1: function ScreenName({ prop1, prop2 }: ...) { ... }
-        fn_pattern = re.compile(
-            r'\bfunction\s+([A-Z]\w*)\s*\(\s*\{([^}]*)\}',
-        )
-        for m in fn_pattern.finditer(source):
-            name = m.group(1)
-            props = self._extract_destructured_props(m.group(2))
-            screens.append(NormalizedScreen(name=name, props=props))
-
-        # Pattern 2: const ScreenName = ({ prop1, prop2 }: ...) =>
-        const_pattern = re.compile(
-            r'\bconst\s+([A-Z]\w*)\s*(?::\s*\S+)?\s*=\s*\(\s*\{([^}]*)\}',
-        )
-        for m in const_pattern.finditer(source):
-            name = m.group(1)
-            props = self._extract_destructured_props(m.group(2))
-            if not any(s.name == name for s in screens):
-                screens.append(NormalizedScreen(name=name, props=props))
-
-        return screens
-
-    def _extract_destructured_props(self, destructure_body: str) -> list[NormalizedField]:
-        """Extract prop names from a destructuring pattern like `{ userId, onLogout }`."""
-        fields: list[NormalizedField] = []
-        for part in re.split(r',', destructure_body):
-            part = part.strip()
-            # Handle: propName or propName = defaultValue or propName: alias
-            m = re.match(r'^(\w+)', part)
-            if m and m.group(1) not in ('', 'children'):
-                fields.append(NormalizedField(name=m.group(1), type=''))
-        return fields
+        return ReactNativeDetector()._parse_file(fpath)

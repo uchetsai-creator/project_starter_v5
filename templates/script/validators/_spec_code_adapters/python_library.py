@@ -211,33 +211,4 @@ class PythonLibraryAdapter(FrameworkAdapter):
         return names
 
     def _parse_file(self, fpath: str, public_names: set[str]) -> list[NormalizedFunction]:
-        try:
-            with open(fpath, encoding='utf-8') as f:
-                source = f.read()
-            tree = ast.parse(source, filename=fpath)
-        except (OSError, SyntaxError):
-            return []
-
-        functions: list[NormalizedFunction] = []
-        for node in ast.walk(tree):
-            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                continue
-            # If __all__ is defined, only include listed names; else include all public names
-            if public_names and node.name not in public_names:
-                continue
-            if not public_names and node.name.startswith('_'):
-                continue
-
-            params = [
-                NormalizedField(name=a.arg, type=_annotation_str(a.annotation))
-                for a in node.args.args
-                if a.arg not in _SKIP_PARAMS
-            ]
-            return_type = _annotation_str(node.returns) if node.returns else ''
-            functions.append(NormalizedFunction(
-                name=node.name,
-                params=params,
-                return_type=return_type,
-            ))
-
-        return functions
+        return PythonLibraryDetector()._parse_file(fpath, public_names)

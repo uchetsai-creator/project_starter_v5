@@ -120,21 +120,4 @@ class ExpressAdapter(FrameworkAdapter):
         return endpoints
 
     def _parse_file(self, fpath: str) -> list[NormalizedEndpoint]:
-        try:
-            with open(fpath, encoding='utf-8') as f:
-                source = f.read()
-        except OSError:
-            return []
-
-        endpoints: list[NormalizedEndpoint] = []
-        # Match: <identifier>.(get|post|...)('path' or "path" or `path`, ...)
-        pattern = re.compile(
-            r'\b\w+\.(get|post|put|delete|patch|head|options)\s*\(\s*[\'"`]([^\'"` \n]+)[\'"`]',
-            re.IGNORECASE,
-        )
-        for m in pattern.finditer(source):
-            method = m.group(1).upper()
-            path = m.group(2)
-            endpoints.append(NormalizedEndpoint(method=method, path=path))
-
-        return endpoints
+        return ExpressDetector()._parse_file(fpath)

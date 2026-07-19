@@ -161,31 +161,4 @@ class FlutterAdapter(FrameworkAdapter):
         return screens
 
     def _parse_file(self, fpath: str) -> list[NormalizedScreen]:
-        try:
-            with open(fpath, encoding='utf-8') as f:
-                source = f.read()
-        except OSError:
-            return []
-
-        screens: list[NormalizedScreen] = []
-        # Match: class ScreenName extends BaseWidget { ... }
-        class_pattern = re.compile(
-            r'\bclass\s+([A-Z]\w*)\s+extends\s+(\w+)\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}',
-            re.DOTALL,
-        )
-        for m in class_pattern.finditer(source):
-            class_name = m.group(1)
-            base = m.group(2)
-            if base not in _WIDGET_BASES:
-                continue
-            body = m.group(3)
-            # Extract `final Type fieldName;` declarations
-            field_pattern = re.compile(r'\bfinal\s+(\w[\w<>, ?]*?)\s+(\w+)\s*;')
-            props = [
-                NormalizedField(name=fm.group(2), type=fm.group(1).strip())
-                for fm in field_pattern.finditer(body)
-                if fm.group(2) not in ('key',)
-            ]
-            screens.append(NormalizedScreen(name=class_name, props=props))
-
-        return screens
+        return FlutterDetector()._parse_file(fpath)

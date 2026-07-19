@@ -2563,7 +2563,7 @@ Six helper constants/functions are duplicated across multiple framework-specific
 
 ---
 
-## Phase 70 — Eliminate Detector/Adapter `_parse_file()` Duplication
+## Phase 70 — Eliminate Detector/Adapter `_parse_file()` Duplication ✅ Complete
 
 **Discovered in post-Phase-65 full-project audit.**
 

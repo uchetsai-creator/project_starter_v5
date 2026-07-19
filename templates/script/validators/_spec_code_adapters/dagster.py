@@ -164,36 +164,4 @@ class DagsterAdapter(FrameworkAdapter):
         return contracts
 
     def _parse_file(self, fpath: str) -> list[NormalizedStageContract]:
-        try:
-            with open(fpath, encoding='utf-8') as f:
-                source = f.read()
-            tree = ast.parse(source, filename=fpath)
-        except (OSError, SyntaxError):
-            return []
-
-        contracts: list[NormalizedStageContract] = []
-        for node in ast.walk(tree):
-            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                continue
-            if not any(_is_dagster_decorator(d) for d in node.decorator_list):
-                continue
-
-            input_fields = [
-                NormalizedField(name=a.arg, type=_annotation_str(a.annotation))
-                for a in node.args.args
-                if a.arg not in ('self', 'context', 'kwargs', 'args')
-            ]
-            output_fields = []
-            if node.returns:
-                ret = _annotation_str(node.returns)
-                if ret and ret.lower() not in ('none', 'any'):
-                    output_fields.append(NormalizedField(name='return', type=ret))
-
-            if input_fields or output_fields:
-                contracts.append(NormalizedStageContract(
-                    stage_name=node.name,
-                    input_fields=input_fields,
-                    output_fields=output_fields,
-                ))
-
-        return contracts
+        return DagsterDetector()._parse_file(fpath)

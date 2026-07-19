@@ -172,53 +172,7 @@ class ToolSchemaAdapter(FrameworkAdapter):
         return tools
 
     def _parse_json(self, fpath: str) -> list[NormalizedTool]:
-        try:
-            with open(fpath, encoding='utf-8') as f:
-                data = json.load(f)
-        except (OSError, json.JSONDecodeError):
-            return []
-
-        tools: list[NormalizedTool] = []
-        entries = data if isinstance(data, list) else [data]
-        for entry in entries:
-            if not isinstance(entry, dict) or 'name' not in entry:
-                continue
-            props = (entry.get('parameters') or {}).get('properties') or {}
-            params = [
-                NormalizedField(name=k, type=(v.get('type') or '') if isinstance(v, dict) else '')
-                for k, v in props.items()
-            ]
-            tools.append(NormalizedTool(name=entry['name'], parameters=params))
-        return tools
+        return ToolSchemaDetector()._parse_json(fpath)
 
     def _parse_python(self, fpath: str) -> list[NormalizedTool]:
-        try:
-            with open(fpath, encoding='utf-8') as f:
-                source = f.read()
-            tree = ast.parse(source, filename=fpath)
-        except (OSError, SyntaxError):
-            return []
-
-        tools: list[NormalizedTool] = []
-        for node in ast.walk(tree):
-            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                continue
-            if node.name.startswith('_'):
-                continue
-
-            params = [
-                NormalizedField(name=a.arg, type=_annotation_str(a.annotation))
-                for a in node.args.args
-                if a.arg not in _SKIP_PARAMS
-            ]
-
-            # Fall back to docstring Args: if no type annotations
-            if not any(p.type for p in params):
-                docstring = ast.get_docstring(node) or ''
-                if docstring:
-                    params = _parse_docstring_args(docstring) or params
-
-            if params:
-                tools.append(NormalizedTool(name=node.name, parameters=params))
-
-        return tools
+        return ToolSchemaDetector()._parse_python(fpath)
