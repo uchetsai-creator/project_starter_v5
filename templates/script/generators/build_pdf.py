@@ -21,7 +21,7 @@ PDF section order:
   7. Project Status
 
 Usage:
-  python3 docs/script/generators/build_pdf.py [docs_dir] [-o output.pdf] [--lang en|zh] [--project-type TYPE] [--clean]
+  python3 docs/script/generators/build_pdf.py [docs_dir] [-o output.pdf] [--lang en|zh] [--project-type TYPE]
 
   --lang en              Section labels and UI text in English (default)
   --lang zh              Section labels and UI text in Traditional Chinese
@@ -35,7 +35,6 @@ Usage:
                            full — all six chapters (Introduction, Plan, Design, Build, Test, Deployment)
                            spec — system specification only: Introduction, Design, Build, Deployment
                                   (omits Plan and Test chapters — suitable for stakeholder handoff)
-  --clean                No-op (cache is always cleared before each build)
 
 To add a file to the PDF: add it to PDF_ALLOWLIST below. Do not change the discovery logic.
 
@@ -800,7 +799,6 @@ def parse_args():
     docs_dir = "docs"
     output_path = None
     lang = "en"
-    clean = False
     project_type = None
     content = "full"
 
@@ -819,9 +817,6 @@ def parse_args():
         elif a == "--content" and i + 1 < len(args):
             content = args[i + 1]
             i += 2
-        elif a == "--clean":
-            clean = True
-            i += 1
         elif not a.startswith("-"):
             docs_dir = a
             i += 1
@@ -847,11 +842,11 @@ def parse_args():
         suffix = "spec" if content == "spec" else "documentation"
         output_path = os.path.join(docs_dir, f"project-{suffix}-{lang}.pdf")
 
-    return docs_dir, output_path, lang, clean, project_type, content
+    return docs_dir, output_path, lang, project_type, content
 
 
 def main():
-    docs_dir, output_path, lang, clean, project_type, content = parse_args()
+    docs_dir, output_path, lang, project_type, content = parse_args()
     strings = STRINGS[lang]
 
     if not os.path.isdir(docs_dir):

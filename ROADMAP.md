@@ -2594,7 +2594,7 @@ class AirflowAdapter(DataPipelineAdapter):
 
 ---
 
-## Phase 71 — Dead Code Removal
+## Phase 71 — Dead Code Removal ✅ Complete
 
 **Discovered in post-Phase-65 full-project audit.**
 

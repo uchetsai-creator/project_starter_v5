@@ -67,7 +67,6 @@ def main():
         "task": args.task,
         "adapter": args.adapter,
         "orchestrator_runs": orchestrator_runs,
-        "token_count": None,
     })
 
     with open(output, "w") as f:

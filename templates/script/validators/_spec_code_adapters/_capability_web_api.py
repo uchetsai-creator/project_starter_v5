@@ -125,7 +125,7 @@ class WebAPIAdapter(FrameworkAdapter):
         )
 
         results: list[NormalizedEndpoint] = []
-        for detector_key, (module_name, class_name, _exts) in active_detectors.items():
+        for _, (module_name, class_name, _exts) in active_detectors.items():
             try:
                 import importlib
                 mod = importlib.import_module(module_name)

@@ -107,7 +107,7 @@ class LLMAdapter(FrameworkAdapter):
         )
 
         results: list[NormalizedTool] = []
-        for detector_key, (module_name, class_name) in active_detectors.items():
+        for _, (module_name, class_name) in active_detectors.items():
             try:
                 import importlib
                 mod = importlib.import_module(module_name)

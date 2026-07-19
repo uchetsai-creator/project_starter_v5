@@ -68,8 +68,6 @@ class SemanticAdapter:
     def semantic_compare(
         self,
         structural_report: dict,
-        spec_items: list,  # noqa: ARG002
-        code_items: list,  # noqa: ARG002
     ) -> list[dict]:
         """
         Escalate ambiguous field pairs from the structural report to Claude.

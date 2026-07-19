@@ -21,12 +21,6 @@ from _base import Detector, FrameworkAdapter, NormalizedResource
 from _utils import _parse_config_table
 
 
-def _class_name_to_snake(name: str) -> str:
-    """Convert CamelCase resource type to rough snake_case provider.resource label."""
-    s = re.sub(r'([A-Z])', r'_\1', name).lower().lstrip('_')
-    return s
-
-
 class PulumiDetector(Detector):
     """
     Framework detector for Pulumi (Python) IaC (Phase 52.5).

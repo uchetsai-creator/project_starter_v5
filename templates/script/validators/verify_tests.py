@@ -222,12 +222,6 @@ def check_test_report(docs_dir, types):
 _STATUS_ICON = {'pass': '✅', 'warn': '⚠️ ', 'fail': '❌'}
 
 
-def _fill_score(results):
-    total = len(results)
-    passed = sum(1 for r in results if r['status'] == 'pass')
-    return passed, total
-
-
 def print_results(results, types):
     type_str = '+'.join(types)
     print(f'\nTest report quality audit — project type: {type_str}\n')
@@ -237,7 +231,8 @@ def print_results(results, types):
         print(f'  {icon}  {r["check"]}: {r["detail"]}')
 
     print()
-    passed, total = _fill_score(results)
+    passed = sum(1 for r in results if r['status'] == 'pass')
+    total = len(results)
     fail_count = sum(1 for r in results if r['status'] == 'fail')
     warn_count = sum(1 for r in results if r['status'] == 'warn')
 
@@ -293,7 +288,8 @@ def main():
     results = check_test_report(args.docs, types)
 
     if args.json_output:
-        passed, total = _fill_score(results)
+        passed = sum(1 for r in results if r['status'] == 'pass')
+        total = len(results)
         verdict = 'FAIL' if any(r['status'] == 'fail' for r in results) else \
                   'WARN' if any(r['status'] == 'warn' for r in results) else 'PASS'
         print(json.dumps({

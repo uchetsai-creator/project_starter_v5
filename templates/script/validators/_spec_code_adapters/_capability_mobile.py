@@ -142,7 +142,7 @@ class MobileAdapter(FrameworkAdapter):
 
         results: list[NormalizedScreen] = []
         seen: set[str] = set()
-        for detector_key, (module_name, class_name, _exts) in active_detectors.items():
+        for _, (module_name, class_name, _exts) in active_detectors.items():
             try:
                 import importlib
                 mod = importlib.import_module(module_name)

@@ -434,7 +434,7 @@ def main() -> None:
 
     semantic_verdicts: list[dict] = []
     if args.semantic and hasattr(adapter_obj, 'semantic_compare'):
-        semantic_verdicts = adapter_obj.semantic_compare(report, spec_items, code_items)
+        semantic_verdicts = adapter_obj.semantic_compare(report)
 
     if args.json_output:
         print(json.dumps({
