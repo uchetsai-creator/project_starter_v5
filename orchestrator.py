@@ -34,7 +34,7 @@ VALID_ADAPTERS = ["claude", "codex", "cursor"]
 
 
 def _load_yaml(path: Path) -> dict:
-    with path.open() as fh:
+    with path.open(encoding="utf-8") as fh:
         return yaml.safe_load(fh) or {}
 
 
@@ -122,7 +122,7 @@ def _read_task_name(docs_path: Path) -> str:
     state = docs_path / "current-state.md"
     if not state.exists():
         return "(unknown)"
-    text = state.read_text()
+    text = state.read_text(encoding="utf-8")
     m = re.search(r"\*\*Task:\*\*\s*(.+)", text)
     return m.group(1).strip() if m else "(unknown)"
 
@@ -132,18 +132,18 @@ def _track_orchestrator_run(project_root: Path, task_name: str) -> None:
     telemetry_dir.mkdir(parents=True, exist_ok=True)
     state_file = telemetry_dir / ".orchestrator_runs.json"
     try:
-        state = json.loads(state_file.read_text()) if state_file.exists() else {}
+        state = json.loads(state_file.read_text(encoding="utf-8")) if state_file.exists() else {}
     except (json.JSONDecodeError, OSError):
         state = {}
     if state.get("task") == task_name:
         state["runs"] = state.get("runs", 0) + 1
     else:
         state = {"task": task_name, "runs": 1}
-    state_file.write_text(json.dumps(state))
+    state_file.write_text(json.dumps(state), encoding="utf-8")
 
 
 def _render_adapter_file(template_path: Path, workflow_content: str) -> str:
-    return template_path.read_text().replace("{{WORKFLOW_CONTENT}}", workflow_content)
+    return template_path.read_text(encoding="utf-8").replace("{{WORKFLOW_CONTENT}}", workflow_content)
 
 
 def _run_adapter(adapter: str, project_root: Path, workflow_content: str, dry_run: bool) -> None:
@@ -162,7 +162,7 @@ def _run_adapter(adapter: str, project_root: Path, workflow_content: str, dry_ru
             out_dir = project_root / ".claude" / "commands"
             out_dir.mkdir(parents=True, exist_ok=True)
             out_path = out_dir / "start-task.md"
-            out_path.write_text(rendered)
+            out_path.write_text(rendered, encoding="utf-8")
             print(f"✅  Adapter → {out_path}")
 
     elif adapter == "codex":
@@ -179,7 +179,7 @@ def _run_adapter(adapter: str, project_root: Path, workflow_content: str, dry_ru
                 out_dir = project_root / ".codex"
                 out_dir.mkdir(exist_ok=True)
                 out_path = out_dir / filename
-                out_path.write_text(rendered)
+                out_path.write_text(rendered, encoding="utf-8")
                 print(f"✅  Adapter → {out_path}")
 
     elif adapter == "cursor":
@@ -193,7 +193,7 @@ def _run_adapter(adapter: str, project_root: Path, workflow_content: str, dry_ru
             print(rendered)
         else:
             out_path = project_root / ".cursorrules"
-            out_path.write_text(rendered)
+            out_path.write_text(rendered, encoding="utf-8")
             print(f"✅  Adapter → {out_path}")
 
 
@@ -237,7 +237,7 @@ def main() -> None:
     ai_dir = project_root / ".ai"
     ai_dir.mkdir(exist_ok=True)
     out_path = ai_dir / "WORKFLOW.md"
-    out_path.write_text(output)
+    out_path.write_text(output, encoding="utf-8")
 
     docs_dir = project_root / ctx["docs_path"]
     task_name = _read_task_name(docs_dir)

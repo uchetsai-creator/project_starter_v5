@@ -28,7 +28,7 @@ PRIORITY_ORDER = {"high": 0, "medium": 1, "low": 2}
 
 
 def _load_yaml(path: Path) -> dict:
-    with path.open() as fh:
+    with path.open(encoding="utf-8") as fh:
         return yaml.safe_load(fh) or {}
 
 
@@ -178,7 +178,7 @@ def main() -> None:
     ai_dir = project_root / ".ai"
     ai_dir.mkdir(exist_ok=True)
     out_path = ai_dir / "AI_CONTEXT.md"
-    out_path.write_text(output)
+    out_path.write_text(output, encoding="utf-8")
 
     print(f"✅  Written to {out_path}")
     print(f"    Project type : {ctx['project_type']}")

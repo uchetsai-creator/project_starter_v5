@@ -2806,95 +2806,9 @@ All validator scripts and adapter code already specify `encoding='utf-8'` on eve
 
 ---
 
-## Phase 79 — Eliminate `_load_yaml` Duplication and `_read_task_name` Overlap
+## Phase 79 — Registry Schema + Formal Validation
 
-**Discovered in post-Phase-75 full-project audit. Priority: medium — duplicate logic is a maintenance hazard.**
-
-### `_load_yaml` duplicated across two scripts
-
-`orchestrator.py` (line 36–38) and `build-context.py` (line 30–32) each define an identical 3-line `_load_yaml(path)` function. Both already import from `_workflow_utils.py`.
-
-| Fix |
-|---|
-| Move `_load_yaml()` into `_workflow_utils.py`; remove the local definitions from both scripts; update imports |
-
-### `_read_task_name` overlaps with `_workflow_utils` logic
-
-`orchestrator.py:121–127` defines `_read_task_name()`, which reads `current-state.md` and extracts `**Task:**`. `_workflow_utils._read_task_type_from_current_state()` reads the same file to extract `**Task Type:**`. The file-read pattern is copy-pasted; only the regex target differs.
-
-| Fix |
-|---|
-| Add a second regex to `_workflow_utils._read_task_type_from_current_state()` (or add a sibling `_read_task_name_from_current_state()`); remove the duplicate in `orchestrator.py` |
-
-**Verification:** `pytest tests/ -v` exits 0; `orchestrator.py` and `build-context.py` no longer define `_load_yaml`.
-
----
-
-## Phase 80 — Capability Adapter Pattern Normalization
-
-**Discovered in post-Phase-75 full-project audit. Priority: medium — non-idiomatic code; inconsistency across seven peer files.**
-
-### `import importlib` inside loop body
-
-All 6 capability adapters (`_capability_pipeline`, `_capability_web_api`, `_capability_cli`, `_capability_library`, `_capability_llm`, `_capability_iac`, `_capability_mobile`) import `importlib` inside a `try` block within a `for` loop. Python caches module imports so there is no runtime cost, but the pattern is non-idiomatic and misleading.
-
-| Fix |
-|---|
-| Move `import importlib` to the top-level import section of each file |
-
-### `json.loads(f.read())` → `json.load(f)`
-
-| File | Lines | Fix |
-|---|---|---|
-| `adapters/claude/telemetry_writer.py` | 33, 49 | Replace `json.loads(f.read())` with `json.load(f)` in both `_read_orchestrator_runs` and `_read_existing_rows` |
-
-### File-discovery inconsistency across capability adapters
-
-Four adapters (`pipeline`, `cli`, `library`, `llm`) build the full `files` list before selecting active detectors — they always walk all `.py` files regardless of which detectors are active. Three adapters (`web_api`, `iac`, `mobile`) compute `needed_exts` from active detectors first, then filter file discovery. The second pattern is more efficient and is the correct model.
-
-| Fix |
-|---|
-| Refactor `_capability_pipeline`, `_capability_cli`, `_capability_library`, `_capability_llm` to compute needed extensions from active detectors before file discovery, matching the `iac`/`mobile`/`web_api` pattern |
-
-### Cosmetic: excessive blank lines
-
-`orchestrator.py` and `build-context.py` contain multiple runs of 3–4 consecutive blank lines between functions. PEP 8 specifies two.
-
-| Fix |
-|---|
-| Reduce to exactly two blank lines between top-level definitions in both files |
-
-**Verification:** `pytest tests/ -v` exits 0; no functional change — only import order and file-discovery logic adjusted.
-
----
-
-## Phase 81 — Architecture Simplification: `verify_docs` Lazy-Init and Shared Adapter Dispatcher
-
-**Discovered in post-Phase-75 full-project audit. Priority: low — design improvement; current code is correct but carries unnecessary complexity.**
-
-### Revert `verify_docs.py` lazy-init to direct call
-
-Phase 75 introduced a `_init()` lazy-init pattern with five module-level `None` globals to avoid import-time side effects. However, `load_registry()` in `_registry.py` already caches its result internally — calling it at module level is safe and simpler. The `_init()` function adds stateful globals and a guard check with no benefit.
-
-| Fix |
-|---|
-| Remove `_init()` and the five `None` globals; restore the direct `_reg = load_registry()` etc. calls at module level; remove `_init()` calls from `effective_status()` and `run_audit()` |
-
-### Shared `_dispatch_detectors()` in `FrameworkAdapter`
-
-All 7 capability adapters implement an `extract_code()` body that is structurally identical: select active detectors, discover files, import and instantiate each detector class, collect results. The only variation is the file extensions and the detector dictionary.
-
-| Fix |
-|---|
-| Add a `_dispatch_detectors(detectors, files)` protected method to `FrameworkAdapter` in `_base.py`; each capability adapter calls `self._dispatch_detectors(active_detectors, all_files)` instead of repeating the import/instantiate/extend loop |
-
-**Verification:** `pytest tests/ -v` exits 0; `_base.py` exports the new method; all 7 adapters' `extract_code()` bodies are simplified.
-
----
-
-## Phase 82 — Registry Schema + Formal Validation
-
-**Proposed after post-Phase-75 audit and architecture review.**
+**Proposed after post-Phase-75 audit and architecture review. Priority: critical — the registry is the shared dependency of `verify_docs`, `build-context`, and `orchestrator`, but has no schema; malformed entries (e.g. `webapp` instead of `web-app`) pass silently and corrupt downstream output.**
 
 `document-registry.yaml` is the de facto Single Source of Truth for the entire framework, but it currently has no formal schema. Any malformed entry (wrong type, unknown project type, missing required field) silently passes through. Additionally, several fields that downstream consumers need (`pdf`, `audience`, `required_sections`, `update_trigger`) do not exist in the registry yet, forcing those consumers to maintain their own parallel lists.
 
@@ -2934,21 +2848,22 @@ Make the registry a complete, validated DSL. Every tool reads the same schema; a
 | `required_sections` | Hardcoded `CONTENT_SECTIONS` dict in `verify_content.py` | Move to registry; `verify_content.py` reads from registry |
 | `update_trigger` | Described only in prose in `guidance/document-purposes-*.md` | Add concise machine-readable value to every entry |
 
-### Step 3 — Add `verify_registry.py` to workflow
+### Step 3 — Add `verify_registry.py` to workflow and pre-commit hook
 
 | File | Change |
 |---|---|
 | `workflow-registry.yaml` | Add `verify_registry.py` as the first post-task validator in every workflow (runs before `verify_docs.py`) |
+| `.githooks/pre-commit` | Add `python3 verify_registry.py --registry document-registry.yaml` as the first check — blocks commit on any schema violation |
 
-**Verification:** `pytest tests/ -v` exits 0; `python3 verify_registry.py --registry document-registry.yaml` exits 0 on the current registry; introducing a malformed entry causes exit 1.
+**Verification:** `pytest tests/ -v` exits 0; `python3 verify_registry.py --registry document-registry.yaml` exits 0 on the current registry; introducing a malformed entry (e.g. `required_for: [webapp]`) causes exit 1.
 
 ---
 
-## Phase 83 — Consumer Migration: Eliminate Parallel Lists
+## Phase 80 — Consumer Migration: Eliminate Parallel Lists
 
-**Depends on Phase 82. Proposed after post-Phase-75 audit and architecture review.**
+**Depends on Phase 79. Priority: critical — `verify_content.py` and `build_pdf.py` each maintain their own copies of data already in the registry; any registry change requires updating two places and one will always lag.**
 
-Once the registry has `pdf`, `audience`, `required_sections`, and `update_trigger` fields (Phase 82), all consumers that currently maintain their own copies of this information can be rewritten to read directly from the registry. This eliminates every remaining hand-sync point.
+Once the registry has `pdf`, `audience`, `required_sections`, and `update_trigger` fields (Phase 79), all consumers that currently maintain their own copies of this information can be rewritten to read directly from the registry. This eliminates every remaining hand-sync point.
 
 ### Target state
 
@@ -2957,11 +2872,11 @@ document-registry.yaml
         │
         ├── verify_docs.py          (already reads registry ✅)
         ├── build-context.py        (already reads registry ✅)
-        ├── verify_registry.py      (new in Phase 82 ✅)
-        ├── verify_content.py       (reads required_sections from registry — Phase 83)
-        ├── build_pdf.py            (reads pdf: true/false from registry — Phase 83)
-        ├── sprint-sync.md checklist (generated from registry — Phase 83)
-        └── orchestrator.py         (reads update_trigger — Phase 83, future)
+        ├── verify_registry.py      (new in Phase 79 ✅)
+        ├── verify_content.py       (reads required_sections from registry — Phase 80)
+        ├── build_pdf.py            (reads pdf: true/false from registry — Phase 80)
+        ├── sprint-sync.md checklist (generated from registry — Phase 80)
+        └── orchestrator.py         (reads update_trigger — Phase 80, future)
 ```
 
 ### Migrations
@@ -2979,6 +2894,150 @@ document-registry.yaml
 | New: `templates/script/generate_sprint_checklist.py` | Read registry → emit the `sprint-sync.md` Document Update Checklist section in correct `[Types: ...]` format; run at sprint end or whenever the registry changes |
 
 **Verification:** `pytest tests/ -v` exits 0; `verify_content.py` produces identical output before and after (snapshot test); `build_pdf.py` includes the same files as before (snapshot test); `CONTENT_SECTIONS` dict removed from `verify_content.py`.
+
+---
+
+## Phase 81 — Golden Projects + Regression Suite
+
+**Depends on Phase 80. Priority: high — almost all current tests are unit/snapshot tests of individual scripts; the chain Registry → Generator → Validator → PDF is not tested end-to-end and cross-component regressions go undetected.**
+
+### Problem
+
+A registry field rename, a new required section, or a validator logic change can silently break the full pipeline. Unit tests for each script will still pass while the integrated output is wrong. There is currently no automated check that catches this class of regression.
+
+### Goal
+
+Build `examples/` as a set of minimal but complete reference projects, one per project type. CI runs the full tool chain against each example and compares output snapshots. Any regression anywhere in the chain fails CI with a specific, actionable diff.
+
+### Example project structure
+
+```
+examples/
+  web-app/
+    .project-starter.yml
+    docs/
+      current-state.md
+      specs/api-contract.md
+      ...
+  cli-tool/
+  data-pipeline/
+  llm-app/
+  iac/
+```
+
+Each example contains the minimum documents required for that project type to pass `verify_docs` and `verify_content`. Documents contain real (non-placeholder) content — enough to produce a clean validator run.
+
+### CI chain (per example)
+
+```
+python3 orchestrator.py --dry-run        → snapshot: WORKFLOW.md output
+python3 build-context.py --dry-run       → snapshot: AI_CONTEXT.md output
+python3 verify_registry.py               → exit 0
+python3 verify_docs.py --project-type X  → snapshot: JSON audit output
+python3 verify_content.py --project-type X → snapshot: section check output
+python3 build_pdf.py (if pdf: true docs exist) → snapshot: file list
+```
+
+### Regression test layer
+
+```
+tests/golden/
+  test_web_app_golden.py
+  test_cli_golden.py
+  test_pipeline_golden.py
+  test_llm_golden.py
+  test_iac_golden.py
+```
+
+Each golden test runs the full chain against `examples/<type>/` and compares every stage's output against a stored snapshot. A diff at any stage fails the test with the exact lines that changed.
+
+**Verification:** `pytest tests/golden/ -v` exits 0; modifying a registry field causes the affected golden test to fail with a readable diff; adding a new required section to a document causes `verify_content` to fail for the relevant example; all 189 existing tests continue to pass.
+
+---
+
+## Phase 82 — Eliminate `_load_yaml` Duplication and `_read_task_name` Overlap
+
+**Discovered in post-Phase-75 full-project audit. Priority: medium — duplicate logic is a maintenance hazard.**
+
+### `_load_yaml` duplicated across two scripts
+
+`orchestrator.py` and `build-context.py` each define an identical 3-line `_load_yaml(path)` function. Both already import from `_workflow_utils.py`.
+
+| Fix |
+|---|
+| Move `_load_yaml()` into `_workflow_utils.py`; remove the local definitions from both scripts; update imports |
+
+### `_read_task_name` overlaps with `_workflow_utils` logic
+
+`orchestrator.py` defines `_read_task_name()`, which reads `current-state.md` and extracts `**Task:**`. `_workflow_utils._read_task_type_from_current_state()` reads the same file to extract `**Task Type:**`. The file-read pattern is copy-pasted; only the regex target differs.
+
+| Fix |
+|---|
+| Add a second regex to `_workflow_utils._read_task_type_from_current_state()` (or add a sibling `_read_task_name_from_current_state()`); remove the duplicate in `orchestrator.py` |
+
+**Verification:** `pytest tests/ -v` exits 0; `orchestrator.py` and `build-context.py` no longer define `_load_yaml`.
+
+---
+
+## Phase 83 — Capability Adapter Pattern Normalization
+
+**Discovered in post-Phase-75 full-project audit. Priority: low — non-idiomatic code; inconsistency across seven peer files.**
+
+### `import importlib` inside loop body
+
+All 7 capability adapters import `importlib` inside a `try` block within a `for` loop. Python caches module imports so there is no runtime cost, but the pattern is non-idiomatic and misleading.
+
+| Fix |
+|---|
+| Move `import importlib` to the top-level import section of each file |
+
+### `json.loads(f.read())` → `json.load(f)`
+
+| File | Lines | Fix |
+|---|---|---|
+| `adapters/claude/telemetry_writer.py` | 33, 49 | Replace `json.loads(f.read())` with `json.load(f)` in both `_read_orchestrator_runs` and `_read_existing_rows` |
+
+### File-discovery inconsistency across capability adapters
+
+Four adapters (`pipeline`, `cli`, `library`, `llm`) build the full `files` list before selecting active detectors. Three adapters (`web_api`, `iac`, `mobile`) compute `needed_exts` from active detectors first, then filter file discovery. The second pattern is the correct model.
+
+| Fix |
+|---|
+| Refactor `_capability_pipeline`, `_capability_cli`, `_capability_library`, `_capability_llm` to compute needed extensions from active detectors before file discovery, matching the `iac`/`mobile`/`web_api` pattern |
+
+### Cosmetic: excessive blank lines
+
+`orchestrator.py` and `build-context.py` contain multiple runs of 3–4 consecutive blank lines between functions. PEP 8 specifies two.
+
+| Fix |
+|---|
+| Reduce to exactly two blank lines between top-level definitions in both files |
+
+**Verification:** `pytest tests/ -v` exits 0; no functional change — only import order and file-discovery logic adjusted.
+
+---
+
+## Phase 84 — Architecture Simplification: `verify_docs` Lazy-Init and Shared Adapter Dispatcher
+
+**Discovered in post-Phase-75 full-project audit. Priority: low — design improvement; current code is correct but carries unnecessary complexity.**
+
+### Revert `verify_docs.py` lazy-init to direct call
+
+Phase 75 introduced a `_init()` lazy-init pattern with five module-level `None` globals to avoid import-time side effects. However, `load_registry()` in `_registry.py` already caches its result internally — calling it at module level is safe and simpler. The `_init()` function adds stateful globals and a guard check with no benefit.
+
+| Fix |
+|---|
+| Remove `_init()` and the five `None` globals; restore the direct `_reg = load_registry()` etc. calls at module level; remove `_init()` calls from `effective_status()` and `run_audit()` |
+
+### Shared `_dispatch_detectors()` in `FrameworkAdapter`
+
+All 7 capability adapters implement an `extract_code()` body that is structurally identical: select active detectors, discover files, import and instantiate each detector class, collect results. The only variation is the file extensions and the detector dictionary.
+
+| Fix |
+|---|
+| Add a `_dispatch_detectors(detectors, files)` protected method to `FrameworkAdapter` in `_base.py`; each capability adapter calls `self._dispatch_detectors(active_detectors, all_files)` instead of repeating the import/instantiate/extend loop |
+
+**Verification:** `pytest tests/ -v` exits 0; `_base.py` exports the new method; all 7 adapters' `extract_code()` bodies are simplified.
 
 ---
 

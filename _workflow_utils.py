@@ -25,7 +25,7 @@ def _load_valid_task_types(project_root: Path) -> list[str]:
 def _read_task_type_from_current_state(path: Path) -> str | None:
     if not path.exists():
         return None
-    text = path.read_text()
+    text = path.read_text(encoding="utf-8")
     m = re.search(r"\*\*Task Type:\*\*\s*(\S+)", text)
     if m:
         value = m.group(1).strip("[]")
