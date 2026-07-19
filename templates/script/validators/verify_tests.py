@@ -23,7 +23,7 @@ import os
 import re
 import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from _verify_common import _section_body
+from _verify_common import _append_telemetry, _read_file, _section_body, _telemetry_ts
 from _registry import VALID_TYPES
 
 PIPELINE_TYPES = {'data-pipeline', 'ml-pipeline'}
@@ -40,12 +40,6 @@ _REAL_ROW = re.compile(r'^\|\s*[^[\]|]+\s*\|')  # table row without [ ] placehol
 
 
 
-def _read_file(path):
-    try:
-        with open(path, encoding='utf-8') as fh:
-            return fh.read().splitlines()
-    except OSError:
-        return None
 
 
 def _real_table_rows(body):
@@ -279,6 +273,10 @@ def main():
         '--json', action='store_true', dest='json_output',
         help='Output results as JSON',
     )
+    parser.add_argument(
+        '--telemetry', action='store_true',
+        help='Append result to .ai/telemetry/validation-result.json',
+    )
     args = parser.parse_args()
 
     types = [t.strip() for t in args.project_type.split('+')]
@@ -306,6 +304,19 @@ def main():
         }, ensure_ascii=False, indent=2))
     else:
         print_results(results, types)
+
+    if args.telemetry:
+        fail_count = sum(1 for r in results if r['status'] == 'fail')
+        warn_count = sum(1 for r in results if r['status'] == 'warn')
+        _append_telemetry({
+            'ts': _telemetry_ts(),
+            'project_type': args.project_type,
+            'validator': 'verify_tests.py',
+            'level': 'fail' if fail_count > 0 else 'warn' if warn_count > 0 else 'pass',
+            'warn_count': warn_count,
+            'fail_count': fail_count,
+            'failed_docs': [r['check'] for r in results if r['status'] == 'fail'],
+        })
 
     if args.strict and any(r['status'] == 'fail' for r in results):
         sys.exit(1)

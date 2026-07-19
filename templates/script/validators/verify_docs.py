@@ -34,7 +34,7 @@ SCANNED_DIRS = ('specs', 'architecture', 'business')
 
 # ── Content quality constants (used by --content) ────────────────────────────
 
-from _verify_common import _is_placeholder
+from _verify_common import _append_telemetry, _is_placeholder, _telemetry_ts
 
 # A section must have at least this many non-empty, non-placeholder lines to
 # be considered "filled".
@@ -301,32 +301,16 @@ def print_results(results, types):
 def _write_telemetry(project_type: str, results: list[dict]) -> None:
     fail_count = sum(1 for r in results if r['status'] == 'missing_required')
     warn_count = sum(1 for r in results if r['status'] == 'missing_optional')
-    failed_docs = [
-        os.path.basename(r['doc'])
-        for r in results if r['status'] == 'missing_required'
-    ]
-    entry = {
-        'ts': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
+    failed_docs = [os.path.basename(r['doc']) for r in results if r['status'] == 'missing_required']
+    _append_telemetry({
+        'ts': _telemetry_ts(),
         'project_type': project_type,
         'validator': 'verify_docs.py',
         'level': 'fail' if fail_count > 0 else 'pass',
         'warn_count': warn_count,
         'fail_count': fail_count,
         'failed_docs': failed_docs,
-    }
-    telemetry_dir = pathlib.Path('.ai') / 'telemetry'
-    telemetry_dir.mkdir(parents=True, exist_ok=True)
-    telemetry_file = telemetry_dir / 'validation-result.json'
-    rows: list[dict] = []
-    if telemetry_file.exists():
-        try:
-            rows = json.loads(telemetry_file.read_text())
-            if not isinstance(rows, list):
-                rows = []
-        except (json.JSONDecodeError, OSError):
-            rows = []
-    rows.append(entry)
-    telemetry_file.write_text(json.dumps(rows, indent=2))
+    })
 
 
 # ── CLI ───────────────────────────────────────────────────────────────────────

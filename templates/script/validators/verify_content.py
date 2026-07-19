@@ -30,7 +30,10 @@ import sys
 from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from _verify_common import _is_placeholder, _section_body
+from _verify_common import (
+    _append_telemetry, _is_placeholder, _non_blank, _read_file,
+    _section_body, _telemetry_ts, parse_types,
+)
 from _registry import (
     load_registry, VALID_TYPES,
     build_type_docs, build_doc_paths, get_universal_docs,
@@ -40,19 +43,6 @@ _reg = load_registry()
 TYPE_DOCS: dict[str, list[str]] = build_type_docs(_reg)
 DOC_PATHS: dict[str, str] = build_doc_paths(_reg)
 UNIVERSAL_DOCS: list[str] = get_universal_docs(_reg)
-
-
-def _read_file(path: str) -> list[str] | None:
-    try:
-        with open(path, encoding='utf-8') as fh:
-            return fh.read().splitlines()
-    except OSError:
-        return None
-
-
-def _non_blank(lines: list[str]) -> list[str]:
-    return [ln for ln in lines if ln.strip()]
-
 
 
 # ---------------------------------------------------------------------------
@@ -1147,49 +1137,23 @@ def print_results_json(
 # ---------------------------------------------------------------------------
 
 def _write_telemetry(project_type: str, doc_results: list[dict]) -> None:
-    failed = [
-        r['name'] for r in doc_results
-        if not r['present'] or r['quality'] == 'fail'
-    ]
+    failed = [r['name'] for r in doc_results if not r['present'] or r['quality'] == 'fail']
     fail_count = len(failed)
-    entry = {
-        'ts': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
+    _append_telemetry({
+        'ts': _telemetry_ts(),
         'project_type': project_type,
         'validator': 'verify_content.py',
         'level': 'fail' if fail_count > 0 else 'pass',
         'warn_count': 0,
         'fail_count': fail_count,
         'failed_docs': failed,
-    }
-    telemetry_dir = pathlib.Path('.ai') / 'telemetry'
-    telemetry_dir.mkdir(parents=True, exist_ok=True)
-    telemetry_file = telemetry_dir / 'validation-result.json'
-    rows: list[dict] = []
-    if telemetry_file.exists():
-        try:
-            rows = json.loads(telemetry_file.read_text())
-            if not isinstance(rows, list):
-                rows = []
-        except (json.JSONDecodeError, OSError):
-            rows = []
-    rows.append(entry)
-    telemetry_file.write_text(json.dumps(rows, indent=2))
+    })
 
 
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
-def parse_types(raw: str) -> list[str]:
-    parts = [p.strip() for p in raw.split('+')]
-    for p in parts:
-        if p not in VALID_TYPES:
-            print(
-                f"error: unknown project type '{p}'. Valid: {', '.join(VALID_TYPES)}",
-                file=sys.stderr,
-            )
-            sys.exit(2)
-    return parts
 
 
 def main() -> None:

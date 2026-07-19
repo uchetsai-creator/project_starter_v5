@@ -25,7 +25,7 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from _verify_common import _is_placeholder, _section_body
+from _verify_common import _append_telemetry, _is_placeholder, _read_file, _section_body, _telemetry_ts
 from _registry import VALID_TYPES
 
 # Types where logging-spec.md is Required or Optional
@@ -54,14 +54,6 @@ _STRUCTURED_RE = re.compile(r'(\{[^}]{2,}\}|key=value|→\s*\{|"trace_id"|struct
 _TRACE_ID_RE = re.compile(r'trace.?id', re.IGNORECASE)
 _ROW_COUNT_RE = re.compile(r'row.?count|rows.?processed|records.?processed|record.?count|rows.?in\b|rows.?out\b', re.IGNORECASE)
 _LLM_FIELDS_RE = re.compile(r'\bmodel\b|\btoken\b|\bprompt\b|\bcompletion\b|\bllm.?call\b|\binference\b', re.IGNORECASE)
-
-
-def _read_file(path):
-    try:
-        with open(path, encoding='utf-8') as fh:
-            return fh.read().splitlines()
-    except OSError:
-        return None
 
 
 def _filled_lines(body):
@@ -315,6 +307,10 @@ def main():
         '--json', action='store_true', dest='json_output',
         help='Output results as JSON',
     )
+    parser.add_argument(
+        '--telemetry', action='store_true',
+        help='Append result to .ai/telemetry/validation-result.json',
+    )
     args = parser.parse_args()
 
     types = [t.strip() for t in args.project_type.split('+')]
@@ -339,6 +335,19 @@ def main():
         }, ensure_ascii=False, indent=2))
     else:
         print_results(spec_results, log_results, log_file_count, types)
+
+    if args.telemetry:
+        fail_count = sum(1 for r in all_results if r['status'] == 'fail')
+        warn_count = sum(1 for r in all_results if r['status'] == 'warn')
+        _append_telemetry({
+            'ts': _telemetry_ts(),
+            'project_type': args.project_type,
+            'validator': 'verify_logs.py',
+            'level': 'fail' if fail_count > 0 else 'warn' if warn_count > 0 else 'pass',
+            'warn_count': warn_count,
+            'fail_count': fail_count,
+            'failed_docs': [r['check'] for r in all_results if r['status'] == 'fail'],
+        })
 
     if args.strict and any(r['status'] == 'fail' for r in all_results):
         sys.exit(1)

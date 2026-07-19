@@ -28,6 +28,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _registry import VALID_TYPES
+from _verify_common import _append_telemetry, _is_placeholder, _non_blank, _read_file, _telemetry_ts, parse_types
 
 MODULE_TYPES = ['Pipeline Stage', 'Feature', 'Background Job', 'Shared Utility', 'Resource Group']
 
@@ -45,22 +46,6 @@ PRIMARY_MODULE_TYPE = {
 }
 
 MIN_EH_LINES = 3   # minimum non-blank lines required in an Error Handling section
-
-# Placeholder patterns shared across module types
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from _verify_common import _is_placeholder
-
-
-def _read_file(path: str) -> list[str] | None:
-    try:
-        with open(path, encoding='utf-8') as fh:
-            return fh.read().splitlines()
-    except OSError:
-        return None
-
-
-def _non_blank(lines: list[str]) -> list[str]:
-    return [ln for ln in lines if ln.strip()]
 
 
 # ---------------------------------------------------------------------------
@@ -490,15 +475,6 @@ def print_results_json(results: list[dict], project_type: str, docs_dir: str, sr
 # Main
 # ---------------------------------------------------------------------------
 
-def parse_types(raw: str) -> list[str]:
-    parts = [p.strip() for p in raw.split('+')]
-    for p in parts:
-        if p not in VALID_TYPES:
-            print(f"error: unknown project type '{p}'. Valid: {', '.join(VALID_TYPES)}", file=sys.stderr)
-            sys.exit(2)
-    return parts
-
-
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Audit module flow file coverage and quality for project_starter_v5 projects.",
@@ -515,6 +491,8 @@ def main() -> None:
                         help='Exit 1 if any check fails')
     parser.add_argument('--json', action='store_true', dest='json_output',
                         help='Output results as JSON')
+    parser.add_argument('--telemetry', action='store_true',
+                        help='Append result to .ai/telemetry/validation-result.json')
     args = parser.parse_args()
 
     project_types = parse_types(args.project_type)
@@ -543,6 +521,18 @@ def main() -> None:
         print_results_json(results, full_type, docs_dir, args.src)
     else:
         print_results(results, primary_type, args.src)
+
+    if args.telemetry:
+        fail_count = sum(1 for r in results if not r['flow_present'] or r['quality'] == 'fail')
+        _append_telemetry({
+            'ts': _telemetry_ts(),
+            'project_type': full_type,
+            'validator': 'verify_module_docs.py',
+            'level': 'fail' if fail_count > 0 else 'pass',
+            'warn_count': 0,
+            'fail_count': fail_count,
+            'failed_docs': [r['name'] for r in results if not r['flow_present'] or r['quality'] == 'fail'],
+        })
 
     if args.strict:
         has_failure = any(
