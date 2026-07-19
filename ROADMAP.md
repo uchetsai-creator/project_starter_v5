@@ -2892,6 +2892,96 @@ All 7 capability adapters implement an `extract_code()` body that is structurall
 
 ---
 
+## Phase 82 — Registry Schema + Formal Validation
+
+**Proposed after post-Phase-75 audit and architecture review.**
+
+`document-registry.yaml` is the de facto Single Source of Truth for the entire framework, but it currently has no formal schema. Any malformed entry (wrong type, unknown project type, missing required field) silently passes through. Additionally, several fields that downstream consumers need (`pdf`, `audience`, `required_sections`, `update_trigger`) do not exist in the registry yet, forcing those consumers to maintain their own parallel lists.
+
+### Goal
+
+Make the registry a complete, validated DSL. Every tool reads the same schema; adding a new field immediately makes it available to all consumers.
+
+### Full target schema (per document entry)
+
+```yaml
+<doc-key>:
+  file: <filename.md>           # filename only, no path
+  path: specs|architecture|business|modules  # subdirectory under docs/
+  required_for: [...]           # list of project types where doc is Required
+  optional_for: [...]           # list of project types where doc is Optional
+  context_priority: high|medium|low  # load order in AI_CONTEXT.md
+  pdf: true|false               # whether to include in generated PDF
+  audience: internal|external   # external = no task/sprint refs allowed
+  required_sections: [...]      # section headings verify_content.py must find filled
+  update_trigger: <string>      # human-readable: when to update this doc
+```
+
+### Step 1 — Define and enforce schema
+
+| File | Change |
+|---|---|
+| New: `templates/script/validators/verify_registry.py` | New validator: load `document-registry.yaml`, validate every entry against the schema using `jsonschema` or a Pydantic model; exit 1 on any violation |
+| New: `templates/schema/document-registry.schema.json` | JSON Schema definition for the registry (used by `verify_registry.py` and IDE tooling) |
+| `tests/contract/test_registry_schema.py` | Add tests that import and call `verify_registry.py` logic; assert all current registry entries pass the schema |
+
+### Step 2 — Add missing fields to all existing registry entries
+
+| Field | Current state | Target |
+|---|---|---|
+| `pdf` | Maintained separately in `build_pdf.py` allowlist | Add `pdf: true/false` to every entry in `document-registry.yaml` |
+| `audience` | `AGENTS.md` lists spec-facing docs by hand | Add `audience: external` to all spec-facing docs; `internal` to the rest |
+| `required_sections` | Hardcoded `CONTENT_SECTIONS` dict in `verify_content.py` | Move to registry; `verify_content.py` reads from registry |
+| `update_trigger` | Described only in prose in `guidance/document-purposes-*.md` | Add concise machine-readable value to every entry |
+
+### Step 3 — Add `verify_registry.py` to workflow
+
+| File | Change |
+|---|---|
+| `workflow-registry.yaml` | Add `verify_registry.py` as the first post-task validator in every workflow (runs before `verify_docs.py`) |
+
+**Verification:** `pytest tests/ -v` exits 0; `python3 verify_registry.py --registry document-registry.yaml` exits 0 on the current registry; introducing a malformed entry causes exit 1.
+
+---
+
+## Phase 83 — Consumer Migration: Eliminate Parallel Lists
+
+**Depends on Phase 82. Proposed after post-Phase-75 audit and architecture review.**
+
+Once the registry has `pdf`, `audience`, `required_sections`, and `update_trigger` fields (Phase 82), all consumers that currently maintain their own copies of this information can be rewritten to read directly from the registry. This eliminates every remaining hand-sync point.
+
+### Target state
+
+```
+document-registry.yaml
+        │
+        ├── verify_docs.py          (already reads registry ✅)
+        ├── build-context.py        (already reads registry ✅)
+        ├── verify_registry.py      (new in Phase 82 ✅)
+        ├── verify_content.py       (reads required_sections from registry — Phase 83)
+        ├── build_pdf.py            (reads pdf: true/false from registry — Phase 83)
+        ├── sprint-sync.md checklist (generated from registry — Phase 83)
+        └── orchestrator.py         (reads update_trigger — Phase 83, future)
+```
+
+### Migrations
+
+| Consumer | Current | Migration |
+|---|---|---|
+| `verify_content.py` | `CONTENT_SECTIONS` hardcoded dict (11 entries) | Remove dict; read `required_sections` list from registry via `_registry.py` |
+| `build_pdf.py` / `pdf_allowlist.py` | Separate allowlist of filenames | Read `pdf: true` entries from registry; remove standalone allowlist |
+| `sprint-sync.md` Document Update Checklist | Hand-written list with `[Types: ...]` tags | Generate checklist rows from registry `required_for` / `optional_for` fields; human edits only the trigger conditions |
+
+### New generator script
+
+| File | Purpose |
+|---|---|
+| New: `templates/script/generate_sprint_checklist.py` | Read registry → emit the `sprint-sync.md` Document Update Checklist section in correct `[Types: ...]` format; run at sprint end or whenever the registry changes |
+
+**Verification:** `pytest tests/ -v` exits 0; `verify_content.py` produces identical output before and after (snapshot test); `build_pdf.py` includes the same files as before (snapshot test); `CONTENT_SECTIONS` dict removed from `verify_content.py`.
+
+---
+
 ## Phase future — Detector Auto-Discovery
 
 **Not scheduled. Record of design intent.**
