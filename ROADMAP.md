@@ -2471,6 +2471,264 @@ def test_e2e_all_types_orchestrator_dry_run(tmp_path, project_type):
 
 ---
 
+## Phase 66 — Correctness Bug Fixes
+
+**Discovered in post-Phase-65 full-project audit.**
+
+Three bugs where the code does something different from what it intends — not style issues.
+
+### Bugs
+
+| File | Bug | Fix |
+|---|---|---|
+| `tests/e2e/test_pdf_generation.py:13–17` | `_plantuml_missing` detection uses `any(Path(...) for p in [...] if ...)` — the inner `if` is a generator filter, not an existence check; the `Path` objects are always truthy so `any(...)` returns `True` whenever the path list is non-empty, regardless of whether `plantuml.jar` actually exists | Replace with three explicit `.exists()` checks joined by `or`; negate to get `_plantuml_missing` |
+| `templates/script/generators/schema_to_html.py:633` | `sys.argv[3]` accessed unconditionally; if fewer than 4 args are provided the script raises `IndexError` with no useful message | Add `if len(sys.argv) < 4: print("usage: ...", file=sys.stderr); sys.exit(1)` |
+| `templates/script/validators/verify_spec_code.py:453` | `--dry-run` silently ignores `--strict`; callers expecting strict checking during dry runs get a false-green | Emit a warning to stderr when both flags are active, or raise an error |
+
+**Verification:** `pytest tests/ -v` exits 0; manual smoke of each fixed path.
+
+---
+
+## Phase 67 — Single Source of Truth: Types & Checkers
+
+**Discovered in post-Phase-65 full-project audit.**
+
+Three places where the same list/mapping is maintained independently, creating silent drift risk when a new project type or checker is added.
+
+### Problems
+
+| Problem | Current state | Target |
+|---|---|---|
+| `VALID_TYPES` in three places | Hard-coded in `_registry.py` **and** `tests/conftest.py`; a third copy existed in `test_verify_docs_snapshots.py` (removed in Phase 65 cleanup) | `tests/conftest.py` imports from `_registry.py`; one authoritative list |
+| `VALID_TASK_TYPES` two sources | Static list in `orchestrator.py:33`; dynamically read from `workflow-registry.yaml` in `build-context.py` | `orchestrator.py` derives the list from `workflow-registry.yaml` the same way `build-context.py` does |
+| `CHECKERS` ↔ `required_checkers` | `verify_content.py` `CHECKERS` dict and `verify_framework.py` `required_checkers` dict both enumerate project-type → checker mappings; adding a new type requires updating two separate dicts in two separate files | Merge into one dict in `verify_content.py`; `verify_framework.py` imports and reuses it |
+
+**Verification:** `pytest tests/ -v` exits 0; `verify_framework.py --strict` exits 0.
+
+---
+
+## Phase 68 — Consolidate Validator Shared Helpers
+
+**Discovered in post-Phase-65 full-project audit.**
+
+Five helper functions are copied across multiple validator files. The canonical home is `_verify_common.py`.
+
+### Duplication inventory
+
+| Helper | Copies | Files |
+|---|---|---|
+| `_read_file()` | 5 | `verify_content.py`, `verify_logs.py`, `verify_module_docs.py`, `verify_tests.py`, inline in adapters |
+| `_non_blank()` | 2 | `verify_content.py`, `verify_module_docs.py` |
+| `_write_telemetry()` | 2 defined, 3 missing | Defined in `verify_docs.py` and `verify_content.py`; absent in `verify_logs.py`, `verify_module_docs.py`, `verify_tests.py` |
+| `parse_types()` | 2 | `verify_content.py:1183`, `verify_module_docs.py:493` |
+
+### Changes
+
+| File | Change |
+|---|---|
+| `templates/script/validators/_verify_common.py` | Add `_read_file()`, `_non_blank()`, `_write_telemetry()`, `parse_types()` |
+| `verify_content.py`, `verify_docs.py`, `verify_logs.py`, `verify_module_docs.py`, `verify_tests.py` | Replace local definitions with imports from `_verify_common` |
+| `verify_logs.py`, `verify_module_docs.py`, `verify_tests.py` | Add `--telemetry` flag; call `_write_telemetry()` on exit |
+
+**Verification:** `pytest tests/ -v` exits 0; `verify_framework.py --strict` exits 0.
+
+---
+
+## Phase 69 — Consolidate Adapter Shared Helpers
+
+**Discovered in post-Phase-65 full-project audit.**
+
+Six helper constants/functions are duplicated across multiple framework-specific adapter files. The canonical home is `_utils.py`.
+
+### Duplication inventory
+
+| Helper | Copies | Files |
+|---|---|---|
+| `_parse_params_table()` | 4 | `_capability_llm.py`, `_capability_library.py`, `python_library.py`, `tool_schema.py` |
+| `_HTTP_METHODS` + `_parse_field_table()` | 4 each | `_capability_web_api.py`, `fastapi.py`, `flask.py`, `express.py` (note: `express.py` uses lowercase — inconsistency fixed here) |
+| `_PLACEHOLDER_NAMES` + `_parse_schema_value()` | 4 each | `_capability_pipeline.py`, `airflow.py`, `dagster.py`, `prefect.py` |
+| `_PLACEHOLDER_CMD_NAMES` + `_clean_flag_name()` | 2 each | `_capability_cli.py`, `click.py` |
+| `_parse_config_table()` | 2 | `terraform.py`, `pulumi.py` |
+| `_annotation_str()` | 2 | `_utils.py` (authoritative), `_example_adapter.py` (redefines — remove) |
+
+### Changes
+
+| File | Change |
+|---|---|
+| `templates/script/validators/_spec_code_adapters/_utils.py` | Add all helpers listed above; normalize `_HTTP_METHODS` to uppercase throughout |
+| All adapter files listed above | Replace local definitions with `from _utils import ...` |
+| `_example_adapter.py` | Replace `_annotation_str()` definition with `from _utils import _annotation_str` |
+
+**Verification:** `pytest tests/ -v` exits 0; `verify_spec_code.py` exits 0 on representative fixture.
+
+---
+
+## Phase 70 — Eliminate Detector/Adapter `_parse_file()` Duplication
+
+**Discovered in post-Phase-65 full-project audit.**
+
+Every concrete framework adapter file contains two classes — a `*Detector` and a legacy `*Adapter` shim — whose `_parse_file()` method is byte-for-byte identical. Across 13 files this produces ~26 duplicated implementations. Any bug fix or enhancement must be applied twice.
+
+### Pattern
+
+The shim adapter's `_parse_file()` should delegate to the corresponding detector instead of reimplementing:
+
+```python
+# Before (duplicated)
+class AirflowAdapter(DataPipelineAdapter):
+    def _parse_file(self, path: str) -> list[NormalizedStageContract]:
+        # identical body to AirflowDetector._parse_file()
+        ...
+
+# After (delegate)
+class AirflowAdapter(DataPipelineAdapter):
+    def _parse_file(self, path: str) -> list[NormalizedStageContract]:
+        return self._detector._parse_file(path)
+```
+
+### Files
+
+`airflow.py`, `dagster.py`, `prefect.py`, `fastapi.py`, `flask.py`, `express.py`, `click.py`, `flutter.py`, `react_native.py`, `terraform.py`, `pulumi.py`, `python_library.py`, `tool_schema.py` (13 files)
+
+**Verification:** `pytest tests/ -v` exits 0; `verify_spec_code.py` exits 0 on all fixture types.
+
+---
+
+## Phase 71 — Dead Code Removal
+
+**Discovered in post-Phase-65 full-project audit.**
+
+Unused variables, unreachable flags, and no-op functions scattered across 8+ files.
+
+### Inventory
+
+| File | Item | Action |
+|---|---|---|
+| `templates/script/generators/build_pdf.py:803` | `--clean` flag + `clean` variable — parsed but never used | Remove flag and variable |
+| `templates/script/validators/_spec_code_adapters/pulumi.py:42` | `_class_name_to_snake()` — no callers anywhere in the codebase | Delete |
+| `adapters/claude/telemetry_writer.py:70` | `"token_count": None` hardcoded — always None, never populated | Remove field or populate from token usage data |
+| `_capability_web_api.py`, `_capability_cli.py`, `_capability_llm.py`, `_capability_iac.py`, `_capability_mobile.py` | `detector_key` loop variable assigned but never used (5 files) | Replace with `_` or use `workflow.values()` directly |
+| `templates/script/validators/_spec_code_adapters/semantic.py:71–72` | `spec_items` / `code_items` params accepted then immediately ignored via `# noqa: ARG002` | Remove params from signature if never implemented; update callers |
+| `templates/script/validators/verify_tests.py` | `_fill_score()` — 2-line function with a single conditional expression, called once | Inline at call site |
+| `templates/script/validators/verify_module_docs.py:50` | Second `sys.path.insert(0, ...)` call — first is at line 29; duplicate | Remove line 50 |
+| `templates/script/validators/verify_docs.py:46–87` | `CONTENT_SECTIONS` entries mapping to `[]` — never iterated for enforcement | Remove empty-list entries; keep only entries that produce checks |
+
+**Verification:** `pytest tests/ -v` exits 0.
+
+---
+
+## Phase 72 — Unused Imports + Duplicate Coercion Block
+
+**Discovered in post-Phase-65 full-project audit.**
+
+Two unused imports and one logic block duplicated verbatim between `orchestrator.py` and `build-context.py`.
+
+### Changes
+
+| File | Change |
+|---|---|
+| `orchestrator.py:25` | Remove `_read_task_type_from_current_state` from import line (used only inside `_resolve_task_type`, not at call site) |
+| `build-context.py:19` | Same removal |
+| `orchestrator.py:66–75` + `build-context.py:86–93` | Extract project-type coercion (list→string join, `"your-project-type"` sentinel check) into a new `_coerce_project_type()` function in `_workflow_utils.py`; both scripts call the shared function |
+| `templates/script/validators/verify_spec_code.py:170` | Move deferred `from _base import ...` inside `_item_fields()` to module top-level |
+
+**Verification:** `pytest tests/ -v` exits 0.
+
+---
+
+## Phase 73 — CLI Quality: `argparse` Migration + `schema_to_html.py` Cleanup
+
+**Discovered in post-Phase-65 full-project audit.**
+
+Two scripts bypass `argparse`, have no `--help`, and `schema_to_html.py` is the only non-English file in the project.
+
+### Changes
+
+| File | Change |
+|---|---|
+| `templates/script/generators/build_pdf.py` | Replace manual `sys.argv` parsing with `argparse`; expose `--help`; move deferred `import subprocess`, `import shutil`, `import xml.etree.ElementTree` to module top-level |
+| `templates/script/generators/schema_to_html.py` | Replace manual `sys.argv` parsing with `argparse`; add bounds-safe argument handling; replace all Chinese UI strings and HTML `lang="zh-TW"` with English equivalents |
+| `templates/script/generators/propose_framework_fix.py:56` | Change `run()` helper default from `check=True` to `check=False` to match every call site |
+
+**Note:** `build_pdf.py`'s inconsistent optional-import guard for `PIL` (try/except) vs unguarded `weasyprint`/`markdown` is out of scope — those dependencies have different optionality semantics.
+
+**Verification:** `schema_to_html.py --help` exits 0; `build_pdf.py --help` exits 0; `pytest tests/ -v` exits 0.
+
+---
+
+## Phase 74 — Test Coverage Expansion
+
+**Discovered in post-Phase-65 full-project audit.**
+
+Coverage gaps identified across all four test layers.
+
+### Contract layer
+
+| Gap | Fix |
+|---|---|
+| Contract 3 (NormalizedForm type correctness) covers only `DataPipelineAdapter` + `WebAPIAdapter` | Add fixtures and `assert len(results) > 0` + type tests for `CLIAdapter`, `LibraryAdapter`, `LLMAdapter`, `IaCAdapter`, `MobileAdapter` |
+| `test_orchestrator_imports_re` lives in `test_registry_schema.py` (wrong semantic home) | Move to a new `tests/contract/test_orchestrator.py` or `tests/regression/test_known_bugs.py` |
+
+### Snapshot layer
+
+| Gap | Fix |
+|---|---|
+| `test_orchestrator_snapshots.py` covers only 2/9 project types | Expand `COMBOS` to cover all 9 types with appropriate task types |
+
+### E2E layer
+
+| Gap | Fix |
+|---|---|
+| `test_full_pipeline.py` covers only 3/9 project types | Add `test_e2e_cli_tool`, `test_e2e_library`, `test_e2e_microservices`, `test_e2e_iac`, `test_e2e_mobile_app`, `test_e2e_ml_pipeline` |
+| `test_all_types_orchestrator.py` asserts only exit 0 + `"verify_docs.py" in stdout` | Add type-specific content assertion (e.g., `"pipeline-contract"` in output for `data-pipeline`, `"eval-run"` for `llm-app`) |
+
+### Unit layer
+
+| Gap | Fix |
+|---|---|
+| `verify_logs.py` has no unit tests | Add `tests/unit/test_verify_logs.py` covering `_check_log_call_presence()` and the structured-log format checker |
+| `verify_module_docs.py` has no unit tests | Add `tests/unit/test_verify_module_docs.py` covering section detection and the completeness score |
+
+**Verification:** `pytest tests/ -v` exits 0; coverage of all 9 types in every test layer.
+
+---
+
+## Phase 75 — Architecture: Import-Time Side Effects + Config-Driven Values
+
+**Discovered in post-Phase-65 full-project audit.**
+
+Remaining architectural concerns that are lower urgency but affect testability, thread safety, and operational safety.
+
+### Import-time side effects
+
+| File | Problem | Fix |
+|---|---|---|
+| `templates/script/validators/verify_docs.py:27–31` | `load_registry()`, `build_matrix()`, etc. execute at module import time; makes the script slow to import and impossible to mock in tests | Wrap in `def _init(): ...` called lazily from `main()` |
+
+### Thread safety
+
+| File | Problem | Fix |
+|---|---|---|
+| `tests/snapshot/conftest.py` — `patched_project_type()` | Mutates the real `.project-starter.yml` in the repo root; breaks under `pytest -n auto` (parallel test workers clobber each other's edits); leaves file dirty on SIGKILL | Redesign snapshot tests to pass `--project-type` directly as a CLI flag where supported; fall back to writing into a `tmp_path` copy of `.project-starter.yml` and `cd` there instead of mutating the repo root file |
+
+### Config-driven values
+
+| File | Problem | Fix |
+|---|---|---|
+| `templates/script/validators/_spec_code_adapters/semantic.py:30` | `_SEMANTIC_MODEL = 'claude-haiku-4-5-20251001'` hardcoded | Read from env var `SPEC_CODE_MODEL` with this string as fallback default |
+| `adapters/claude/telemetry_writer.py:33,47` | `open(path)` without `with` statement and without `encoding` | Rewrite with `with open(path, encoding="utf-8") as f:` |
+
+### Misleading documentation
+
+| File | Problem | Fix |
+|---|---|---|
+| `templates/script/validators/_spec_code_adapters/semantic.py:34` | Docstring labels this adapter "Deprecated" but it provides unique AI-based comparison not available in any other adapter | Replace "Deprecated" with accurate status (e.g., "Experimental — requires Anthropic API key") |
+| `_capability_mobile.py` | Adds deduplication by screen name; no other capability adapter deduplicates, leading to triple-dedup for Flutter (detector + adapter + capability layer) vs zero for others | Either add consistent deduplication to all capability adapters, or remove from `_capability_mobile.py` and rely on detector/adapter level |
+
+**Verification:** `pytest tests/ -v` exits 0 including with `pytest -n auto`; `verify_docs.py` importable without side effects.
+
+---
+
 ## Phase future — Detector Auto-Discovery
 
 **Not scheduled. Record of design intent.**
