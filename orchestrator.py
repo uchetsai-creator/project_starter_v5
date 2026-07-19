@@ -16,26 +16,14 @@ Usage:
 
 import argparse
 import json
-import re
 import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from _workflow_utils import _coerce_project_type, _load_valid_task_types, _resolve_task_type
-
-try:
-    import yaml
-except ImportError:
-    print("❌  PyYAML not found. Install with: pip install pyyaml", file=sys.stderr)
-    sys.exit(1)
+from _workflow_utils import _coerce_project_type, _load_valid_task_types, _load_yaml, _read_task_name_from_current_state, _resolve_task_type
 
 VALID_ADAPTERS = ["claude", "codex", "cursor"]
-
-
-def _load_yaml(path: Path) -> dict:
-    with path.open(encoding="utf-8") as fh:
-        return yaml.safe_load(fh) or {}
 
 
 def _invoke_build_context(project_root: Path, task_type: str | None) -> None:
@@ -116,15 +104,6 @@ def _render(ctx: dict) -> str:
         "",
     ]
     return "\n".join(lines)
-
-
-def _read_task_name(docs_path: Path) -> str:
-    state = docs_path / "current-state.md"
-    if not state.exists():
-        return "(unknown)"
-    text = state.read_text(encoding="utf-8")
-    m = re.search(r"\*\*Task:\*\*\s*(.+)", text)
-    return m.group(1).strip() if m else "(unknown)"
 
 
 def _track_orchestrator_run(project_root: Path, task_name: str) -> None:
@@ -240,7 +219,7 @@ def main() -> None:
     out_path.write_text(output, encoding="utf-8")
 
     docs_dir = project_root / ctx["docs_path"]
-    task_name = _read_task_name(docs_dir)
+    task_name = _read_task_name_from_current_state(docs_dir / "current-state.md")
     _track_orchestrator_run(project_root, task_name)
 
     print(f"✅  Written to {out_path}")

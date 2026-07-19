@@ -16,20 +16,9 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from _workflow_utils import _coerce_project_type, _load_valid_task_types, _resolve_task_type
-
-try:
-    import yaml
-except ImportError:
-    print("❌  PyYAML not found. Install with: pip install pyyaml", file=sys.stderr)
-    sys.exit(1)
+from _workflow_utils import _coerce_project_type, _load_valid_task_types, _load_yaml, _resolve_task_type
 
 PRIORITY_ORDER = {"high": 0, "medium": 1, "low": 2}
-
-
-def _load_yaml(path: Path) -> dict:
-    with path.open(encoding="utf-8") as fh:
-        return yaml.safe_load(fh) or {}
 
 
 

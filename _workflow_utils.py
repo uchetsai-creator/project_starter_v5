@@ -8,6 +8,16 @@ import sys
 from pathlib import Path
 
 
+def _load_yaml(path: Path) -> dict:
+    try:
+        import yaml
+    except ImportError:
+        print("❌  PyYAML not found. Install with: pip install pyyaml", file=sys.stderr)
+        sys.exit(1)
+    with path.open(encoding="utf-8") as fh:
+        return yaml.safe_load(fh) or {}
+
+
 def _load_valid_task_types(project_root: Path) -> list[str]:
     """Derive valid task types from workflow-registry.yaml keys (excluding 'default')."""
     try:
@@ -32,6 +42,14 @@ def _read_task_type_from_current_state(path: Path) -> str | None:
         if value and value not in ("task-type", ""):
             return value
     return None
+
+
+def _read_task_name_from_current_state(path: Path) -> str:
+    if not path.exists():
+        return "(unknown)"
+    text = path.read_text(encoding="utf-8")
+    m = re.search(r"\*\*Task:\*\*\s*(.+)", text)
+    return m.group(1).strip() if m else "(unknown)"
 
 
 def _coerce_project_type(raw) -> str:
