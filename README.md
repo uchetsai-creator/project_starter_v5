@@ -716,6 +716,23 @@ python3 templates/script/framework/verify_framework.py --json     # machine-read
 
 ---
 
+## Running the test suite
+
+```bash
+pip install pytest
+pytest tests/
+```
+
+Re-generate snapshot golden files after intentional output changes:
+
+```bash
+pytest tests/snapshot/ --snapshot-update
+```
+
+The PDF smoke test (`tests/e2e/test_pdf_generation.py`) is skipped unless `plantuml.jar` is present.
+
+---
+
 ## Verification
 
 Quality checks run automatically at the git commit boundary — no AI tool dependency.

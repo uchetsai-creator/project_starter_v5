@@ -1,0 +1,251 @@
+{
+  "project_type": "mobile-app",
+  "results": [
+    {
+      "doc": "architecture/architecture.md",
+      "status": "present",
+      "label": "✅ Present",
+      "note": ""
+    },
+    {
+      "doc": "architecture/backend.md",
+      "status": "missing_optional",
+      "label": "⚠️  Missing Optional",
+      "note": ""
+    },
+    {
+      "doc": "architecture/frontend.md",
+      "status": "present",
+      "label": "✅ Present",
+      "note": ""
+    },
+    {
+      "doc": "architecture/database.md",
+      "status": "missing_optional",
+      "label": "⚠️  Missing Optional",
+      "note": ""
+    },
+    {
+      "doc": "architecture/deployment.md",
+      "status": "na",
+      "label": "—  N/A",
+      "note": "→ use distribution.md"
+    },
+    {
+      "doc": "architecture/distribution.md",
+      "status": "present",
+      "label": "✅ Present",
+      "note": ""
+    },
+    {
+      "doc": "architecture/topology.md",
+      "status": "na",
+      "label": "—  N/A",
+      "note": ""
+    },
+    {
+      "doc": "specs/api-contract.md",
+      "status": "missing_optional",
+      "label": "⚠️  Missing Optional",
+      "note": ""
+    },
+    {
+      "doc": "specs/cli-contract.md",
+      "status": "na",
+      "label": "—  N/A",
+      "note": ""
+    },
+    {
+      "doc": "specs/public-api.md",
+      "status": "na",
+      "label": "—  N/A",
+      "note": ""
+    },
+    {
+      "doc": "specs/pipeline-contract.md",
+      "status": "na",
+      "label": "—  N/A",
+      "note": ""
+    },
+    {
+      "doc": "specs/pipeline-debug.md",
+      "status": "na",
+      "label": "—  N/A",
+      "note": ""
+    },
+    {
+      "doc": "specs/llm-contract.md",
+      "status": "na",
+      "label": "—  N/A",
+      "note": ""
+    },
+    {
+      "doc": "specs/prompt-library.md",
+      "status": "na",
+      "label": "—  N/A",
+      "note": ""
+    },
+    {
+      "doc": "specs/eval-spec.md",
+      "status": "na",
+      "label": "—  N/A",
+      "note": ""
+    },
+    {
+      "doc": "specs/eval-log.md",
+      "status": "na",
+      "label": "—  N/A",
+      "note": ""
+    },
+    {
+      "doc": "specs/llm-debug.md",
+      "status": "na",
+      "label": "—  N/A",
+      "note": ""
+    },
+    {
+      "doc": "specs/rag-contract.md",
+      "status": "na",
+      "label": "—  N/A",
+      "note": ""
+    },
+    {
+      "doc": "specs/mcp-contract.md",
+      "status": "na",
+      "label": "—  N/A",
+      "note": ""
+    },
+    {
+      "doc": "specs/service-catalog.md",
+      "status": "na",
+      "label": "—  N/A",
+      "note": ""
+    },
+    {
+      "doc": "specs/service-contract.md",
+      "status": "na",
+      "label": "—  N/A",
+      "note": ""
+    },
+    {
+      "doc": "specs/event-catalog.md",
+      "status": "na",
+      "label": "—  N/A",
+      "note": ""
+    },
+    {
+      "doc": "specs/model-contract.md",
+      "status": "na",
+      "label": "—  N/A",
+      "note": ""
+    },
+    {
+      "doc": "specs/experiment-log.md",
+      "status": "na",
+      "label": "—  N/A",
+      "note": ""
+    },
+    {
+      "doc": "specs/release-guide.md",
+      "status": "na",
+      "label": "—  N/A",
+      "note": ""
+    },
+    {
+      "doc": "specs/compatibility-matrix.md",
+      "status": "missing_optional",
+      "label": "⚠️  Missing Optional",
+      "note": ""
+    },
+    {
+      "doc": "specs/permissions.md",
+      "status": "missing_optional",
+      "label": "⚠️  Missing Optional",
+      "note": ""
+    },
+    {
+      "doc": "specs/data-model.md",
+      "status": "missing_optional",
+      "label": "⚠️  Missing Optional",
+      "note": ""
+    },
+    {
+      "doc": "specs/logging-spec.md",
+      "status": "present",
+      "label": "✅ Present",
+      "note": ""
+    },
+    {
+      "doc": "specs/research.md",
+      "status": "present",
+      "label": "✅ Present",
+      "note": ""
+    },
+    {
+      "doc": "specs/quickstart.md",
+      "status": "present",
+      "label": "✅ Present",
+      "note": ""
+    },
+    {
+      "doc": "specs/runbook.md",
+      "status": "na",
+      "label": "—  N/A",
+      "note": ""
+    },
+    {
+      "doc": "specs/drift-policy.md",
+      "status": "na",
+      "label": "—  N/A",
+      "note": ""
+    },
+    {
+      "doc": "specs/mobile-contract.md",
+      "status": "present",
+      "label": "✅ Present",
+      "note": ""
+    },
+    {
+      "doc": "specs/test-plan.md",
+      "status": "present",
+      "label": "✅ Present",
+      "note": ""
+    },
+    {
+      "doc": "specs/test-report.md",
+      "status": "present",
+      "label": "✅ Present",
+      "note": ""
+    },
+    {
+      "doc": "specs/glossary.md",
+      "status": "missing_optional",
+      "label": "⚠️  Missing Optional",
+      "note": ""
+    },
+    {
+      "doc": "specs/dependencies.md",
+      "status": "missing_optional",
+      "label": "⚠️  Missing Optional",
+      "note": ""
+    },
+    {
+      "doc": "business/business-process.md",
+      "status": "missing_optional",
+      "label": "⚠️  Missing Optional",
+      "note": ""
+    },
+    {
+      "doc": "business/business-objects.md",
+      "status": "na",
+      "label": "—  N/A",
+      "note": ""
+    },
+    {
+      "doc": "business/business-rules.md",
+      "status": "missing_optional",
+      "label": "⚠️  Missing Optional",
+      "note": ""
+    }
+  ]
+}
