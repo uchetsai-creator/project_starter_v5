@@ -20,30 +20,9 @@ import os
 import re
 
 from _base import Detector, FrameworkAdapter, NormalizedField, NormalizedTool
-from _utils import _annotation_str
+from _utils import _annotation_str, _parse_params_table
 
 _SKIP_PARAMS = frozenset({'self', 'cls', 'kwargs', 'args'})
-
-
-def _parse_params_table(section: str) -> list[NormalizedField]:
-    h = re.search(r'^#### Parameters', section, re.MULTILINE)
-    if not h:
-        return []
-    table_text = section[h.end():]
-    next_h = re.search(r'^#{3,4} ', table_text, re.MULTILINE)
-    if next_h:
-        table_text = table_text[:next_h.start()]
-
-    fields: list[NormalizedField] = []
-    for row in re.finditer(r'(?m)^\|(.+)\|$', table_text):
-        cols = [c.strip().strip('`') for c in row.group(1).split('|')]
-        if len(cols) < 2:
-            continue
-        name, type_str = cols[0], cols[1] if len(cols) > 1 else ''
-        if not name or re.match(r'^[-:]+$', name) or name.lower() in ('name', 'parameter', 'param'):
-            continue
-        fields.append(NormalizedField(name=name, type=type_str))
-    return fields
 
 
 def _parse_docstring_args(docstring: str) -> list[NormalizedField]:

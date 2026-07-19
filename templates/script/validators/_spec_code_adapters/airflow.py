@@ -18,22 +18,7 @@ import os
 import re
 
 from _base import Detector, FrameworkAdapter, NormalizedField, NormalizedStageContract
-from _utils import _annotation_str
-
-# Placeholder stage names to skip when parsing the spec template
-_PLACEHOLDER_NAMES = frozenset({'stage name', '[stage name]', 'stage', ''})
-
-
-def _parse_schema_value(value: str) -> list[NormalizedField]:
-    """Parse 'field: type, field2: type2' or 'field (type)' patterns."""
-    fields = []
-    for part in re.split(r'[,\n;]', value):
-        part = part.strip().strip('`')
-        m = re.match(r'([a-zA-Z_]\w*)\s*[:(]\s*(\w[\w\[\], ]*)', part)
-        if m:
-            fields.append(NormalizedField(name=m.group(1).strip(),
-                                          type=m.group(2).strip()))
-    return fields
+from _utils import _annotation_str, _PLACEHOLDER_NAMES, _parse_schema_value
 
 
 class AirflowDetector(Detector):

@@ -23,11 +23,8 @@ from __future__ import annotations
 import os
 import re
 
-from _base import FrameworkAdapter, NormalizedEndpoint, NormalizedField
-
-_HTTP_METHODS = frozenset({
-    'GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS',
-})
+from _base import FrameworkAdapter, NormalizedEndpoint
+from _utils import _HTTP_METHODS, _parse_field_table
 
 # Detector name → (module_name, class_name, accepted_extensions)
 _DETECTORS: dict[str, tuple[str, str, tuple[str, ...]]] = {
@@ -35,31 +32,6 @@ _DETECTORS: dict[str, tuple[str, str, tuple[str, ...]]] = {
     'flask':   ('flask',   'FlaskDetector',   ('.py',)),
     'express': ('express', 'ExpressDetector', ('.js', '.ts', '.mjs', '.cjs')),
 }
-
-
-def _parse_field_table(section: str, header: str) -> list[NormalizedField]:
-    """Parse a Markdown table under `#### {header}` into NormalizedField list."""
-    h = re.search(rf'^#### {re.escape(header)}', section, re.MULTILINE)
-    if not h:
-        return []
-    table_text = section[h.end():]
-    next_h = re.search(r'^#{3,4} ', table_text, re.MULTILINE)
-    if next_h:
-        table_text = table_text[:next_h.start()]
-
-    fields: list[NormalizedField] = []
-    for row in re.finditer(r'(?m)^\|(.+)\|$', table_text):
-        cols = [c.strip().strip('`') for c in row.group(1).split('|')]
-        if len(cols) < 2:
-            continue
-        name = cols[0]
-        type_str = cols[1] if len(cols) > 1 else ''
-        if not name or re.match(r'^[-:]+$', name) or name.lower() in (
-            'field', 'name', 'parameter', 'property'
-        ):
-            continue
-        fields.append(NormalizedField(name=name, type=type_str))
-    return fields
 
 
 class WebAPIAdapter(FrameworkAdapter):

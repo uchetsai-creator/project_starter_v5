@@ -19,13 +19,7 @@ import os
 import re
 
 from _base import Detector, FrameworkAdapter, NormalizedCommand, NormalizedField
-
-_PLACEHOLDER_CMD_NAMES = frozenset({'subcommand', '[subcommand]', 'tool-name', ''})
-
-
-def _clean_flag_name(raw: str) -> str:
-    """Strip backticks, leading dashes, and angle brackets."""
-    return re.sub(r'[`<>]', '', raw).strip().lstrip('-').replace('-', '_')
+from _utils import _clean_flag_name, _PLACEHOLDER_CMD_NAMES
 
 
 class ClickDetector(Detector):

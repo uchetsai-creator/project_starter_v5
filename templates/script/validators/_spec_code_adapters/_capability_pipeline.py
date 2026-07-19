@@ -24,10 +24,7 @@ import os
 import re
 
 from _base import FrameworkAdapter, NormalizedField, NormalizedStageContract
-
-# Lazy imports for detectors — avoids circular-import issues and keeps
-# module-level imports framework-agnostic.
-_PLACEHOLDER_NAMES = frozenset({'stage name', '[stage name]', 'stage', ''})
+from _utils import _PLACEHOLDER_NAMES, _parse_schema_value
 
 _DETECTORS: dict[str, str] = {
     'airflow':  'AirflowDetector',
@@ -35,17 +32,6 @@ _DETECTORS: dict[str, str] = {
     'prefect':  'PrefectDetector',
 }
 
-
-def _parse_schema_value(value: str) -> list[NormalizedField]:
-    """Parse 'field: type, field2: type2' or 'field (type)' patterns."""
-    fields = []
-    for part in re.split(r'[,\n;]', value):
-        part = part.strip().strip('`')
-        m = re.match(r'([a-zA-Z_]\w*)\s*[:(]\s*(\w[\w\[\], ]*)', part)
-        if m:
-            fields.append(NormalizedField(name=m.group(1).strip(),
-                                          type=m.group(2).strip()))
-    return fields
 
 
 class DataPipelineAdapter(FrameworkAdapter):

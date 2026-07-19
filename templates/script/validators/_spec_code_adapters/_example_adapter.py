@@ -35,6 +35,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from _base import FrameworkAdapter, NormalizedField, NormalizedFunction  # noqa: E402
+from _utils import _annotation_str  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
@@ -152,12 +153,12 @@ class ExampleAdapter(FrameworkAdapter):
             params = [
                 NormalizedField(
                     name=a.arg,
-                    type=self._annotation_str(a.annotation),
+                    type=_annotation_str(a.annotation),
                 )
                 for a in node.args.args
                 if a.arg not in ('self', 'cls')
             ]
-            return_type = self._annotation_str(node.returns) if node.returns else ''
+            return_type = _annotation_str(node.returns) if node.returns else ''
             functions.append(NormalizedFunction(
                 name=node.name,
                 params=params,
@@ -165,28 +166,6 @@ class ExampleAdapter(FrameworkAdapter):
             ))
 
         return functions
-
-    # ------------------------------------------------------------------
-    # Helpers
-    # ------------------------------------------------------------------
-
-    @staticmethod
-    def _annotation_str(node) -> str:
-        """
-        Convert an AST annotation node to a string.
-
-        CONTRACT: never raise — return '' for unknown node types.
-        """
-        if node is None:
-            return ''
-        try:
-            return ast.unparse(node)
-        except AttributeError:
-            if isinstance(node, ast.Name):
-                return node.id
-            if isinstance(node, ast.Attribute):
-                return f"{ExampleAdapter._annotation_str(node.value)}.{node.attr}"
-            return ''
 
 
 # ---------------------------------------------------------------------------
