@@ -110,6 +110,12 @@ ADAPTER_REGISTRY: dict[str, tuple[str, str, str | None]] = {
 _ADAPTER_DIR = Path(__file__).resolve().parent / '_spec_code_adapters'
 sys.path.insert(0, str(_ADAPTER_DIR))
 
+from _base import (  # noqa: E402
+    NormalizedField, NormalizedStageContract, NormalizedEndpoint,
+    NormalizedCommand, NormalizedFunction, NormalizedTool,
+    NormalizedResource, NormalizedScreen,
+)
+
 
 def _load_adapter(adapter_name: str, framework_hint: str | None = None):
     """
@@ -169,11 +175,6 @@ def _item_label(item) -> str:
 
 def _item_fields(item) -> list:
     """Return the list of NormalizedField objects for any NormalizedForm."""
-    from _base import (  # noqa: PLC0415
-        NormalizedField, NormalizedStageContract, NormalizedEndpoint,
-        NormalizedCommand, NormalizedFunction, NormalizedTool,
-        NormalizedResource, NormalizedScreen,
-    )
     if isinstance(item, NormalizedStageContract):
         return list(item.input_fields) + list(item.output_fields)
     if isinstance(item, NormalizedEndpoint):

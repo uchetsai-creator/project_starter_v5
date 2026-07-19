@@ -2617,7 +2617,7 @@ Unused variables, unreachable flags, and no-op functions scattered across 8+ fil
 
 ---
 
-## Phase 72 — Unused Imports + Duplicate Coercion Block
+## Phase 72 — Unused Imports + Duplicate Coercion Block ✅ Complete
 
 **Discovered in post-Phase-65 full-project audit.**
 

@@ -22,7 +22,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from _workflow_utils import _load_valid_task_types, _read_task_type_from_current_state, _resolve_task_type
+from _workflow_utils import _coerce_project_type, _load_valid_task_types, _resolve_task_type
 
 try:
     import yaml
@@ -61,17 +61,7 @@ def _build_workflow(project_root: Path, task_type_override: str | None = None) -
         sys.exit(1)
 
     cfg = _load_yaml(yml_path)
-    project_type_raw = cfg.get("project_type", "")
-    if isinstance(project_type_raw, list):
-        project_type_str = "+".join(str(x) for x in project_type_raw)
-    else:
-        project_type_str = str(project_type_raw or "")
-    if not project_type_str or project_type_str in ("your-project-type", "[your-project-type]"):
-        print(
-            "❌  project_type not set in .project-starter.yml — replace [your-project-type] with your actual type",
-            file=sys.stderr,
-        )
-        sys.exit(1)
+    project_type_str = _coerce_project_type(cfg.get("project_type", ""))
 
     docs_path = cfg.get("docs_path", "docs/").rstrip("/")
     current_state_path = project_root / docs_path / "current-state.md"

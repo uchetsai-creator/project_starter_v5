@@ -4,6 +4,7 @@ _workflow_utils.py — Shared task-type helpers for orchestrator.py and build-co
 from __future__ import annotations
 
 import re
+import sys
 from pathlib import Path
 
 
@@ -31,6 +32,21 @@ def _read_task_type_from_current_state(path: Path) -> str | None:
         if value and value not in ("task-type", ""):
             return value
     return None
+
+
+def _coerce_project_type(raw) -> str:
+    """Coerce project_type from config (list or str) to '+'-joined string; exit on placeholder."""
+    if isinstance(raw, list):
+        coerced = "+".join(str(x) for x in raw)
+    else:
+        coerced = str(raw or "")
+    if not coerced or coerced in ("your-project-type", "[your-project-type]"):
+        print(
+            "❌  project_type not set in .project-starter.yml — replace [your-project-type] with your actual type",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    return coerced
 
 
 def _resolve_task_type(cfg: dict, current_state_path: Path, override: str | None) -> str | None:
