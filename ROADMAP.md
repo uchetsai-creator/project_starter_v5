@@ -2729,7 +2729,7 @@ Remaining architectural concerns that are lower urgency but affect testability, 
 
 ---
 
-## Phase 76 — Fix Incorrect Test Assertion (llm-app context keyword)
+## Phase 76 — Fix Incorrect Test Assertion (llm-app context keyword) ✅ Complete
 
 **Discovered in post-Phase-75 full-project audit. Priority: highest — correctness bug.**
 

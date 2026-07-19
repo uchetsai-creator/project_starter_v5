@@ -26,7 +26,7 @@ _CONTEXT_KEYWORD_FOR = {
     "data-pipeline": "pipeline-contract",
     "ml-pipeline": "pipeline-contract",
     "microservices": "service-catalog",
-    "llm-app": "eval-run",
+    "llm-app": "llm-contract",
     "iac": "runbook",
     "mobile-app": "mobile-contract",
 }
