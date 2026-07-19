@@ -116,7 +116,8 @@ class FlaskDetector(Detector):
 
 
 class FlaskAdapter(FrameworkAdapter):
-    """
+    """Deprecated: use the corresponding capability adapter in _capability_*.py. This shim exists for backward compatibility with --adapter <name> CLI usage. Do not extend.
+
     Adapter for Flask (Python) Web App / Microservices projects.
 
     Spec format (api-contract.md):

@@ -31,7 +31,8 @@ _SEMANTIC_MODEL = 'claude-haiku-4-5-20251001'
 
 
 class SemanticAdapter:
-    """
+    """Deprecated: use the corresponding capability adapter in _capability_*.py. This shim exists for backward compatibility with --adapter <name> CLI usage. Do not extend.
+
     Wraps any FrameworkAdapter and adds an LLM-assisted comparison pass.
 
     extract_spec() and extract_code() delegate to the wrapped adapter unchanged.

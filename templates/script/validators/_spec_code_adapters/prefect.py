@@ -97,7 +97,8 @@ class PrefectDetector(Detector):
 
 
 class PrefectAdapter(FrameworkAdapter):
-    """
+    """Deprecated: use the corresponding capability adapter in _capability_*.py. This shim exists for backward compatibility with --adapter <name> CLI usage. Do not extend.
+
     Adapter for Prefect (Python) Data Pipeline / ML Pipeline projects.
 
     Spec format (pipeline-contract.md):

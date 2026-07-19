@@ -84,7 +84,8 @@ class TerraformDetector(Detector):
 
 
 class TerraformAdapter(FrameworkAdapter):
-    """
+    """Deprecated: use the corresponding capability adapter in _capability_*.py. This shim exists for backward compatibility with --adapter <name> CLI usage. Do not extend.
+
     Adapter for Terraform HCL IaC / DevOps projects.
 
     Spec format (topology.md):

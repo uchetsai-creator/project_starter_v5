@@ -2172,7 +2172,7 @@ Phase 40 reorganized `templates/script/` into four subdirectories (`validators/`
 
 ---
 
-## Phase 62 — Adapter Shim Deprecation Path
+## Phase 62 — Adapter Shim Deprecation Path ✅ Complete
 
 **Discovered in post-Phase-56 audit.**
 

@@ -93,7 +93,8 @@ class FlutterDetector(Detector):
 
 
 class FlutterAdapter(FrameworkAdapter):
-    """
+    """Deprecated: use the corresponding capability adapter in _capability_*.py. This shim exists for backward compatibility with --adapter <name> CLI usage. Do not extend.
+
     Adapter for Flutter / Dart Mobile App projects.
 
     Spec format (mobile-contract.md):

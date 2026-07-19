@@ -117,6 +117,19 @@ If your framework is commonly used in a specific task type, add `verify_spec_cod
 
 ---
 
+## Shim Policy
+
+The `*Adapter` classes (e.g. `AirflowAdapter`, `FastAPIAdapter`) in `_spec_code_adapters/` are **legacy shims** maintained for backward compatibility with `--adapter <name>` CLI usage. They will be removed in a future phase.
+
+**Do not add new `*Adapter` shims.** When adding support for a new framework:
+
+- Add your logic as a **detector** inside an existing `_capability_*.py` file in `templates/script/validators/`.
+- If no suitable capability adapter exists, open a discussion before creating a new file.
+
+`verify_framework.py` (Check 13) will warn if a new `*Adapter` class appears outside the known-legacy shim list.
+
+---
+
 ## Adapter checklist
 
 - [ ] Inherits from `FrameworkAdapter` in `_base.py`

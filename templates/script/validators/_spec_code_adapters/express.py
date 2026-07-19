@@ -80,7 +80,8 @@ class ExpressDetector(Detector):
 
 
 class ExpressAdapter(FrameworkAdapter):
-    """
+    """Deprecated: use the corresponding capability adapter in _capability_*.py. This shim exists for backward compatibility with --adapter <name> CLI usage. Do not extend.
+
     Adapter for Express (Node.js) Web App / Microservices projects.
 
     Spec format (api-contract.md):

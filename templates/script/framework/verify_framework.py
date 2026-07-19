@@ -624,6 +624,42 @@ def check_task_types_field_sync() -> list[dict]:
     return issues
 
 
+def check_no_new_shims() -> list[dict]:
+    """Check 13: Warn if any non-legacy file in _spec_code_adapters/ defines a new *Adapter class."""
+    adapters_dir = FRAMEWORK_ROOT / "templates/script/validators/_spec_code_adapters"
+
+    KNOWN_LEGACY_SHIMS = {
+        "AirflowAdapter", "ClickAdapter", "DagsterAdapter", "ExpressAdapter",
+        "FastAPIAdapter", "FlaskAdapter", "FlutterAdapter", "PrefectAdapter",
+        "PulumiAdapter", "PythonLibraryAdapter", "ReactNativeAdapter",
+        "SemanticAdapter", "TerraformAdapter", "ToolSchemaAdapter",
+    }
+
+    if not adapters_dir.exists():
+        return [_issue("no-new-shims", "error",
+                       f"_spec_code_adapters/ not found at {adapters_dir}")]
+
+    issues = []
+    scanned = 0
+    for py_file in sorted(adapters_dir.glob("*.py")):
+        if py_file.name.startswith("_"):
+            continue  # skip _base.py, __init__.py, _example_adapter.py
+        scanned += 1
+        text = read_text(py_file)
+        for m in re.finditer(r'^class\s+(\w+Adapter)\b', text, re.MULTILINE):
+            cls_name = m.group(1)
+            if cls_name not in KNOWN_LEGACY_SHIMS:
+                issues.append(_issue("no-new-shims", "warn",
+                                     f"{py_file.name}: class `{cls_name}` is not in the "
+                                     f"known-legacy shim list — new adapters must be added "
+                                     f"as capability detectors, not `*Adapter` shims"))
+
+    if not issues:
+        return [_issue("no-new-shims", "pass",
+                       f"No new *Adapter shims found across {scanned} scanned files")]
+    return issues
+
+
 def check_registry_matrix_sync() -> list[dict]:
     """Check 11: Every entry in document-registry.yaml has a row in document-matrix.md,
     and every matrix row has a registry entry."""
@@ -689,6 +725,7 @@ CHECK_ORDER = [
     "content-coverage",
     "registry-matrix-sync",
     "task-types-field-sync",
+    "no-new-shims",
 ]
 
 CHECK_LABELS = {
@@ -704,6 +741,7 @@ CHECK_LABELS = {
     "content-coverage":     "Content coverage             (verify_content.py completeness)",
     "registry-matrix-sync": "Registry ↔ matrix sync      (document-registry.yaml ↔ document-matrix.md)",
     "task-types-field-sync": "Task-types field sync        (document-registry.yaml task_types ↔ workflow-registry.yaml)",
+    "no-new-shims":         "No new shims                 (_spec_code_adapters/ *Adapter class guard)",
 }
 
 LEVEL_ICON = {"pass": "✅", "warn": "⚠️ ", "fail": "❌", "error": "❌"}
@@ -789,6 +827,7 @@ def main():
     all_issues += check_content_coverage()
     all_issues += check_registry_matrix_sync()
     all_issues += check_task_types_field_sync()
+    all_issues += check_no_new_shims()
 
     if args.json_output:
         print(json.dumps(

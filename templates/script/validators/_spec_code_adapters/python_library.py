@@ -103,7 +103,8 @@ class PythonLibraryDetector(Detector):
 
 
 class PythonLibraryAdapter(FrameworkAdapter):
-    """
+    """Deprecated: use the corresponding capability adapter in _capability_*.py. This shim exists for backward compatibility with --adapter <name> CLI usage. Do not extend.
+
     Adapter for Python Library / SDK projects.
 
     Spec format (public-api.md):

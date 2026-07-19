@@ -49,8 +49,10 @@ class ExampleAdapter(FrameworkAdapter):
     lists of NormalizedForm objects. Never import framework libraries at module
     level — import lazily inside methods to avoid hard dependencies.
 
-    Naming convention: name your class <Framework>Adapter and register it in
-    verify_spec_code.py ADAPTER_REGISTRY as 'framework_key': ('module', 'ClassName').
+    Register your adapter in verify_spec_code.py ADAPTER_REGISTRY as
+    'framework_key': ('module', 'ClassName'). The *Adapter naming convention
+    is legacy — capability detectors in _capability_*.py are the preferred
+    extension point for new frameworks (see docs/contributing-adapters.md).
     """
 
     # ------------------------------------------------------------------

@@ -109,7 +109,8 @@ class ClickDetector(Detector):
 
 
 class ClickAdapter(FrameworkAdapter):
-    """
+    """Deprecated: use the corresponding capability adapter in _capability_*.py. This shim exists for backward compatibility with --adapter <name> CLI usage. Do not extend.
+
     Adapter for Click (Python) CLI Tool projects.
 
     Spec format (cli-contract.md):
