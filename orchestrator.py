@@ -22,7 +22,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from _workflow_utils import _read_task_type_from_current_state, _resolve_task_type
+from _workflow_utils import _load_valid_task_types, _read_task_type_from_current_state, _resolve_task_type
 
 try:
     import yaml
@@ -30,7 +30,6 @@ except ImportError:
     print("❌  PyYAML not found. Install with: pip install pyyaml", file=sys.stderr)
     sys.exit(1)
 
-VALID_TASK_TYPES = ["feature", "pipeline-stage", "bug-fix", "sprint-end", "eval-run", "iac-change"]
 VALID_ADAPTERS = ["claude", "codex", "cursor"]
 
 
@@ -209,14 +208,17 @@ def _run_adapter(adapter: str, project_root: Path, workflow_content: str, dry_ru
 
 
 def main() -> None:
+    project_root = Path(__file__).resolve().parent
+    valid_task_types = _load_valid_task_types(project_root)
+
     parser = argparse.ArgumentParser(
         description="Generate .ai/WORKFLOW.md for the current task."
     )
     parser.add_argument(
         "--task-type",
-        choices=VALID_TASK_TYPES,
+        choices=valid_task_types or None,
         metavar="TYPE",
-        help=f"Override task type ({', '.join(VALID_TASK_TYPES)})",
+        help=f"Override task type ({', '.join(valid_task_types)})" if valid_task_types else "Override task type",
     )
     parser.add_argument(
         "--dry-run",
@@ -231,7 +233,6 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    project_root = Path(__file__).resolve().parent
     ctx = _build_workflow(project_root, args.task_type)
     output = _render(ctx)
 

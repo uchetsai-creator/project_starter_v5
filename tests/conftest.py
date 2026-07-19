@@ -1,12 +1,11 @@
+import sys
 import shutil
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
-VALID_TYPES: list[str] = [
-    "web-app", "cli-tool", "library",
-    "data-pipeline", "ml-pipeline", "microservices", "llm-app", "iac", "mobile-app",
-]
+sys.path.insert(0, str(REPO_ROOT / "templates/script/validators"))
+from _registry import VALID_TYPES  # noqa: E402
 
 # Framework files that must be copied into an E2E project root
 _PROJECT_FILES = [

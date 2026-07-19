@@ -7,6 +7,20 @@ import re
 from pathlib import Path
 
 
+def _load_valid_task_types(project_root: Path) -> list[str]:
+    """Derive valid task types from workflow-registry.yaml keys (excluding 'default')."""
+    try:
+        import yaml
+    except ImportError:
+        return []
+    wf_path = project_root / "workflow-registry.yaml"
+    if not wf_path.exists():
+        return []
+    with wf_path.open(encoding="utf-8") as fh:
+        data = yaml.safe_load(fh) or {}
+    return [k for k in data.get("workflows", {}) if k != "default"]
+
+
 def _read_task_type_from_current_state(path: Path) -> str | None:
     if not path.exists():
         return None

@@ -16,7 +16,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from _workflow_utils import _read_task_type_from_current_state, _resolve_task_type
+from _workflow_utils import _load_valid_task_types, _read_task_type_from_current_state, _resolve_task_type
 
 try:
     import yaml
@@ -25,16 +25,6 @@ except ImportError:
     sys.exit(1)
 
 PRIORITY_ORDER = {"high": 0, "medium": 1, "low": 2}
-
-
-def _load_valid_task_types(project_root: Path) -> list[str]:
-    """Derive valid task types from workflow-registry.yaml keys (excluding 'default')."""
-    wf_path = project_root / "workflow-registry.yaml"
-    if not wf_path.exists():
-        return []
-    with wf_path.open() as fh:
-        data = yaml.safe_load(fh) or {}
-    return [k for k in data.get("workflows", {}) if k != "default"]
 
 
 def _load_yaml(path: Path) -> dict:

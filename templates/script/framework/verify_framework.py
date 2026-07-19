@@ -531,40 +531,19 @@ def check_content_coverage() -> list[dict]:
         return issues
     text = script_path.read_text(encoding="utf-8")
 
-    required_checkers = {
-        "architecture.md":          "check_architecture",
-        "quickstart.md":            "check_quickstart",
-        "research.md":              "check_research",
-        "test-plan.md":             "check_test_plan",
-        "api-contract.md":          "check_api_contract",
-        "permissions.md":           "check_permissions",
-        "data-model.md":            "check_data_model",
-        "backend.md":               "check_backend",
-        "pipeline-contract.md":     "check_pipeline_contract",
-        "pipeline-debug.md":        "check_pipeline_debug",
-        "model-contract.md":        "check_model_contract",
-        "experiment-log.md":        "check_experiment_log",
-        "cli-contract.md":          "check_cli_contract",
-        "release-guide.md":         "check_release_guide",
-        "public-api.md":            "check_public_api",
-        "compatibility-matrix.md":  "check_compatibility_matrix",
-        "service-catalog.md":       "check_service_catalog",
-        "service-contract.md":      "check_service_contract",
-        "llm-contract.md":          "check_llm_contract",
-        "eval-spec.md":             "check_eval_spec",
-        "prompt-library.md":        "check_prompt_library",
-        "topology.md":              "check_topology",
-        "runbook.md":               "check_runbook",
-        "drift-policy.md":          "check_drift_policy",
-        "mobile-contract.md":       "check_mobile_contract",
-        "deployment.md":            "check_deployment",
-        "database.md":              "check_database",
-        "distribution.md":          "check_distribution",
-        "frontend.md":              "check_frontend",
-        "business-rules.md":        "check_business_rules",
-        "business-process.md":      "check_business_process",
-        "business-objects.md":      "check_business_objects",
-    }
+    # Derive required_checkers from verify_content.CHECKERS — single source of truth.
+    # Adding a checker to CHECKERS in verify_content.py automatically registers it here.
+    _vc_dir = str(script_path.parent)
+    if _vc_dir not in sys.path:
+        sys.path.insert(0, _vc_dir)
+    try:
+        from verify_content import CHECKERS as _vc_checkers  # noqa: PLC0415
+        required_checkers = {doc: fn.__name__ for doc, fn in _vc_checkers.items()}
+    except Exception as exc:
+        issues.append(_issue("content-coverage", "error",
+                             f"Could not import verify_content.CHECKERS: {exc}"))
+        return issues
+
     for doc, func in required_checkers.items():
         if f"def {func}(" not in text:
             issues.append(_issue("content-coverage", "fail",
