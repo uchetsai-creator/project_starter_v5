@@ -53,7 +53,7 @@ def generate_fix_text(project_type: str, document: str, gap_description: str) ->
     )
 
 
-def run(cmd: list[str], cwd: Path | None = None, check: bool = True) -> subprocess.CompletedProcess:
+def run(cmd: list[str], cwd: Path | None = None, check: bool = False) -> subprocess.CompletedProcess:
     return subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, check=check)
 
 

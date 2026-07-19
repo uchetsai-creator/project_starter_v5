@@ -40,10 +40,15 @@ To add a file to the PDF: add it to PDF_ALLOWLIST below. Do not change the disco
 
 Requires: pip install markdown weasyprint cairosvg --break-system-packages
 """
-import sys
+import argparse
+import glob
 import os
 import re
-import glob
+import shutil
+import subprocess
+import sys
+import tempfile
+import xml.etree.ElementTree as ET
 import markdown
 from weasyprint import HTML, CSS
 import cairosvg
@@ -302,7 +307,6 @@ def find_allowed_files(docs_dir, strings, project_type=None, content="full"):
 def render_plantuml_block(puml_text, out_svg_path):
     """Render a PlantUML block to SVG using plantuml.jar.
     Returns True on success, False on failure."""
-    import subprocess, tempfile
     if not os.path.exists(PLANTUML_JAR):
         print(f"Warning: plantuml.jar not found at {PLANTUML_JAR}")
         print("  Set PLANTUML_JAR env var or place plantuml.jar next to build_pdf.py")
@@ -322,7 +326,6 @@ def render_plantuml_block(puml_text, out_svg_path):
         # e.g. /tmp/tmpXXXX.puml → out_svg_dir/tmpXXXX.svg
         tmp_svg = os.path.join(out_svg_dir, os.path.splitext(os.path.basename(tmp_puml))[0] + '.svg')
         if os.path.exists(tmp_svg):
-            import shutil
             shutil.move(tmp_svg, out_svg_path)
             return True
         if result.returncode != 0:
@@ -412,7 +415,6 @@ def find_html_svg_pairs(docs_dir):
 
 def svg_to_png(svg_path, out_path, max_width=1400, max_height=900):
     """Convert SVG to PNG, scaling to fit within max_width x max_height."""
-    import xml.etree.ElementTree as ET
     tree = ET.parse(svg_path)
     root = tree.getroot()
     vb = root.get('viewBox', '')
@@ -795,54 +797,61 @@ VALID_PROJECT_TYPES = {
 }
 
 def parse_args():
-    args = sys.argv[1:]
-    docs_dir = "docs"
-    output_path = None
-    lang = "en"
+    parser = argparse.ArgumentParser(
+        description="Merge approved docs/ content into a single PDF.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument(
+        "docs_dir",
+        nargs="?",
+        default="docs",
+        help="Path to the docs directory (default: docs)",
+    )
+    parser.add_argument(
+        "-o",
+        dest="output_path",
+        metavar="OUTPUT",
+        help="Output PDF path (default: <docs_dir>/project-{documentation|spec}-<lang>.pdf)",
+    )
+    parser.add_argument(
+        "--lang",
+        default="en",
+        choices=list(STRINGS),
+        help="Section labels and UI text language (default: en)",
+    )
+    parser.add_argument(
+        "--project-type",
+        metavar="TYPE",
+        help=(
+            "Comma-separated project type(s) to filter the PDF. "
+            f"Valid values: {', '.join(sorted(VALID_PROJECT_TYPES))}"
+        ),
+    )
+    parser.add_argument(
+        "--content",
+        default="full",
+        choices=["full", "spec"],
+        help="full — all chapters; spec — Introduction, Design, Build, Deployment only (default: full)",
+    )
+
+    args = parser.parse_args()
+
     project_type = None
-    content = "full"
-
-    i = 0
-    while i < len(args):
-        a = args[i]
-        if a == "-o" and i + 1 < len(args):
-            output_path = args[i + 1]
-            i += 2
-        elif a == "--lang" and i + 1 < len(args):
-            lang = args[i + 1]
-            i += 2
-        elif a == "--project-type" and i + 1 < len(args):
-            project_type = frozenset(t.strip() for t in args[i + 1].split(","))
-            i += 2
-        elif a == "--content" and i + 1 < len(args):
-            content = args[i + 1]
-            i += 2
-        elif not a.startswith("-"):
-            docs_dir = a
-            i += 1
-        else:
-            i += 1
-
-    if lang not in STRINGS:
-        print(f"Unsupported language '{lang}'. Available: {', '.join(STRINGS)}")
-        sys.exit(1)
-
-    if content not in ("full", "spec"):
-        print(f"Unsupported --content value '{content}'. Use: full, spec")
-        sys.exit(1)
-
-    if project_type is not None:
+    if args.project_type is not None:
+        project_type = frozenset(t.strip() for t in args.project_type.split(","))
         invalid = project_type - VALID_PROJECT_TYPES
         if invalid:
-            print(f"Unsupported project type(s): {', '.join(sorted(invalid))}")
-            print(f"Available: {', '.join(sorted(VALID_PROJECT_TYPES))}")
-            sys.exit(1)
+            parser.error(
+                f"Unsupported project type(s): {', '.join(sorted(invalid))}. "
+                f"Available: {', '.join(sorted(VALID_PROJECT_TYPES))}"
+            )
 
+    output_path = args.output_path
     if not output_path:
-        suffix = "spec" if content == "spec" else "documentation"
-        output_path = os.path.join(docs_dir, f"project-{suffix}-{lang}.pdf")
+        suffix = "spec" if args.content == "spec" else "documentation"
+        output_path = os.path.join(args.docs_dir, f"project-{suffix}-{args.lang}.pdf")
 
-    return docs_dir, output_path, lang, project_type, content
+    return args.docs_dir, output_path, args.lang, project_type, args.content
 
 
 def main():
@@ -855,7 +864,6 @@ def main():
 
     png_cache_dir = os.path.join(docs_dir, ".pdf_build_cache")
     if os.path.isdir(png_cache_dir):
-        import shutil
         shutil.rmtree(png_cache_dir)
     os.makedirs(png_cache_dir, exist_ok=True)
 

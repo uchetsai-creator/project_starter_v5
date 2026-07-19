@@ -5,11 +5,12 @@ Outputs two files:
   <name>.html — interactive draggable/zoomable ERD (for browser use)
   <name>.svg  — static diagram with identical layout (for PDF embedding, screenshots, printing)
 """
-import sys
-import re
-import os
+import argparse
 import json
 import math
+import os
+import re
+import sys
 
 def detect_and_parse(content, ext):
     if ext == ".prisma" or re.search(r'\bmodel\s+\w+\s*\{', content):
@@ -285,7 +286,7 @@ def build_svg(tables, relations, title):
 
 
 HTML = r"""<!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <title>{title}</title>
@@ -330,7 +331,7 @@ canvas#lines { position:absolute; top:0; left:0; pointer-events:none; }
   </div>
 </div>
 <div id="tooltip"></div>
-<div id="hint">點選關聯線查看詳情 · 點空白處取消</div>
+<div id="hint">Click a relation line for details · Click blank area to deselect</div>
 <script>
 const TABLES = {tables_json};
 const RELATIONS = {relations_json};
@@ -626,15 +627,25 @@ def build_html(tables, relations, title):
                .replace('{relations_json}', json.dumps(relations, ensure_ascii=False))
 
 def main():
-    if len(sys.argv) < 2:
-        print("usage: python3 schema_to_html.py <schema.prisma|schema.sql> [-o output.html]",
-              file=sys.stderr)
-        sys.exit(1)
-    input_path = sys.argv[1]
-    output_path = sys.argv[3] if len(sys.argv) > 3 and sys.argv[2] == "-o" else None
+    parser = argparse.ArgumentParser(
+        description="Convert a Prisma or SQL schema to an interactive Crow's Foot ERD.",
+    )
+    parser.add_argument(
+        "input",
+        metavar="SCHEMA",
+        help="Path to the .prisma or .sql schema file",
+    )
+    parser.add_argument(
+        "-o",
+        dest="output",
+        metavar="OUTPUT",
+        help="Output HTML path (default: <schema-stem>.html)",
+    )
+    args = parser.parse_args()
+
+    input_path = args.input
     if not os.path.exists(input_path):
-        print(f"error: file not found: {input_path}", file=sys.stderr)
-        sys.exit(1)
+        parser.error(f"file not found: {input_path}")
     with open(input_path, "r", encoding="utf-8") as f:
         content = f.read()
     ext = os.path.splitext(input_path)[1].lower()
@@ -644,8 +655,7 @@ def main():
         sys.exit(1)
     title = os.path.splitext(os.path.basename(input_path))[0]
     html = build_html(tables, relations, title)
-    if not output_path:
-        output_path = os.path.splitext(input_path)[0] + ".html"
+    output_path = args.output or (os.path.splitext(input_path)[0] + ".html")
     with open(output_path, "w", encoding="utf-8") as f:
         f.write(html)
     print(f"generated: {output_path} ({len(tables)} tables, {len(relations)} relations)")
@@ -654,7 +664,7 @@ def main():
     svg_path = os.path.splitext(output_path)[0] + ".svg"
     with open(svg_path, "w", encoding="utf-8") as f:
         f.write(svg)
-    print(f"已產生: {svg_path} (靜態版，可用於 PDF 嵌入)")
+    print(f"generated: {svg_path} (static, embeddable in PDF)")
 
 if __name__ == "__main__":
     main()
