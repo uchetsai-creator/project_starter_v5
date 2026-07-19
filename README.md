@@ -36,7 +36,7 @@ project_starter/                     ← this repo (template only)
 ├── adapters/                        ← agent adapter layer (translate WORKFLOW.md to each tool's native format)
 │   ├── claude/
 │   │   ├── start-task.md           ← slash command template (copy to .claude/commands/ in your project)
-│   │   └── stop-hook.sh            ← writes task-log row on Claude Code session end
+│   │   └── stop-hook.sh            ← writes session boundary to .ai/telemetry/task-run.json on Claude Code session end
 │   ├── codex/
 │   │   ├── setup.md                ← Codex setup instructions with orchestrator quickstart
 │   │   └── task-instructions.md    ← task instructions template; WORKFLOW.md injected at render time
@@ -507,8 +507,10 @@ python3 orchestrator.py --adapter cursor
 1. Run `python3 orchestrator.py --adapter claude` — this writes `.claude/commands/start-task.md`.
 2. In any future session, type `/start-task` to have Claude run the orchestrator and walk through
    the current workflow plan.
-3. (Optional) Install the Stop hook so each session end is logged to `docs/task-log.md`:
+3. (Optional) Install the Stop hook so each session end is recorded in `.ai/telemetry/task-run.json`:
    add `adapters/claude/stop-hook.sh` to the `Stop` hook list in `.claude/settings.json`.
+   Note: the hook writes to telemetry only — not to `docs/task-log.md`. Task log rows are written
+   during task closeout by the AI agent, not automatically on session end.
 
 **Codex**
 
