@@ -1,0 +1,85 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "document-registry.schema.json",
+  "title": "DocumentRegistryEntry",
+  "description": "Schema for a single document entry in document-registry.yaml",
+  "type": "object",
+  "required": ["file", "path", "context_priority", "pdf", "audience", "required_sections", "update_trigger"],
+  "additionalProperties": false,
+  "properties": {
+    "file": {
+      "type": "string",
+      "pattern": "\\.md$",
+      "description": "Filename only (e.g. architecture.md)"
+    },
+    "path": {
+      "type": "string",
+      "pattern": "\\.md$",
+      "description": "Path relative to docs/ root (e.g. architecture/architecture.md)"
+    },
+    "required_for": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/ProjectType" },
+      "default": []
+    },
+    "optional_for": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/ProjectType" },
+      "default": []
+    },
+    "replaces_for": {
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/ProjectType" },
+      "additionalProperties": { "type": "string" }
+    },
+    "context_priority": {
+      "type": "string",
+      "enum": ["high", "medium", "low"]
+    },
+    "task_types": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "purpose": {
+      "type": "string",
+      "description": "One-line description for AI context headers"
+    },
+    "used_by": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "related": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "pdf": {
+      "type": "boolean",
+      "description": "Whether to include in generated PDF"
+    },
+    "audience": {
+      "type": "string",
+      "enum": ["internal", "external"],
+      "description": "external = no task/sprint refs allowed in this document"
+    },
+    "required_sections": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Section headings verify_content.py must find filled"
+    },
+    "update_trigger": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Machine-readable: when this document should be updated"
+    }
+  },
+  "$defs": {
+    "ProjectType": {
+      "type": "string",
+      "enum": [
+        "web-app", "cli-tool", "library",
+        "data-pipeline", "ml-pipeline", "microservices",
+        "llm-app", "iac", "mobile-app"
+      ]
+    }
+  }
+}

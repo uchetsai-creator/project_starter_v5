@@ -79,6 +79,10 @@ def _parse_registry(text: str) -> dict[str, Any]:
                 documents[current_doc][key] = mapping
             elif val.startswith('"') or val.startswith("'"):
                 documents[current_doc][key] = val.strip('"\'')
+            elif val == 'true':
+                documents[current_doc][key] = True
+            elif val == 'false':
+                documents[current_doc][key] = False
             else:
                 documents[current_doc][key] = val
 

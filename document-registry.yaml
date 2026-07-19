@@ -3,7 +3,7 @@
 # Replaces: verify_docs.py MATRIX + FILE_LOCATIONS, verify_content.py TYPE_DOCS + DOC_PATHS,
 #           and templates/init/document-matrix.md (which is now a human-readable view only).
 #
-# Schema per entry:
+# Schema per entry (see templates/schema/document-registry.schema.json):
 #   file:             filename (with .md)
 #   path:             path relative to docs/ root
 #   required_for:     project types where this document is Required (R)
@@ -14,6 +14,10 @@
 #   purpose:          one-line description for AI context headers
 #   used_by:          which tools consume this document
 #   related:          closely related document keys (without .md)
+#   pdf:              true | false — include in generated PDF
+#   audience:         internal | external — external = no task/sprint refs allowed
+#   required_sections: section headings verify_content.py must find filled
+#   update_trigger:   when to update this document
 #
 # Valid project types (9):
 #   web-app | cli-tool | library | data-pipeline | ml-pipeline
@@ -22,7 +26,7 @@
 
 documents:
 
-  # ── Architecture ─────────────────────────────────────────────────────────────
+  # ── Architecture ─────────────────────────────────���───────────────────────────
 
   architecture:
     file: architecture.md
@@ -35,6 +39,10 @@ documents:
     purpose: "Current system components and data-flow diagram"
     used_by: [context-builder, validator, pdf]
     related: [backend, database, deployment]
+    pdf: true
+    audience: external
+    required_sections: []
+    update_trigger: "system components or data-flow changes"
 
   backend:
     file: backend.md
@@ -46,6 +54,10 @@ documents:
     purpose: "Backend stack, layering, and module organisation"
     used_by: [context-builder, validator, pdf]
     related: [architecture, database]
+    pdf: true
+    audience: external
+    required_sections: [Stack]
+    update_trigger: "stack or module structure changes"
 
   frontend:
     file: frontend.md
@@ -56,6 +68,10 @@ documents:
     purpose: "Frontend stack, page structure, and component strategy"
     used_by: [context-builder, validator, pdf]
     related: [architecture, permissions]
+    pdf: true
+    audience: external
+    required_sections: [Stack, "Page / Screen Structure"]
+    update_trigger: "pages, components, or stack changes"
 
   database:
     file: database.md
@@ -66,6 +82,10 @@ documents:
     purpose: "Database engine, main entities, and relationships"
     used_by: [context-builder, validator, pdf]
     related: [data-model, backend]
+    pdf: true
+    audience: external
+    required_sections: ["Database Engine", "Main Entities"]
+    update_trigger: "schema or entity changes"
 
   deployment:
     file: deployment.md
@@ -77,6 +97,10 @@ documents:
     purpose: "Services, environment variables, and build/deploy flow"
     used_by: [context-builder, validator, pdf]
     related: [architecture, quickstart]
+    pdf: true
+    audience: external
+    required_sections: ["Environment Variables"]
+    update_trigger: "service, environment variable, or deploy-flow changes"
 
   distribution:
     file: distribution.md
@@ -87,6 +111,10 @@ documents:
     purpose: "Package build, registry publish, and installation instructions"
     used_by: [context-builder, validator, pdf]
     related: [release-guide, compatibility-matrix]
+    pdf: true
+    audience: external
+    required_sections: []
+    update_trigger: "package name, registry, or publish process changes"
 
   topology:
     file: topology.md
@@ -98,8 +126,12 @@ documents:
     purpose: "Infrastructure resource topology and environment promotion path"
     used_by: [context-builder, validator, pdf]
     related: [runbook, drift-policy]
+    pdf: true
+    audience: external
+    required_sections: []
+    update_trigger: "infrastructure resource or environment-promotion changes"
 
-  # ── Specs ────────────────────────────────────────────────────────────────────
+  # ── Specs ────────────────────────────────────────────────��───────────────────
 
   api-contract:
     file: api-contract.md
@@ -112,6 +144,10 @@ documents:
     purpose: "REST/GraphQL/WebSocket endpoint contracts, error codes, and validation rules"
     used_by: [context-builder, validator, pdf]
     related: [permissions, data-model]
+    pdf: true
+    audience: internal
+    required_sections: []
+    update_trigger: "endpoint added, removed, or schema changed"
 
   cli-contract:
     file: cli-contract.md
@@ -122,6 +158,10 @@ documents:
     purpose: "CLI subcommands, flags, arguments, output format, and exit codes"
     used_by: [context-builder, validator, pdf]
     related: [quickstart, release-guide]
+    pdf: true
+    audience: internal
+    required_sections: []
+    update_trigger: "subcommand, flag, or output format changed"
 
   public-api:
     file: public-api.md
@@ -132,6 +172,10 @@ documents:
     purpose: "Public functions, classes, types, and constants exposed to callers"
     used_by: [context-builder, validator, pdf]
     related: [compatibility-matrix, release-guide]
+    pdf: true
+    audience: internal
+    required_sections: []
+    update_trigger: "public function, class, or type changed"
 
   pipeline-contract:
     file: pipeline-contract.md
@@ -143,6 +187,10 @@ documents:
     purpose: "Inter-stage input/output formats, paths, naming rules, and error handling"
     used_by: [context-builder, validator, pdf]
     related: [pipeline-debug, data-model]
+    pdf: true
+    audience: external
+    required_sections: []
+    update_trigger: "stage input/output format or naming rule changed"
 
   pipeline-debug:
     file: pipeline-debug.md
@@ -154,6 +202,10 @@ documents:
     purpose: "Stage failure diagnosis guide: wrong row count, data quality, root cause"
     used_by: [context-builder, validator, pdf]
     related: [pipeline-contract]
+    pdf: false
+    audience: internal
+    required_sections: []
+    update_trigger: "new failure mode discovered or root cause procedure updated"
 
   llm-contract:
     file: llm-contract.md
@@ -165,6 +217,10 @@ documents:
     purpose: "Model, system prompt, parameters, and tool schemas"
     used_by: [context-builder, validator, pdf]
     related: [prompt-library, eval-spec, rag-contract]
+    pdf: true
+    audience: internal
+    required_sections: ["System Prompt"]
+    update_trigger: "model, system prompt, or parameter changed"
 
   prompt-library:
     file: prompt-library.md
@@ -175,6 +231,10 @@ documents:
     purpose: "Index of all prompts with version, purpose, and per-prompt file link"
     used_by: [context-builder, validator, pdf]
     related: [llm-contract, eval-spec]
+    pdf: true
+    audience: internal
+    required_sections: []
+    update_trigger: "prompt added, retired, or file path changed"
 
   eval-spec:
     file: eval-spec.md
@@ -186,6 +246,10 @@ documents:
     purpose: "Evaluation criteria, metrics, score thresholds, and dataset selection rules"
     used_by: [context-builder, validator, pdf]
     related: [llm-contract, eval-log]
+    pdf: true
+    audience: internal
+    required_sections: [Criteria]
+    update_trigger: "evaluation criterion, metric, or threshold changed"
 
   eval-log:
     file: eval-log.md
@@ -197,6 +261,10 @@ documents:
     purpose: "Per-run evaluation results log (one row per eval run)"
     used_by: [context-builder, validator, pdf]
     related: [eval-spec]
+    pdf: true
+    audience: internal
+    required_sections: []
+    update_trigger: "new evaluation run completed"
 
   llm-debug:
     file: llm-debug.md
@@ -208,6 +276,10 @@ documents:
     purpose: "LLM failure diagnosis guide: wrong answer, low eval score, tool call failure"
     used_by: [context-builder, validator, pdf]
     related: [llm-contract, eval-spec]
+    pdf: false
+    audience: internal
+    required_sections: []
+    update_trigger: "new failure mode or diagnostic procedure added"
 
   rag-contract:
     file: rag-contract.md
@@ -218,6 +290,10 @@ documents:
     purpose: "Retrieval sources, chunking strategy, embedding model, and vector store config"
     used_by: [context-builder, validator, pdf]
     related: [llm-contract]
+    pdf: true
+    audience: internal
+    required_sections: []
+    update_trigger: "retrieval source, chunking strategy, or embedding model changed"
 
   mcp-contract:
     file: mcp-contract.md
@@ -228,6 +304,10 @@ documents:
     purpose: "MCP server tool schemas, tool-use policy, and server configuration"
     used_by: [context-builder, validator, pdf]
     related: [llm-contract]
+    pdf: true
+    audience: internal
+    required_sections: []
+    update_trigger: "MCP server tool schema or policy changed"
 
   service-catalog:
     file: service-catalog.md
@@ -238,6 +318,10 @@ documents:
     purpose: "All services: owner, port, base URL, and key dependencies"
     used_by: [context-builder, validator, pdf]
     related: [service-contract, event-catalog]
+    pdf: true
+    audience: internal
+    required_sections: []
+    update_trigger: "service added, removed, or port/owner changed"
 
   service-contract:
     file: service-contract.md
@@ -248,6 +332,10 @@ documents:
     purpose: "REST contracts and resilience policies between services"
     used_by: [context-builder, validator, pdf]
     related: [service-catalog, event-catalog, api-contract]
+    pdf: true
+    audience: internal
+    required_sections: []
+    update_trigger: "inter-service endpoint or resilience policy changed"
 
   event-catalog:
     file: event-catalog.md
@@ -258,6 +346,10 @@ documents:
     purpose: "Event types, payload schemas, publishers, subscribers, and retention policy"
     used_by: [context-builder, validator, pdf]
     related: [service-contract]
+    pdf: false
+    audience: internal
+    required_sections: []
+    update_trigger: "event type, schema, or retention policy changed"
 
   model-contract:
     file: model-contract.md
@@ -268,6 +360,10 @@ documents:
     purpose: "Input feature schema, output format, and production score thresholds"
     used_by: [context-builder, validator, pdf]
     related: [pipeline-contract, experiment-log]
+    pdf: true
+    audience: internal
+    required_sections: [Input, "Output Format"]
+    update_trigger: "input feature schema, output format, or threshold changed"
 
   experiment-log:
     file: experiment-log.md
@@ -278,6 +374,10 @@ documents:
     purpose: "Per-experiment results log (one row per training run)"
     used_by: [context-builder, validator, pdf]
     related: [model-contract, eval-spec]
+    pdf: true
+    audience: internal
+    required_sections: []
+    update_trigger: "new training run completed"
 
   release-guide:
     file: release-guide.md
@@ -288,6 +388,10 @@ documents:
     purpose: "Versioning policy, release checklist, publish process, and deprecation policy"
     used_by: [context-builder, validator, pdf]
     related: [distribution, compatibility-matrix]
+    pdf: true
+    audience: internal
+    required_sections: [Versioning]
+    update_trigger: "versioning policy or publish process changed"
 
   compatibility-matrix:
     file: compatibility-matrix.md
@@ -298,6 +402,10 @@ documents:
     purpose: "Supported runtime versions and known incompatibilities"
     used_by: [context-builder, validator, pdf]
     related: [release-guide, distribution]
+    pdf: true
+    audience: internal
+    required_sections: []
+    update_trigger: "new runtime version tested or support status changed"
 
   permissions:
     file: permissions.md
@@ -309,6 +417,10 @@ documents:
     purpose: "Roles, permission matrix, and API endpoint access by role"
     used_by: [context-builder, validator, pdf]
     related: [api-contract, business-objects]
+    pdf: true
+    audience: internal
+    required_sections: []
+    update_trigger: "role added, removed, or permission matrix changed"
 
   data-model:
     file: data-model.md
@@ -320,6 +432,10 @@ documents:
     purpose: "Schema, entities, relationships, indexes, and state machine"
     used_by: [context-builder, validator, pdf]
     related: [database, pipeline-contract, business-objects]
+    pdf: true
+    audience: internal
+    required_sections: []
+    update_trigger: "entity, relationship, index, or state machine changed"
 
   logging-spec:
     file: logging-spec.md
@@ -331,6 +447,10 @@ documents:
     purpose: "Log format, required log points, trace_id propagation, and module naming"
     used_by: [context-builder, validator, pdf]
     related: []
+    pdf: true
+    audience: internal
+    required_sections: []
+    update_trigger: "log format, required log points, or trace propagation changed"
 
   research:
     file: research.md
@@ -341,6 +461,10 @@ documents:
     purpose: "Technology decisions and resolved NEEDS CLARIFICATION items"
     used_by: [context-builder, validator, pdf]
     related: []
+    pdf: false
+    audience: external
+    required_sections: []
+    update_trigger: "technology decision made or clarification resolved"
 
   quickstart:
     file: quickstart.md
@@ -351,6 +475,10 @@ documents:
     purpose: "Prerequisites, environment setup, startup commands, and verification steps"
     used_by: [context-builder, validator, pdf]
     related: [deployment]
+    pdf: true
+    audience: external
+    required_sections: [Prerequisites]
+    update_trigger: "prerequisites, setup steps, or verification steps changed"
 
   runbook:
     file: runbook.md
@@ -362,6 +490,10 @@ documents:
     purpose: "Health check commands, rollback procedures, and incident response steps"
     used_by: [context-builder, validator, pdf]
     related: [topology, drift-policy]
+    pdf: true
+    audience: internal
+    required_sections: []
+    update_trigger: "health check command or rollback procedure changed"
 
   drift-policy:
     file: drift-policy.md
@@ -373,6 +505,10 @@ documents:
     purpose: "Detection cadence, remediation SLA, exempt resources, and approval gate"
     used_by: [context-builder, validator, pdf]
     related: [topology, runbook]
+    pdf: true
+    audience: internal
+    required_sections: []
+    update_trigger: "detection cadence, SLA, or exempt resources changed"
 
   mobile-contract:
     file: mobile-contract.md
@@ -383,6 +519,10 @@ documents:
     purpose: "Screen inventory, navigation structure, OS permissions, and push notification schemas"
     used_by: [context-builder, validator, pdf]
     related: [frontend, distribution]
+    pdf: true
+    audience: internal
+    required_sections: []
+    update_trigger: "screen added, removed, or navigation structure changed"
 
   test-plan:
     file: test-plan.md
@@ -393,6 +533,10 @@ documents:
     purpose: "Testing strategy, tool choices, test levels, CI gate, and test environment"
     used_by: [context-builder, validator, pdf]
     related: [test-report]
+    pdf: true
+    audience: internal
+    required_sections: ["Testing Strategy"]
+    update_trigger: "testing strategy, tool, or CI gate changed"
 
   test-report:
     file: test-report.md
@@ -403,6 +547,10 @@ documents:
     purpose: "Actual test results, coverage, bugs found, and known gaps"
     used_by: [context-builder, validator, pdf]
     related: [test-plan]
+    pdf: true
+    audience: internal
+    required_sections: []
+    update_trigger: "test run completed or coverage baseline changed"
 
   glossary:
     file: glossary.md
@@ -413,6 +561,10 @@ documents:
     purpose: "Domain terms and abbreviations used across documents"
     used_by: [context-builder, pdf]
     related: [dependencies]
+    pdf: true
+    audience: internal
+    required_sections: []
+    update_trigger: "domain term added or definition updated"
 
   dependencies:
     file: dependencies.md
@@ -423,8 +575,12 @@ documents:
     purpose: "Third-party libraries, versions, licences, and update policy"
     used_by: [context-builder, pdf]
     related: [glossary]
+    pdf: true
+    audience: internal
+    required_sections: []
+    update_trigger: "third-party library added, removed, or version changed"
 
-  # ── Business ─────────────────────────────────────────────────────────────────
+  # ── Business ───────────────────────────────────���─────────────────────────────
 
   business-process:
     file: business-process.md
@@ -435,6 +591,10 @@ documents:
     purpose: "Business workflow, decision points, responsible roles, and exceptions"
     used_by: [context-builder, validator, pdf]
     related: [business-objects, business-rules]
+    pdf: true
+    audience: internal
+    required_sections: []
+    update_trigger: "workflow step or decision point changed"
 
   business-objects:
     file: business-objects.md
@@ -445,6 +605,10 @@ documents:
     purpose: "Index of business entity files and their relationships"
     used_by: [context-builder, validator, pdf]
     related: [business-process, data-model]
+    pdf: true
+    audience: internal
+    required_sections: []
+    update_trigger: "business entity added or relationship changed"
 
   business-rules:
     file: business-rules.md
@@ -455,3 +619,7 @@ documents:
     purpose: "Business constraints and policies that code must enforce"
     used_by: [context-builder, validator, pdf]
     related: [business-process, permissions]
+    pdf: true
+    audience: external
+    required_sections: []
+    update_trigger: "business constraint or policy changed"

@@ -8,10 +8,11 @@ Generated: {{TIMESTAMP}}
 - Follow Steps in `docs/current-state.md`
 
 ## Post-task validators (run in order)
-1. `python3 docs/script/validators/verify_docs.py --project-type library --content`
-2. `python3 docs/script/validators/verify_logs.py --project-type library --strict`
-3. `python3 docs/script/validators/verify_content.py --project-type library --strict`
-4. `python3 docs/script/validators/verify_spec_code.py --project-type library --strict`
+1. `python3 docs/script/validators/verify_registry.py --project-type library`
+2. `python3 docs/script/validators/verify_docs.py --project-type library --content`
+3. `python3 docs/script/validators/verify_logs.py --project-type library --strict`
+4. `python3 docs/script/validators/verify_content.py --project-type library --strict`
+5. `python3 docs/script/validators/verify_spec_code.py --project-type library --strict`
 
 ## Closeout
 - Follow Closeout section in `docs/current-state.md`

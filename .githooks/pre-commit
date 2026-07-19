@@ -14,6 +14,17 @@ set -euo pipefail
 # Staged file list — collected once, used by multiple checks
 STAGED=$(git diff --cached --name-only 2>/dev/null || true)
 
+# ── Registry schema ───────────────────────────────────────────────────────────
+# Trigger: always (registry is the shared dependency of all validators)
+# Catches: malformed project type (webapp vs web-app), missing required fields, bad values
+if command -v python3 &>/dev/null && [ -f "templates/script/validators/verify_registry.py" ] && [ -f "document-registry.yaml" ]; then
+    echo "  → verify_registry.py ..."
+    python3 "templates/script/validators/verify_registry.py" --registry document-registry.yaml 2>&1 || {
+        echo "❌  pre-commit: registry schema validation failed — commit blocked."
+        exit 1
+    }
+fi
+
 # ── Framework integrity ────────────────────────────────────────────────────────
 # Trigger: running inside the project_starter_v5 framework repo (templates/script/ present)
 # Catches: stale pointer, matrix gap, or token budget violation
