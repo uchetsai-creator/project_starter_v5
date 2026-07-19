@@ -2729,6 +2729,169 @@ Remaining architectural concerns that are lower urgency but affect testability, 
 
 ---
 
+## Phase 76 — Fix Incorrect Test Assertion (llm-app context keyword)
+
+**Discovered in post-Phase-75 full-project audit. Priority: highest — correctness bug.**
+
+A test assertion passes vacuously: the `"eval-run"` keyword appears in the `AI_CONTEXT.md` header line (`# AI Context — llm-app / eval-run`) rather than in a real document path, so the check never validates that the context builder correctly includes llm-app–specific documents.
+
+### Fix
+
+| File | Line | Problem | Fix |
+|---|---|---|---|
+| `tests/e2e/test_all_types_orchestrator.py` | 29 | `_CONTEXT_KEYWORD_FOR["llm-app"] = "eval-run"` passes because the task type appears in the file header, not because a relevant doc is listed | Change to `"llm-contract"` — a real document path that appears in the `## Read (Required)` section for llm-app |
+
+**Verification:** `pytest tests/e2e/test_all_types_orchestrator.py -v` exits 0; assertion now validates an actual document listing.
+
+---
+
+## Phase 77 — Dead Imports, Unused Dependency, and IaC Adapter Duplicate
+
+**Discovered in post-Phase-75 full-project audit. Priority: high — dead code increases noise and risks import errors after refactors.**
+
+### Unused imports in validator scripts
+
+| File | Import | Status |
+|---|---|---|
+| `templates/script/validators/verify_content.py` | `import pathlib` | Never referenced in file body |
+| `templates/script/validators/verify_content.py` | `from datetime import datetime, timezone` | Delegated to `_verify_common._telemetry_ts()`; unused here |
+| `templates/script/validators/verify_docs.py` | `import pathlib` | Never referenced in file body |
+| `templates/script/validators/verify_docs.py` | `from datetime import datetime, timezone` | Same delegation; unused here |
+
+### Unused imports in capability adapters
+
+| File | Import | Status |
+|---|---|---|
+| `templates/script/validators/_spec_code_adapters/_capability_library.py` | `NormalizedField` from `_base` | Used only inside `_parse_params_table()` which lives in `_utils`; never directly constructed here |
+| `templates/script/validators/_spec_code_adapters/_capability_llm.py` | `NormalizedField` from `_base` | Same — only passed through `_utils` |
+| `templates/script/validators/_spec_code_adapters/_capability_web_api.py` | `_HTTP_METHODS` from `_utils` | Imported but never referenced in this file |
+
+### Unused loop variable
+
+| File | Line | Problem | Fix |
+|---|---|---|---|
+| `templates/script/validators/_spec_code_adapters/_capability_library.py` | 130 | `for detector_key, (module_name, class_name) in ...` — `detector_key` is never used in the loop body | Rename to `_` |
+
+### Duplicate function in IaC adapter
+
+| File | Problem | Fix |
+|---|---|---|
+| `templates/script/validators/_spec_code_adapters/_capability_iac.py:34–53` | `_parse_config_table()` is defined locally; byte-for-byte identical to `_utils.py:94–113` | Delete local definition; add `from _utils import _parse_config_table` |
+
+### Dead dependency
+
+| File | Item | Fix |
+|---|---|---|
+| `pyproject.toml` | `syrupy` in dev dependencies | Remove — never imported anywhere in the test suite; the project uses its own `assert_snapshot` helper |
+
+**Verification:** `pytest tests/ -v` exits 0; `ruff check` (or `flake8`) reports no unused-import warnings in the changed files.
+
+---
+
+## Phase 78 — Encoding Consistency in Orchestration Scripts
+
+**Discovered in post-Phase-75 full-project audit. Priority: high — locale-dependent behaviour on non-UTF-8 systems (Windows, some Linux locales).**
+
+All validator scripts and adapter code already specify `encoding='utf-8'` on every file operation. The three orchestration scripts are the outliers.
+
+### Missing `encoding=` calls
+
+| File | Locations | Fix |
+|---|---|---|
+| `orchestrator.py` | 9 call sites: `path.open()`, `read_text()`, `write_text()` throughout | Add `encoding='utf-8'` to every call |
+| `build-context.py` | `path.open()` line 31; `out_path.write_text()` line 181 | Add `encoding='utf-8'` |
+| `_workflow_utils.py` | `path.read_text()` line 28 | Add `encoding='utf-8'` |
+
+**Verification:** `grep -n "open\|read_text\|write_text" orchestrator.py build-context.py _workflow_utils.py` shows `encoding=` on every call; `pytest tests/ -v` exits 0.
+
+---
+
+## Phase 79 — Eliminate `_load_yaml` Duplication and `_read_task_name` Overlap
+
+**Discovered in post-Phase-75 full-project audit. Priority: medium — duplicate logic is a maintenance hazard.**
+
+### `_load_yaml` duplicated across two scripts
+
+`orchestrator.py` (line 36–38) and `build-context.py` (line 30–32) each define an identical 3-line `_load_yaml(path)` function. Both already import from `_workflow_utils.py`.
+
+| Fix |
+|---|
+| Move `_load_yaml()` into `_workflow_utils.py`; remove the local definitions from both scripts; update imports |
+
+### `_read_task_name` overlaps with `_workflow_utils` logic
+
+`orchestrator.py:121–127` defines `_read_task_name()`, which reads `current-state.md` and extracts `**Task:**`. `_workflow_utils._read_task_type_from_current_state()` reads the same file to extract `**Task Type:**`. The file-read pattern is copy-pasted; only the regex target differs.
+
+| Fix |
+|---|
+| Add a second regex to `_workflow_utils._read_task_type_from_current_state()` (or add a sibling `_read_task_name_from_current_state()`); remove the duplicate in `orchestrator.py` |
+
+**Verification:** `pytest tests/ -v` exits 0; `orchestrator.py` and `build-context.py` no longer define `_load_yaml`.
+
+---
+
+## Phase 80 — Capability Adapter Pattern Normalization
+
+**Discovered in post-Phase-75 full-project audit. Priority: medium — non-idiomatic code; inconsistency across seven peer files.**
+
+### `import importlib` inside loop body
+
+All 6 capability adapters (`_capability_pipeline`, `_capability_web_api`, `_capability_cli`, `_capability_library`, `_capability_llm`, `_capability_iac`, `_capability_mobile`) import `importlib` inside a `try` block within a `for` loop. Python caches module imports so there is no runtime cost, but the pattern is non-idiomatic and misleading.
+
+| Fix |
+|---|
+| Move `import importlib` to the top-level import section of each file |
+
+### `json.loads(f.read())` → `json.load(f)`
+
+| File | Lines | Fix |
+|---|---|---|
+| `adapters/claude/telemetry_writer.py` | 33, 49 | Replace `json.loads(f.read())` with `json.load(f)` in both `_read_orchestrator_runs` and `_read_existing_rows` |
+
+### File-discovery inconsistency across capability adapters
+
+Four adapters (`pipeline`, `cli`, `library`, `llm`) build the full `files` list before selecting active detectors — they always walk all `.py` files regardless of which detectors are active. Three adapters (`web_api`, `iac`, `mobile`) compute `needed_exts` from active detectors first, then filter file discovery. The second pattern is more efficient and is the correct model.
+
+| Fix |
+|---|
+| Refactor `_capability_pipeline`, `_capability_cli`, `_capability_library`, `_capability_llm` to compute needed extensions from active detectors before file discovery, matching the `iac`/`mobile`/`web_api` pattern |
+
+### Cosmetic: excessive blank lines
+
+`orchestrator.py` and `build-context.py` contain multiple runs of 3–4 consecutive blank lines between functions. PEP 8 specifies two.
+
+| Fix |
+|---|
+| Reduce to exactly two blank lines between top-level definitions in both files |
+
+**Verification:** `pytest tests/ -v` exits 0; no functional change — only import order and file-discovery logic adjusted.
+
+---
+
+## Phase 81 — Architecture Simplification: `verify_docs` Lazy-Init and Shared Adapter Dispatcher
+
+**Discovered in post-Phase-75 full-project audit. Priority: low — design improvement; current code is correct but carries unnecessary complexity.**
+
+### Revert `verify_docs.py` lazy-init to direct call
+
+Phase 75 introduced a `_init()` lazy-init pattern with five module-level `None` globals to avoid import-time side effects. However, `load_registry()` in `_registry.py` already caches its result internally — calling it at module level is safe and simpler. The `_init()` function adds stateful globals and a guard check with no benefit.
+
+| Fix |
+|---|
+| Remove `_init()` and the five `None` globals; restore the direct `_reg = load_registry()` etc. calls at module level; remove `_init()` calls from `effective_status()` and `run_audit()` |
+
+### Shared `_dispatch_detectors()` in `FrameworkAdapter`
+
+All 7 capability adapters implement an `extract_code()` body that is structurally identical: select active detectors, discover files, import and instantiate each detector class, collect results. The only variation is the file extensions and the detector dictionary.
+
+| Fix |
+|---|
+| Add a `_dispatch_detectors(detectors, files)` protected method to `FrameworkAdapter` in `_base.py`; each capability adapter calls `self._dispatch_detectors(active_detectors, all_files)` instead of repeating the import/instantiate/extend loop |
+
+**Verification:** `pytest tests/ -v` exits 0; `_base.py` exports the new method; all 7 adapters' `extract_code()` bodies are simplified.
+
+---
+
 ## Phase future — Detector Auto-Discovery
 
 **Not scheduled. Record of design intent.**
