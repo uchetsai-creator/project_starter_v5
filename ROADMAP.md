@@ -2656,7 +2656,7 @@ Two scripts bypass `argparse`, have no `--help`, and `schema_to_html.py` is the 
 
 ---
 
-## Phase 74 — Test Coverage Expansion
+## Phase 74 — Test Coverage Expansion ✅ Complete
 
 **Discovered in post-Phase-65 full-project audit.**
 
@@ -2693,7 +2693,7 @@ Coverage gaps identified across all four test layers.
 
 ---
 
-## Phase 75 — Architecture: Import-Time Side Effects + Config-Driven Values
+## Phase 75 — Architecture: Import-Time Side Effects + Config-Driven Values ✅ Complete
 
 **Discovered in post-Phase-65 full-project audit.**
 

@@ -1,5 +1,5 @@
-import contextlib
 import re
+import shutil
 from pathlib import Path
 
 import pytest
@@ -8,6 +8,9 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 SNAPSHOTS_DIR = REPO_ROOT / "tests" / "snapshots"
 
 _TIMESTAMP_RE = re.compile(r"Generated: \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}")
+
+_ORCHESTRATOR_FILES = ["orchestrator.py", "_workflow_utils.py", "workflow-registry.yaml"]
+_BUILD_CONTEXT_FILES = ["build-context.py", "_workflow_utils.py", "document-registry.yaml"]
 
 
 def pytest_addoption(parser):
@@ -43,16 +46,22 @@ def assert_snapshot(name: str, actual: str, update: bool) -> None:
     )
 
 
-@contextlib.contextmanager
-def patched_project_type(project_type: str):
-    """Temporarily set project_type in .project-starter.yml for subprocess tests."""
-    yml_path = REPO_ROOT / ".project-starter.yml"
-    original = yml_path.read_text(encoding="utf-8")
-    yml_path.write_text(
+def setup_snapshot_project(
+    tmp_path: Path,
+    project_type: str,
+    extra_files: list[str] | None = None,
+) -> Path:
+    """Copy framework scripts into tmp_path and write .project-starter.yml.
+
+    Each test gets its own isolated directory so parallel workers (pytest -n auto)
+    never clobber each other's .project-starter.yml.
+    """
+    for name in dict.fromkeys(_ORCHESTRATOR_FILES + (extra_files or [])):
+        src = REPO_ROOT / name
+        if src.exists():
+            shutil.copy2(src, tmp_path / name)
+    (tmp_path / ".project-starter.yml").write_text(
         f"project_type: {project_type}\ntask_type:\ndocs_path: docs/\n",
         encoding="utf-8",
     )
-    try:
-        yield
-    finally:
-        yml_path.write_text(original, encoding="utf-8")
+    return tmp_path

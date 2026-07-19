@@ -4,13 +4,11 @@ import sys
 import pytest
 
 from tests.snapshot.conftest import (
-    REPO_ROOT,
+    _BUILD_CONTEXT_FILES,
     assert_snapshot,
     normalize,
-    patched_project_type,
+    setup_snapshot_project,
 )
-
-_BUILD_CONTEXT = REPO_ROOT / "build-context.py"
 
 COMBOS = [
     ("web-app", "feature"),
@@ -20,18 +18,14 @@ COMBOS = [
 
 
 @pytest.mark.parametrize("project_type,task_type", COMBOS, ids=[f"{p}__{t}" for p, t in COMBOS])
-def test_build_context_snapshot(project_type, task_type, snapshot_update):
-    with patched_project_type(project_type):
-        result = subprocess.run(
-            [
-                sys.executable, str(_BUILD_CONTEXT),
-                "--dry-run",
-                "--task-type", task_type,
-            ],
-            capture_output=True,
-            text=True,
-            cwd=str(REPO_ROOT),
-        )
+def test_build_context_snapshot(project_type, task_type, snapshot_update, tmp_path):
+    proj = setup_snapshot_project(tmp_path, project_type, extra_files=_BUILD_CONTEXT_FILES)
+    result = subprocess.run(
+        [sys.executable, "build-context.py", "--dry-run", "--task-type", task_type],
+        capture_output=True,
+        text=True,
+        cwd=str(proj),
+    )
     assert result.returncode == 0, f"build-context.py failed:\n{result.stderr}"
     assert_snapshot(
         f"build_context__{project_type}__{task_type}.md",

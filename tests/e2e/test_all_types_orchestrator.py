@@ -18,6 +18,19 @@ _TASK_TYPE_FOR = {
     "mobile-app": "feature",
 }
 
+# Keyword expected in AI_CONTEXT.md after build-context runs for each project type
+_CONTEXT_KEYWORD_FOR = {
+    "web-app": "api-contract",
+    "cli-tool": "cli-contract",
+    "library": "public-api",
+    "data-pipeline": "pipeline-contract",
+    "ml-pipeline": "pipeline-contract",
+    "microservices": "service-catalog",
+    "llm-app": "eval-run",
+    "iac": "runbook",
+    "mobile-app": "mobile-contract",
+}
+
 
 @pytest.mark.parametrize("project_type", VALID_TYPES)
 def test_e2e_all_types_orchestrator_dry_run(tmp_path, project_type):
@@ -35,4 +48,17 @@ def test_e2e_all_types_orchestrator_dry_run(tmp_path, project_type):
     )
     assert "verify_docs.py" in result.stdout, (
         f"verify_docs.py not in orchestrator output for {project_type}"
+    )
+
+    subprocess.run(
+        [sys.executable, "build-context.py", "--task-type", task_type],
+        cwd=str(tmp_path),
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    context = (tmp_path / ".ai/AI_CONTEXT.md").read_text(encoding="utf-8")
+    keyword = _CONTEXT_KEYWORD_FOR[project_type]
+    assert keyword in context, (
+        f"'{keyword}' not found in AI_CONTEXT.md for {project_type}"
     )

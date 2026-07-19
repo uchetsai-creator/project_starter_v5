@@ -26,19 +26,19 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-# Haiku: lowest cost for single-label classification
-_SEMANTIC_MODEL = 'claude-haiku-4-5-20251001'
+# Read model from env var; fall back to Haiku for lowest-cost classification
+_SEMANTIC_MODEL = os.environ.get('SPEC_CODE_MODEL', 'claude-haiku-4-5-20251001')
 
 
 class SemanticAdapter:
-    """Deprecated: use the corresponding capability adapter in _capability_*.py. This shim exists for backward compatibility with --adapter <name> CLI usage. Do not extend.
+    """Experimental — requires Anthropic API key (set ANTHROPIC_API_KEY).
 
-    Wraps any FrameworkAdapter and adds an LLM-assisted comparison pass.
+    Wraps any FrameworkAdapter and adds an LLM-assisted comparison pass for
+    ambiguous field-name pairs that the structural adapter cannot resolve.
 
     extract_spec() and extract_code() delegate to the wrapped adapter unchanged.
-    semantic_compare() takes a structural diff report and escalates ambiguous
-    field-name pairs (removed_from_code paired with added_in_code for the same
-    item) to Claude, returning { verdict, reasoning } per pair.
+    semantic_compare() escalates ambiguous removed/added field pairs to Claude,
+    returning { verdict, reasoning } per pair.
 
     Verdict values:
         likely_same — different name, same concept; flag as WARNING

@@ -7,7 +7,15 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 _ADAPTERS_DIR = _REPO_ROOT / "templates/script/validators/_spec_code_adapters"
 sys.path.insert(0, str(_ADAPTERS_DIR))
 
-from _base import NormalizedEndpoint, NormalizedStageContract
+from _base import (
+    NormalizedCommand,
+    NormalizedEndpoint,
+    NormalizedFunction,
+    NormalizedResource,
+    NormalizedScreen,
+    NormalizedStageContract,
+    NormalizedTool,
+)
 from _capability_cli import CLIAdapter
 from _capability_iac import IaCAdapter
 from _capability_library import LibraryAdapter
@@ -79,6 +87,80 @@ def fixture_api_spec(tmp_path):
     return str(spec)
 
 
+@pytest.fixture
+def fixture_cli_spec(tmp_path):
+    spec = tmp_path / "cli-contract.md"
+    spec.write_text(
+        "### `mytool build`\n"
+        "#### Flags\n"
+        "| Flag | Short | Type | Default | Description |\n"
+        "| --- | --- | --- | --- | --- |\n"
+        "| `--output` | `-o` | string | stdout | Output path |\n",
+        encoding="utf-8",
+    )
+    return str(spec)
+
+
+@pytest.fixture
+def fixture_library_spec(tmp_path):
+    spec = tmp_path / "public-api.md"
+    spec.write_text(
+        "### create_client\n"
+        "#### Parameters\n"
+        "| Name | Type | Description |\n"
+        "|---|---|---|\n"
+        "| api_key | str | API key |\n"
+        "#### Returns\n"
+        "| Type | Description |\n"
+        "|---|---|\n"
+        "| Client | Authenticated client |\n",
+        encoding="utf-8",
+    )
+    return str(spec)
+
+
+@pytest.fixture
+def fixture_llm_spec(tmp_path):
+    spec = tmp_path / "llm-contract.md"
+    spec.write_text(
+        "### get_weather\n"
+        "#### Parameters\n"
+        "| Name | Type | Required | Description |\n"
+        "|---|---|---|---|\n"
+        "| location | string | Yes | City name |\n",
+        encoding="utf-8",
+    )
+    return str(spec)
+
+
+@pytest.fixture
+def fixture_iac_spec(tmp_path):
+    spec = tmp_path / "topology.md"
+    spec.write_text(
+        "### web_server (aws_instance)\n"
+        "#### Configuration\n"
+        "| Key | Value | Description |\n"
+        "|---|---|---|\n"
+        "| instance_type | t3.micro | EC2 instance type |\n",
+        encoding="utf-8",
+    )
+    return str(spec)
+
+
+@pytest.fixture
+def fixture_mobile_spec(tmp_path):
+    spec = tmp_path / "mobile-contract.md"
+    spec.write_text(
+        "### HomeScreen\n"
+        "#### Props\n"
+        "| Name | Type | Required | Description |\n"
+        "|---|---|---|---|\n"
+        "| userId | string | Yes | Current user ID |\n",
+        encoding="utf-8",
+    )
+    return str(spec)
+
+
 def test_pipeline_adapter_returns_stage_contracts(fixture_pipeline_spec):
     results = DataPipelineAdapter().extract_spec(fixture_pipeline_spec)
     assert len(results) > 0, "DataPipelineAdapter parsed no stages from fixture"
@@ -89,3 +171,33 @@ def test_web_api_adapter_returns_endpoints(fixture_api_spec):
     results = WebAPIAdapter().extract_spec(fixture_api_spec)
     assert len(results) > 0, "WebAPIAdapter parsed no endpoints from fixture"
     assert all(isinstance(r, NormalizedEndpoint) for r in results)
+
+
+def test_cli_adapter_returns_commands(fixture_cli_spec):
+    results = CLIAdapter().extract_spec(fixture_cli_spec)
+    assert len(results) > 0, "CLIAdapter parsed no commands from fixture"
+    assert all(isinstance(r, NormalizedCommand) for r in results)
+
+
+def test_library_adapter_returns_functions(fixture_library_spec):
+    results = LibraryAdapter().extract_spec(fixture_library_spec)
+    assert len(results) > 0, "LibraryAdapter parsed no functions from fixture"
+    assert all(isinstance(r, NormalizedFunction) for r in results)
+
+
+def test_llm_adapter_returns_tools(fixture_llm_spec):
+    results = LLMAdapter().extract_spec(fixture_llm_spec)
+    assert len(results) > 0, "LLMAdapter parsed no tools from fixture"
+    assert all(isinstance(r, NormalizedTool) for r in results)
+
+
+def test_iac_adapter_returns_resources(fixture_iac_spec):
+    results = IaCAdapter().extract_spec(fixture_iac_spec)
+    assert len(results) > 0, "IaCAdapter parsed no resources from fixture"
+    assert all(isinstance(r, NormalizedResource) for r in results)
+
+
+def test_mobile_adapter_returns_screens(fixture_mobile_spec):
+    results = MobileAdapter().extract_spec(fixture_mobile_spec)
+    assert len(results) > 0, "MobileAdapter parsed no screens from fixture"
+    assert all(isinstance(r, NormalizedScreen) for r in results)

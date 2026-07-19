@@ -141,16 +141,12 @@ class MobileAdapter(FrameworkAdapter):
         )
 
         results: list[NormalizedScreen] = []
-        seen: set[str] = set()
         for _, (module_name, class_name, _exts) in active_detectors.items():
             try:
                 import importlib
                 mod = importlib.import_module(module_name)
                 cls = getattr(mod, class_name)
-                for screen in cls().extract(all_files):
-                    if screen.name not in seen:
-                        seen.add(screen.name)
-                        results.append(screen)
+                results.extend(cls().extract(all_files))
             except Exception:  # noqa: BLE001
                 pass
 

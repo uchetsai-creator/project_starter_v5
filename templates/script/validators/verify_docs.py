@@ -24,11 +24,22 @@ from datetime import datetime, timezone
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _registry import load_registry, build_matrix, build_file_locations, build_replaces_for, VALID_TYPES
 
-_reg = load_registry()
-MATRIX = build_matrix(_reg)
-FILE_LOCATIONS = build_file_locations(_reg)
-REPLACES_FOR = build_replaces_for(_reg)
-TYPE_INDEX = {t: i for i, t in enumerate(VALID_TYPES)}
+_reg = None
+MATRIX = None
+FILE_LOCATIONS = None
+REPLACES_FOR = None
+TYPE_INDEX = None
+
+
+def _init() -> None:
+    global _reg, MATRIX, FILE_LOCATIONS, REPLACES_FOR, TYPE_INDEX
+    if _reg is not None:
+        return
+    _reg = load_registry()
+    MATRIX = build_matrix(_reg)
+    FILE_LOCATIONS = build_file_locations(_reg)
+    REPLACES_FOR = build_replaces_for(_reg)
+    TYPE_INDEX = {t: i for i, t in enumerate(VALID_TYPES)}
 
 SCANNED_DIRS = ('specs', 'architecture', 'business')
 
@@ -134,6 +145,7 @@ def scan_content(filepath, doc_name):
 
 def effective_status(doc_name, types):
     """Return R/O/N for the given doc across all declared types (union rule)."""
+    _init()
     if doc_name not in MATRIX:
         return None
     row = MATRIX[doc_name]
@@ -159,6 +171,7 @@ def collect_existing(docs_dir):
 
 
 def run_audit(types, docs_dir, check_content=False):
+    _init()
     existing = collect_existing(docs_dir)
     matrix_names = set(MATRIX.keys())
     results = []

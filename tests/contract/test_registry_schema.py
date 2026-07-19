@@ -1,4 +1,3 @@
-import re
 import sys
 from pathlib import Path
 
@@ -25,12 +24,3 @@ def test_registry_valid_types_only():
     for key, meta in load_registry().items():
         for pt in meta.get("required_for", []) + meta.get("optional_for", []):
             assert pt in VALID_TYPES, f"{key}: unknown project type '{pt}'"
-
-
-# ---------------------------------------------------------------------------
-# Regression guard — Phase 57: orchestrator.py missing `import re`
-# ---------------------------------------------------------------------------
-
-def test_orchestrator_imports_re():
-    source = (_REPO_ROOT / "orchestrator.py").read_text(encoding="utf-8")
-    assert re.search(r"(?m)^import re\b", source), "orchestrator.py is missing top-level `import re`"

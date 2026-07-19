@@ -31,7 +31,8 @@ def _read_orchestrator_runs(orch_state_file: str, task_name: str) -> int:
     if not os.path.exists(orch_state_file):
         return 0
     try:
-        state = json.loads(open(orch_state_file).read())
+        with open(orch_state_file, encoding="utf-8") as f:
+            state = json.loads(f.read())
         if state.get("task") == task_name:
             return state.get("runs", 0)
     except Exception as e:
@@ -43,7 +44,8 @@ def _read_existing_rows(task_run_file: str) -> list:
     if not os.path.exists(task_run_file):
         return []
     try:
-        rows = json.loads(open(task_run_file).read())
+        with open(task_run_file, encoding="utf-8") as f:
+            rows = json.loads(f.read())
         if isinstance(rows, list):
             return rows
     except Exception as e:
@@ -69,7 +71,7 @@ def main():
         "orchestrator_runs": orchestrator_runs,
     })
 
-    with open(output, "w") as f:
+    with open(output, "w", encoding="utf-8") as f:
         json.dump(rows, f, indent=2)
 
 
