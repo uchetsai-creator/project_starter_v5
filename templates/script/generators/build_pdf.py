@@ -36,7 +36,8 @@ Usage:
                            spec — system specification only: Introduction, Design, Build, Deployment
                                   (omits Plan and Test chapters — suitable for stakeholder handoff)
 
-To add a file to the PDF: add it to PDF_ALLOWLIST below. Do not change the discovery logic.
+To add a file to the PDF: set pdf=true and pdf_chapter=<chapter> in document-registry.yaml.
+For non-registry scaffold files, add an entry to _STATIC_PDF_ENTRIES in this script.
 
 Requires: pip install markdown weasyprint cairosvg --break-system-packages
 """
@@ -58,10 +59,70 @@ except ImportError:
     print("Error: Pillow is required. Run: pip install Pillow --break-system-packages")
     sys.exit(1)
 
-# PDF_ALLOWLIST is maintained in pdf_allowlist.py — edit that file, not this one.
 _script_dir = os.path.dirname(os.path.abspath(__file__))
+_validators_dir = os.path.join(os.path.dirname(_script_dir), 'validators')
 sys.path.insert(0, _script_dir)
-from pdf_allowlist import PDF_ALLOWLIST, PDF_SECTION_FILTER, AUTO_SCAN_TYPES
+sys.path.insert(0, _validators_dir)
+from _registry import build_pdf_entries, load_registry
+
+# ── Project type sets ─────────────────────────────────────────────────────────
+_ALL9   = frozenset({"web-app", "cli-tool", "library", "data-pipeline",
+                     "ml-pipeline", "microservices", "llm-app", "iac", "mobile-app"})
+_ALL    = frozenset({"web-app", "cli-tool", "library", "data-pipeline",
+                     "ml-pipeline", "microservices", "llm-app"})
+_MOBILE = frozenset({"mobile-app"})
+
+# Non-registry scaffold files always included regardless of project type
+_STATIC_PDF_ENTRIES = [
+    ("introduction", "project-requirements.md",         _ALL9),
+    ("plan",         "project-plan.md",                 _ALL9),
+    ("plan",         "changelog.md",                    _ALL9),
+    ("build",        "modules/module-data-flow.md",     _ALL | _MOBILE),
+    ("build",        "modules/module-flow.md",          _ALL | _MOBILE),
+    ("build",        "codebase-map.md",                 _ALL9),
+]
+
+_CHAPTER_SORT = {"introduction": 0, "plan": 1, "design": 2, "build": 3, "test": 4, "deployment": 5}
+
+
+def _build_pdf_allowlist() -> list:
+    """Build PDF_ALLOWLIST from static scaffold entries + registry pdf=true entries."""
+    registry_entries = build_pdf_entries(load_registry())
+
+    by_chapter: dict[str, list] = {c: [] for c in _CHAPTER_SORT}
+    for entry in _STATIC_PDF_ENTRIES:
+        by_chapter[entry[0]].append(entry)
+    for entry in registry_entries:
+        by_chapter[entry[0]].append(entry)
+
+    result = []
+    for chapter in sorted(by_chapter, key=lambda c: _CHAPTER_SORT[c]):
+        result.extend(by_chapter[chapter])
+    return result
+
+
+PDF_ALLOWLIST = _build_pdf_allowlist()
+
+# ── Per-file section filter ───────────────────────────────────────────────────
+PDF_SECTION_FILTER = {
+    "modules/module-data-flow.md":  ["## Module Flow Files"],
+    "modules/module-flow.md":       ["## Flow Files"],
+    "business/business-objects.md": ["## Object Files", "## Relationships"],
+    "business/business-process.md": ["## Process Files"],
+    "business/business-rules.md":   ["## Approval Rules", "## Validation Rules",
+                                     "## Notification Rules", "## Audit Rules"],
+    "specs/prompt-library.md":      ["## Active Prompts"],
+}
+
+# ── Auto-scan patterns ────────────────────────────────────────────────────────
+AUTO_SCAN_TYPES = {
+    "modules/*/*-module-data-flow.md": _ALL | _MOBILE,
+    "modules/*/*-flow.md":             _ALL | _MOBILE,
+    "business/*-process.md":          frozenset({"web-app", "microservices", "cli-tool",
+                                                  "data-pipeline"}) | _MOBILE,
+    "business/*-object.md":           frozenset({"web-app", "microservices"}),
+    "specs/prompts/*-prompt.md":      frozenset({"llm-app"}),
+}
 
 # ── PlantUML configuration ────────────────────────────────────────────────────
 # Set PLANTUML_JAR to the path of your plantuml.jar file.

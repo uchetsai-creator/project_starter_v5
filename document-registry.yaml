@@ -1,7 +1,7 @@
 # document-registry.yaml — project_starter_v5
 # Single source of truth for all document metadata.
 # Replaces: verify_docs.py MATRIX + FILE_LOCATIONS, verify_content.py TYPE_DOCS + DOC_PATHS,
-#           and templates/init/document-matrix.md (which is now a human-readable view only).
+#           build_pdf.py PDF_ALLOWLIST, and templates/init/document-matrix.md.
 #
 # Schema per entry (see templates/schema/document-registry.schema.json):
 #   file:             filename (with .md)
@@ -15,6 +15,7 @@
 #   used_by:          which tools consume this document
 #   related:          closely related document keys (without .md)
 #   pdf:              true | false — include in generated PDF
+#   pdf_chapter:      introduction | plan | design | build | test | deployment | null
 #   audience:         internal | external — external = no task/sprint refs allowed
 #   required_sections: section headings verify_content.py must find filled
 #   update_trigger:   when to update this document
@@ -26,7 +27,7 @@
 
 documents:
 
-  # ── Architecture ─────────────────────────────────���───────────────────────────
+  # ── Architecture ──────────────────────────────────────────────────────────────
 
   architecture:
     file: architecture.md
@@ -40,6 +41,7 @@ documents:
     used_by: [context-builder, validator, pdf]
     related: [backend, database, deployment]
     pdf: true
+    pdf_chapter: design
     audience: external
     required_sections: []
     update_trigger: "system components or data-flow changes"
@@ -55,6 +57,7 @@ documents:
     used_by: [context-builder, validator, pdf]
     related: [architecture, database]
     pdf: true
+    pdf_chapter: design
     audience: external
     required_sections: [Stack]
     update_trigger: "stack or module structure changes"
@@ -69,6 +72,7 @@ documents:
     used_by: [context-builder, validator, pdf]
     related: [architecture, permissions]
     pdf: true
+    pdf_chapter: design
     audience: external
     required_sections: [Stack, "Page / Screen Structure"]
     update_trigger: "pages, components, or stack changes"
@@ -83,6 +87,7 @@ documents:
     used_by: [context-builder, validator, pdf]
     related: [data-model, backend]
     pdf: true
+    pdf_chapter: design
     audience: external
     required_sections: ["Database Engine", "Main Entities"]
     update_trigger: "schema or entity changes"
@@ -98,6 +103,7 @@ documents:
     used_by: [context-builder, validator, pdf]
     related: [architecture, quickstart]
     pdf: true
+    pdf_chapter: build
     audience: external
     required_sections: ["Environment Variables"]
     update_trigger: "service, environment variable, or deploy-flow changes"
@@ -112,6 +118,7 @@ documents:
     used_by: [context-builder, validator, pdf]
     related: [release-guide, compatibility-matrix]
     pdf: true
+    pdf_chapter: design
     audience: external
     required_sections: []
     update_trigger: "package name, registry, or publish process changes"
@@ -127,11 +134,12 @@ documents:
     used_by: [context-builder, validator, pdf]
     related: [runbook, drift-policy]
     pdf: true
+    pdf_chapter: design
     audience: external
     required_sections: []
     update_trigger: "infrastructure resource or environment-promotion changes"
 
-  # ── Specs ────────────────────────────────────────────────��───────────────────
+  # ── Specs ─────────────────────────────────────────────────────────────────────
 
   api-contract:
     file: api-contract.md
@@ -145,6 +153,7 @@ documents:
     used_by: [context-builder, validator, pdf]
     related: [permissions, data-model]
     pdf: true
+    pdf_chapter: design
     audience: internal
     required_sections: []
     update_trigger: "endpoint added, removed, or schema changed"
@@ -159,6 +168,7 @@ documents:
     used_by: [context-builder, validator, pdf]
     related: [quickstart, release-guide]
     pdf: true
+    pdf_chapter: design
     audience: internal
     required_sections: []
     update_trigger: "subcommand, flag, or output format changed"
@@ -173,6 +183,7 @@ documents:
     used_by: [context-builder, validator, pdf]
     related: [compatibility-matrix, release-guide]
     pdf: true
+    pdf_chapter: design
     audience: internal
     required_sections: []
     update_trigger: "public function, class, or type changed"
@@ -188,6 +199,7 @@ documents:
     used_by: [context-builder, validator, pdf]
     related: [pipeline-debug, data-model]
     pdf: true
+    pdf_chapter: design
     audience: external
     required_sections: []
     update_trigger: "stage input/output format or naming rule changed"
@@ -203,6 +215,7 @@ documents:
     used_by: [context-builder, validator, pdf]
     related: [pipeline-contract]
     pdf: false
+    pdf_chapter: null
     audience: internal
     required_sections: []
     update_trigger: "new failure mode discovered or root cause procedure updated"
@@ -218,6 +231,7 @@ documents:
     used_by: [context-builder, validator, pdf]
     related: [prompt-library, eval-spec, rag-contract]
     pdf: true
+    pdf_chapter: design
     audience: internal
     required_sections: ["System Prompt"]
     update_trigger: "model, system prompt, or parameter changed"
@@ -232,6 +246,7 @@ documents:
     used_by: [context-builder, validator, pdf]
     related: [llm-contract, eval-spec]
     pdf: true
+    pdf_chapter: design
     audience: internal
     required_sections: []
     update_trigger: "prompt added, retired, or file path changed"
@@ -247,6 +262,7 @@ documents:
     used_by: [context-builder, validator, pdf]
     related: [llm-contract, eval-log]
     pdf: true
+    pdf_chapter: build
     audience: internal
     required_sections: [Criteria]
     update_trigger: "evaluation criterion, metric, or threshold changed"
@@ -262,6 +278,7 @@ documents:
     used_by: [context-builder, validator, pdf]
     related: [eval-spec]
     pdf: true
+    pdf_chapter: test
     audience: internal
     required_sections: []
     update_trigger: "new evaluation run completed"
@@ -277,6 +294,7 @@ documents:
     used_by: [context-builder, validator, pdf]
     related: [llm-contract, eval-spec]
     pdf: false
+    pdf_chapter: null
     audience: internal
     required_sections: []
     update_trigger: "new failure mode or diagnostic procedure added"
@@ -291,6 +309,7 @@ documents:
     used_by: [context-builder, validator, pdf]
     related: [llm-contract]
     pdf: true
+    pdf_chapter: design
     audience: internal
     required_sections: []
     update_trigger: "retrieval source, chunking strategy, or embedding model changed"
@@ -305,6 +324,7 @@ documents:
     used_by: [context-builder, validator, pdf]
     related: [llm-contract]
     pdf: true
+    pdf_chapter: design
     audience: internal
     required_sections: []
     update_trigger: "MCP server tool schema or policy changed"
@@ -319,6 +339,7 @@ documents:
     used_by: [context-builder, validator, pdf]
     related: [service-contract, event-catalog]
     pdf: true
+    pdf_chapter: design
     audience: internal
     required_sections: []
     update_trigger: "service added, removed, or port/owner changed"
@@ -333,6 +354,7 @@ documents:
     used_by: [context-builder, validator, pdf]
     related: [service-catalog, event-catalog, api-contract]
     pdf: true
+    pdf_chapter: design
     audience: internal
     required_sections: []
     update_trigger: "inter-service endpoint or resilience policy changed"
@@ -347,6 +369,7 @@ documents:
     used_by: [context-builder, validator, pdf]
     related: [service-contract]
     pdf: false
+    pdf_chapter: null
     audience: internal
     required_sections: []
     update_trigger: "event type, schema, or retention policy changed"
@@ -361,6 +384,7 @@ documents:
     used_by: [context-builder, validator, pdf]
     related: [pipeline-contract, experiment-log]
     pdf: true
+    pdf_chapter: design
     audience: internal
     required_sections: [Input, "Output Format"]
     update_trigger: "input feature schema, output format, or threshold changed"
@@ -375,6 +399,7 @@ documents:
     used_by: [context-builder, validator, pdf]
     related: [model-contract, eval-spec]
     pdf: true
+    pdf_chapter: build
     audience: internal
     required_sections: []
     update_trigger: "new training run completed"
@@ -389,6 +414,7 @@ documents:
     used_by: [context-builder, validator, pdf]
     related: [distribution, compatibility-matrix]
     pdf: true
+    pdf_chapter: deployment
     audience: internal
     required_sections: [Versioning]
     update_trigger: "versioning policy or publish process changed"
@@ -403,6 +429,7 @@ documents:
     used_by: [context-builder, validator, pdf]
     related: [release-guide, distribution]
     pdf: true
+    pdf_chapter: deployment
     audience: internal
     required_sections: []
     update_trigger: "new runtime version tested or support status changed"
@@ -418,6 +445,7 @@ documents:
     used_by: [context-builder, validator, pdf]
     related: [api-contract, business-objects]
     pdf: true
+    pdf_chapter: design
     audience: internal
     required_sections: []
     update_trigger: "role added, removed, or permission matrix changed"
@@ -433,6 +461,7 @@ documents:
     used_by: [context-builder, validator, pdf]
     related: [database, pipeline-contract, business-objects]
     pdf: true
+    pdf_chapter: design
     audience: internal
     required_sections: []
     update_trigger: "entity, relationship, index, or state machine changed"
@@ -448,6 +477,7 @@ documents:
     used_by: [context-builder, validator, pdf]
     related: []
     pdf: true
+    pdf_chapter: deployment
     audience: internal
     required_sections: []
     update_trigger: "log format, required log points, or trace propagation changed"
@@ -462,6 +492,7 @@ documents:
     used_by: [context-builder, validator, pdf]
     related: []
     pdf: false
+    pdf_chapter: null
     audience: external
     required_sections: []
     update_trigger: "technology decision made or clarification resolved"
@@ -476,6 +507,7 @@ documents:
     used_by: [context-builder, validator, pdf]
     related: [deployment]
     pdf: true
+    pdf_chapter: deployment
     audience: external
     required_sections: [Prerequisites]
     update_trigger: "prerequisites, setup steps, or verification steps changed"
@@ -491,6 +523,7 @@ documents:
     used_by: [context-builder, validator, pdf]
     related: [topology, drift-policy]
     pdf: true
+    pdf_chapter: deployment
     audience: internal
     required_sections: []
     update_trigger: "health check command or rollback procedure changed"
@@ -506,6 +539,7 @@ documents:
     used_by: [context-builder, validator, pdf]
     related: [topology, runbook]
     pdf: true
+    pdf_chapter: deployment
     audience: internal
     required_sections: []
     update_trigger: "detection cadence, SLA, or exempt resources changed"
@@ -520,6 +554,7 @@ documents:
     used_by: [context-builder, validator, pdf]
     related: [frontend, distribution]
     pdf: true
+    pdf_chapter: design
     audience: internal
     required_sections: []
     update_trigger: "screen added, removed, or navigation structure changed"
@@ -534,6 +569,7 @@ documents:
     used_by: [context-builder, validator, pdf]
     related: [test-report]
     pdf: true
+    pdf_chapter: test
     audience: internal
     required_sections: ["Testing Strategy"]
     update_trigger: "testing strategy, tool, or CI gate changed"
@@ -548,6 +584,7 @@ documents:
     used_by: [context-builder, validator, pdf]
     related: [test-plan]
     pdf: true
+    pdf_chapter: test
     audience: internal
     required_sections: []
     update_trigger: "test run completed or coverage baseline changed"
@@ -562,6 +599,7 @@ documents:
     used_by: [context-builder, pdf]
     related: [dependencies]
     pdf: true
+    pdf_chapter: introduction
     audience: internal
     required_sections: []
     update_trigger: "domain term added or definition updated"
@@ -576,11 +614,12 @@ documents:
     used_by: [context-builder, pdf]
     related: [glossary]
     pdf: true
+    pdf_chapter: build
     audience: internal
     required_sections: []
     update_trigger: "third-party library added, removed, or version changed"
 
-  # ── Business ───────────────────────────────────���─────────────────────────────
+  # ── Business ──────────────────────────────────────────────────────────────────
 
   business-process:
     file: business-process.md
@@ -592,6 +631,7 @@ documents:
     used_by: [context-builder, validator, pdf]
     related: [business-objects, business-rules]
     pdf: true
+    pdf_chapter: introduction
     audience: internal
     required_sections: []
     update_trigger: "workflow step or decision point changed"
@@ -606,6 +646,7 @@ documents:
     used_by: [context-builder, validator, pdf]
     related: [business-process, data-model]
     pdf: true
+    pdf_chapter: introduction
     audience: internal
     required_sections: []
     update_trigger: "business entity added or relationship changed"
@@ -620,6 +661,7 @@ documents:
     used_by: [context-builder, validator, pdf]
     related: [business-process, permissions]
     pdf: true
+    pdf_chapter: introduction
     audience: external
     required_sections: []
     update_trigger: "business constraint or policy changed"

@@ -16,6 +16,11 @@ VALID_TYPES: list[str] = [
     'data-pipeline', 'ml-pipeline', 'microservices', 'llm-app', 'iac', 'mobile-app',
 ]
 
+CHAPTER_ORDER: dict[str, int] = {
+    'introduction': 0, 'plan': 1, 'design': 2,
+    'build': 3, 'test': 4, 'deployment': 5,
+}
+
 _REGISTRY: dict[str, Any] | None = None
 
 
@@ -83,6 +88,8 @@ def _parse_registry(text: str) -> dict[str, Any]:
                 documents[current_doc][key] = True
             elif val == 'false':
                 documents[current_doc][key] = False
+            elif val in ('null', '~'):
+                documents[current_doc][key] = None
             else:
                 documents[current_doc][key] = val
 
@@ -179,3 +186,31 @@ def build_replaces_for(registry: dict[str, Any]) -> dict[str, dict[str, str]]:
                 for t, repl in rf.items()
             }
     return result
+
+
+def build_required_sections(registry: dict[str, Any]) -> dict[str, list[str]]:
+    """Return {doc.md: [required_section_heading, ...]} from registry required_sections field."""
+    return {
+        (name if name.endswith('.md') else f'{name}.md'): meta.get('required_sections', [])
+        for name, meta in registry.items()
+    }
+
+
+def build_pdf_entries(registry: dict[str, Any]) -> list[tuple[str, str, frozenset]]:
+    """Return [(chapter, path, frozenset_of_types)] for entries with pdf=True.
+
+    Sorted by CHAPTER_ORDER; YAML insertion order is preserved within each chapter
+    (Python list.sort() is stable).
+    """
+    result: list[tuple[str, str, frozenset, int]] = []
+    for name, meta in registry.items():
+        if not meta.get('pdf', False):
+            continue
+        chapter = meta.get('pdf_chapter')
+        if not chapter:
+            continue
+        path = meta.get('path', '')
+        types: frozenset = frozenset(meta.get('required_for', []) + meta.get('optional_for', []))
+        result.append((chapter, path, types, CHAPTER_ORDER.get(chapter, 99)))
+    result.sort(key=lambda t: t[3])
+    return [(chapter, path, types) for chapter, path, types, _ in result]

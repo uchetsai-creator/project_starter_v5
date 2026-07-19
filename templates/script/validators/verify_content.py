@@ -34,13 +34,14 @@ from _verify_common import (
 )
 from _registry import (
     load_registry, VALID_TYPES,
-    build_type_docs, build_doc_paths, get_universal_docs,
+    build_type_docs, build_doc_paths, get_universal_docs, build_required_sections,
 )
 
 _reg = load_registry()
 TYPE_DOCS: dict[str, list[str]] = build_type_docs(_reg)
 DOC_PATHS: dict[str, str] = build_doc_paths(_reg)
 UNIVERSAL_DOCS: list[str] = get_universal_docs(_reg)
+REQUIRED_SECTIONS: dict[str, list[str]] = build_required_sections(_reg)
 
 
 # ---------------------------------------------------------------------------
@@ -846,6 +847,23 @@ def check_business_objects(lines: list[str]) -> list[str]:
 
 
 # ---------------------------------------------------------------------------
+# Registry-driven baseline section check
+# ---------------------------------------------------------------------------
+
+def _check_required_sections(doc_name: str, lines: list[str]) -> list[str]:
+    """Check that all required_sections headings from the registry exist in the document."""
+    sections = REQUIRED_SECTIONS.get(doc_name, [])
+    if not sections:
+        return []
+    text = '\n'.join(lines)
+    return [
+        f"Required section missing: '{heading}'"
+        for heading in sections
+        if not re.search(rf'^#+ *{re.escape(heading)}\b', text, re.MULTILINE)
+    ]
+
+
+# ---------------------------------------------------------------------------
 # Checker registry
 # ---------------------------------------------------------------------------
 
@@ -988,8 +1006,13 @@ def audit(
                         )
             quality: str | None = 'pass' if not issues else 'fail'
         else:
-            quality = 'unknown'
-            issues = []
+            baseline = _check_required_sections(doc_name, lines)
+            if baseline:
+                quality = 'fail'
+                issues = baseline
+            else:
+                quality = 'unknown'
+                issues = []
 
         doc_results.append({
             'name': doc_name,

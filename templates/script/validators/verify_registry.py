@@ -33,9 +33,13 @@ VALID_TYPES: frozenset[str] = frozenset([
 ])
 VALID_PRIORITIES: frozenset[str] = frozenset(['high', 'medium', 'low'])
 VALID_AUDIENCES: frozenset[str] = frozenset(['internal', 'external'])
+VALID_CHAPTERS: frozenset[str] = frozenset([
+    'introduction', 'plan', 'design', 'build', 'test', 'deployment',
+])
 
 REQUIRED_FIELDS: frozenset[str] = frozenset([
-    'file', 'path', 'context_priority', 'pdf', 'audience', 'required_sections', 'update_trigger',
+    'file', 'path', 'context_priority', 'pdf', 'pdf_chapter',
+    'audience', 'required_sections', 'update_trigger',
 ])
 KNOWN_FIELDS: frozenset[str] = REQUIRED_FIELDS | frozenset([
     'required_for', 'optional_for', 'replaces_for', 'task_types', 'purpose', 'used_by', 'related',
@@ -70,6 +74,19 @@ def _validate_entry(key: str, meta: dict) -> list[str]:
         errors.append(
             f"'pdf' must be a boolean true/false, got {type(meta['pdf']).__name__} ({meta['pdf']!r})"
         )
+
+    pdf_chapter = meta['pdf_chapter']
+    if meta['pdf'] is True:
+        if pdf_chapter not in VALID_CHAPTERS:
+            errors.append(
+                f"'pdf_chapter' must be introduction|plan|design|build|test|deployment "
+                f"when pdf=true (got {pdf_chapter!r})"
+            )
+    elif meta['pdf'] is False:
+        if pdf_chapter is not None:
+            errors.append(
+                f"'pdf_chapter' must be null when pdf=false (got {pdf_chapter!r})"
+            )
 
     if meta['audience'] not in VALID_AUDIENCES:
         errors.append(f"'audience' must be internal|external (got '{meta['audience']}')")

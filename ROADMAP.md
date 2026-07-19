@@ -2788,7 +2788,7 @@ A test assertion passes vacuously: the `"eval-run"` keyword appears in the `AI_C
 
 ---
 
-## Phase 78 — Encoding Consistency in Orchestration Scripts
+## Phase 78 — Encoding Consistency in Orchestration Scripts ✅ Complete
 
 **Discovered in post-Phase-75 full-project audit. Priority: high — locale-dependent behaviour on non-UTF-8 systems (Windows, some Linux locales).**
 
@@ -2806,7 +2806,7 @@ All validator scripts and adapter code already specify `encoding='utf-8'` on eve
 
 ---
 
-## Phase 79 — Registry Schema + Formal Validation
+## Phase 79 — Registry Schema + Formal Validation ✅ Complete
 
 **Proposed after post-Phase-75 audit and architecture review. Priority: critical — the registry is the shared dependency of `verify_docs`, `build-context`, and `orchestrator`, but has no schema; malformed entries (e.g. `webapp` instead of `web-app`) pass silently and corrupt downstream output.**
 
@@ -2859,7 +2859,7 @@ Make the registry a complete, validated DSL. Every tool reads the same schema; a
 
 ---
 
-## Phase 80 — Consumer Migration: Eliminate Parallel Lists
+## Phase 80 — Consumer Migration: Eliminate Parallel Lists ✅ Complete
 
 **Depends on Phase 79. Priority: critical — `verify_content.py` and `build_pdf.py` each maintain their own copies of data already in the registry; any registry change requires updating two places and one will always lag.**
 

@@ -46,6 +46,17 @@ def test_registry_all_entries_have_pdf_field():
         assert isinstance(meta["pdf"], bool), f"{key} 'pdf' must be boolean"
 
 
+def test_registry_all_entries_have_pdf_chapter_field():
+    for key, meta in load_registry().items():
+        assert "pdf_chapter" in meta, f"{key} missing 'pdf_chapter'"
+        if meta["pdf"]:
+            assert meta["pdf_chapter"] in ("introduction", "plan", "design", "build", "test", "deployment"), \
+                f"{key} 'pdf_chapter' must be a valid chapter when pdf=true"
+        else:
+            assert meta["pdf_chapter"] is None, \
+                f"{key} 'pdf_chapter' must be null when pdf=false"
+
+
 def test_registry_all_entries_have_audience_field():
     for key, meta in load_registry().items():
         assert "audience" in meta, f"{key} missing 'audience'"
@@ -78,6 +89,7 @@ def test_validate_entry_catches_bad_project_type():
         "path": "specs/test.md",
         "context_priority": "high",
         "pdf": True,
+        "pdf_chapter": "design",
         "audience": "internal",
         "required_sections": [],
         "update_trigger": "when things change",
@@ -92,7 +104,7 @@ def test_validate_entry_catches_missing_required_field():
         "file": "test.md",
         "path": "specs/test.md",
         "context_priority": "high",
-        # pdf missing
+        # pdf missing (also pdf_chapter missing — both caught as missing required fields)
         "audience": "internal",
         "required_sections": [],
         "update_trigger": "when things change",
@@ -107,6 +119,7 @@ def test_validate_entry_catches_bad_priority():
         "path": "specs/test.md",
         "context_priority": "critical",  # invalid
         "pdf": False,
+        "pdf_chapter": None,
         "audience": "internal",
         "required_sections": [],
         "update_trigger": "when things change",
@@ -121,6 +134,7 @@ def test_validate_entry_catches_bad_audience():
         "path": "specs/test.md",
         "context_priority": "low",
         "pdf": False,
+        "pdf_chapter": None,
         "audience": "public",  # invalid
         "required_sections": [],
         "update_trigger": "when things change",
@@ -135,6 +149,7 @@ def test_validate_entry_catches_pdf_not_boolean():
         "path": "specs/test.md",
         "context_priority": "low",
         "pdf": "yes",  # string instead of bool
+        "pdf_chapter": "design",
         "audience": "internal",
         "required_sections": [],
         "update_trigger": "when things change",
@@ -149,6 +164,7 @@ def test_validate_entry_catches_file_without_md():
         "path": "specs/test.md",
         "context_priority": "low",
         "pdf": False,
+        "pdf_chapter": None,
         "audience": "internal",
         "required_sections": [],
         "update_trigger": "when things change",
@@ -163,6 +179,7 @@ def test_validate_entry_catches_empty_update_trigger():
         "path": "specs/test.md",
         "context_priority": "low",
         "pdf": False,
+        "pdf_chapter": None,
         "audience": "internal",
         "required_sections": [],
         "update_trigger": "   ",  # whitespace only
@@ -182,9 +199,55 @@ def test_validate_entry_passes_valid_entry():
         "used_by": ["validator"],
         "related": ["other-doc"],
         "pdf": True,
+        "pdf_chapter": "design",
         "audience": "external",
         "required_sections": ["Overview", "Usage"],
         "update_trigger": "when the test changes",
+    }
+    errors = _validate_entry("test", meta)
+    assert not errors
+
+
+def test_validate_entry_catches_bad_pdf_chapter():
+    meta = {
+        "file": "test.md",
+        "path": "specs/test.md",
+        "context_priority": "low",
+        "pdf": True,
+        "pdf_chapter": "summary",  # invalid chapter name
+        "audience": "internal",
+        "required_sections": [],
+        "update_trigger": "when things change",
+    }
+    errors = _validate_entry("test", meta)
+    assert any("pdf_chapter" in e for e in errors)
+
+
+def test_validate_entry_catches_pdf_chapter_not_null_when_pdf_false():
+    meta = {
+        "file": "test.md",
+        "path": "specs/test.md",
+        "context_priority": "low",
+        "pdf": False,
+        "pdf_chapter": "design",  # must be null when pdf=false
+        "audience": "internal",
+        "required_sections": [],
+        "update_trigger": "when things change",
+    }
+    errors = _validate_entry("test", meta)
+    assert any("pdf_chapter" in e for e in errors)
+
+
+def test_validate_entry_passes_pdf_false_with_null_chapter():
+    meta = {
+        "file": "test.md",
+        "path": "specs/test.md",
+        "context_priority": "low",
+        "pdf": False,
+        "pdf_chapter": None,
+        "audience": "internal",
+        "required_sections": [],
+        "update_trigger": "when things change",
     }
     errors = _validate_entry("test", meta)
     assert not errors
