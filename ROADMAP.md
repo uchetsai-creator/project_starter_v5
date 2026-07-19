@@ -2069,35 +2069,78 @@ Phases 2 (workflow state extraction) and 3 (orchestrator + agent adapters) are d
 
 ---
 
-## Phase 60 — TASK_TYPE_DOCS Registry Alignment
+## Phase 60 — TASK_TYPE_DOCS → Registry Migration
 
 **Discovered in post-Phase-56 audit.**
 
-`build-context.py` contains a hardcoded `TASK_TYPE_DOCS` dict that maps task types to relevant document keys. This dict has two problems: the `bug-fix` entry is too narrow for non-pipeline projects, and the dict is maintained in parallel with `document-registry.yaml` without any cross-validation.
+### Problem
 
-### Problem 1 — `bug-fix` document list is pipeline/LLM-centric
+`build-context.py` contains a hardcoded `TASK_TYPE_DOCS` dict:
 
 ```python
-"bug-fix": ["pipeline-debug", "llm-debug", "logging-spec"],
+TASK_TYPE_DOCS: dict[str, list[str] | None] = {
+    "feature":        ["architecture", "backend", "data-model", "api-contract", ...],
+    "pipeline-stage": ["pipeline-contract", "pipeline-debug", "data-model", "logging-spec"],
+    "bug-fix":        ["pipeline-debug", "llm-debug", "logging-spec"],
+    ...
+}
 ```
 
-For a Web App bug fix, none of these three are the primary reference documents. A Web App bug fix needs `api-contract`, `data-model`, `permissions`. The current list silently produces an under-loaded context for the most common project type.
+This dict violates the core architectural principle established in Phase 37: `document-registry.yaml` is the single source of truth for all document metadata. `TASK_TYPE_DOCS` is a second mapping of task-type → document relevance, maintained in parallel with the registry, with no cross-validation. The same structural problem that Phase 37 solved for the `MATRIX` dict exists here unchanged.
 
-### Problem 2 — Parallel maintenance with `document-registry.yaml`
+The symptom (bug-fix list too narrow for Web App) is a consequence, not the root cause. Expanding the dict is a band-aid. The dict should not exist.
 
-`TASK_TYPE_DOCS` is a second source of task-type → document knowledge, independent of the registry. Adding a new document to `document-registry.yaml` does not automatically include it in `TASK_TYPE_DOCS`. Phase 37's registry design was intended to eliminate this kind of duplication, but `TASK_TYPE_DOCS` was not migrated.
+### Goal
+
+Eliminate `TASK_TYPE_DOCS` entirely. Move task-type relevance into `document-registry.yaml` as a `task_types` field per document entry. `build-context.py` reads this field from the registry — no second mapping.
+
+### Registry schema change
+
+Add optional `task_types` field to each document entry:
+
+```yaml
+# document-registry.yaml
+api-contract:
+  file: api-contract.md
+  path: specs/api-contract.md
+  required_for: [web-app, microservices]
+  optional_for: [llm-app, mobile-app]
+  context_priority: high
+  task_types: [feature, bug-fix]        # ← new field
+  purpose: "REST/GraphQL/WebSocket endpoint contracts, error codes, and validation rules"
+  ...
+
+pipeline-contract:
+  ...
+  task_types: [feature, pipeline-stage, bug-fix]
+
+pipeline-debug:
+  ...
+  task_types: [bug-fix, pipeline-stage]
+
+topology:
+  ...
+  task_types: [iac-change, bug-fix]
+```
+
+**Semantics:** when `task_type` is set, `build-context.py` includes a document in `if_present` only if the document's `task_types` list contains the current task type (in addition to the existing `required_for` / `optional_for` filter). Documents with no `task_types` field are always included for their applicable project types. `sprint-end` (task type = None) includes all documents as before.
 
 ### Changes
 
 | File | Change |
 |---|---|
-| `build-context.py` `TASK_TYPE_DOCS` | Expand `bug-fix` to include documents relevant across all project types: `["api-contract", "cli-contract", "pipeline-contract", "public-api", "pipeline-debug", "llm-debug", "logging-spec", "data-model", "topology"]`; add a comment: "When adding a document to document-registry.yaml, check whether it belongs in any task-type entry here" |
-| `build-context.py` docstring | Add note explaining that `TASK_TYPE_DOCS` is a curated filter — not auto-derived from the registry — and must be manually reviewed when new documents are added |
-| `templates/script/framework/verify_framework.py` | Add **Check 12** (`task-type-docs-registry-sync`): warn when a key in `TASK_TYPE_DOCS` references a document key that does not exist in `document-registry.yaml` |
+| `document-registry.yaml` | Add `task_types: [...]` field to every document entry that has task-type-specific relevance; leave field absent for universally-relevant documents |
+| `build-context.py` | Delete `TASK_TYPE_DOCS` dict and `VALID_TASK_TYPES` derived from it; update `_classify()` to read `task_types` from registry meta; update `PRIORITY_ORDER` and `build_context()` accordingly |
+| `build-context.py` `--task-type` flag | Derive valid values from registry `task_types` field union + `workflow-registry.yaml` keys, not from the deleted dict |
+| `templates/script/validators/_registry.py` | Parse and expose `task_types` field; add `VALID_TASK_TYPES` derived from registry (replaces the hardcoded list in `build-context.py`) |
+| `templates/script/framework/verify_framework.py` | Add **Check 12** (`task-types-field-sync`): validate that every value in any `task_types` list matches a key in `workflow-registry.yaml`; warn on unknown task type values |
+| `document-purposes-common.md` | Update `build-context.py` entry: note that task-type relevance is now defined in `document-registry.yaml → task_types`, not in the script |
+
+**Backward compatibility:** `build-context.py --task-type sprint-end` behaviour is unchanged (sprint-end still includes all documents). Projects that never set `task_type` are unaffected.
 
 **Token impact:** zero — AGENTS.md unchanged.
 
-**Verification:** `build-context.py --task-type bug-fix` for a web-app project outputs `api-contract.md` in Required list; Check 12 passes in `verify_framework.py --strict`.
+**Verification:** `build-context.py --task-type bug-fix --project-type web-app` outputs `api-contract.md` in the read list; `build-context.py --task-type pipeline-stage --project-type data-pipeline` outputs `pipeline-contract.md` and `pipeline-debug.md`; `grep -r "TASK_TYPE_DOCS" build-context.py` returns zero results; Check 12 passes in `verify_framework.py --strict`.
 
 ---
 
