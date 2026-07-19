@@ -1976,6 +1976,259 @@ A collection of minor code quality issues across multiple files, none individual
 
 ---
 
+## Phase 57 — Critical Runtime Bug Fixes
+
+**Discovered in post-Phase-56 audit.**
+
+Two bugs cause runtime errors or produce corrupt output on every normal use.
+
+### Bug 1 — `orchestrator.py` missing `import re`
+
+`_read_task_name()` calls `re.search()` but `re` is never imported. Every `orchestrator.py` run invokes `_track_orchestrator_run → _read_task_name`, so every run raises `NameError: name 're' is not defined`.
+
+### Bug 2 — `run-verify.sh` writes invalid JSON
+
+`.claude/settings.json` Stop hook calls `run-verify.sh`, which redirects four validators' stdout into a single `logs/verify-${STAMP}.json`. Only `verify_docs.py` is called with `--json`; the other three emit plain text. Even if all four emitted JSON, bare concatenation is not valid JSON. The file extension `.json` is misleading.
+
+### Changes
+
+| File | Change |
+|---|---|
+| `orchestrator.py` | Add `import re` to the import block |
+| `.githooks/run-verify.sh` | Wrap all four outputs in a JSON array: open with `[`, separate entries with `,`, close with `]`; pass `--json` flag to all validators that support it; rename fallback output for validators without `--json` to a labelled string field |
+
+**Verification:** run `python3 orchestrator.py --dry-run`; confirm no `NameError`. Run `bash .githooks/run-verify.sh`; confirm `logs/verify-*.json` parses as valid JSON.
+
+---
+
+## Phase 58 — Gitignore & Task Log Hygiene
+
+**Discovered in post-Phase-56 audit.**
+
+Two problems cause side-effects that accumulate silently: uncommitted log files and spurious rows in `task-log.md`.
+
+### Problem 1 — `logs/` not gitignored
+
+`run-verify.sh` writes to `logs/verify-${STAMP}.json` after every Claude session. The `logs/` directory is not in `.gitignore`. Projects that install the Stop hook accumulate log files that are neither committed nor cleaned up.
+
+### Problem 2 — `stop-hook.sh` pollutes `task-log.md` with session-end rows
+
+```bash
+printf "| %s | %s | session-end | — |\n" "$TIMESTAMP" "$TASK_NAME" >> "$TASK_LOG"
+```
+
+Every session boundary appends an incomplete row (status always `—`). `task-log.md` is designed to record completed-task verification results, not session boundaries. The telemetry row in `.ai/telemetry/task-run.json` already captures session boundaries — the `task-log.md` write is redundant and noisy.
+
+### Changes
+
+| File | Change |
+|---|---|
+| `.gitignore` | Add `logs/` |
+| `adapters/claude/stop-hook.sh` | Remove the `printf` line that writes to `task-log.md`; telemetry row in `.ai/telemetry/task-run.json` is sufficient for session-boundary tracking |
+| `README.md` | Update "Validation Telemetry" section: clarify that session boundaries are recorded in `.ai/telemetry/task-run.json` only, not in `task-log.md` |
+
+**Token impact:** zero — AGENTS.md unchanged.
+
+**Verification:** trigger a Stop hook; confirm `task-log.md` has no new `session-end` row; confirm `logs/` appears in `.gitignore`.
+
+---
+
+## Phase 59 — Stale Reference & Annotation Cleanup
+
+**Discovered in post-Phase-56 audit.**
+
+Three categories of stale content that `verify_framework.py` cannot catch because they live in user-facing shell scripts and prose documents.
+
+### Problem 1 — Stale "v4" reference in `.githooks/pre-commit` (Phase 54 miss)
+
+```bash
+# Trigger: running inside the project_starter_v4 framework repo (templates/script/ present)
+```
+
+Phase 54 swept all v4 references across documentation and Python files but missed this comment in the pre-commit hook.
+
+### Problem 2 — Phase development annotations in `.githooks/pre-commit`
+
+The hook contains 10+ internal Phase labels (`# Phase 20`, `# Phase 21 Check 2:`, `# Phase 45 + Phase 46:`, etc.) as comment annotations. These are development-era tracking notes that belong in ROADMAP.md, not in a user-facing file that gets copied to `.git/hooks/`. Users who run `cp .githooks/pre-commit .git/hooks/pre-commit` see implementation history instead of usage guidance.
+
+### Problem 3 — `docs/refactoring-plan.md` marks Phases 2–3 as "partially implemented"
+
+Phases 2 (workflow state extraction) and 3 (orchestrator + agent adapters) are described as partially implemented, but `orchestrator.py`, `workflow-registry.yaml`, `adapters/claude/`, `adapters/codex/`, and `adapters/cursor/` are all fully delivered. The document is stale.
+
+### Changes
+
+| File | Change |
+|---|---|
+| `.githooks/pre-commit` | Replace `project_starter_v4` → `project_starter_v5` in the Check 1 comment |
+| `.githooks/pre-commit` | Replace Phase-number annotations with purpose-describing comments (e.g. `# Trigger: AGENTS.md line-count drift` instead of `# Phase 21 Check 2`) |
+| `docs/refactoring-plan.md` | Mark Phases 2 and 3 ✅ Complete; update file list to reflect delivered state |
+
+**Token impact:** zero — AGENTS.md unchanged.
+
+**Verification:** `grep -n "v4\|Phase [0-9]" .githooks/pre-commit` returns zero matches; `docs/refactoring-plan.md` shows all three phases as ✅.
+
+---
+
+## Phase 60 — TASK_TYPE_DOCS Registry Alignment
+
+**Discovered in post-Phase-56 audit.**
+
+`build-context.py` contains a hardcoded `TASK_TYPE_DOCS` dict that maps task types to relevant document keys. This dict has two problems: the `bug-fix` entry is too narrow for non-pipeline projects, and the dict is maintained in parallel with `document-registry.yaml` without any cross-validation.
+
+### Problem 1 — `bug-fix` document list is pipeline/LLM-centric
+
+```python
+"bug-fix": ["pipeline-debug", "llm-debug", "logging-spec"],
+```
+
+For a Web App bug fix, none of these three are the primary reference documents. A Web App bug fix needs `api-contract`, `data-model`, `permissions`. The current list silently produces an under-loaded context for the most common project type.
+
+### Problem 2 — Parallel maintenance with `document-registry.yaml`
+
+`TASK_TYPE_DOCS` is a second source of task-type → document knowledge, independent of the registry. Adding a new document to `document-registry.yaml` does not automatically include it in `TASK_TYPE_DOCS`. Phase 37's registry design was intended to eliminate this kind of duplication, but `TASK_TYPE_DOCS` was not migrated.
+
+### Changes
+
+| File | Change |
+|---|---|
+| `build-context.py` `TASK_TYPE_DOCS` | Expand `bug-fix` to include documents relevant across all project types: `["api-contract", "cli-contract", "pipeline-contract", "public-api", "pipeline-debug", "llm-debug", "logging-spec", "data-model", "topology"]`; add a comment: "When adding a document to document-registry.yaml, check whether it belongs in any task-type entry here" |
+| `build-context.py` docstring | Add note explaining that `TASK_TYPE_DOCS` is a curated filter — not auto-derived from the registry — and must be manually reviewed when new documents are added |
+| `templates/script/framework/verify_framework.py` | Add **Check 12** (`task-type-docs-registry-sync`): warn when a key in `TASK_TYPE_DOCS` references a document key that does not exist in `document-registry.yaml` |
+
+**Token impact:** zero — AGENTS.md unchanged.
+
+**Verification:** `build-context.py --task-type bug-fix` for a web-app project outputs `api-contract.md` in Required list; Check 12 passes in `verify_framework.py --strict`.
+
+---
+
+## Phase 61 — Script Layout Consistency
+
+**Discovered in post-Phase-56 audit.**
+
+Two structural inconsistencies left over from Phase 40's reorganization.
+
+### Problem 1 — `schema_to_html.py` not moved to `generators/`
+
+Phase 40 reorganized `templates/script/` into four subdirectories (`validators/`, `generators/`, `scanners/`, `framework/`). `schema_to_html.py` was omitted from the move list. It sits at `templates/script/schema_to_html.py` while all other generator scripts are in `templates/script/generators/`.
+
+### Problem 2 — CLI Commands section in `templates/specs/api-contract.md`
+
+`api-contract.md` ends with a complete `## CLI Commands` section (command overview table, flags, exit codes, examples). CLI Tool projects have `cli-contract.md` for this purpose. The section in `api-contract.md` misleads teams into documenting CLI commands in the wrong file.
+
+### Changes
+
+| File | Change |
+|---|---|
+| `templates/script/schema_to_html.py` | Move to `templates/script/generators/schema_to_html.py` |
+| `README.md` file tree | Update `templates/script/schema_to_html.py` → `templates/script/generators/schema_to_html.py` |
+| `guidance/document-purposes-common.md` | Update `schema_to_html.py` path reference |
+| `templates/specs/api-contract.md` | Remove the `## CLI Commands` section; add a one-line note pointing to `cli-contract.md` for CLI Tool projects |
+| `templates/script/framework/verify_framework.py` | Confirm stale-pointer check covers the new `generators/` path; add `schema_to_html.py` to the list of shipped generator scripts |
+
+**Verification:** `python3 templates/script/framework/verify_framework.py --strict` passes; `schema_to_html.py` no longer appears at repo root of `templates/script/`; `api-contract.md` has no `## CLI Commands` heading.
+
+---
+
+## Phase 62 — Adapter Shim Deprecation Path
+
+**Discovered in post-Phase-56 audit.**
+
+Phase 52.5 introduced capability adapters (`_capability_*.py`) as the authoritative spec-parsing layer. For backward compatibility, each framework file (`airflow.py`, `fastapi.py`, etc.) retained a `*Adapter` shim class that also implements `extract_spec()`. Both the shim and the corresponding capability adapter parse the same spec format independently — a change to the spec table format must be applied in two places.
+
+**Goal:** Make the duplication visible, prevent new contributors from adding shims, and provide a migration path for removing shims in a future phase.
+
+### Changes
+
+| File | Change |
+|---|---|
+| Each `_spec_code_adapters/*.py` shim class | Add deprecation docstring: `"""Deprecated: use the corresponding capability adapter in _capability_*.py. This shim exists for backward compatibility with --adapter <name> CLI usage. Do not extend."""` |
+| `docs/contributing-adapters.md` | Add `## Shim Policy` section: new framework adapters must be added as detectors under an existing capability adapter — not as new top-level `*Adapter` shims; shims are legacy and will be removed in a future phase |
+| `templates/script/framework/verify_framework.py` | Add **Check 13** (`no-new-shims`): warn when a file in `_spec_code_adapters/` contains a class named `*Adapter` that is NOT listed in the known-legacy shim list |
+
+**Token impact:** zero — AGENTS.md unchanged.
+
+**Verification:** `verify_framework.py --strict` passes Check 13; `_example_adapter.py` is updated to not show a `*Adapter` shim class as part of the reference implementation.
+
+---
+
+## Phase 63 — Stop Hook Telemetry Extraction
+
+**Discovered in post-Phase-56 audit.**
+
+`adapters/claude/stop-hook.sh` embeds 40+ lines of Python inside a bash heredoc to handle telemetry JSON writing. The embedded Python is harder to test, debug, and maintain than a standalone script. Phase 56 already improved error handling; this phase completes the separation.
+
+### Changes
+
+| File | Change |
+|---|---|
+| `adapters/claude/telemetry_writer.py` (new) | Extract the embedded Python from `stop-hook.sh`; expose as `python3 telemetry_writer.py --task "$TASK_NAME" --adapter claude --orch-state "$ORCH_STATE_FILE"` |
+| `adapters/claude/stop-hook.sh` | Replace the heredoc Python block with a single `python3 "$(dirname "$0")/telemetry_writer.py" ...` call |
+| `README.md` | Add `adapters/claude/telemetry_writer.py` to the adapters file tree |
+| `guidance/document-purposes-common.md` | Add `telemetry_writer.py` entry under adapters section |
+
+**Token impact:** zero — AGENTS.md unchanged.
+
+**Verification:** trigger Stop hook; confirm `.ai/telemetry/task-run.json` is written correctly; run `python3 -m py_compile adapters/claude/telemetry_writer.py` — no errors.
+
+---
+
+## Phase 64 — Registry Replacement Documentation
+
+**Discovered in post-Phase-56 audit.**
+
+`document-registry.yaml` has no way to express "document A is not applicable for type X because document B serves the same purpose for that type." The current gap: `iac` is absent from `architecture`'s `required_for` and `optional_for` — the document is N/A for IaC because `topology.md` replaces it — but nothing in the registry encodes this relationship. A new contributor or AI reading the registry cannot tell why `iac` is excluded.
+
+### Changes
+
+| File | Change |
+|---|---|
+| `document-registry.yaml` schema comment | Add optional `replaces_for` field definition: maps `{type: [replacement-doc-key]}` — "for this project type, use the replacement document instead" |
+| `document-registry.yaml` `architecture` entry | Add `replaces_for: {iac: topology}` |
+| `document-registry.yaml` `deployment` entry | Add `replaces_for: {cli-tool: distribution, library: distribution, mobile-app: distribution}` |
+| `document-registry.yaml` `api-contract` entry | Add `replaces_for: {cli-tool: cli-contract, library: public-api, data-pipeline: pipeline-contract, ml-pipeline: pipeline-contract}` |
+| `templates/script/validators/_registry.py` | Parse and expose `replaces_for`; pass through to `verify_docs.py` output so agents see "use topology.md instead" when `architecture.md` is N/A for IaC |
+| `templates/script/validators/verify_docs.py` | For N/A documents that have a `replaces_for` entry, output `→ use [replacement]` alongside the `— N/A` status |
+
+**Token impact:** zero — AGENTS.md unchanged.
+
+**Verification:** `verify_docs.py --project-type iac` output for `architecture.md` shows `— N/A  → use topology.md`; `verify_framework.py --strict` passes.
+
+---
+
+## Phase 65 — Framework Test Suite
+
+**Discovered in post-Phase-56 audit.**
+
+The framework's core Python modules (`orchestrator.py`, `build-context.py`, `_registry.py`, validator scripts) have no unit tests. The only automated correctness checks are `verify_framework.py` (structural integrity) and `_example_adapter.py` (adapter self-test). As Phase count grows, regressions in core logic are caught only when a real project fails. 56 phases of accumulated logic with zero unit coverage is the highest long-term risk in the codebase.
+
+### Scope
+
+| Module | Key functions to test |
+|---|---|
+| `orchestrator.py` | `_build_workflow()`, `_render()`, task-type resolution |
+| `build-context.py` | `_classify()`, `build_context()`, `_render()` |
+| `_workflow_utils.py` | `_read_task_type_from_current_state()`, `_resolve_task_type()` |
+| `templates/script/validators/_registry.py` | `load_registry()`, `VALID_TYPES` derivation |
+| `templates/script/validators/verify_docs.py` | `audit()` with fixture docs dirs |
+| `templates/script/validators/verify_content.py` | Individual `check_*()` functions with fixture markdown |
+| `templates/script/framework/verify_framework.py` | Each of the 13 checks (after Phase 62) against fixture framework trees |
+
+### Changes
+
+| File | Change |
+|---|---|
+| `tests/` (new directory) | `test_orchestrator.py`, `test_build_context.py`, `test_workflow_utils.py`, `test_registry.py`, `test_verify_docs.py`, `test_verify_content.py`, `test_verify_framework.py` |
+| `tests/fixtures/` | Minimal fixture files: `.project-starter.yml`, `document-registry.yaml`, sample docs directories for each project type |
+| `templates/script/framework/verify_framework.py` | Add **Check 14** (`test-suite-exists`): warn if `tests/` directory is absent or contains zero `test_*.py` files |
+| `README.md` | Add "Running the test suite" section: `pip install pytest && pytest tests/` |
+| `.gitignore` | Add `.pytest_cache/` |
+
+**Token impact:** zero — AGENTS.md unchanged.
+
+**Verification:** `pytest tests/ -v` exits 0 with ≥ 50 passing test cases; `verify_framework.py --strict` Check 14 passes.
+
+---
+
 ## Phase future — Detector Auto-Discovery
 
 **Not scheduled. Record of design intent.**
