@@ -10,10 +10,13 @@ from tests.conftest import REPO_ROOT, setup_fixture
 _BUILD_PDF = REPO_ROOT / "templates/script/generators/build_pdf.py"
 _PLANTUML_JAR = Path.home() / "plantuml.jar"
 
-_plantuml_missing = not _PLANTUML_JAR.exists() and not any(
-    Path(p) / "plantuml.jar"
-    for p in ["/usr/local/bin", "/usr/bin", str(Path.home())]
-    if (Path(p) / "plantuml.jar").exists()
+_plantuml_missing = not any(
+    p.exists()
+    for p in [
+        _PLANTUML_JAR,
+        Path("/usr/local/bin/plantuml.jar"),
+        Path("/usr/bin/plantuml.jar"),
+    ]
 )
 
 

@@ -627,25 +627,28 @@ def build_html(tables, relations, title):
 
 def main():
     if len(sys.argv) < 2:
-        print("用法: python3 schema_to_html.py <schema.prisma 或 schema.sql> [-o output.html]")
+        print("usage: python3 schema_to_html.py <schema.prisma|schema.sql> [-o output.html]",
+              file=sys.stderr)
         sys.exit(1)
     input_path = sys.argv[1]
     output_path = sys.argv[3] if len(sys.argv) > 3 and sys.argv[2] == "-o" else None
     if not os.path.exists(input_path):
-        print(f"找不到檔案: {input_path}"); sys.exit(1)
+        print(f"error: file not found: {input_path}", file=sys.stderr)
+        sys.exit(1)
     with open(input_path, "r", encoding="utf-8") as f:
         content = f.read()
     ext = os.path.splitext(input_path)[1].lower()
     tables, relations = detect_and_parse(content, ext)
     if not tables:
-        print("找不到任何 table 定義"); sys.exit(1)
+        print("error: no table definitions found", file=sys.stderr)
+        sys.exit(1)
     title = os.path.splitext(os.path.basename(input_path))[0]
     html = build_html(tables, relations, title)
     if not output_path:
         output_path = os.path.splitext(input_path)[0] + ".html"
     with open(output_path, "w", encoding="utf-8") as f:
         f.write(html)
-    print(f"已產生: {output_path} ({len(tables)} tables, {len(relations)} relations)")
+    print(f"generated: {output_path} ({len(tables)} tables, {len(relations)} relations)")
 
     svg = build_svg(tables, relations, title)
     svg_path = os.path.splitext(output_path)[0] + ".svg"

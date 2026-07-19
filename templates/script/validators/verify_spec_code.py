@@ -450,6 +450,11 @@ def main() -> None:
         if semantic_verdicts:
             print_semantic_report(semantic_verdicts)
 
+    if args.strict and args.dry_run:
+        print(
+            "warning: --strict is ignored when --dry-run is active; exit code will always be 0",
+            file=sys.stderr,
+        )
     if args.strict and not args.dry_run and _has_mismatches(report):
         sys.exit(1)
 
