@@ -435,7 +435,7 @@ python3 build-context.py --dry-run                # preview without writing
 `.ai/AI_CONTEXT.md` is gitignored — not committed. Regenerate whenever the task changes.
 **Note:** `build-context.py` runs as part of pre-task setup, not the `.githooks/pre-commit` chain.
 
-Update when: new task type mappings are needed, or `TASK_TYPE_DOCS` entries change.
+Update when: new task type mappings are needed, or `task_types` entries in `document-registry.yaml` change.
 
 ### orchestrator.py
 **Applies to: All project types**

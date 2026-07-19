@@ -562,6 +562,52 @@ def check_content_coverage() -> list[dict]:
     return issues
 
 
+def check_task_types_field_sync() -> list[dict]:
+    """Check 12: Every value in any task_types field in document-registry.yaml
+    matches a key in workflow-registry.yaml (excluding 'default')."""
+    registry_path = FRAMEWORK_ROOT / "document-registry.yaml"
+    workflow_path = FRAMEWORK_ROOT / "workflow-registry.yaml"
+
+    if not registry_path.exists():
+        return [_issue("task-types-field-sync", "error", "document-registry.yaml not found")]
+    if not workflow_path.exists():
+        return [_issue("task-types-field-sync", "error", "workflow-registry.yaml not found")]
+
+    valid_task_types: set[str] = set()
+    for line in read_text(workflow_path).splitlines():
+        m = re.match(r'^  ([a-z][a-z-]+):$', line.rstrip())
+        if m and m.group(1) != "default":
+            valid_task_types.add(m.group(1))
+
+    registry_text = read_text(registry_path)
+    current_doc: str | None = None
+    issues = []
+    checked = 0
+
+    for raw_line in registry_text.splitlines():
+        line = raw_line.rstrip()
+        doc_m = re.match(r'^  ([a-z][a-z0-9-]+):$', line)
+        if doc_m:
+            current_doc = doc_m.group(1)
+            continue
+        if current_doc:
+            field_m = re.match(r'^    task_types:\s*\[(.*)\]', line)
+            if field_m:
+                values = [v.strip().strip("'\"") for v in field_m.group(1).split(',') if v.strip()]
+                for v in values:
+                    checked += 1
+                    if v not in valid_task_types:
+                        issues.append(_issue("task-types-field-sync", "warn",
+                                             f"Registry entry `{current_doc}`: task_types value `{v}` "
+                                             f"not in workflow-registry.yaml"))
+
+    if not issues:
+        return [_issue("task-types-field-sync", "pass",
+                       f"All {checked} task_types values in document-registry.yaml "
+                       f"match workflow-registry.yaml keys")]
+    return issues
+
+
 def check_registry_matrix_sync() -> list[dict]:
     """Check 11: Every entry in document-registry.yaml has a row in document-matrix.md,
     and every matrix row has a registry entry."""
@@ -626,6 +672,7 @@ CHECK_ORDER = [
     "build-pdf-type-sync",
     "content-coverage",
     "registry-matrix-sync",
+    "task-types-field-sync",
 ]
 
 CHECK_LABELS = {
@@ -640,6 +687,7 @@ CHECK_LABELS = {
     "build-pdf-type-sync":  "Build PDF type sync          (build_pdf.py VALID_PROJECT_TYPES)",
     "content-coverage":     "Content coverage             (verify_content.py completeness)",
     "registry-matrix-sync": "Registry ↔ matrix sync      (document-registry.yaml ↔ document-matrix.md)",
+    "task-types-field-sync": "Task-types field sync        (document-registry.yaml task_types ↔ workflow-registry.yaml)",
 }
 
 LEVEL_ICON = {"pass": "✅", "warn": "⚠️ ", "fail": "❌", "error": "❌"}
@@ -724,6 +772,7 @@ def main():
     all_issues += check_build_pdf_type_sync()
     all_issues += check_content_coverage()
     all_issues += check_registry_matrix_sync()
+    all_issues += check_task_types_field_sync()
 
     if args.json_output:
         print(json.dumps(

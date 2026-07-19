@@ -24,20 +24,17 @@ except ImportError:
     print("❌  PyYAML not found. Install with: pip install pyyaml", file=sys.stderr)
     sys.exit(1)
 
-# Task type → document keys that are relevant (used to filter Optional docs).
-# None means "all" (sprint-end includes everything).
-TASK_TYPE_DOCS: dict[str, list[str] | None] = {
-    "feature":        ["architecture", "backend", "data-model", "api-contract", "permissions", "logging-spec"],
-    "pipeline-stage": ["pipeline-contract", "pipeline-debug", "data-model", "logging-spec"],
-    "bug-fix":        ["pipeline-debug", "llm-debug", "logging-spec"],
-    "sprint-end":     None,
-    "eval-run":       ["eval-spec", "eval-log", "llm-contract"],
-    "iac-change":     ["topology", "runbook", "drift-policy"],
-}
-
 PRIORITY_ORDER = {"high": 0, "medium": 1, "low": 2}
 
-VALID_TASK_TYPES = list(TASK_TYPE_DOCS)
+
+def _load_valid_task_types(project_root: Path) -> list[str]:
+    """Derive valid task types from workflow-registry.yaml keys (excluding 'default')."""
+    wf_path = project_root / "workflow-registry.yaml"
+    if not wf_path.exists():
+        return []
+    with wf_path.open() as fh:
+        data = yaml.safe_load(fh) or {}
+    return [k for k in data.get("workflows", {}) if k != "default"]
 
 
 def _load_yaml(path: Path) -> dict:
@@ -62,10 +59,12 @@ def _classify(doc_key: str, meta: dict, project_type: str, task_type: str | None
     if is_optional:
         if task_type is None:
             return "if_present"
-        relevant = TASK_TYPE_DOCS.get(task_type)
-        if relevant is None:          # sprint-end: treat optional as required
+        if task_type == "sprint-end":
             return "required"
-        return "if_present" if doc_key in relevant else "skip"
+        doc_task_types = meta.get("task_types")
+        if doc_task_types is None:
+            return "if_present"
+        return "if_present" if task_type in doc_task_types else "skip"
 
     return "skip"
 
@@ -169,14 +168,17 @@ def _render(ctx: dict) -> str:
 
 
 def main() -> None:
+    project_root = Path(__file__).resolve().parent
+    valid_task_types = _load_valid_task_types(project_root)
+
     parser = argparse.ArgumentParser(
         description="Generate .ai/AI_CONTEXT.md for the current task."
     )
     parser.add_argument(
         "--task-type",
-        choices=VALID_TASK_TYPES,
+        choices=valid_task_types,
         metavar="TYPE",
-        help=f"Override task type ({', '.join(VALID_TASK_TYPES)})",
+        help=f"Override task type ({', '.join(valid_task_types)})",
     )
     parser.add_argument(
         "--dry-run",
@@ -185,7 +187,6 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    project_root = Path(__file__).resolve().parent
     ctx = build_context(project_root, args.task_type)
     output = _render(ctx)
 

@@ -143,3 +143,12 @@ def get_universal_docs(registry: dict[str, Any]) -> list[str]:
         if all_types <= set(meta.get('required_for', [])):
             result.append(name if name.endswith('.md') else f'{name}.md')
     return result
+
+
+def build_valid_task_types(registry: dict[str, Any]) -> list[str]:
+    """Return sorted list of all unique task_type values referenced in task_types fields."""
+    seen: set[str] = set()
+    for meta in registry.values():
+        for t in meta.get('task_types', []):
+            seen.add(t)
+    return sorted(seen)

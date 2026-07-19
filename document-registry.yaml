@@ -28,6 +28,7 @@ documents:
     required_for: [web-app, cli-tool, data-pipeline, ml-pipeline, microservices, llm-app, mobile-app]
     optional_for: [library]
     context_priority: medium
+    task_types: [feature]
     purpose: "Current system components and data-flow diagram"
     used_by: [context-builder, validator, pdf]
     related: [backend, database, deployment]
@@ -38,6 +39,7 @@ documents:
     required_for: [web-app, cli-tool, data-pipeline, ml-pipeline]
     optional_for: [microservices, llm-app, mobile-app]
     context_priority: medium
+    task_types: [feature]
     purpose: "Backend stack, layering, and module organisation"
     used_by: [context-builder, validator, pdf]
     related: [architecture, database]
@@ -88,6 +90,7 @@ documents:
     required_for: [iac]
     optional_for: []
     context_priority: medium
+    task_types: [iac-change, bug-fix]
     purpose: "Infrastructure resource topology and environment promotion path"
     used_by: [context-builder, validator, pdf]
     related: [runbook, drift-policy]
@@ -100,6 +103,7 @@ documents:
     required_for: [web-app, microservices]
     optional_for: [llm-app, mobile-app]
     context_priority: high
+    task_types: [feature, bug-fix]
     purpose: "REST/GraphQL/WebSocket endpoint contracts, error codes, and validation rules"
     used_by: [context-builder, validator, pdf]
     related: [permissions, data-model]
@@ -130,6 +134,7 @@ documents:
     required_for: [data-pipeline, ml-pipeline]
     optional_for: []
     context_priority: high
+    task_types: [feature, pipeline-stage, bug-fix]
     purpose: "Inter-stage input/output formats, paths, naming rules, and error handling"
     used_by: [context-builder, validator, pdf]
     related: [pipeline-debug, data-model]
@@ -140,6 +145,7 @@ documents:
     required_for: [data-pipeline, ml-pipeline]
     optional_for: []
     context_priority: medium
+    task_types: [bug-fix, pipeline-stage]
     purpose: "Stage failure diagnosis guide: wrong row count, data quality, root cause"
     used_by: [context-builder, validator, pdf]
     related: [pipeline-contract]
@@ -150,6 +156,7 @@ documents:
     required_for: [llm-app]
     optional_for: []
     context_priority: high
+    task_types: [eval-run]
     purpose: "Model, system prompt, parameters, and tool schemas"
     used_by: [context-builder, validator, pdf]
     related: [prompt-library, eval-spec, rag-contract]
@@ -170,6 +177,7 @@ documents:
     required_for: [llm-app]
     optional_for: []
     context_priority: medium
+    task_types: [eval-run]
     purpose: "Evaluation criteria, metrics, score thresholds, and dataset selection rules"
     used_by: [context-builder, validator, pdf]
     related: [llm-contract, eval-log]
@@ -180,6 +188,7 @@ documents:
     required_for: [llm-app]
     optional_for: []
     context_priority: low
+    task_types: [eval-run]
     purpose: "Per-run evaluation results log (one row per eval run)"
     used_by: [context-builder, validator, pdf]
     related: [eval-spec]
@@ -190,6 +199,7 @@ documents:
     required_for: [llm-app]
     optional_for: []
     context_priority: medium
+    task_types: [bug-fix]
     purpose: "LLM failure diagnosis guide: wrong answer, low eval score, tool call failure"
     used_by: [context-builder, validator, pdf]
     related: [llm-contract, eval-spec]
@@ -290,6 +300,7 @@ documents:
     required_for: [web-app, microservices]
     optional_for: [llm-app, mobile-app]
     context_priority: high
+    task_types: [feature]
     purpose: "Roles, permission matrix, and API endpoint access by role"
     used_by: [context-builder, validator, pdf]
     related: [api-contract, business-objects]
@@ -300,6 +311,7 @@ documents:
     required_for: [web-app, data-pipeline, ml-pipeline]
     optional_for: [cli-tool, microservices, llm-app, mobile-app]
     context_priority: high
+    task_types: [feature, pipeline-stage]
     purpose: "Schema, entities, relationships, indexes, and state machine"
     used_by: [context-builder, validator, pdf]
     related: [database, pipeline-contract, business-objects]
@@ -310,6 +322,7 @@ documents:
     required_for: [web-app, cli-tool, data-pipeline, ml-pipeline, microservices, mobile-app]
     optional_for: [llm-app]
     context_priority: medium
+    task_types: [feature, pipeline-stage, bug-fix]
     purpose: "Log format, required log points, trace_id propagation, and module naming"
     used_by: [context-builder, validator, pdf]
     related: []
@@ -340,6 +353,7 @@ documents:
     required_for: [iac]
     optional_for: []
     context_priority: medium
+    task_types: [iac-change]
     purpose: "Health check commands, rollback procedures, and incident response steps"
     used_by: [context-builder, validator, pdf]
     related: [topology, drift-policy]
@@ -350,6 +364,7 @@ documents:
     required_for: [iac]
     optional_for: []
     context_priority: medium
+    task_types: [iac-change]
     purpose: "Detection cadence, remediation SLA, exempt resources, and approval gate"
     used_by: [context-builder, validator, pdf]
     related: [topology, runbook]
