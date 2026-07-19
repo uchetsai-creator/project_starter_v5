@@ -21,7 +21,7 @@ from __future__ import annotations
 import os
 import re
 
-from _base import FrameworkAdapter, NormalizedField, NormalizedFunction
+from _base import FrameworkAdapter, NormalizedFunction
 from _utils import _parse_params_table
 
 _DETECTORS: dict[str, tuple[str, str]] = {
@@ -127,7 +127,7 @@ class LibraryAdapter(FrameworkAdapter):
         )
 
         results: list[NormalizedFunction] = []
-        for detector_key, (module_name, class_name) in active_detectors.items():
+        for _, (module_name, class_name) in active_detectors.items():
             try:
                 import importlib
                 mod = importlib.import_module(module_name)

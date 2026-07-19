@@ -24,7 +24,7 @@ import os
 import re
 
 from _base import FrameworkAdapter, NormalizedEndpoint
-from _utils import _HTTP_METHODS, _parse_field_table
+from _utils import _parse_field_table
 
 # Detector name → (module_name, class_name, accepted_extensions)
 _DETECTORS: dict[str, tuple[str, str, tuple[str, ...]]] = {

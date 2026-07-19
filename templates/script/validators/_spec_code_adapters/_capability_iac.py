@@ -23,34 +23,13 @@ import os
 import re
 
 from _base import FrameworkAdapter, NormalizedResource
+from _utils import _parse_config_table
 
 # Detector name → (module_name, class_name, accepted_extensions)
 _DETECTORS: dict[str, tuple[str, str, tuple[str, ...]]] = {
     'terraform': ('terraform', 'TerraformDetector', ('.tf',)),
     'pulumi':    ('pulumi',    'PulumiDetector',    ('.py',)),
 }
-
-
-def _parse_config_table(section: str) -> list[str]:
-    """Return config key names from a '#### Configuration' Markdown table."""
-    h = re.search(r'^#### Configuration', section, re.MULTILINE)
-    if not h:
-        return []
-    table_text = section[h.end():]
-    next_h = re.search(r'^#{3,4} ', table_text, re.MULTILINE)
-    if next_h:
-        table_text = table_text[:next_h.start()]
-
-    keys: list[str] = []
-    for row in re.finditer(r'(?m)^\|(.+)\|$', table_text):
-        cols = [c.strip().strip('`') for c in row.group(1).split('|')]
-        key = cols[0] if cols else ''
-        if not key or re.match(r'^[-:]+$', key) or key.lower() in (
-            'key', 'name', 'attribute', 'property'
-        ):
-            continue
-        keys.append(key)
-    return keys
 
 
 class IaCAdapter(FrameworkAdapter):

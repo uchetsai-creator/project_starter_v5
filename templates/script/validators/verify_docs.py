@@ -16,10 +16,7 @@ Hybrid types use +: data-pipeline+web-app  (takes union of both type matrices)
 import argparse
 import json
 import os
-import pathlib
-import re
 import sys
-from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _registry import load_registry, build_matrix, build_file_locations, build_replaces_for, VALID_TYPES

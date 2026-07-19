@@ -21,7 +21,7 @@ from __future__ import annotations
 import os
 import re
 
-from _base import FrameworkAdapter, NormalizedField, NormalizedTool
+from _base import FrameworkAdapter, NormalizedTool
 from _utils import _parse_params_table
 
 _DETECTORS: dict[str, tuple[str, str]] = {

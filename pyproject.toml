@@ -6,4 +6,4 @@ name = "project-starter-v5"
 version = "0.1.0"
 
 [project.optional-dependencies]
-dev = ["pytest", "syrupy"]
+dev = ["pytest"]

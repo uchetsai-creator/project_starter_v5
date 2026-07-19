@@ -2745,7 +2745,7 @@ A test assertion passes vacuously: the `"eval-run"` keyword appears in the `AI_C
 
 ---
 
-## Phase 77 — Dead Imports, Unused Dependency, and IaC Adapter Duplicate
+## Phase 77 — Dead Imports, Unused Dependency, and IaC Adapter Duplicate ✅ Complete
 
 **Discovered in post-Phase-75 full-project audit. Priority: high — dead code increases noise and risks import errors after refactors.**
 
