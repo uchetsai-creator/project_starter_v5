@@ -43,6 +43,19 @@ project_starter/                     ← this repo (template only)
 │   │   └── task-instructions.md    ← task instructions template; WORKFLOW.md injected at render time
 │   └── cursor/
 │       └── .cursorrules            ← Cursor rules template; WORKFLOW.md injected at render time
+├── examples/                        ← minimal complete reference projects (one per type; golden regression tests run against these)
+│   ├── web-app/
+│   ├── cli-tool/
+│   ├── data-pipeline/
+│   ├── llm-app/
+│   └── iac/
+├── tests/                           ← framework test suite
+│   ├── unit/                        ← unit tests for individual scripts
+│   ├── e2e/                         ← end-to-end pipeline tests
+│   ├── snapshot/                    ← snapshot tests for orchestrator + build-context + verify_docs output
+│   ├── golden/                      ← golden regression tests: full chain against examples/ with snapshot diff
+│   ├── contract/                    ← structural contract tests
+│   └── fixtures/                    ← filled doc fixtures (one per project type) for E2E tests
 ├── docs/                            ← framework design documents (not copied to projects)
 │   ├── architecture-analysis.md    ← current coupling problems + responsibility boundaries
 │   ├── refactoring-plan.md         ← 3-phase migration plan (registry → context builder → orchestrator)
@@ -726,7 +739,8 @@ pytest tests/
 Re-generate snapshot golden files after intentional output changes:
 
 ```bash
-pytest tests/snapshot/ --snapshot-update
+pytest tests/snapshot/ --snapshot-update   # orchestrator / build-context / verify_docs snapshots
+pytest tests/golden/ --snapshot-update     # golden regression chain snapshots (examples/)
 ```
 
 The PDF smoke test (`tests/e2e/test_pdf_generation.py`) is skipped unless `plantuml.jar` is present.

@@ -2897,7 +2897,7 @@ document-registry.yaml
 
 ---
 
-## Phase 81 — Golden Projects + Regression Suite
+## Phase 81 — Golden Projects + Regression Suite ✅ Complete
 
 **Depends on Phase 80. Priority: high — almost all current tests are unit/snapshot tests of individual scripts; the chain Registry → Generator → Validator → PDF is not tested end-to-end and cross-component regressions go undetected.**
 
@@ -2955,7 +2955,7 @@ Each golden test runs the full chain against `examples/<type>/` and compares eve
 
 ---
 
-## Phase 82 — Eliminate `_load_yaml` Duplication and `_read_task_name` Overlap
+## Phase 82 — Eliminate `_load_yaml` Duplication and `_read_task_name` Overlap ✅ Complete
 
 **Discovered in post-Phase-75 full-project audit. Priority: medium — duplicate logic is a maintenance hazard.**
 
