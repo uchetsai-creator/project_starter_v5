@@ -36,7 +36,8 @@ project_starter/                     ← this repo (template only)
 ├── adapters/                        ← agent adapter layer (translate WORKFLOW.md to each tool's native format)
 │   ├── claude/
 │   │   ├── start-task.md           ← slash command template (copy to .claude/commands/ in your project)
-│   │   └── stop-hook.sh            ← writes session boundary to .ai/telemetry/task-run.json on Claude Code session end
+│   │   ├── stop-hook.sh            ← writes session boundary to .ai/telemetry/task-run.json on Claude Code session end
+│   │   └── telemetry_writer.py     ← telemetry row writer invoked by stop-hook.sh
 │   ├── codex/
 │   │   ├── setup.md                ← Codex setup instructions with orchestrator quickstart
 │   │   └── task-instructions.md    ← task instructions template; WORKFLOW.md injected at render time

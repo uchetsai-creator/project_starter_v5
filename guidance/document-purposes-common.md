@@ -911,6 +911,21 @@ Install by adding to the `Stop` hook list in `.claude/settings.json`. No orchest
 
 Update when: the task-log row format changes or `current-state.md` field names change.
 
+### adapters/claude/telemetry_writer.py
+**Applies to: All project types (Claude Code users)**
+
+Purpose:
+Standalone Python script that writes one session-boundary row to `.ai/telemetry/task-run.json`. Extracted
+from the embedded Python heredoc in `stop-hook.sh` so it can be tested and invoked independently.
+
+Interface: `python3 telemetry_writer.py --task TASK_NAME --adapter claude --orch-state ORCH_STATE_FILE`
+
+Optional flags: `--output TASK_RUN_FILE` (default: `.ai/telemetry/task-run.json`), `--ts TIMESTAMP` (default: current UTC time).
+
+Not called directly by users — invoked by `stop-hook.sh` on every session end.
+
+Update when: the task-run.json row schema changes (fields added/removed) or the orchestrator-runs lookup logic changes.
+
 ### adapters/codex/setup.md
 **Applies to: All project types (Codex users)**
 

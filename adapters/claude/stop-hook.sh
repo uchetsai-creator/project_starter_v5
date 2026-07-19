@@ -25,38 +25,9 @@ fi
 
 # Write telemetry row
 mkdir -p "$TELEMETRY_DIR"
-python3 - "$TASK_RUN_FILE" "$ORCH_STATE_FILE" "$TIMESTAMP" "$TASK_NAME" <<'PYEOF'
-import json, os, sys
-
-task_run_file, orch_state_file, ts, task_name = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
-
-orchestrator_runs = 0
-if os.path.exists(orch_state_file):
-    try:
-        state = json.loads(open(orch_state_file).read())
-        if state.get('task') == task_name:
-            orchestrator_runs = state.get('runs', 0)
-    except Exception as e:
-        print(f"telemetry error: {e}", file=sys.stderr, flush=True)
-
-rows = []
-if os.path.exists(task_run_file):
-    try:
-        rows = json.loads(open(task_run_file).read())
-        if not isinstance(rows, list):
-            rows = []
-    except Exception as e:
-        print(f"telemetry error: {e}", file=sys.stderr, flush=True)
-        rows = []
-
-rows.append({
-    'ts': ts,
-    'task': task_name,
-    'adapter': 'claude',
-    'orchestrator_runs': orchestrator_runs,
-    'token_count': None,
-})
-
-with open(task_run_file, 'w') as f:
-    json.dump(rows, f, indent=2)
-PYEOF
+python3 "$(dirname "$0")/telemetry_writer.py" \
+    --task "$TASK_NAME" \
+    --adapter claude \
+    --orch-state "$ORCH_STATE_FILE" \
+    --output "$TASK_RUN_FILE" \
+    --ts "$TIMESTAMP"
