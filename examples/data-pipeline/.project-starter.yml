@@ -1,0 +1,3 @@
+project_type: data-pipeline
+task_type: pipeline-stage
+docs_path: docs/

@@ -1,0 +1,16 @@
+
+Document Content Quality — iac
+────────────────────────────────────────────────────────────────────
+Document                       Required     Quality
+────────────────────────────────────────────────────────────────────
+research.md                    ✅            ✅  Fully filled
+quickstart.md                  ✅            ✅  Fully filled
+test-plan.md                   ✅            ✅  Fully filled
+test-report.md                 ✅            ⚠️  No checker available
+topology.md                    ✅            ✅  Fully filled
+runbook.md                     ✅            ✅  Fully filled
+drift-policy.md                ✅            ✅  Fully filled
+
+Documents  : 7 / 7 present
+Quality    : 6 / 7 existing documents fully filled
+

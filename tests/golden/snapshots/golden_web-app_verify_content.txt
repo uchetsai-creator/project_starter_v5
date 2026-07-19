@@ -1,0 +1,24 @@
+
+Document Content Quality — web-app
+────────────────────────────────────────────────────────────────────
+Document                       Required     Quality
+────────────────────────────────────────────────────────────────────
+research.md                    ✅            ✅  Fully filled
+quickstart.md                  ✅            ✅  Fully filled
+test-plan.md                   ✅            ✅  Fully filled
+test-report.md                 ✅            ⚠️  No checker available
+architecture.md                ✅            ✅  Fully filled
+backend.md                     ✅            ✅  Fully filled
+database.md                    ✅            ✅  Fully filled
+deployment.md                  ✅            ✅  Fully filled
+api-contract.md                ✅            ✅  Fully filled
+permissions.md                 ✅            ✅  Fully filled
+data-model.md                  ✅            ✅  Fully filled
+logging-spec.md                ✅            ⚠️  No checker available
+business-process.md            ✅            ✅  Fully filled
+business-objects.md            ✅            ✅  Fully filled
+business-rules.md              ✅            ✅  Fully filled
+
+Documents  : 15 / 15 present
+Quality    : 13 / 15 existing documents fully filled
+

@@ -2,7 +2,18 @@ import sys
 import shutil
 from pathlib import Path
 
+import pytest
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
+
+
+def pytest_addoption(parser):
+    parser.addoption(
+        "--snapshot-update",
+        action="store_true",
+        default=False,
+        help="Regenerate snapshot golden files",
+    )
 
 sys.path.insert(0, str(REPO_ROOT / "templates/script/validators"))
 from _registry import VALID_TYPES  # noqa: E402

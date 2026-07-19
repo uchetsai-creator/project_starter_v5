@@ -1,0 +1,3 @@
+project_type: llm-app
+task_type: eval-run
+docs_path: docs/

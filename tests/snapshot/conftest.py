@@ -13,15 +13,6 @@ _ORCHESTRATOR_FILES = ["orchestrator.py", "_workflow_utils.py", "workflow-regist
 _BUILD_CONTEXT_FILES = ["build-context.py", "_workflow_utils.py", "document-registry.yaml"]
 
 
-def pytest_addoption(parser):
-    parser.addoption(
-        "--snapshot-update",
-        action="store_true",
-        default=False,
-        help="Regenerate snapshot golden files",
-    )
-
-
 @pytest.fixture
 def snapshot_update(request):
     return request.config.getoption("--snapshot-update")

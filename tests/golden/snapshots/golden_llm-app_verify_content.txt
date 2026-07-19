@@ -1,0 +1,19 @@
+
+Document Content Quality — llm-app
+────────────────────────────────────────────────────────────────────
+Document                       Required     Quality
+────────────────────────────────────────────────────────────────────
+research.md                    ✅            ✅  Fully filled
+quickstart.md                  ✅            ✅  Fully filled
+test-plan.md                   ✅            ✅  Fully filled
+test-report.md                 ✅            ⚠️  No checker available
+architecture.md                ✅            ✅  Fully filled
+llm-contract.md                ✅            ✅  Fully filled
+prompt-library.md              ✅            ✅  Fully filled
+eval-spec.md                   ✅            ✅  Fully filled
+eval-log.md                    ✅            ⚠️  No checker available
+llm-debug.md                   ✅            ⚠️  No checker available
+
+Documents  : 10 / 10 present
+Quality    : 7 / 10 existing documents fully filled
+
