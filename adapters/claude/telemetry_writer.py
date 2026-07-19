@@ -32,7 +32,7 @@ def _read_orchestrator_runs(orch_state_file: str, task_name: str) -> int:
         return 0
     try:
         with open(orch_state_file, encoding="utf-8") as f:
-            state = json.loads(f.read())
+            state = json.load(f)
         if state.get("task") == task_name:
             return state.get("runs", 0)
     except Exception as e:
@@ -45,7 +45,7 @@ def _read_existing_rows(task_run_file: str) -> list:
         return []
     try:
         with open(task_run_file, encoding="utf-8") as f:
-            rows = json.loads(f.read())
+            rows = json.load(f)
         if isinstance(rows, list):
             return rows
     except Exception as e:

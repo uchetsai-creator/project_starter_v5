@@ -2979,7 +2979,7 @@ Each golden test runs the full chain against `examples/<type>/` and compares eve
 
 ---
 
-## Phase 83 — Capability Adapter Pattern Normalization
+## Phase 83 — Capability Adapter Pattern Normalization ✅ Complete
 
 **Discovered in post-Phase-75 full-project audit. Priority: low — non-idiomatic code; inconsistency across seven peer files.**
 
@@ -3017,7 +3017,7 @@ Four adapters (`pipeline`, `cli`, `library`, `llm`) build the full `files` list 
 
 ---
 
-## Phase 84 — Architecture Simplification: `verify_docs` Lazy-Init and Shared Adapter Dispatcher
+## Phase 84 — Architecture Simplification: `verify_docs` Lazy-Init and Shared Adapter Dispatcher ✅ Complete
 
 **Discovered in post-Phase-75 full-project audit. Priority: low — design improvement; current code is correct but carries unnecessary complexity.**
 

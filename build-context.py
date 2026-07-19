@@ -21,8 +21,6 @@ from _workflow_utils import _coerce_project_type, _load_valid_task_types, _load_
 PRIORITY_ORDER = {"high": 0, "medium": 1, "low": 2}
 
 
-
-
 def _classify(doc_key: str, meta: dict, project_type: str, task_type: str | None) -> str:
     """Return 'required', 'if_present', or 'skip'."""
     pt_parts = [p.strip() for p in project_type.split("+")]

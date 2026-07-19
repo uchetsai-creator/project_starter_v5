@@ -26,10 +26,10 @@ import re
 from _base import FrameworkAdapter, NormalizedField, NormalizedStageContract
 from _utils import _PLACEHOLDER_NAMES, _parse_schema_value
 
-_DETECTORS: dict[str, str] = {
-    'airflow':  'AirflowDetector',
-    'dagster':  'DagsterDetector',
-    'prefect':  'PrefectDetector',
+_DETECTORS: dict[str, tuple[str, str, tuple[str, ...]]] = {
+    'airflow': ('airflow', 'AirflowDetector', ('.py',)),
+    'dagster': ('dagster', 'DagsterDetector', ('.py',)),
+    'prefect': ('prefect', 'PrefectDetector', ('.py',)),
 }
 
 
@@ -111,30 +111,24 @@ class DataPipelineAdapter(FrameworkAdapter):
         With framework hint: only the matching detector runs.
         Without hint: all detectors run and results are unioned.
         """
-        files = (
-            [src_path] if os.path.isfile(src_path)
-            else [
-                os.path.join(root, fname)
-                for root, _, fnames in os.walk(src_path)
-                for fname in fnames
-                if fname.endswith('.py')
-            ]
-        )
-
         active_detectors = (
             {self._framework: _DETECTORS[self._framework]}
             if self._framework and self._framework in _DETECTORS
             else _DETECTORS
         )
 
-        results: list[NormalizedStageContract] = []
-        for detector_name, detector_class_name in active_detectors.items():
-            try:
-                import importlib
-                mod = importlib.import_module(detector_name)
-                cls = getattr(mod, detector_class_name)
-                results.extend(cls().extract(files))
-            except Exception:  # noqa: BLE001
-                pass
+        needed_exts: set[str] = set()
+        for _, _, exts in active_detectors.values():
+            needed_exts.update(exts)
 
-        return results
+        all_files = (
+            [src_path] if os.path.isfile(src_path)
+            else [
+                os.path.join(root, fname)
+                for root, _, fnames in os.walk(src_path)
+                for fname in fnames
+                if any(fname.endswith(ext) for ext in needed_exts)
+            ]
+        )
+
+        return self._dispatch_detectors(active_detectors, all_files)

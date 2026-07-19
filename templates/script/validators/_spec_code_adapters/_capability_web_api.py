@@ -124,14 +124,4 @@ class WebAPIAdapter(FrameworkAdapter):
             ]
         )
 
-        results: list[NormalizedEndpoint] = []
-        for _, (module_name, class_name, _exts) in active_detectors.items():
-            try:
-                import importlib
-                mod = importlib.import_module(module_name)
-                cls = getattr(mod, class_name)
-                results.extend(cls().extract(all_files))
-            except Exception:  # noqa: BLE001
-                pass
-
-        return results
+        return self._dispatch_detectors(active_detectors, all_files)

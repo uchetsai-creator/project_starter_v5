@@ -834,11 +834,12 @@ Update when: a new adapter is added, or the comparison logic changes.
 
 Purpose:
 Framework adapter directory — one file per framework. Each adapter implements
-`FrameworkAdapter` from `_base.py` and provides exactly two methods:
+`FrameworkAdapter` from `_base.py` and implements two abstract methods plus one inherited concrete helper:
 - `extract_spec(spec_path)` → list of NormalizedForm objects parsed from the spec document
 - `extract_code(src_path)` → list of NormalizedForm objects parsed from source code
+- `_dispatch_detectors(detectors, files)` → shared loop that imports, instantiates, and runs each active detector (inherited from `FrameworkAdapter`; subclasses do not override this)
 
-**`_base.py`** — abstract base class + all NormalizedForm dataclasses
+**`_base.py`** — abstract base class + all NormalizedForm dataclasses + `_dispatch_detectors` shared dispatcher
 (NormalizedStageContract, NormalizedEndpoint, NormalizedCommand, NormalizedFunction,
 NormalizedTool, NormalizedResource, NormalizedScreen).
 

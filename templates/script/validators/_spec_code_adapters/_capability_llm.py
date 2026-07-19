@@ -24,8 +24,8 @@ import re
 from _base import FrameworkAdapter, NormalizedTool
 from _utils import _parse_params_table
 
-_DETECTORS: dict[str, tuple[str, str]] = {
-    'tool_schema': ('tool_schema', 'ToolSchemaDetector'),
+_DETECTORS: dict[str, tuple[str, str, tuple[str, ...]]] = {
+    'tool_schema': ('tool_schema', 'ToolSchemaDetector', ('.py', '.json')),
 }
 
 
@@ -90,30 +90,24 @@ class LLMAdapter(FrameworkAdapter):
         With framework hint: only the matching detector runs.
         Without hint: all detectors run and results are unioned.
         """
-        files = (
-            [src_path] if os.path.isfile(src_path)
-            else [
-                os.path.join(root, fname)
-                for root, _, fnames in os.walk(src_path)
-                for fname in fnames
-                if fname.endswith(('.py', '.json'))
-            ]
-        )
-
         active_detectors = (
             {self._framework: _DETECTORS[self._framework]}
             if self._framework and self._framework in _DETECTORS
             else _DETECTORS
         )
 
-        results: list[NormalizedTool] = []
-        for _, (module_name, class_name) in active_detectors.items():
-            try:
-                import importlib
-                mod = importlib.import_module(module_name)
-                cls = getattr(mod, class_name)
-                results.extend(cls().extract(files))
-            except Exception:  # noqa: BLE001
-                pass
+        needed_exts: set[str] = set()
+        for _, _, exts in active_detectors.values():
+            needed_exts.update(exts)
 
-        return results
+        all_files = (
+            [src_path] if os.path.isfile(src_path)
+            else [
+                os.path.join(root, fname)
+                for root, _, fnames in os.walk(src_path)
+                for fname in fnames
+                if any(fname.endswith(ext) for ext in needed_exts)
+            ]
+        )
+
+        return self._dispatch_detectors(active_detectors, all_files)

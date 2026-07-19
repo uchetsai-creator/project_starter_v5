@@ -24,8 +24,8 @@ import re
 from _base import FrameworkAdapter, NormalizedFunction
 from _utils import _parse_params_table
 
-_DETECTORS: dict[str, tuple[str, str]] = {
-    'python_library': ('python_library', 'PythonLibraryDetector'),
+_DETECTORS: dict[str, tuple[str, str, tuple[str, ...]]] = {
+    'python_library': ('python_library', 'PythonLibraryDetector', ('.py',)),
 }
 
 
@@ -110,30 +110,24 @@ class LibraryAdapter(FrameworkAdapter):
         With framework hint: only the matching detector runs.
         Without hint: all detectors run and results are unioned.
         """
-        files = (
-            [src_path] if os.path.isfile(src_path)
-            else [
-                os.path.join(root, fname)
-                for root, _, fnames in os.walk(src_path)
-                for fname in fnames
-                if fname.endswith('.py')
-            ]
-        )
-
         active_detectors = (
             {self._framework: _DETECTORS[self._framework]}
             if self._framework and self._framework in _DETECTORS
             else _DETECTORS
         )
 
-        results: list[NormalizedFunction] = []
-        for _, (module_name, class_name) in active_detectors.items():
-            try:
-                import importlib
-                mod = importlib.import_module(module_name)
-                cls = getattr(mod, class_name)
-                results.extend(cls().extract(files))
-            except Exception:  # noqa: BLE001
-                pass
+        needed_exts: set[str] = set()
+        for _, _, exts in active_detectors.values():
+            needed_exts.update(exts)
 
-        return results
+        all_files = (
+            [src_path] if os.path.isfile(src_path)
+            else [
+                os.path.join(root, fname)
+                for root, _, fnames in os.walk(src_path)
+                for fname in fnames
+                if any(fname.endswith(ext) for ext in needed_exts)
+            ]
+        )
+
+        return self._dispatch_detectors(active_detectors, all_files)

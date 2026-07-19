@@ -34,6 +34,7 @@ Custom Adapter SDK:
 """
 from __future__ import annotations
 
+import importlib
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 
@@ -273,3 +274,19 @@ class FrameworkAdapter(ABC):
             Must return [] (not raise) on parse errors or missing files.
         """
         ...
+
+    def _dispatch_detectors(
+        self,
+        detectors: dict[str, tuple[str, str, tuple[str, ...]]],
+        files: list[str],
+    ) -> list:
+        """Import, instantiate, and run each active detector against `files`."""
+        results = []
+        for _, (module_name, class_name, _exts) in detectors.items():
+            try:
+                mod = importlib.import_module(module_name)
+                cls = getattr(mod, class_name)
+                results.extend(cls().extract(files))
+            except Exception:  # noqa: BLE001
+                pass
+        return results
