@@ -26,8 +26,9 @@ Usage:
   --lang en              Section labels and UI text in English (default)
   --lang zh              Section labels and UI text in Traditional Chinese
   --project-type TYPE    Filter PDF to only include documents relevant to the project type(s).
-                         Comma-separate multiple types for hybrid projects:
+                         Separate multiple types with comma or plus (both accepted):
                            --project-type data-pipeline,web-app
+                           --project-type data-pipeline+web-app
                          Valid values: web-app, cli-tool, library, data-pipeline,
                                        ml-pipeline, microservices, llm-app, iac, mobile-app
                          Omit to include all files that exist (backward-compatible default).
@@ -278,8 +279,13 @@ def find_allowed_files(docs_dir, strings, project_type=None, content="full"):
             seen.add(rel)
         else:
             if project_type is not None:
-                print(f"Warning: expected file not found for "
-                      f"{'+'.join(sorted(project_type))}, skipping: {rel}")
+                # Module index files are created during development — suppress noisy warnings.
+                _module_indexes = {"modules/module-data-flow.md", "modules/module-flow.md"}
+                if rel in _module_indexes:
+                    print(f"Note: {rel} not found — create it from templates/flows/ when ready.")
+                else:
+                    print(f"Warning: expected file not found for "
+                          f"{'+'.join(sorted(project_type))}, skipping: {rel}")
             # silently skip files that don't exist when no project type is set
 
     def _should_scan(pattern):
@@ -370,7 +376,9 @@ def render_plantuml_block(puml_text, out_svg_path):
     Returns True on success, False on failure."""
     if not os.path.exists(PLANTUML_JAR):
         print(f"Warning: plantuml.jar not found at {PLANTUML_JAR}")
-        print("  Set PLANTUML_JAR env var or place plantuml.jar next to build_pdf.py")
+        print("  Quick fix: run `bash setup.sh` to download it automatically.")
+        print("  Or set PLANTUML_JAR=/path/to/plantuml.jar and rerun.")
+        print("  Diagrams will be omitted from the PDF until plantuml.jar is present.")
         return False
     with tempfile.NamedTemporaryFile(suffix='.puml', mode='w', delete=False, encoding='utf-8') as f:
         f.write(puml_text)
@@ -884,7 +892,8 @@ def parse_args():
         "--project-type",
         metavar="TYPE",
         help=(
-            "Comma-separated project type(s) to filter the PDF. "
+            "Project type(s) to filter the PDF. "
+            "Separate multiple types with comma or plus: data-pipeline,web-app  or  data-pipeline+web-app. "
             f"Valid values: {', '.join(sorted(VALID_PROJECT_TYPES))}"
         ),
     )
@@ -899,7 +908,8 @@ def parse_args():
 
     project_type = None
     if args.project_type is not None:
-        project_type = frozenset(t.strip() for t in args.project_type.split(","))
+        # Accept both comma ("data-pipeline,web-app") and plus ("data-pipeline+web-app")
+        project_type = frozenset(t.strip() for t in re.split(r'[,+]', args.project_type) if t.strip())
         invalid = project_type - VALID_PROJECT_TYPES
         if invalid:
             parser.error(

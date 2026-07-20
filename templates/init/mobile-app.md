@@ -109,6 +109,12 @@ project_type: mobile-app
 docs_path: docs/
 ```
 
+Copy `document-registry.yaml` from the framework root to your project root:
+```bash
+cp /path/to/project_starter_v5/document-registry.yaml .
+```
+This file is required by all verify scripts and `build_pdf.py`. Without it, scripts will fail with "document-registry.yaml not found".
+
 **Optional utility documents (create on demand, any time):**
 - `docs/specs/glossary.md` — if the app introduces domain-specific screen names, navigation patterns, or business terms that the team (including designers and QA) needs to align on. Create from `templates/specs/glossary.md`.
 - `docs/specs/dependencies.md` — to track SDK versions (React Native, Flutter, Expo, etc.), native module versions, and upgrade policy. Create from `templates/specs/dependencies.md`.

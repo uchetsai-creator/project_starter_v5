@@ -32,6 +32,11 @@
     project_type: data-pipeline
     docs_path: docs/
     ```
+25. Copy `document-registry.yaml` from the framework root to your project root:
+    ```bash
+    cp /path/to/project_starter_v5/document-registry.yaml .
+    ```
+    This file is required by all verify scripts and `build_pdf.py`. Without it, scripts will fail with "document-registry.yaml not found".
 
 **Optional utility documents (create on demand, any time):**
 - `docs/specs/glossary.md` — if the pipeline uses domain-specific field names, business terms, or data quality terminology that analysts and engineers need to agree on. Create from `templates/specs/glossary.md`.

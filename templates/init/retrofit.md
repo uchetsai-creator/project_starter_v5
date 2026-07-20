@@ -92,6 +92,11 @@ Before running `build_pdf.py`, verify flow tables are not empty:
 
 Do not generate the PDF with empty flow index tables.
 
+Before running `build_pdf.py`, confirm `document-registry.yaml` is in your project root:
+```bash
+ls document-registry.yaml   # must exist; if not: cp /path/to/project_starter_v5/document-registry.yaml .
+```
+
 ```
 python3 docs/script/generators/build_pdf.py docs --lang en -o docs/project-documentation-en.pdf
 ```

@@ -1,0 +1,7 @@
+# microservices-web-app — hybrid example project configuration
+# Project Type: Microservices + Web App
+# This hybrid declares both types; all documents Required or Optional for
+# EITHER type are present. Documents N/A for both types are omitted.
+
+project_type: microservices+web-app
+docs_path: docs/

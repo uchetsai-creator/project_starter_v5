@@ -31,6 +31,11 @@
     project_type: cli-tool
     docs_path: docs/
     ```
+24. Copy `document-registry.yaml` from the framework root to your project root:
+    ```bash
+    cp /path/to/project_starter_v5/document-registry.yaml .
+    ```
+    This file is required by all verify scripts and `build_pdf.py`. Without it, scripts will fail with "document-registry.yaml not found".
 
 **Optional utility documents (create on demand, any time):**
 - `docs/specs/glossary.md` — if the project introduces domain-specific terms, abbreviations, or flag conventions that need a shared definition. Create from `templates/specs/glossary.md`.
