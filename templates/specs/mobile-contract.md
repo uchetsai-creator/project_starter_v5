@@ -169,3 +169,35 @@ Auth --> App : authenticated
 - **Signing:** Keystore required; `upload-keystore.jks` stored in [location, never in git]
 - **Target SDK:** API [XX] (must be current Play Store requirement)
 - **Proguard / R8:** [Enabled / Disabled]; rules in `proguard-rules.pro`
+
+---
+
+## Non-Functional Requirements
+
+| Metric | Requirement |
+|---|---|
+| Cold start time | App fully interactive within [e.g., 2s] on mid-range device |
+| Frame render time | Target 60 fps — no frame should take > 16ms |
+| API call user-facing latency | Show loading indicator after [e.g., 300ms]; full response < [e.g., 3s] |
+| Offline usability | [Core features work offline / Read-only offline / Online only] |
+| App size (install) | < [e.g., 50MB] on iOS; < [e.g., 30MB] on Android |
+| Background battery usage | No background network polls more frequent than [e.g., 15 min] |
+
+---
+
+## Edge Cases
+
+| Scenario | Expected behaviour |
+|---|---|
+| No network connectivity on launch | Show offline banner; load cached data; queue write actions for retry |
+| Network lost mid-API call | Retry once after reconnect; show toast "Connection lost" |
+| Push notification permission denied by user | Skip notification sending; do not re-prompt after initial denial |
+| Deep link to deleted or inaccessible resource | Redirect to home screen with toast "Item no longer available" |
+| App backgrounded mid-form-fill | Persist draft to local storage; restore automatically on foreground |
+| Authentication token expires while app is open | Auto-refresh silently; if refresh fails, redirect to login screen |
+| Device storage full on write | Show error before write; never crash; suggest clearing cache |
+| OS permission revoked while app is running | Detect on next feature use; show permissions dialog (not a crash) |
+| App killed by OS (memory pressure, low RAM) | On next launch, restore to last-visited screen |
+| Large list with thousands of items | Use virtualized list (FlatList / ListView) — never render all at once |
+
+> *Add screen-specific edge cases next to their navigation nodes above.*

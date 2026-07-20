@@ -106,3 +106,33 @@ Threshold rationale: [Why these thresholds — business impact of a miss]
 | Model AUC drops below [threshold] on production traffic | Trigger retraining pipeline |
 | New training data available (monthly / quarterly) | Scheduled retraining |
 | Feature schema change | Mandatory retraining — old model is incompatible |
+
+---
+
+## Non-Functional Requirements
+
+| Metric | Requirement |
+|---|---|
+| Inference latency | p50 < [e.g., 50ms]; p99 < [e.g., 200ms] |
+| Throughput | >= [N] predictions/sec per serving instance |
+| Model artifact size (loaded) | < [e.g., 500MB] in memory |
+| Cold start (first prediction after load) | < [e.g., 2s] |
+| Retraining time | < [e.g., 4 hours] on [hardware spec] for full dataset |
+
+---
+
+## Edge Cases
+
+| Scenario | Expected behaviour |
+|---|---|
+| Required feature is `null` or missing at inference | Apply defined imputation strategy (see Preprocessing); log missing feature count |
+| Feature value outside trained distribution | [Return prediction with `"ood_warning": true` / reject with `OOD_INPUT` error] |
+| All features are missing | Return `INSUFFICIENT_INPUT` error — do not produce a prediction |
+| Input batch size exceeds model limit | Split into sub-batches of [max size] and reassemble in order |
+| Model artifact fails to load (corrupt file) | Fail immediately with `MODEL_LOAD_ERROR` — do not return stale defaults |
+| Prediction confidence below minimum threshold | [Return with `"low_confidence": true` / route to human review queue] |
+| Label encoder receives unknown category | [Map to "unknown" bucket / raise `UNKNOWN_CATEGORY` error] |
+| Training data contains label leakage | Fail pipeline with `DATA_LEAKAGE_DETECTED` — do not promote model |
+| Serving model version differs from training version | Fail with `VERSION_MISMATCH` — preprocessing and model must come from same training run |
+
+> *Adjust based on model type — classification, regression, and generation models have different failure modes.*

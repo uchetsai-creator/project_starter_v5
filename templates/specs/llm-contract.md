@@ -119,3 +119,71 @@ How conversation history is managed when context grows long:
 | Rate limit (429) | [wait and retry / surface error to user] |
 | Content filter block | [surface refusal message / fallback response] |
 | Model unavailable | [fallback to: [model ID] / fail with error] |
+
+---
+
+## Non-Functional Requirements
+
+| Metric | Requirement |
+|---|---|
+| Time to first token (streaming) | < [e.g., 2s] at p95 |
+| Full response time (non-streaming) | < [e.g., 15s] at p95 for typical prompt |
+| Cost per call | < [e.g., $0.01] for typical request (input + output tokens) |
+| Availability | Follows provider SLA — [e.g., 99.9%] |
+| Max prompt length enforced by app | [e.g., 2000 tokens for user message] |
+
+---
+
+## Edge Cases
+
+| Scenario | Expected behaviour |
+|---|---|
+| User message pushes context over window limit | Trim oldest history turns; always preserve system prompt + latest turn |
+| Model returns empty response body | Retry once; if still empty, return fallback message |
+| Content filter triggered on **user prompt** | Return `CONTENT_BLOCKED`; do not retry |
+| Content filter triggered on **model response** | Retry once with shorter context; if blocked again, return fallback |
+| Tool call returns an error | Pass error as tool result in next turn; let model decide how to proceed |
+| Tool call loop (model calls same tool repeatedly) | Abort after [N] iterations; return partial result with `"loop_detected": true` |
+| Prompt injection in user input | [Describe mitigation — e.g., system-prompt hardening, input sanitisation, label injection attempts] |
+| Model returns malformed JSON (structured output mode) | Retry with explicit `"Return valid JSON only."` reminder; fail after [3] retries |
+| API key expired or invalid | Fail immediately with `AUTH_INVALID` — do not retry |
+| Response contains PII (if applicable) | [Scrub before storing / log and alert / reject response] |
+
+---
+
+## Examples
+
+### Typical single-turn interaction
+
+**User message:**
+```
+[Example user message — use a representative real-world input]
+```
+
+**System prompt (excerpt):**
+```
+[First 2–3 lines of system prompt]
+```
+
+**Model response:**
+```
+[Example model response]
+```
+
+---
+
+### Tool call interaction
+
+**User message:** `[message that triggers tool use]`
+
+**Model calls:**
+```json
+{ "name": "[tool_name]", "input": { "[param]": "[value]" } }
+```
+
+**Tool returns:**
+```json
+{ "[result_field]": "[value]" }
+```
+
+**Final model response:** `[model response incorporating tool result]`

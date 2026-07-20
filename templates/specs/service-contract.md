@@ -127,3 +127,42 @@ Repeat this block for each event that crosses service boundaries.
 1. **Additive changes** (new optional field): consumers must ignore unknown fields — safe to deploy without coordination.
 2. **Breaking changes** (rename, remove, type change): bump `version`, keep old consumer alive until all consumers are migrated, then remove old version.
 3. **Never** remove a field without a deprecation period of at least one release cycle.
+
+---
+
+## Non-Functional Requirements
+
+| Metric | Requirement |
+|---|---|
+| Inter-service call p95 latency | [service] → [service]: < [e.g., 100ms] |
+| Circuit breaker threshold | Open after [N] failures in [M] seconds |
+| Event processing lag (consumer) | < [e.g., 30s] behind producer at steady state |
+| DLQ alert SLA | Oncall paged within [e.g., 5 minutes] of first message in DLQ |
+| Schema compatibility window | Old and new schema version supported simultaneously for [e.g., 2 weeks] during migration |
+
+---
+
+## Edge Cases
+
+### REST / HTTP
+
+| Scenario | Expected behaviour |
+|---|---|
+| Callee is down or unreachable | Caller applies circuit breaker; uses fallback (see resilience policy per contract) |
+| Request times out | Caller retries with idempotency key if operation is idempotent; otherwise fails fast |
+| Callee returns unexpected `5xx` | Log, increment error counter, apply backoff — do not surface raw error to end user |
+| Service-token header missing | Callee returns `401 MISSING_SERVICE_TOKEN` |
+| Schema version unsupported by callee | Callee returns `400 SCHEMA_VERSION_UNSUPPORTED`; caller must upgrade before retrying |
+| Caller sends duplicate request (idempotent op) | Callee returns same `200` with original result; no side effects repeated |
+| Request payload exceeds callee size limit | Callee returns `413`; caller must chunk request |
+
+### Event / Message
+
+| Scenario | Expected behaviour |
+|---|---|
+| Consumer receives duplicate event | Idempotency check on `payload.id` — deduplicate silently, do not reprocess |
+| Event schema version unknown to consumer | Move to DLQ; alert oncall — do not crash consumer process |
+| DLQ is full | Page oncall immediately; halt producer if at-least-once guarantee would be violated |
+| Consumer lag exceeds retention window | Alert oncall; trigger replay from snapshot if available |
+| Producer crashes mid-batch | Broker retains unacknowledged messages; consumer retries on restart |
+| Consumer processes event out of order | [Accept and handle out-of-order / reject if sequence number is lower than last seen]

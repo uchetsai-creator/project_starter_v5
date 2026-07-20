@@ -141,3 +141,32 @@ The following are internal implementation details and must not be imported or re
 | Symbol | Deprecated in | Removed in | Migration |
 |---|---|---|---|
 | `old_function()` | v1.2.0 | v2.0.0 | Use `new_function()` instead |
+
+---
+
+## Non-Functional Requirements
+
+| Metric | Requirement |
+|---|---|
+| Import time | < [e.g., 100ms] — no I/O or heavy computation at import |
+| Function call latency | [function_name]: < [e.g., 50ms] for typical input |
+| Thread safety | [All public symbols are thread-safe / list exceptions] |
+| Memory per call | Peak < [e.g., 50MB] for [typical input size] |
+| Supported Python / Node versions | [e.g., Python 3.10+; Node 18+] |
+
+---
+
+## Edge Cases
+
+| Scenario | Expected behaviour |
+|---|---|
+| `None` / `null` passed for required parameter | Raise `TypeError` with message identifying the parameter |
+| Empty string passed for non-nullable string | Raise `ValueError("[param] must not be empty")` |
+| Numeric value outside documented range | Raise `ValueError` with allowed range in message |
+| Input larger than documented max size | Raise `ValueError` with size limit in message |
+| Function called concurrently on shared mutable state | [Thread-safe — internal lock used / Not thread-safe — caller must synchronize] |
+| Network unavailable (for I/O functions) | Raise `ConnectionError` — never swallow silently |
+| Requested resource not found | Raise `[NotFoundError]("[entity] not found: [id]")` |
+| Deprecated function called | Emit `DeprecationWarning` with migration path; still execute |
+
+> *Match your actual exception classes. Callers must be able to distinguish recoverable from unrecoverable errors.*

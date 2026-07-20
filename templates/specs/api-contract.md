@@ -463,3 +463,34 @@ input [InputName] {
   CLI Tool projects: document CLI commands in docs/specs/cli-contract.md, not here.
   api-contract.md covers REST/GraphQL/WebSocket endpoints only.
 -->
+
+---
+
+## Edge Cases
+
+Cross-cutting edge cases that apply across multiple endpoints.
+
+| Scenario | Expected behaviour |
+|---|---|
+| Required field missing in request body | `400 VALIDATION_FIELD_REQUIRED` |
+| JWT token belongs to deleted / suspended user | `401 AUTH_TOKEN_INVALID` |
+| Accessing another user's resource | `403 AUTH_RESOURCE_NOT_OWNED` |
+| Request body exceeds size limit | `413 Payload Too Large` |
+| Concurrent PATCH on same resource | `409 [ENTITY]_CONCURRENT_UPDATE` (optimistic lock mismatch) |
+| Database write times out | `504 EXTERNAL_DB_TIMEOUT` |
+| Downstream service unreachable | `504 EXTERNAL_[SERVICE]_TIMEOUT` |
+| `page` or `per_page` value is negative or > max | `400 VALIDATION_FIELD_OUT_OF_RANGE` |
+| State-machine violation (e.g., cancel already-cancelled order) | `409 [ENTITY]_STATE_INVALID` |
+| Idempotency key reused with different payload | `409 IDEMPOTENCY_KEY_CONFLICT` |
+
+> *Add project-specific cases below — consider: rate-limit per user vs. global, soft-deleted resource behaviour, and any custom state machines.*
+
+## Non-Functional Requirements
+
+| Metric | Requirement |
+|---|---|
+| API response time | p95 < [e.g., 200ms] for read endpoints; p95 < [e.g., 500ms] for write endpoints |
+| Availability | [e.g., 99.9% uptime] |
+| Rate limit | [e.g., 100 req/min per user; 1000 req/min global] |
+| Max request body size | [e.g., 1MB] |
+| Pagination default / max | Default: [20]; Max: [100] items per page |

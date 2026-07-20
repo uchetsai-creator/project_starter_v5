@@ -114,3 +114,34 @@ For each field or file that crosses a stage boundary:
 
 A mismatch between produced and consumed format is a **High** finding.
 Do not proceed to the next stage's implementation until the mismatch is resolved.
+
+---
+
+## Non-Functional Requirements
+
+| Metric | Requirement |
+|---|---|
+| End-to-end run time | < [e.g., 4 hours] for [N] source records |
+| Per-stage throughput | [Stage name]: > [N] rows/sec |
+| Data freshness SLA | Output available within [e.g., 2 hours] of source data cutoff |
+| Recovery time | Failed stage restarts within [e.g., 5 minutes] via scheduler retry |
+| Late-arriving data window | Accept data up to [e.g., 24 hours] late |
+
+---
+
+## Edge Cases
+
+| Scenario | Expected behaviour |
+|---|---|
+| Input file / table is empty (zero rows) | [Stage completes with 0 processed and logs `EMPTY_INPUT` / stage fails and alerts] |
+| Input schema has extra unexpected columns | [Strip unknown columns and log / fail validation] |
+| Input schema is missing a required column | Fail with `SCHEMA_MISMATCH`; quarantine input; alert on-call |
+| Duplicate rows in input | [Deduplicate by `[key]` / pass through / count as warning in metrics] |
+| Downstream write destination is full or unreachable | Fail with alert — do not silently drop records |
+| Pipeline run interrupted mid-stage | [Resume from checkpoint with idempotency key / re-run from scratch] |
+| Input arrives after SLA window | [Process as late data with `late_flag=true` / skip and alert] |
+| Upstream stage produced zero output rows | [Downstream stage skips / fails with `UPSTREAM_EMPTY` warning] |
+| Same run triggered twice concurrently | [Second run aborts immediately (lock check) / both proceed idempotently] |
+| Corrupt or unreadable input file | Quarantine file, fail stage, alert — do not partially process |
+
+> *Add stage-specific edge cases inside each `### [Stage Name]` block under `#### Error / Skip Handling`.*

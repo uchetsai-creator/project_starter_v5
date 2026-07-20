@@ -117,3 +117,33 @@ Config file values are overridden by flags. Flags always take precedence.
 | stderr | [Human-readable progress and error messages only] |
 
 **Rule:** stdout must be safe to pipe. Never mix progress messages into stdout.
+
+---
+
+## Non-Functional Requirements
+
+| Metric | Requirement |
+|---|---|
+| Startup time | < [e.g., 200ms] for all subcommands |
+| Execution time | [subcommand]: < [e.g., 5s] for typical input; < [e.g., 60s] for large input |
+| Memory usage | Peak < [e.g., 200MB] for [input size] |
+| Exit code reliability | Must always exit with a defined code — never hang |
+
+---
+
+## Edge Cases
+
+| Scenario | Expected behaviour |
+|---|---|
+| Unknown flag passed | `exit 2`; stderr: `unknown flag: --[flag]` |
+| Required argument missing | `exit 2`; stderr shows usage line |
+| Config file path given but not found | `exit 1`; stderr: `config file not found: [path]` |
+| Config file exists but is malformed YAML/TOML | `exit 1`; stderr: parse error with line number |
+| `--input -` (stdin) with no data piped | Read until EOF; treat empty input as zero records (not an error) |
+| Output file path exists | [Overwrite silently / fail with `exit 1` unless `--force` is passed] |
+| Output directory does not exist | `exit 1` with clear message, or create if `--mkdir` flag is present |
+| stdout closed by pipe consumer mid-write | Catch `SIGPIPE`; `exit 0` — do not print a crash error |
+| Interrupted with Ctrl-C (`SIGINT`) | Clean up partial output files; `exit 130` |
+| Input file is empty (zero bytes / zero rows) | [exit 0 with "0 records processed" / exit 1 — specify per subcommand] |
+
+> *Add subcommand-specific edge cases in each `### subcommand` section.*
