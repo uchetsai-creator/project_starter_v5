@@ -46,10 +46,10 @@ Six test levels — include only the levels that apply to your project type (see
 
 ### In Scope
 
-| Module / Feature | Levels | Notes |
-|---|---|---|
-| [e.g., Auth] | Unit, Component, Integration | [e.g., focus on token validation and expiry] |
-| [Module] | [Levels] | [Notes] |
+| Module / Feature | Requirement | Levels | Notes |
+|---|---|---|---|
+| [e.g., Auth] | FR-001, FR-003 | Unit, Component, Integration | [e.g., focus on token validation and expiry] |
+| [Module] | [FR-XXX] | [Levels] | [Notes] |
 
 ### Out of Scope
 
