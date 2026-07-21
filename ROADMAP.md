@@ -3041,6 +3041,89 @@ All 7 capability adapters implement an `extract_code()` body that is structurall
 
 ---
 
+## Phase 85 — Functional Acceptance Gate: `verify_acceptance.py` (all 9 types)
+
+**Goal:** Close the gap between spec-code drift validation and functional requirement validation. All 9 project types can now verify that declared requirements have test coverage and passing results — without web bias.
+
+### Problem
+
+`verify_spec_code.py` checks structural alignment (routes/stages/commands declared in spec exist in code). `verify_tests.py` checks that `test-report.md` is filled with real numbers. Neither confirms that the declared functional requirements are actually covered by tests and passing.
+
+### Design
+
+Three-layer traceability chain, uniform across all project types:
+
+```
+project-requirements.md   →   test-plan.md       →   test-report.md
+(FR-XXX declared)              (Test Scope covers)     (results ✅ Pass)
+```
+
+Type-specific extensions layered on top (no web bias):
+
+| Project type | Extra check |
+|---|---|
+| data-pipeline, ml-pipeline | Contract Tests section in test-report.md has ≥ 1 real result row |
+| llm-app | eval-log.md latest entry has ✅ in Pass? column |
+| All others | Base three-layer check only |
+
+### Framework changes
+
+| File | Change |
+|---|---|
+| `templates/script/validators/verify_acceptance.py` | New validator — see checks below |
+| `workflow-registry.yaml` | Add `verify_acceptance.py --strict` to `sprint-end` sequence |
+
+### verify_acceptance.py checks
+
+**Layer 1 — project-requirements.md**
+- `## Functional Requirements` section exists and has ≥ 1 `FR-XXX` line (not placeholder)
+- `## Acceptance Criteria` section exists and has ≥ 1 `AC-XXX` line (not placeholder)
+
+**Layer 2 — test-plan.md**
+- `## Test Scope` / In Scope table has ≥ 1 real row (not `[e.g.,]` placeholder)
+- Per-type required test levels present in `## Testing Strategy` table (no web bias):
+
+| Type | Required levels |
+|---|---|
+| web-app | Unit, Integration, E2E / System |
+| cli-tool | Unit, Integration |
+| library | Unit, Integration |
+| data-pipeline | Unit, Contract / Service, E2E / System |
+| ml-pipeline | Unit, Contract / Service, E2E / System |
+| microservices | Unit, Integration, Contract / Service |
+| llm-app | Integration, Contract / Service, E2E / System |
+| iac | Integration, E2E / System |
+| mobile-app | Unit, Integration, E2E / System |
+
+**Layer 3 — test-report.md**
+- `## Summary` table has ≥ 1 row with a real number (not `[N]`)
+- `**Overall status:**` line is `✅ Pass` (not placeholder, not `❌ Fail`)
+- `## Results by Module` has ≥ 1 real row
+
+**Type-specific extensions**
+- `data-pipeline`, `ml-pipeline`: `## [Data Pipeline / ML Pipeline] Contract Tests` section has ≥ 1 real result row
+- `llm-app`: `eval-log.md` latest data row has `✅` in the Pass? column
+
+**Verification:** Running `verify_acceptance.py --project-type web-app` on a filled example exits 0; running on a template-only project exits 1 with a clear error listing which layer failed; all 9 project types produce correct pass/fail results.
+
+---
+
+## Phase 86 — Requirement Traceability Column in test-plan.md
+
+**Goal:** Make the FR-XXX → test mapping explicit in the Test Scope table, enabling `verify_acceptance.py` to cross-reference requirements against test plan entries.
+
+### Framework changes
+
+| File | Change |
+|---|---|
+| `templates/project-requirements.md` | No change — FR-XXX format already present |
+| `templates/specs/test-plan.md` | Add `Requirement` column to `## Test Scope / In Scope` table: `\| Module / Feature \| Requirement \| Levels \| Notes \|` |
+| `templates/script/validators/verify_acceptance.py` | Extend Phase 85 validator: for each `FR-XXX` in project-requirements.md, check at least one In Scope row references it in the Requirement column; warn (non-blocking in default mode, blocking in `--strict`) for uncovered requirements |
+
+**Verification:** Running `verify_acceptance.py --strict` on a project-requirements.md that has `FR-005` but no test-plan.md row referencing it exits 1 with message `FR-005 has no test coverage in test-plan.md`; adding the row causes it to exit 0.
+
+---
+
 ## Phase future — Detector Auto-Discovery
 
 **Not scheduled. Record of design intent.**
