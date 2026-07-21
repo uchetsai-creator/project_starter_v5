@@ -42,10 +42,11 @@ def _find_registry_path() -> Path:
 def _parse_registry(text: str) -> dict[str, Any]:
     """Parse document-registry.yaml without external dependencies.
 
-    Handles the project_starter_v5 schema only (flat, 2-level nesting, inline lists).
+    Handles the project_starter_v5 schema (flat, 2-level nesting, inline and block lists).
     """
     documents: dict[str, Any] = {}
     current_doc: str | None = None
+    current_block_list_key: str | None = None
 
     for raw_line in text.splitlines():
         line = raw_line.rstrip()
@@ -61,7 +62,18 @@ def _parse_registry(text: str) -> dict[str, Any]:
         if doc_m:
             current_doc = doc_m.group(1)
             documents[current_doc] = {}
+            current_block_list_key = None
             continue
+
+        # Block list item at exactly 6-space indent (yaml.safe_dump default format)
+        if current_doc is not None and current_block_list_key is not None:
+            item_m = re.match(r'^      - (.+)', line)
+            if item_m:
+                item = item_m.group(1).strip().strip("'\"")
+                documents[current_doc][current_block_list_key].append(item)
+                continue
+            else:
+                current_block_list_key = None
 
         # Field at exactly 4-space indent
         if current_doc is not None and line.startswith('    ') and not line.startswith('     '):
@@ -73,6 +85,10 @@ def _parse_registry(text: str) -> dict[str, Any]:
                 inner = val[1:-1]
                 items = [x.strip().strip("'\"") for x in inner.split(',') if x.strip()]
                 documents[current_doc][key] = items
+            elif val == '':
+                # Block list: collect items on following lines
+                documents[current_doc][key] = []
+                current_block_list_key = key
             elif val.startswith('{') and val.endswith('}'):
                 inner = val[1:-1]
                 mapping: dict[str, str] = {}
