@@ -69,6 +69,11 @@ workflows:
         args: [--strict]
       - script: docs/script/validators/verify_tests.py
         args: [--strict]
+      - script: docs/script/validators/verify_acceptance.py
+        args: [--strict]
+        # Phase 85 — functional acceptance gate (all 9 project types, no web bias).
+        # Checks: FR-XXX declared → test-plan scope covered → test-report ✅ Pass.
+        # Type-specific: data-pipeline/ml-pipeline → Contract Tests; llm-app → eval-log ✅.
       - script: docs/script/validators/verify_content.py
         args: [--strict]
 
