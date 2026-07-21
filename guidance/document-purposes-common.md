@@ -207,6 +207,21 @@ Track function name or file path changes during development — apply all update
 
 ## Root-level (docs/)
 
+### project-requirements.md
+**Applies to: All project types**
+
+Purpose:
+Single source of truth for what the project must do — functional requirements (FR-XXX),
+acceptance criteria (AC-XXX), scope boundaries, roles, non-functional requirements, and edge cases.
+`verify_acceptance.py` reads this file to extract FR-XXX IDs and cross-references them against
+`test-plan.md` (coverage) and `test-report.md` (results). A sprint cannot close out unless every
+FR-XXX is covered in the test plan and the test report shows ✅ Pass.
+
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
+* A new feature or requirement is added — add an FR-XXX entry
+* An acceptance criterion changes — update the matching AC-XXX entry
+* Scope boundaries or roles change
+
 ### init/[type].md
 **Applies to: All project types (one file per type)**
 
@@ -386,10 +401,11 @@ Purpose:
 Shell script that enforces process rules on every `git commit` — no AI tool dependency.
 Runs the following checks on every commit:
 
-**Quality verifiers** (4 scripts — Phase 17 + Phase 23 + Phase 24):
+**Quality verifiers** (5 scripts — Phase 17 + Phase 23 + Phase 24 + Phase 85):
 - `verify_docs.py --content` — document presence and fill quality
 - `verify_logs.py` — log documentation coverage
 - `verify_tests.py` — test coverage and report currency
+- `verify_acceptance.py` — functional acceptance gate (FR-XXX → test plan → test report)
 - `verify_content.py` — spec content quality
 
 **Process checks** (5 rules — Phase 21):
@@ -605,6 +621,43 @@ Output statuses: ✅ pass · ⚠️ warn · ❌ fail. Per-file: trace_id, struct
 Verdict: PASS · WARN · FAIL. `--strict` exits 1 on any FAIL.
 
 Update when: new per-type log field requirements are added (e.g., a new project type is introduced).
+
+### verify_acceptance.py
+**Applies to: All project types** (no web bias — all 9 types have identical base checks)
+
+Purpose:
+Functional acceptance gate. Verifies the three-layer traceability chain:
+`project-requirements.md` (FR-XXX declared) → `test-plan.md` (scope covers every FR-XXX) → `test-report.md` (results ✅ Pass).
+
+Layer 1 — project-requirements.md:
+* `## Functional Requirements` has ≥ 1 filled FR-XXX entry (not placeholder)
+* `## Acceptance Criteria` has ≥ 1 filled AC-XXX entry (not placeholder)
+
+Layer 2 — test-plan.md:
+* `## Test Scope / In Scope` table has ≥ 1 real row
+* Every FR-XXX declared in project-requirements.md appears in the Requirement column of In Scope
+* Required test levels per project type are present in `## Testing Strategy` (e.g. cli-tool needs Unit + Integration; data-pipeline needs Unit + Contract + E2E)
+
+Layer 3 — test-report.md:
+* `**Overall status:**` is `✅ Pass` (not placeholder, not ❌ Fail)
+* `## Summary` has ≥ 1 row with real test counts
+* `## Results by Module` has ≥ 1 filled row
+
+Type-specific extensions (layered on top, not web-biased):
+* data-pipeline, ml-pipeline: `## Contract Tests` section must have ≥ 1 real result (✅ / ❌)
+* llm-app: `eval-log.md` latest data row must show ✅ in the Pass? column
+
+Run at sprint end as part of the quality gate (after verify_tests, before verify_content).
+
+```bash
+python3 docs/script/validators/verify_acceptance.py --project-type web-app
+python3 docs/script/validators/verify_acceptance.py --project-type data-pipeline --strict
+python3 docs/script/validators/verify_acceptance.py --project-type cli-tool --json
+```
+
+`--strict` exits 1 on any issue. Without `--strict`, issues are printed but exit code is 0.
+
+Update when: required test levels for a project type change, or a new type-specific extension is needed.
 
 ### verify_tests.py
 **Applies to: All project types** (test-report.md is Required for all types)
