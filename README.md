@@ -160,6 +160,7 @@ project_starter/                     ← this repo (template only)
         │   ├── verify_docs.py       ← document completeness + fill quality audit
         │   ├── verify_logs.py       ← log format + trace_id documentation audit
         │   ├── verify_tests.py      ← test-report.md fill quality audit
+        │   ├── verify_acceptance.py ← functional acceptance gate: FR-XXX → test plan → test report (all 9 types)
         │   ├── verify_module_docs.py ← module flow coverage + quality audit
         │   ├── verify_content.py    ← full document content quality gate (all Required docs × project type)
         │   ├── verify_spec_code.py  ← spec ↔ code drift validator (core — no framework logic)
@@ -801,6 +802,7 @@ Any AI tool (Claude / Codex / Cursor / manual)
  verify_docs.py --content              ← doc completeness + fill quality (block)
  verify_logs.py                        ← log format + trace_id (when present, block)
  verify_tests.py                       ← test-report.md fill quality (when present, block)
+ verify_acceptance.py                  ← FR-XXX → test plan → test report traceability (when present, block)
  verify_content.py                     ← document content quality gate (when present, block)
          [verify_module_docs.py called internally by verify_content.py]
         ↓
