@@ -5,9 +5,13 @@ verify_acceptance.py — Functional Acceptance Gate for project_starter_v5 proje
 Checks that declared functional requirements have test coverage and passing results.
 Works identically for all 9 project types with type-specific extensions layered on top.
 
-Three-layer traceability chain:
+Three-layer traceability chain (Phase 85):
   project-requirements.md  →  test-plan.md  →  test-report.md
   (FR-XXX declared)            (scope covers)   (results ✅ Pass)
+
+Requirement cross-reference (Phase 86):
+  Every FR-XXX in project-requirements.md must appear in the Requirement column
+  of test-plan.md ## Test Scope / In Scope table.
 
 Type-specific extensions (no web bias):
   data-pipeline, ml-pipeline  — Contract Tests section must have real results
@@ -36,7 +40,7 @@ from _verify_common import _append_telemetry, _is_placeholder, _read_file, _sect
 from _registry import VALID_TYPES
 
 # ---------------------------------------------------------------------------
-# Per-type required test levels (no web bias — all 9 types listed)
+# Per-type required test levels (all 9 types — no web bias)
 # ---------------------------------------------------------------------------
 
 REQUIRED_TEST_LEVELS: dict[str, list[str]] = {
@@ -54,9 +58,13 @@ REQUIRED_TEST_LEVELS: dict[str, list[str]] = {
 PIPELINE_TYPES = {'data-pipeline', 'ml-pipeline'}
 LLM_TYPES = {'llm-app'}
 
-_FR_LINE = re.compile(r'\*\*FR-\d+\*\*')
+_FR_LINE = re.compile(r'\*\*FR-(\d+)\*\*')
 _AC_LINE = re.compile(r'\*\*AC-\d+\*\*')
-_PLACEHOLDER_ROW = re.compile(r'\[e\.g\.,|\[N\]|\[Module\]|\[Feature\]|\[Stage\]|\[Source|\[Command|\[Service', re.IGNORECASE)
+_FR_REF = re.compile(r'\bFR-(\d+)\b')
+_PLACEHOLDER_ROW = re.compile(
+    r'\[e\.g\.,|\[N\]|\[Module\]|\[Feature\]|\[Stage\]|\[Source|\[Command|\[Service|\[FR-',
+    re.IGNORECASE,
+)
 _REAL_TABLE_ROW = re.compile(r'^\|\s*[^[\]|]+\s*\|')
 _OVERALL_PASS = re.compile(r'\*\*Overall status:\*\*\s*✅\s*Pass(?!\s*/)', re.IGNORECASE)
 _NUMBER_IN_ROW = re.compile(r'\|\s*[\w/ ]+\s*\|\s*(\d+)\s*\|')
@@ -97,21 +105,30 @@ def _level_in_table(label: str, lines: list[str]) -> bool:
 # Layer 1: project-requirements.md
 # ---------------------------------------------------------------------------
 
-def check_requirements(docs_path: str) -> list[str]:
+def check_requirements(docs_path: str) -> tuple[list[str], list[str]]:
+    """Return (issues, fr_ids) where fr_ids is the list of declared FR-XXX numbers."""
     issues: list[str] = []
+    fr_ids: list[str] = []
+
     path = os.path.join(docs_path, 'project-requirements.md')
     lines = _read_file(path)
     if not lines:
         issues.append('project-requirements.md not found or empty')
-        return issues
+        return issues, fr_ids
 
     fr_body = _section_body(lines, '## Functional Requirements')
     if not fr_body:
         issues.append('project-requirements.md: ## Functional Requirements section missing')
     else:
-        fr_lines = [l for l in fr_body if _FR_LINE.search(l) and not _is_placeholder(l)]
-        if not fr_lines:
-            issues.append('project-requirements.md: ## Functional Requirements has no filled FR-XXX entries')
+        for line in fr_body:
+            if _is_placeholder(line):
+                continue
+            for m in _FR_LINE.finditer(line):
+                fr_ids.append(m.group(1))
+        if not fr_ids:
+            issues.append(
+                'project-requirements.md: ## Functional Requirements has no filled FR-XXX entries'
+            )
 
     ac_body = _section_body(lines, '## Acceptance Criteria')
     if not ac_body:
@@ -119,16 +136,18 @@ def check_requirements(docs_path: str) -> list[str]:
     else:
         ac_lines = [l for l in ac_body if _AC_LINE.search(l) and not _is_placeholder(l)]
         if not ac_lines:
-            issues.append('project-requirements.md: ## Acceptance Criteria has no filled AC-XXX entries')
+            issues.append(
+                'project-requirements.md: ## Acceptance Criteria has no filled AC-XXX entries'
+            )
 
-    return issues
+    return issues, fr_ids
 
 
 # ---------------------------------------------------------------------------
 # Layer 2: test-plan.md
 # ---------------------------------------------------------------------------
 
-def check_test_plan(docs_path: str, project_type: str) -> list[str]:
+def check_test_plan(docs_path: str, project_type: str, fr_ids: list[str]) -> list[str]:
     issues: list[str] = []
     path = os.path.join(docs_path, 'specs', 'test-plan.md')
     lines = _read_file(path)
@@ -143,6 +162,20 @@ def check_test_plan(docs_path: str, project_type: str) -> list[str]:
     real_scope = _real_rows(scope_body) if scope_body else []
     if not real_scope:
         issues.append('specs/test-plan.md: ## Test Scope / In Scope table has no filled rows')
+
+    # Phase 86: every declared FR-XXX must appear in the Requirement column
+    if fr_ids and scope_body:
+        # Collect all FR numbers referenced in real (non-placeholder) scope rows
+        covered: set[str] = set()
+        for row in real_scope:
+            for m in _FR_REF.finditer(row):
+                covered.add(m.group(1))
+        uncovered = [fid for fid in fr_ids if fid not in covered]
+        for fid in uncovered:
+            issues.append(
+                f'specs/test-plan.md: FR-{fid} declared in project-requirements.md '
+                f'has no test coverage in ## Test Scope / In Scope (add to Requirement column)'
+            )
 
     # Required test levels per project type
     strategy_body = _section_body(lines, '## Testing Strategy')
@@ -190,17 +223,17 @@ def check_test_report(docs_path: str, project_type: str) -> list[str]:
                 has_number = True
                 break
     if not has_number:
-        issues.append('specs/test-report.md: ## Summary table has no real test counts (still [N] placeholders)')
+        issues.append(
+            'specs/test-report.md: ## Summary table has no real test counts (still [N] placeholders)'
+        )
 
-    # Results by Module (or pipeline equivalent) must have real rows
+    # Results by Module must have real rows (pipeline types use a different section)
     module_body = _section_body(lines, '## Results by Module')
     if module_body:
         if not _real_rows(module_body):
             issues.append('specs/test-report.md: ## Results by Module has no filled rows')
-    else:
-        # Pipeline types use a different section name
-        if project_type not in PIPELINE_TYPES:
-            issues.append('specs/test-report.md: ## Results by Module section missing')
+    elif project_type not in PIPELINE_TYPES:
+        issues.append('specs/test-report.md: ## Results by Module section missing')
 
     return issues
 
@@ -217,10 +250,9 @@ def check_pipeline_contracts(docs_path: str) -> list[str]:
     if not lines:
         return issues  # already caught by check_test_report
 
-    # The section heading varies — search case-insensitively for "Contract Tests"
     contract_body: list[str] = []
-    for heading_variant in ('## [Data Pipeline / ML Pipeline] Contract Tests', '## Contract Tests'):
-        contract_body = _section_body(lines, heading_variant)
+    for heading in ('## [Data Pipeline / ML Pipeline] Contract Tests', '## Contract Tests'):
+        contract_body = _section_body(lines, heading)
         if contract_body:
             break
 
@@ -231,7 +263,6 @@ def check_pipeline_contracts(docs_path: str) -> list[str]:
         )
         return issues
 
-    # Must have at least one real result row (✅ or ❌)
     has_result = any(
         ('✅' in line or '❌' in line) and not _PLACEHOLDER_ROW.search(line)
         for line in contract_body
@@ -254,9 +285,8 @@ def check_llm_eval(docs_path: str) -> list[str]:
         issues.append('specs/eval-log.md not found or empty (required for llm-app)')
         return issues
 
-    # Find all real data rows (non-placeholder, non-header, non-separator)
-    data_rows: list[str] = []
     separator_seen = False
+    data_rows: list[str] = []
     for line in lines:
         if not line.strip().startswith('|'):
             continue
@@ -274,8 +304,7 @@ def check_llm_eval(docs_path: str) -> list[str]:
         issues.append('specs/eval-log.md: no eval run entries found (still placeholder)')
         return issues
 
-    latest = data_rows[-1]
-    if '✅' not in latest:
+    if '✅' not in data_rows[-1]:
         issues.append(
             'specs/eval-log.md: latest eval run does not show ✅ pass '
             '(check Pass? column in the most recent row)'
@@ -297,12 +326,14 @@ def parse_types(raw: str) -> list[str]:
     return parts
 
 
-def run_audit(project_types: list[str], docs_path: str, strict: bool) -> dict:
+def run_audit(project_types: list[str], docs_path: str) -> dict:
     all_issues: list[str] = []
 
+    req_issues, fr_ids = check_requirements(docs_path)
+    all_issues += req_issues
+
     for pt in project_types:
-        all_issues += check_requirements(docs_path)
-        all_issues += check_test_plan(docs_path, pt)
+        all_issues += check_test_plan(docs_path, pt, fr_ids)
         all_issues += check_test_report(docs_path, pt)
 
         if pt in PIPELINE_TYPES:
@@ -318,36 +349,36 @@ def run_audit(project_types: list[str], docs_path: str, strict: bool) -> dict:
             seen.add(issue)
             deduped.append(issue)
 
-    passed = len(deduped) == 0
-    return {'passed': passed, 'issues': deduped}
+    return {'passed': len(deduped) == 0, 'issues': deduped}
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description='verify_acceptance.py — functional acceptance gate')
+    parser = argparse.ArgumentParser(
+        description='verify_acceptance.py — functional acceptance gate'
+    )
     parser.add_argument('--project-type', required=True,
                         help='Project type (e.g. web-app, cli-tool, data-pipeline+web-app)')
     parser.add_argument('--docs', default='docs',
                         help='Path to docs directory (default: docs)')
     parser.add_argument('--strict', action='store_true',
-                        help='Exit 1 on any issue (default: exit 0 with warnings)')
+                        help='Exit 1 on any issue')
     parser.add_argument('--json', action='store_true', dest='as_json',
                         help='Output JSON instead of human-readable text')
     args = parser.parse_args()
 
     project_types = parse_types(args.project_type)
-    docs_path = args.docs
-
-    result = run_audit(project_types, docs_path, args.strict)
+    result = run_audit(project_types, args.docs)
 
     if args.as_json:
         print(json.dumps(result, indent=2))
     else:
         if result['passed']:
-            print(f'verify_acceptance ✅  all acceptance checks passed '
-                  f'({args.project_type})')
+            print(f'verify_acceptance ✅  all acceptance checks passed ({args.project_type})')
         else:
-            print(f'verify_acceptance ❌  {len(result["issues"])} issue(s) found '
-                  f'({args.project_type}):')
+            print(
+                f'verify_acceptance ❌  {len(result["issues"])} issue(s) found '
+                f'({args.project_type}):'
+            )
             for issue in result['issues']:
                 print(f'  • {issue}')
 
