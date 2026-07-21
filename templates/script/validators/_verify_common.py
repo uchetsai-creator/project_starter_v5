@@ -62,8 +62,26 @@ def _non_blank(lines: list[str]) -> list[str]:
     return [ln for ln in lines if ln.strip()]
 
 
-def _append_telemetry(entry: dict) -> None:
-    """Append a telemetry entry dict to .ai/telemetry/validation-result.json."""
+def _append_telemetry(
+    entry_or_script: 'dict | str',
+    project_type: str = '',
+    status: str = '',
+    ts: str = '',
+) -> None:
+    """Append a telemetry entry to .ai/telemetry/validation-result.json.
+
+    Accepts either a dict (legacy style used by verify_docs etc.) or
+    positional args (script, project_type, status, ts) used by verify_acceptance.
+    """
+    if isinstance(entry_or_script, dict):
+        entry = entry_or_script
+    else:
+        entry = {
+            'script': entry_or_script,
+            'project_type': project_type,
+            'status': status,
+            'ts': ts,
+        }
     telemetry_dir = Path('.ai') / 'telemetry'
     telemetry_dir.mkdir(parents=True, exist_ok=True)
     telemetry_file = telemetry_dir / 'validation-result.json'
@@ -97,8 +115,14 @@ def parse_types(raw: str) -> list[str]:
     return parts
 
 
-def _section_body(text: str, header_re: str) -> str | None:
-    """Return text from matching section header until next same-or-higher heading."""
+def _section_body(text_or_lines: 'str | list[str]', header_re: str) -> 'str | list[str] | None':
+    """Return section body from matching header until next same-or-higher heading.
+
+    Accepts either a string or a list of lines.
+    Returns the same type as the input (str → str, list → list[str]).
+    """
+    is_list = isinstance(text_or_lines, list)
+    text = '\n'.join(text_or_lines) if is_list else text_or_lines
     m = re.search(header_re, text, re.IGNORECASE | re.MULTILINE)
     if not m:
         return None
@@ -106,4 +130,5 @@ def _section_body(text: str, header_re: str) -> str | None:
     level = len(hashes.group(1)) if hashes else 1
     after = text[m.end():]
     boundary = re.search(r'(?m)^#{1,' + str(level) + r'}\s', after)
-    return after[:boundary.start()] if boundary else after
+    result = after[:boundary.start()] if boundary else after
+    return result.splitlines() if is_list else result

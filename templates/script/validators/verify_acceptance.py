@@ -58,9 +58,9 @@ REQUIRED_TEST_LEVELS: dict[str, list[str]] = {
 PIPELINE_TYPES = {'data-pipeline', 'ml-pipeline'}
 LLM_TYPES = {'llm-app'}
 
-_FR_LINE = re.compile(r'\*\*FR-(\d+)\*\*')
+_FR_LINE = re.compile(r'\*\*FR-([A-Z0-9]+)\*\*')
 _AC_LINE = re.compile(r'\*\*AC-\d+\*\*')
-_FR_REF = re.compile(r'\bFR-(\d+)\b')
+_FR_REF = re.compile(r'\bFR-([A-Z0-9]+)\b')
 _PLACEHOLDER_ROW = re.compile(
     r'\[e\.g\.,|\[N\]|\[Module\]|\[Feature\]|\[Stage\]|\[Source|\[Command|\[Service|\[FR-',
     re.IGNORECASE,

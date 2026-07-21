@@ -15,6 +15,8 @@
 
 ## Testing Strategy
 
+<!-- validator: keep Testing Strategy as a table — verify_acceptance scans pipe-delimited rows to find required test levels -->
+
 Six test levels — include only the levels that apply to your project type (see per-type table below).
 
 | Level | What it tests | External deps | Tool examples (by type) |

@@ -34,8 +34,12 @@
 
 ## Functional Requirements
 
+<!-- FR ID format: FR-<ALPHANUM> where ALPHANUM is one or more uppercase letters and/or digits.
+     Examples: FR-001, FR-A01, FR-I03, FR-D02. Both pure-numeric and letter-prefixed IDs are valid. -->
+
 * **FR-001**: [What the system MUST do]
 * **FR-002**: [What the system MUST do]
+* **FR-A01**: [What the system MUST do — example of letter-prefixed FR ID]
 * **FR-003**: [NEEDS CLARIFICATION: describe what is unclear]
 
 ---
