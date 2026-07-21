@@ -13,6 +13,7 @@
 
 | Document | Web App | CLI | Library | Data Pipeline | ML Pipeline | Microservices | AI / LLM App | IaC / DevOps | Mobile App |
 |---|---|---|---|---|---|---|---|---|---|
+| `project-requirements.md` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `architecture.md` | ✅ | ✅ | ⚠️ | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ |
 | `backend.md` | ✅ | ✅ | ❌ | ✅ | ✅ | per-service | ⚠️ if >script | ❌ | ⚠️ if BFF |
 | `frontend.md` | ⚠️ if UI | ❌ | ❌ | ❌ | ❌ | ⚠️ if UI | ⚠️ if UI | ❌ | ✅ |
