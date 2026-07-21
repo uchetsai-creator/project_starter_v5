@@ -27,6 +27,24 @@
 
 documents:
 
+  # ── Plan ──────────────────────────────────────────────────────────────────────
+
+  project-requirements:
+    file: project-requirements.md
+    path: project-requirements.md
+    required_for: [web-app, cli-tool, library, data-pipeline, ml-pipeline, microservices, llm-app, iac, mobile-app]
+    optional_for: []
+    context_priority: high
+    task_types: [feature, sprint-end]
+    purpose: "Functional requirements (FR-XXX), acceptance criteria (AC-XXX), scope, roles, and non-functional requirements"
+    used_by: [context-builder, validator, pdf]
+    related: [test-plan, test-report, business-rules]
+    pdf: true
+    pdf_chapter: plan
+    audience: internal
+    required_sections: ["Functional Requirements", "Acceptance Criteria"]
+    update_trigger: "feature added, removed, or acceptance criteria changed"
+
   # ── Architecture ──────────────────────────────────────────────────────────────
 
   architecture:
@@ -567,7 +585,7 @@ documents:
     context_priority: low
     purpose: "Testing strategy, tool choices, test levels, CI gate, and test environment"
     used_by: [context-builder, validator, pdf]
-    related: [test-report]
+    related: [test-report, project-requirements]
     pdf: true
     pdf_chapter: test
     audience: internal
@@ -582,7 +600,7 @@ documents:
     context_priority: low
     purpose: "Actual test results, coverage, bugs found, and known gaps"
     used_by: [context-builder, validator, pdf]
-    related: [test-plan]
+    related: [test-plan, project-requirements]
     pdf: true
     pdf_chapter: test
     audience: internal
