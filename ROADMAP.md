@@ -3041,7 +3041,7 @@ All 7 capability adapters implement an `extract_code()` body that is structurall
 
 ---
 
-## Phase 85 — Functional Acceptance Gate: `verify_acceptance.py` (all 9 types)
+## Phase 85 — Functional Acceptance Gate: `verify_acceptance.py` (all 9 types) ✅ Complete
 
 **Goal:** Close the gap between spec-code drift validation and functional requirement validation. All 9 project types can now verify that declared requirements have test coverage and passing results — without web bias.
 
@@ -3108,7 +3108,7 @@ Type-specific extensions layered on top (no web bias):
 
 ---
 
-## Phase 86 — Requirement Traceability Column in test-plan.md
+## Phase 86 — Requirement Traceability Column in test-plan.md ✅ Complete
 
 **Goal:** Make the FR-XXX → test mapping explicit in the Test Scope table, enabling `verify_acceptance.py` to cross-reference requirements against test plan entries.
 
