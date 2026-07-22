@@ -250,8 +250,8 @@ python3 docs/script/generators/build_pdf.py docs-zh --lang zh -o docs/project-do
     },
 }
 
-CSS_FONT_EN = "'Segoe UI', 'Noto Sans Symbols2', 'Noto Sans Symbols', Arial, sans-serif"
-CSS_FONT_ZH = "'Noto Sans CJK TC', 'Noto Sans TC', 'Microsoft JhengHei', 'Noto Sans Symbols2', 'Noto Sans Symbols', 'Segoe UI', Arial, sans-serif"
+CSS_FONT_EN = "'Segoe UI', Arial, sans-serif"
+CSS_FONT_ZH = "'Noto Sans CJK TC', 'Noto Sans TC', 'Microsoft JhengHei', 'Segoe UI', Arial, sans-serif"
 
 
 SPEC_SECTIONS = {"introduction", "design", "build", "deployment"}
@@ -953,22 +953,6 @@ def main():
 
     merged_md = build_merged_markdown(docs_dir, html_svg_pairs, png_cache_dir, strings,
                                       project_type=project_type, content=content)
-
-    # Replace color-emoji that WeasyPrint can't render (Noto Color Emoji is CBDT/COLR
-    # which WeasyPrint doesn't support). Map to plain-text equivalents.
-    _EMOJI_MAP = {
-        '✅': '✓', '☑': '✓',
-        '🚧': '⚑',
-        '🔴': '●', '🟠': '●', '🟡': '◐', '🟢': '●', '🔵': '●', '🟣': '●',
-        '❌': '✗', '❎': '✗',
-        '⚠️': '⚠', '🚫': '✗',
-        '📌': '»', '📍': '»', '📎': '»',
-        '🔒': '[鎖]', '🔓': '[解]',
-        '🏷️': '[tag]',
-        '🎯': '◎', '💡': '◉',
-    }
-    for emoji, replacement in _EMOJI_MAP.items():
-        merged_md = merged_md.replace(emoji, replacement)
 
     md_html = markdown.markdown(
         merged_md,
