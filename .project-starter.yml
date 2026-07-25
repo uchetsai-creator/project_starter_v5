@@ -16,3 +16,25 @@ task_type:
 # Valid values: feature | pipeline-stage | bug-fix | sprint-end | eval-run | iac-change
 # Leave blank to show all Required documents for the project type.
 # Can also be set per-task in docs/current-state.md → Task Type field (overrides this value).
+
+spec_code_adapter:
+spec_code_spec:
+spec_code_src:
+# Optional — all three must be set together to enable the spec ↔ code drift gate
+# (verify_spec_code.py) in .githooks/pre-commit and in the validator sequences rendered
+# by orchestrator.py. Leave all three blank to skip the gate (default — matches prior behavior).
+#
+# spec_code_adapter: the registered framework adapter name, e.g. fastapi | flask | express |
+#   click | airflow | dagster | prefect | python_library | tool_schema | terraform | pulumi |
+#   react_native | flutter — see README.md → Spec ↔ Code Validator → Adapters for the full list.
+# spec_code_spec: path to the contract document the adapter reads, e.g. docs/specs/api-contract.md
+# spec_code_src: path to the source tree the adapter scans, e.g. src/
+#
+# Example (FastAPI web app):
+#   spec_code_adapter: fastapi
+#   spec_code_spec: docs/specs/api-contract.md
+#   spec_code_src: src/
+#
+# Only one adapter mapping is supported here. Projects needing more than one contract
+# validated (e.g. multiple services) can still run verify_spec_code.py directly with
+# additional --adapter/--spec/--src invocations — see README.md.

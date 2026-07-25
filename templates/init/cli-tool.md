@@ -30,6 +30,9 @@
     ```yaml
     project_type: cli-tool
     docs_path: docs/
+    # Optional: spec_code_adapter / spec_code_spec / spec_code_src — enables the spec↔code
+    # drift gate in pre-commit + orchestrator. See README.md → Spec ↔ Code Validator →
+    # Wiring it into pre-commit.
     ```
 24. Copy `document-registry.yaml` from the framework root to your project root:
     ```bash

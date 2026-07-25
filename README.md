@@ -486,6 +486,7 @@ python3 orchestrator.py --dry-run
 |---|---|---|
 | `.project-starter.yml` | `project_type` | Select validator commands + context |
 | `.project-starter.yml` | `task_type` (optional) | Select workflow template |
+| `.project-starter.yml` | `spec_code_adapter` / `spec_code_spec` / `spec_code_src` (optional, all three required together) | Appends `--adapter --spec --src` to any `verify_spec_code.py` step |
 | `docs/current-state.md` | `Task Type:` field (optional) | Override task_type per task |
 | `workflow-registry.yaml` | `workflows[task_type].validators` | Ordered post-task validator sequence |
 
@@ -810,6 +811,8 @@ Any AI tool (Claude / Codex / Cursor / manual)
  [specs/*.md staged]     changelog.md also staged?   ← audit trail (warn)
  [current-state.md + Status:Complete]  Closeout filled? ← closeout (block)
  [spec-facing doc staged] no Sprint/Task refs         ← writing audience (block)
+ [spec_code_* set in .project-starter.yml]
+   [spec contract or configured src/ staged]  verify_spec_code.py ← spec↔code drift (block)
         ↓
  PASS → commit proceeds
  FAIL → commit blocked, output shown to developer
@@ -832,6 +835,10 @@ Spec-facing documents (writing audience check): `business-rules.md`, `pipeline-c
    docs_path: docs/
    ```
 3. (Optional) For Claude Code fast-feedback, copy `.claude/settings.json` to your project's `.claude/` folder.
+4. (Optional) To turn on the spec ↔ code drift gate at commit time, add `spec_code_adapter`,
+   `spec_code_spec`, and `spec_code_src` to `.project-starter.yml` — see
+   [Spec ↔ Code Validator → Wiring it into pre-commit](#wiring-it-into-pre-commit) below.
+   Without these three keys the gate is skipped, same as before.
 
 ### Tool compatibility
 
@@ -1063,6 +1070,34 @@ python3 docs/script/validators/verify_spec_code.py \
 
 The validator exits 0 with a warning if `--adapter`/`--spec`/`--src` are not provided —
 safe to include in the workflow registry and pre-commit hook for all projects.
+
+### Wiring it into pre-commit
+
+Manual invocation (above) is one way to run the drift check. To make it fire automatically —
+in `.githooks/pre-commit` and in the validator sequence `orchestrator.py` writes to
+`.ai/WORKFLOW.md` — set three keys in `.project-starter.yml`:
+
+```yaml
+spec_code_adapter: fastapi
+spec_code_spec: docs/specs/api-contract.md
+spec_code_src: src/
+```
+
+All three must be set together; leave them blank to skip the gate (the default — matches
+prior behavior with no config).
+
+Once configured:
+
+- `orchestrator.py` appends `--adapter --spec --src` automatically to every
+  `verify_spec_code.py` step in `.ai/WORKFLOW.md` — no need to edit `workflow-registry.yaml`.
+- `.githooks/pre-commit` runs `verify_spec_code.py --strict` whenever **either** side of the
+  contract changes: the spec contract document itself, or any staged file under `spec_code_src`.
+  This is what catches code changed directly without the spec being updated — the exact case a
+  spec-file-only trigger misses.
+
+Only one adapter mapping is supported via `.project-starter.yml`. Projects validating more than
+one contract (e.g. multiple services) can still run additional `verify_spec_code.py` invocations
+manually or from CI, per the **Usage** examples above.
 
 ### Writing a custom adapter
 

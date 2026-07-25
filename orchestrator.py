@@ -61,12 +61,20 @@ def _build_workflow(project_root: Path, task_type_override: str | None = None) -
     workflow = workflows.get(workflow_key, {})
     validators = workflow.get("validators", [])
 
+    spec_code = None
+    sc_adapter = cfg.get("spec_code_adapter")
+    sc_spec = cfg.get("spec_code_spec")
+    sc_src = cfg.get("spec_code_src")
+    if sc_adapter and sc_spec and sc_src:
+        spec_code = {"adapter": sc_adapter, "spec": sc_spec, "src": sc_src}
+
     return {
         "project_type": project_type_str,
         "task_type": task_type,
         "workflow_key": workflow_key,
         "validators": validators,
         "docs_path": docs_path,
+        "spec_code": spec_code,
     }
 
 
@@ -88,11 +96,16 @@ def _render(ctx: dict) -> str:
         "## Post-task validators (run in order)",
     ]
 
+    spec_code = ctx.get("spec_code")
+
     if ctx["validators"]:
         for i, v in enumerate(ctx["validators"], start=1):
             script = v.get("script", "")
-            extra_args = v.get("args", [])
-            parts = ["python3", script, f"--project-type {pt}"] + [str(a) for a in extra_args]
+            extra_args = [str(a) for a in v.get("args", [])]
+            parts = ["python3", script, f"--project-type {pt}"]
+            if spec_code and script.endswith("verify_spec_code.py"):
+                parts.append(f"--adapter {spec_code['adapter']} --spec {spec_code['spec']} --src {spec_code['src']}")
+            parts += extra_args
             lines.append(f"{i}. `{' '.join(parts)}`")
     else:
         lines.append("_(no validators configured for this task type)_")

@@ -107,6 +107,9 @@ Create `.project-starter.yml` at the project root:
 ```yaml
 project_type: mobile-app
 docs_path: docs/
+# Optional: spec_code_adapter / spec_code_spec / spec_code_src — enables the spec↔code
+# drift gate in pre-commit + orchestrator. See README.md → Spec ↔ Code Validator →
+# Wiring it into pre-commit.
 ```
 
 Copy `document-registry.yaml` from the framework root to your project root:

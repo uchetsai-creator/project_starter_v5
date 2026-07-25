@@ -8,12 +8,13 @@ _spec.loader.exec_module(_mod)
 _render = _mod._render
 
 
-def _ctx(task_type=None, project_type="web-app", validators=None):
+def _ctx(task_type=None, project_type="web-app", validators=None, spec_code=None):
     return {
         "task_type": task_type,
         "project_type": project_type,
         "workflow_key": task_type or "default",
         "validators": validators or [],
+        "spec_code": spec_code,
     }
 
 
@@ -85,3 +86,29 @@ def test_render_contains_post_task_section():
 def test_render_contains_closeout_section():
     out = _render(_ctx())
     assert "## Closeout" in out
+
+
+# ---------------------------------------------------------------------------
+# spec_code injection
+# ---------------------------------------------------------------------------
+
+_SPEC_CODE = {"adapter": "fastapi", "spec": "docs/specs/api-contract.md", "src": "src/"}
+
+
+def test_render_injects_spec_code_args_when_configured():
+    validators = [{"script": "docs/script/validators/verify_spec_code.py", "args": ["--strict"]}]
+    out = _render(_ctx(task_type="feature", validators=validators, spec_code=_SPEC_CODE))
+    assert "--adapter fastapi --spec docs/specs/api-contract.md --src src/" in out
+    assert "--strict" in out
+
+
+def test_render_omits_spec_code_args_when_not_configured():
+    validators = [{"script": "docs/script/validators/verify_spec_code.py", "args": ["--strict"]}]
+    out = _render(_ctx(task_type="feature", validators=validators, spec_code=None))
+    assert "--adapter" not in out
+
+
+def test_render_does_not_inject_spec_code_args_into_other_validators():
+    validators = [{"script": "docs/script/validators/verify_docs.py", "args": ["--content"]}]
+    out = _render(_ctx(task_type="feature", validators=validators, spec_code=_SPEC_CODE))
+    assert "--adapter" not in out

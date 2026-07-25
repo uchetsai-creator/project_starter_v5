@@ -41,10 +41,17 @@ CONFIG=".project-starter.yml"
 PROJECT_TYPE=""
 DOCS_PATH="docs"
 
+SPEC_CODE_ADAPTER=""
+SPEC_CODE_SPEC=""
+SPEC_CODE_SRC=""
+
 if [ -f "$CONFIG" ]; then
     PROJECT_TYPE=$(grep '^project_type:' "$CONFIG" | sed 's/project_type:[[:space:]]*//' | tr -d "\"' ")
     DOCS_CANDIDATE=$(grep '^docs_path:' "$CONFIG" | sed 's/docs_path:[[:space:]]*//' | tr -d "\"' /")
     [ -n "$DOCS_CANDIDATE" ] && DOCS_PATH="$DOCS_CANDIDATE"
+    SPEC_CODE_ADAPTER=$(grep '^spec_code_adapter:' "$CONFIG" | sed 's/spec_code_adapter:[[:space:]]*//' | tr -d "\"' ")
+    SPEC_CODE_SPEC=$(grep '^spec_code_spec:' "$CONFIG" | sed 's/spec_code_spec:[[:space:]]*//' | tr -d "\"' ")
+    SPEC_CODE_SRC=$(grep '^spec_code_src:' "$CONFIG" | sed 's/spec_code_src:[[:space:]]*//' | tr -d "\"' ")
 fi
 
 if [ -z "$PROJECT_TYPE" ]; then
@@ -163,14 +170,25 @@ if [ -n "$SPEC_FACING_STAGED" ]; then
 fi
 
 # ── Spec ↔ Code validation ─────────────────────────────────────────────────────
-# Trigger: any spec contract document staged (spec change → validate code still matches)
-# Catches: spec–code drift introduced alongside a spec update
-# Note: verify_spec_code.py exits 0 if --adapter/--spec/--src are not configured.
+# Trigger: any spec contract document staged, OR any file under the configured
+#          spec_code_src tree staged — catches drift from EITHER side changing alone,
+#          including code changed directly without touching the spec.
+# Catches: spec–code drift introduced alongside a spec update, or code silently
+#          diverging from a spec that was never updated.
+# Requires spec_code_adapter / spec_code_spec / spec_code_src set in .project-starter.yml —
+# skipped entirely (no check, no noise) when unset, matching prior default behavior.
 SPEC_CONTRACT_STAGED=$(printf '%s\n' "$STAGED" \
     | grep -E '(pipeline-contract|cli-contract|api-contract|public-api|llm-contract|topology|mobile-contract)\.md$' || true)
-if [ -n "$SPEC_CONTRACT_STAGED" ] && [ -f "docs/script/validators/verify_spec_code.py" ]; then
-    echo "  → verify_spec_code.py (spec contract staged) ..."
-    python3 "docs/script/validators/verify_spec_code.py" --strict 2>&1 || PASS=false
+if [ -n "$SPEC_CODE_ADAPTER" ] && [ -n "$SPEC_CODE_SPEC" ] && [ -n "$SPEC_CODE_SRC" ] \
+    && [ -f "docs/script/validators/verify_spec_code.py" ]; then
+    SRC_STAGED=$(printf '%s\n' "$STAGED" | grep -F "$SPEC_CODE_SRC" || true)
+    if [ -n "$SPEC_CONTRACT_STAGED" ] || [ -n "$SRC_STAGED" ]; then
+        echo "  → verify_spec_code.py --adapter $SPEC_CODE_ADAPTER (spec or src staged) ..."
+        python3 "docs/script/validators/verify_spec_code.py" \
+            --project-type "$PROJECT_TYPE" \
+            --adapter "$SPEC_CODE_ADAPTER" --spec "$SPEC_CODE_SPEC" --src "$SPEC_CODE_SRC" \
+            --strict 2>&1 || PASS=false
+    fi
 fi
 
 if [ "$PASS" = false ]; then

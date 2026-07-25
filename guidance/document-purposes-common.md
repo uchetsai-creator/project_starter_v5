@@ -414,6 +414,12 @@ Runs the following checks on every commit:
 - Changelog audit trail — sprint-change-log entry required before commit
 - Closeout completeness — current-state.md must be properly closed out
 - Writing Audience violations — no task/sprint refs in spec-facing documents
+
+**Spec ↔ code drift** (conditional — only when `spec_code_adapter`/`spec_code_spec`/`spec_code_src`
+are set in `.project-starter.yml`): `verify_spec_code.py` runs whenever the spec contract document
+or any file under `spec_code_src` is staged — catches code that changed without the spec being
+updated, not just the reverse. Skipped entirely (no check) when those three keys are unset.
+
 Blocks the commit and shows output on failure. Works with Claude Code, Codex, Cursor, or manual commits.
 Optional Claude Code Stop hook (`.claude/settings.json`) calls the same scripts for
 mid-session fast feedback, writing results to `logs/verify-{timestamp}.json`.
@@ -553,14 +559,19 @@ Update when: telemetry schema changes or a new event type is added.
 **Applies to: All project types**
 
 Purpose:
-Single config file at the project root. Stores `project_type`, `docs_path`, and optional `task_type`.
-Used by `.githooks/pre-commit`, all verify scripts, and `build-context.py` so type/path flags do not
-need to be passed on every manual invocation.
+Single config file at the project root. Stores `project_type`, `docs_path`, optional `task_type`,
+and optional `spec_code_adapter` / `spec_code_spec` / `spec_code_src`.
+Used by `.githooks/pre-commit`, all verify scripts, `build-context.py`, and `orchestrator.py` so
+type/path flags do not need to be passed on every manual invocation.
 
 ```yaml
 project_type: data-pipeline
 docs_path: docs/
 task_type:          # optional: feature | pipeline-stage | bug-fix | sprint-end | eval-run | iac-change
+
+spec_code_adapter:   # optional, all three required together — enables the spec ↔ code drift gate
+spec_code_spec:      # e.g. fastapi / docs/specs/api-contract.md / src/ — see README.md → Spec ↔ Code Validator
+spec_code_src:
 ```
 
 Created at project initialization (last step in each `init/[type].md`).
