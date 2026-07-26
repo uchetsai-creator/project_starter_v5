@@ -37,7 +37,9 @@ what's really there, rather than assuming a blank slate.
 
 From here: **Project Initialization** below has the full per-type document list, **Verification**
 covers exactly what the pre-commit hook checks, and **Spec ↔ Code Validator** covers wiring up
-automatic spec↔code drift detection.
+automatic spec↔code drift detection. Read **[Limitations](#limitations)** before assuming that
+wiring gives you more than it actually does — in particular, it's off by default and does not
+generate or enforce code from the spec.
 
 ---
 
@@ -196,22 +198,29 @@ project_starter/                     ← this repo (template only)
         │   ├── verify_module_docs.py ← module flow coverage + quality audit
         │   ├── verify_content.py    ← full document content quality gate (all Required docs × project type)
         │   ├── verify_spec_code.py  ← spec ↔ code drift validator (core — no framework logic)
-        │   ├── _spec_code_adapters/ ← framework adapters (one per framework)
-        │   │   ├── _base.py              ← FrameworkAdapter ABC + all NormalizedForm dataclasses
+        │   ├── _spec_code_adapters/ ← framework detectors (one per framework; *Adapter classes are legacy shims)
+        │   │   ├── _base.py              ← FrameworkAdapter/Detector ABCs + all NormalizedForm dataclasses
         │   │   ├── _example_adapter.py   ← Custom Adapter SDK reference implementation (self-tests)
-        │   │   ├── airflow.py            ← AirflowAdapter (Data Pipeline / ML Pipeline)
-        │   │   ├── click.py              ← ClickAdapter (CLI Tool)
-        │   │   ├── dagster.py            ← DagsterAdapter (Data Pipeline / ML Pipeline)
-        │   │   ├── express.py            ← ExpressAdapter (Web App / Microservices — Node.js)
-        │   │   ├── fastapi.py            ← FastAPIAdapter (Web App / Microservices)
-        │   │   ├── flask.py              ← FlaskAdapter (Web App / Microservices)
-        │   │   ├── flutter.py            ← FlutterAdapter (Mobile App — Dart)
-        │   │   ├── prefect.py            ← PrefectAdapter (Data Pipeline / ML Pipeline)
-        │   │   ├── pulumi.py             ← PulumiAdapter (IaC / DevOps — Python)
-        │   │   ├── python_library.py     ← PythonLibraryAdapter (Library / SDK)
-        │   │   ├── react_native.py       ← ReactNativeAdapter (Mobile App — TSX/JSX)
-        │   │   ├── terraform.py          ← TerraformAdapter (IaC / DevOps — HCL)
-        │   │   └── tool_schema.py        ← ToolSchemaAdapter (AI / LLM App)
+        │   │   ├── airflow.py            ← AirflowDetector (Data Pipeline / ML Pipeline)
+        │   │   ├── ansible.py            ← AnsibleDetector (IaC / DevOps — YAML)
+        │   │   ├── click.py              ← ClickDetector (CLI Tool)
+        │   │   ├── dagster.py            ← DagsterDetector (Data Pipeline / ML Pipeline)
+        │   │   ├── django.py             ← DjangoDetector (Web App / Microservices — DRF)
+        │   │   ├── express.py            ← ExpressDetector (Web App / Microservices — Node.js)
+        │   │   ├── fastapi.py            ← FastAPIDetector (Web App / Microservices)
+        │   │   ├── flask.py              ← FlaskDetector (Web App / Microservices)
+        │   │   ├── flutter.py            ← FlutterDetector (Mobile App — Dart)
+        │   │   ├── langchain.py          ← LangchainDetector (AI / LLM App)
+        │   │   ├── luigi.py              ← LuigiDetector (Data Pipeline / ML Pipeline)
+        │   │   ├── prefect.py            ← PrefectDetector (Data Pipeline / ML Pipeline)
+        │   │   ├── pulumi.py             ← PulumiDetector (IaC / DevOps — Python)
+        │   │   ├── python_library.py     ← PythonLibraryDetector (Library / SDK)
+        │   │   ├── react_native.py       ← ReactNativeDetector (Mobile App — TSX/JSX)
+        │   │   ├── swiftui.py            ← SwiftuiDetector (Mobile App — Swift)
+        │   │   ├── terraform.py          ← TerraformDetector (IaC / DevOps — HCL)
+        │   │   ├── tool_schema.py        ← ToolSchemaDetector (AI / LLM App)
+        │   │   ├── typer.py              ← TyperDetector (CLI Tool)
+        │   │   └── typescript.py         ← TypescriptDetector (Library / SDK — TS/TSX)
         │   ├── _verify_common.py    ← shared placeholder patterns imported by verify scripts
         │   └── _registry.py         ← document registry loader
         ├── generators/              ← shipped to user projects (docs/script/generators/)
@@ -870,10 +879,13 @@ Spec-facing documents (writing audience check): `business-rules.md`, `pipeline-c
    docs_path: docs/
    ```
 3. (Optional) For Claude Code fast-feedback, copy `.claude/settings.json` to your project's `.claude/` folder.
-4. (Optional) To turn on the spec ↔ code drift gate at commit time, add `spec_code_adapter`,
-   `spec_code_spec`, and `spec_code_src` to `.project-starter.yml` — see
+4. **Recommended** — turn on the spec ↔ code drift gate at commit time by adding
+   `spec_code_adapter`, `spec_code_spec`, and `spec_code_src` to `.project-starter.yml` — see
    [Spec ↔ Code Validator → Wiring it into pre-commit](#wiring-it-into-pre-commit) below.
-   Without these three keys the gate is skipped, same as before.
+   Without these three keys the gate is skipped entirely — no drift protection at all, for any
+   language or framework — and the pre-commit hook prints a non-blocking `[TIP]` (listing the
+   adapters available for your project type) whenever you commit a spec contract file without
+   this configured, as a reminder that it's off. See [Limitations](#limitations) below.
 
 ### Tool compatibility
 
@@ -1259,6 +1271,59 @@ python3 docs/script/validators/verify_spec_code.py \
     --project-type web-app --adapter fastapi --semantic --json \
     --spec docs/specs/api-contract.md --src src/
 ```
+
+---
+
+## Limitations
+
+This is a documentation-completeness and drift-detection framework, not a spec-compiler. Read
+this before assuming "spec-driven" means the spec enforces the code, or that a passing pre-commit
+means the code is correct.
+
+**Editing the spec never changes the code, and editing the code never changes the spec.**
+`verify_spec_code.py` only compares two things that already exist — it has no code-generation or
+spec-generation step. Whoever changes one side (developer or AI agent) is still responsible for
+manually updating the other; the validator's only job is to catch it if they forget. If you're
+picturing an OpenAPI-codegen-style pipeline where the spec is the source of truth the code is
+generated from, that is not what this does.
+
+**The drift gate is opt-in and invisible until you turn it on.** `spec_code_adapter` is unset by
+default — with it unset, a project has **zero** spec↔code protection, silently, forever, and
+(until recently) nothing told you that. The pre-commit hook now prints a non-blocking `[TIP]`
+listing available adapters whenever a spec contract file is committed without this configured
+(see [Wiring it into pre-commit](#wiring-it-into-pre-commit)), but it's still up to you to act on
+the tip — the gate does not turn itself on. `--strict` is also required for the check to actually
+fail a commit; without it, output is informational only.
+
+**Coverage is limited to the frameworks with a detector.** ~27 framework detectors exist across 7
+capabilities today (see the Adapters table above). Any other language or framework — Rails, Spring
+Boot, native Android/Kotlin, Vue, Go, PHP, and everything else not listed — has **no automated
+drift detection at all**. Spec and code can diverge indefinitely for these; manual code review is
+the only safety net. Running a capability adapter without a `--framework` hint unions *all* of its
+detectors, and two frameworks sharing a similar idiom (e.g. Click's and Typer's `.command()`
+decorator) can both match the same code and produce overlapping or duplicate results — pass
+`--framework`, or use the standalone `--adapter <framework>` alias, to avoid this.
+
+**What it checks is narrow: shape, not meaning or quality.** The comparison is field/flag/prop
+names, types, HTTP method+path, and resource attribute keys — never business logic correctness,
+security, performance, or whether the implementation actually does what the spec describes.
+Those are separate, largely manual concerns (`code-quality-check.md` for retrofits,
+`verify_acceptance.py` for FR-XXX traceability, `verify_tests.py` for test-report fill quality —
+none of them execute your code or your tests). A field-level quirk worth knowing: for
+`NormalizedEndpoint` and `NormalizedStageContract`, request/input fields and response/output
+fields are merged into one namespace before comparison (`_item_fields()` in
+`verify_spec_code.py`) — a field the spec declares only on the response side can be silently
+satisfied by a same-named field that exists only on the code's request side, and vice versa.
+
+**Document validators check fill quality, not truth.** `verify_docs.py` and `verify_content.py`
+confirm a document isn't a placeholder and has the sections/rows the schema expects — they cannot
+confirm the content is factually accurate. A confidently wrong, fully-filled-in spec passes every
+check exactly as well as a correct one.
+
+**Multi-contract projects need extra manual wiring.** Only one adapter mapping is configured via
+`.project-starter.yml` at a time. A project validating more than one contract (multiple services,
+multiple libraries) needs additional manual or CI-driven `verify_spec_code.py` invocations for the
+rest — see the per-adapter commands under [Usage](#usage) above.
 
 ---
 
