@@ -191,6 +191,31 @@ if [ -n "$SPEC_CODE_ADAPTER" ] && [ -n "$SPEC_CODE_SPEC" ] && [ -n "$SPEC_CODE_S
     fi
 fi
 
+# ── Spec ↔ Code coverage tip (non-blocking) ────────────────────────────────────
+# Trigger: a spec contract document is staged, but spec_code_adapter isn't configured.
+# Purpose: the drift gate above is entirely invisible when unset — a project can
+# silently have zero spec<->code protection indefinitely. This surfaces that gap
+# at the moment it actually matters (a spec contract is being committed) instead
+# of depending on someone having read the optional setup docs beforehand.
+if [ -z "$SPEC_CODE_ADAPTER" ] && [ -n "$SPEC_CONTRACT_STAGED" ]; then
+    ADAPTERS=""
+    case "$PROJECT_TYPE" in
+        web-app|microservices)   ADAPTERS="fastapi, flask, django, express" ;;
+        cli-tool)                ADAPTERS="click, typer" ;;
+        library)                 ADAPTERS="python_library, typescript" ;;
+        data-pipeline|ml-pipeline) ADAPTERS="airflow, dagster, prefect, luigi" ;;
+        llm-app)                 ADAPTERS="tool_schema, langchain" ;;
+        iac)                     ADAPTERS="terraform, pulumi, ansible" ;;
+        mobile-app)              ADAPTERS="react_native, flutter, swiftui" ;;
+    esac
+    if [ -n "$ADAPTERS" ]; then
+        echo "  [TIP] No spec<->code drift protection configured for this project."
+        echo "        Available adapters for '$PROJECT_TYPE': $ADAPTERS"
+        echo "        Set spec_code_adapter / spec_code_spec / spec_code_src in .project-starter.yml"
+        echo "        to catch drift automatically on every commit — see README.md -> Spec <-> Code Validator."
+    fi
+fi
+
 if [ "$PASS" = false ]; then
     echo ""
     echo "[FAIL] pre-commit: verification failed — commit blocked."

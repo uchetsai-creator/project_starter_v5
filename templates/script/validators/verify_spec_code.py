@@ -483,7 +483,12 @@ def main() -> None:
     if not all([args.adapter, args.spec, args.src]):
         print(
             "[WARN] verify_spec_code: --adapter / --spec / --src not configured — skipping.\n"
-            "    Pass all three flags (or configure via .project-starter.yml in a future phase).",
+            "    This project has no spec<->code drift protection until this is set. Set\n"
+            "    spec_code_adapter / spec_code_spec / spec_code_src in .project-starter.yml\n"
+            "    (orchestrator.py and the pre-commit hook both read it automatically — no\n"
+            "    need to pass these flags by hand), or pass all three flags directly.\n"
+            "    Run --list-adapters to see what's available for your project type.\n"
+            "    See README.md -> Spec <-> Code Validator -> Wiring it into pre-commit.",
         )
         sys.exit(0)
 
