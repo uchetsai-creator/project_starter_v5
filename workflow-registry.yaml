@@ -85,6 +85,13 @@ workflows:
         args: [--content]
       - script: docs/script/validators/verify_content.py
         args: [--strict]
+      - script: docs/script/validators/verify_spec_code.py
+        args: [--strict]
+        # Catches tool-schema drift (llm-contract.md vs. tool_schema/langchain adapters).
+        # Skips gracefully if --adapter / --spec / --src are not configured.
+        # eval-run is llm-app's primary task type — without this entry, llm-app projects
+        # never got the spec-code drift gate at all despite the "feature" workflow's own
+        # comment listing llm-app as covered (Phase 47).
 
   iac-change:
     validators:
