@@ -56,11 +56,19 @@ project_starter/                     ← this repo (template only)
 ├── AGENTS.md
 ├── orchestrator.py                  ← workflow manager: writes .ai/WORKFLOW.md + calls build-context.py
 ├── build-context.py                 ← context builder: writes .ai/AI_CONTEXT.md from registry
+├── _workflow_utils.py               ← shared helpers imported by orchestrator.py / build-context.py
 ├── workflow-registry.yaml           ← task_type → validator sequence mapping
 ├── document-registry.yaml           ← single source of truth for all document metadata
+├── .project-starter.yml             ← template with [your-project-type] placeholder; copy + fill in per project
 ├── .gitignore                       ← excludes .ai/ (generated, not committed)
+├── setup.sh                         ← one-shot setup: downloads plantuml.jar, checks Java
 ├── debug-instrumentation-rules.md
 ├── code-quality-check.md            ← code review checklist for retrofitting existing projects
+├── .githooks/
+│   ├── pre-commit                   ← the hook itself (see Verification below); install via `cp` + `chmod +x`
+│   └── run-verify.sh                ← Claude Code Stop-hook script: writes validator --json output to logs/verify-{timestamp}.json
+├── .claude/
+│   └── settings.json                ← (optional, copy to your project) wires run-verify.sh + adapters/claude/stop-hook.sh into the Stop hook
 ├── .ai/                             ← generated context (gitignored); recreate with orchestrator.py
 │   ├── AI_CONTEXT.md               ← ordered read list for the current task
 │   ├── WORKFLOW.md                 ← deterministic workflow plan (pre-task, validators, closeout)
@@ -604,10 +612,16 @@ python3 orchestrator.py --adapter cursor
 1. Run `python3 orchestrator.py --adapter claude` — this writes `.claude/commands/start-task.md`.
 2. In any future session, type `/start-task` to have Claude run the orchestrator and walk through
    the current workflow plan.
-3. (Optional) Install the Stop hook so each session end is recorded in `.ai/telemetry/task-run.json`:
-   add `adapters/claude/stop-hook.sh` to the `Stop` hook list in `.claude/settings.json`.
-   Note: the hook writes to telemetry only — not to `docs/task-log.md`. Task log rows are written
-   during task closeout by the AI agent, not automatically on session end.
+3. (Optional) For fast feedback without waiting for a manual validator run, copy this repo's
+   `.claude/settings.json` into your project's `.claude/` folder. It wires two scripts into the
+   Stop hook, both non-blocking (always exit 0) and both run automatically on every session end:
+   - `.githooks/run-verify.sh` — runs `verify_docs.py` / `verify_logs.py` / `verify_tests.py` /
+     `verify_content.py` with `--json` and writes the combined output to
+     `logs/verify-{timestamp}.json`, so you can see validator results without running them by hand.
+   - `adapters/claude/stop-hook.sh` — records the session boundary to
+     `.ai/telemetry/task-run.json` (see Validation Telemetry below).
+     Note: this writes to telemetry only — not to `docs/task-log.md`. Task log rows are written
+     during task closeout by the AI agent, not automatically on session end.
 
 **Codex**
 

@@ -25,8 +25,9 @@ spec_code_src:
 # by orchestrator.py. Leave all three blank to skip the gate (default — matches prior behavior).
 #
 # spec_code_adapter: the registered framework adapter name, e.g. fastapi | flask | express |
-#   click | airflow | dagster | prefect | python_library | tool_schema | terraform | pulumi |
-#   react_native | flutter — see README.md → Spec ↔ Code Validator → Adapters for the full list.
+#   django | click | typer | airflow | dagster | prefect | luigi | python_library | typescript |
+#   tool_schema | langchain | terraform | pulumi | ansible | react_native | flutter | swiftui —
+#   see README.md → Spec ↔ Code Validator → Adapters for the full list.
 # spec_code_spec: path to the contract document the adapter reads, e.g. docs/specs/api-contract.md
 # spec_code_src: path to the source tree the adapter scans, e.g. src/
 #
