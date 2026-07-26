@@ -83,7 +83,7 @@ def main() -> int:
 
     if not args.framework_repo:
         print(
-            "❌ PROJECT_STARTER_FRAMEWORK_REPO is not set.\n"
+            "[FAIL] PROJECT_STARTER_FRAMEWORK_REPO is not set.\n"
             "   Export it before running:\n"
             "     export PROJECT_STARTER_FRAMEWORK_REPO=your-org/your-repo",
             file=sys.stderr,
@@ -117,19 +117,19 @@ def main() -> int:
         # Clone the framework repo (shallow clone is fine)
         result = run(["gh", "repo", "clone", args.framework_repo, str(clone_dir), "--", "--depth=1"], check=False)
         if result.returncode != 0:
-            print(f"❌ Clone failed: {result.stderr.strip()}", file=sys.stderr)
+            print(f"[FAIL] Clone failed: {result.stderr.strip()}", file=sys.stderr)
             return 1
 
         # Create branch
         result = run(["git", "checkout", "-b", branch], cwd=clone_dir, check=False)
         if result.returncode != 0:
-            print(f"❌ Branch creation failed: {result.stderr.strip()}", file=sys.stderr)
+            print(f"[FAIL] Branch creation failed: {result.stderr.strip()}", file=sys.stderr)
             return 1
 
         # Locate and edit the template file
         template_path = clone_dir / template_repo_path
         if not template_path.exists():
-            print(f"❌ Template not found in repo: {template_repo_path}", file=sys.stderr)
+            print(f"[FAIL] Template not found in repo: {template_repo_path}", file=sys.stderr)
             return 1
 
         fix_text = generate_fix_text(args.type, args.document, args.gap_description)
@@ -138,7 +138,7 @@ def main() -> int:
         # Skip if the section already exists (idempotency guard)
         heading = f"## {args.gap_description}"
         if heading in existing:
-            print(f"⚠️  Section '{heading}' already exists in {args.document} — skipping PR.")
+            print(f"[WARN] Section '{heading}' already exists in {args.document} — skipping PR.")
             return 0
 
         template_path.write_text(existing.rstrip() + "\n" + fix_text, encoding="utf-8")
@@ -152,13 +152,13 @@ def main() -> int:
         )
         result = run(["git", "commit", "-m", commit_msg], cwd=clone_dir, check=False)
         if result.returncode != 0:
-            print(f"❌ Commit failed: {result.stderr.strip()}", file=sys.stderr)
+            print(f"[FAIL] Commit failed: {result.stderr.strip()}", file=sys.stderr)
             return 1
 
         # Push branch
         result = run(["git", "push", "origin", branch], cwd=clone_dir, check=False)
         if result.returncode != 0:
-            print(f"❌ Push failed: {result.stderr.strip()}", file=sys.stderr)
+            print(f"[FAIL] Push failed: {result.stderr.strip()}", file=sys.stderr)
             return 1
 
         # Open PR
@@ -169,10 +169,10 @@ def main() -> int:
         )
         if result.returncode == 0:
             pr_url = result.stdout.strip()
-            print(f"✅ PR opened: {pr_url}")
+            print(f"[OK] PR opened: {pr_url}")
             return 0
         else:
-            print(f"❌ PR creation failed: {result.stderr.strip()}", file=sys.stderr)
+            print(f"[FAIL] PR creation failed: {result.stderr.strip()}", file=sys.stderr)
             return 1
 
 

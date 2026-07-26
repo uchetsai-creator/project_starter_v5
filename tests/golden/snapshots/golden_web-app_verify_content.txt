@@ -3,22 +3,23 @@ Document Content Quality — web-app
 ────────────────────────────────────────────────────────────────────
 Document                       Required     Quality
 ────────────────────────────────────────────────────────────────────
-research.md                    ✅            ✅  Fully filled
-quickstart.md                  ✅            ✅  Fully filled
-test-plan.md                   ✅            ✅  Fully filled
-test-report.md                 ✅            ⚠️  No checker available
-architecture.md                ✅            ✅  Fully filled
-backend.md                     ✅            ✅  Fully filled
-database.md                    ✅            ✅  Fully filled
-deployment.md                  ✅            ✅  Fully filled
-api-contract.md                ✅            ✅  Fully filled
-permissions.md                 ✅            ✅  Fully filled
-data-model.md                  ✅            ✅  Fully filled
-logging-spec.md                ✅            ⚠️  No checker available
-business-process.md            ✅            ✅  Fully filled
-business-objects.md            ✅            ✅  Fully filled
-business-rules.md              ✅            ✅  Fully filled
+project-requirements.md        Missing      —
+research.md                    Present      Fully filled
+quickstart.md                  Present      Fully filled
+test-plan.md                   Present      Fully filled
+test-report.md                 Present      No checker available
+architecture.md                Present      Fully filled
+backend.md                     Present      Fully filled
+database.md                    Present      Fully filled
+deployment.md                  Present      Fully filled
+api-contract.md                Present      Fully filled
+permissions.md                 Present      Fully filled
+data-model.md                  Present      Fully filled
+logging-spec.md                Present      No checker available
+business-process.md            Present      Fully filled
+business-objects.md            Present      Fully filled
+business-rules.md              Present      Fully filled
 
-Documents  : 15 / 15 present
+Documents  : 15 / 16 present
 Quality    : 13 / 15 existing documents fully filled
 

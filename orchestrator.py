@@ -42,10 +42,10 @@ def _build_workflow(project_root: Path, task_type_override: str | None = None) -
     registry_path = project_root / "workflow-registry.yaml"
 
     if not yml_path.exists():
-        print(f"❌  .project-starter.yml not found at {yml_path}", file=sys.stderr)
+        print(f"[FAIL] .project-starter.yml not found at {yml_path}", file=sys.stderr)
         sys.exit(1)
     if not registry_path.exists():
-        print(f"❌  workflow-registry.yaml not found at {registry_path}", file=sys.stderr)
+        print(f"[FAIL] workflow-registry.yaml not found at {registry_path}", file=sys.stderr)
         sys.exit(1)
 
     cfg = _load_yaml(yml_path)
@@ -144,7 +144,7 @@ def _run_adapter(adapter: str, project_root: Path, workflow_content: str, dry_ru
     if adapter == "claude":
         template = adapter_dir / "start-task.md"
         if not template.exists():
-            print(f"❌  Adapter template not found: {template}", file=sys.stderr)
+            print(f"[FAIL] Adapter template not found: {template}", file=sys.stderr)
             sys.exit(1)
         rendered = _render_adapter_file(template, workflow_content)
         if dry_run:
@@ -155,13 +155,13 @@ def _run_adapter(adapter: str, project_root: Path, workflow_content: str, dry_ru
             out_dir.mkdir(parents=True, exist_ok=True)
             out_path = out_dir / "start-task.md"
             out_path.write_text(rendered, encoding="utf-8")
-            print(f"✅  Adapter → {out_path}")
+            print(f"[OK] Adapter → {out_path}")
 
     elif adapter == "codex":
         for filename in ("setup.md", "task-instructions.md"):
             template = adapter_dir / filename
             if not template.exists():
-                print(f"❌  Adapter template not found: {template}", file=sys.stderr)
+                print(f"[FAIL] Adapter template not found: {template}", file=sys.stderr)
                 sys.exit(1)
             rendered = _render_adapter_file(template, workflow_content)
             if dry_run:
@@ -172,12 +172,12 @@ def _run_adapter(adapter: str, project_root: Path, workflow_content: str, dry_ru
                 out_dir.mkdir(exist_ok=True)
                 out_path = out_dir / filename
                 out_path.write_text(rendered, encoding="utf-8")
-                print(f"✅  Adapter → {out_path}")
+                print(f"[OK] Adapter → {out_path}")
 
     elif adapter == "cursor":
         template = adapter_dir / ".cursorrules"
         if not template.exists():
-            print(f"❌  Adapter template not found: {template}", file=sys.stderr)
+            print(f"[FAIL] Adapter template not found: {template}", file=sys.stderr)
             sys.exit(1)
         rendered = _render_adapter_file(template, workflow_content)
         if dry_run:
@@ -186,7 +186,7 @@ def _run_adapter(adapter: str, project_root: Path, workflow_content: str, dry_ru
         else:
             out_path = project_root / ".cursorrules"
             out_path.write_text(rendered, encoding="utf-8")
-            print(f"✅  Adapter → {out_path}")
+            print(f"[OK] Adapter → {out_path}")
 
 
 def main() -> None:
@@ -235,7 +235,7 @@ def main() -> None:
     task_name = _read_task_name_from_current_state(docs_dir / "current-state.md")
     _track_orchestrator_run(project_root, task_name)
 
-    print(f"✅  Written to {out_path}")
+    print(f"[OK] Written to {out_path}")
     print(f"    Project type : {ctx['project_type']}")
     print(f"    Task type    : {ctx['task_type'] or 'unset'}")
     print(f"    Workflow     : {ctx['workflow_key']}")

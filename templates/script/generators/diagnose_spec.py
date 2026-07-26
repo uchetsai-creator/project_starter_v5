@@ -190,7 +190,7 @@ def main() -> int:
 
     if not args.framework_repo:
         print(
-            "❌ PROJECT_STARTER_FRAMEWORK_REPO is not set.\n"
+            "[FAIL] PROJECT_STARTER_FRAMEWORK_REPO is not set.\n"
             "   Export it before running:\n"
             "     export PROJECT_STARTER_FRAMEWORK_REPO=your-org/your-repo",
             file=sys.stderr,
@@ -204,7 +204,7 @@ def main() -> int:
         else:
             data = json.load(sys.stdin)
     except (json.JSONDecodeError, OSError) as exc:
-        print(f"❌ Could not read input: {exc}", file=sys.stderr)
+        print(f"[FAIL] Could not read input: {exc}", file=sys.stderr)
         return 1
 
     # Resolve templates directory
@@ -265,46 +265,46 @@ def main() -> int:
 
     # ── Report ────────────────────────────────────────────────────────────────
     dry_tag = " [dry-run]" if args.dry_run else ""
-    print(f"\n📊 Spec diagnosis — {project_type} · round {args.round_num}{dry_tag}\n")
+    print(f"\nSpec diagnosis — {project_type} · round {args.round_num}{dry_tag}\n")
     print(f"  Missing required docs : {len(missing_docs)}")
     print(f"  Framework-level gaps  : {len(framework_gaps)}")
     print(f"  Project-level gaps    : {len(project_gaps)}")
 
     if missing_docs:
-        print("\n📋 Missing required documents (create these in your project):")
+        print("\nMissing required documents (create these in your project):")
         for doc in missing_docs:
             print(f"  - {doc}")
 
     if project_gaps:
-        print("\n📋 Project-level gaps (template has the section — fill it in):")
+        print("\nProject-level gaps (template has the section — fill it in):")
         for g in project_gaps:
             print(f"  - {g['doc']}: {g['section']}")
 
     if not framework_gaps:
         if not project_gaps and not missing_docs:
-            print("\n✅ No spec quality issues found.")
+            print("\nNo spec quality issues found.")
         return 0
 
     if args.round_num >= MAX_ROUNDS:
         # Round 2: log remaining gaps, do not open more PRs
-        print(f"\n📋 Framework-level gaps — logging to logs/framework-gaps.md (round {MAX_ROUNDS} limit reached):")
+        print(f"\nFramework-level gaps — logging to logs/framework-gaps.md (round {MAX_ROUNDS} limit reached):")
         for g in framework_gaps:
             print(f"  - {g['doc']}: {g['section']}")
         log_path = write_gaps_log(framework_gaps, Path(args.logs_dir), args.dry_run)
         if not args.dry_run:
             print(f"\n  Written to: {log_path}")
-        print(f"\n⏹  Round {MAX_ROUNDS} complete — iteration limit reached.")
+        print(f"\nRound {MAX_ROUNDS} complete — iteration limit reached.")
         print("   Review logs/framework-gaps.md and address remaining gaps manually.")
     else:
         # Round 1: open a PR for each framework-level gap
-        print(f"\n🔧 Opening framework fix PRs (round 1){dry_tag}:")
+        print(f"\nOpening framework fix PRs (round 1){dry_tag}:")
         for g in framework_gaps:
             gap_desc = g["section"].lstrip("#").strip()
             print(f"\n  → {g['doc']}: {gap_desc}")
             output = propose_fix(project_type, g["doc"], gap_desc, args.framework_repo, args.dry_run)
             print(f"    {output}")
         print(
-            f"\n✅ Round 1 complete. Merge or skip the PRs above, "
+            f"\nRound 1 complete. Merge or skip the PRs above, "
             f"then re-run with --round 2."
         )
 

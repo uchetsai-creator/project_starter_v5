@@ -3,6 +3,7 @@ Generated: {{TIMESTAMP}}
 
 ## Read (Required)
 - docs/current-state.md   # Active task: goal, steps, and required context
+- docs/project-requirements.md   # Functional requirements (FR-XXX), acceptance criteria (AC-XXX), scope, roles, and non-functional requirements
 - docs/specs/pipeline-contract.md   # Inter-stage input/output formats, paths, naming rules, and error handling
 - docs/specs/data-model.md   # Schema, entities, relationships, indexes, and state machine
 - docs/architecture/architecture.md   # Current system components and data-flow diagram

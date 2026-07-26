@@ -3,6 +3,7 @@ Generated: {{TIMESTAMP}}
 
 ## Read (Required)
 - docs/current-state.md   # Active task: goal, steps, and required context
+- docs/project-requirements.md   # Functional requirements (FR-XXX), acceptance criteria (AC-XXX), scope, roles, and non-functional requirements
 - docs/specs/cli-contract.md   # CLI subcommands, flags, arguments, output format, and exit codes
 - docs/architecture/architecture.md   # Current system components and data-flow diagram
 - docs/architecture/backend.md   # Backend stack, layering, and module organisation

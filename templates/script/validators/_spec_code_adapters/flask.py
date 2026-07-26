@@ -18,7 +18,7 @@ import os
 import re
 
 from _base import Detector, FrameworkAdapter, NormalizedEndpoint, NormalizedField
-from _utils import _annotation_str, _HTTP_METHODS, _parse_field_table
+from _utils import _annotation_str, _HTTP_METHODS, _parse_field_table, _resolve_output_fields
 
 _SKIP_PARAMS = frozenset({'self', 'request', 'kwargs'})
 
@@ -80,13 +80,15 @@ class FlaskDetector(Detector):
                     if a.arg not in _SKIP_PARAMS
                 ]
 
+                response_fields = _resolve_output_fields(tree, node)
+
                 for method in methods:
                     if method in _HTTP_METHODS:
                         endpoints.append(NormalizedEndpoint(
                             method=method,
                             path=path,
                             request_fields=list(request_fields),
-                            response_fields=[],
+                            response_fields=list(response_fields),
                         ))
                 break
 

@@ -20,7 +20,7 @@ STAGED=$(git diff --cached --name-only 2>/dev/null || true)
 if command -v python3 &>/dev/null && [ -f "templates/script/validators/verify_registry.py" ] && [ -f "document-registry.yaml" ]; then
     echo "  → verify_registry.py ..."
     python3 "templates/script/validators/verify_registry.py" --registry document-registry.yaml 2>&1 || {
-        echo "❌  pre-commit: registry schema validation failed — commit blocked."
+        echo "[FAIL] pre-commit: registry schema validation failed — commit blocked."
         exit 1
     }
 fi
@@ -31,7 +31,7 @@ fi
 if command -v python3 &>/dev/null && [ -f "templates/script/framework/verify_framework.py" ]; then
     echo "  → verify_framework.py --strict ..."
     python3 "templates/script/framework/verify_framework.py" --strict 2>&1 || {
-        echo "❌  pre-commit: framework integrity check failed — commit blocked."
+        echo "[FAIL] pre-commit: framework integrity check failed — commit blocked."
         exit 1
     }
 fi
@@ -49,20 +49,20 @@ if [ -f "$CONFIG" ]; then
     PROJECT_TYPE=$(grep '^project_type:' "$CONFIG" | sed 's/project_type:[[:space:]]*//' | tr -d "\"' ")
     DOCS_CANDIDATE=$(grep '^docs_path:' "$CONFIG" | sed 's/docs_path:[[:space:]]*//' | tr -d "\"' /")
     [ -n "$DOCS_CANDIDATE" ] && DOCS_PATH="$DOCS_CANDIDATE"
-    SPEC_CODE_ADAPTER=$(grep '^spec_code_adapter:' "$CONFIG" | sed 's/spec_code_adapter:[[:space:]]*//' | tr -d "\"' ")
-    SPEC_CODE_SPEC=$(grep '^spec_code_spec:' "$CONFIG" | sed 's/spec_code_spec:[[:space:]]*//' | tr -d "\"' ")
-    SPEC_CODE_SRC=$(grep '^spec_code_src:' "$CONFIG" | sed 's/spec_code_src:[[:space:]]*//' | tr -d "\"' ")
+    SPEC_CODE_ADAPTER=$(grep '^spec_code_adapter:' "$CONFIG" | sed 's/spec_code_adapter:[[:space:]]*//' | tr -d "\"' ") || true
+    SPEC_CODE_SPEC=$(grep '^spec_code_spec:' "$CONFIG" | sed 's/spec_code_spec:[[:space:]]*//' | tr -d "\"' ") || true
+    SPEC_CODE_SRC=$(grep '^spec_code_src:' "$CONFIG" | sed 's/spec_code_src:[[:space:]]*//' | tr -d "\"' ") || true
 fi
 
 if [ -z "$PROJECT_TYPE" ]; then
-    echo "⚠️  pre-commit: .project-starter.yml not found or project_type missing — skipping verification."
+    echo "[WARN] pre-commit: .project-starter.yml not found or project_type missing — skipping verification."
     exit 0
 fi
 
 # ── Placeholder guard ─────────────────────────────────────────────────────────
 # Catches: committing with the template placeholder value still in project_type
 if echo "$PROJECT_TYPE" | grep -qE '^\[.+\]$'; then
-    echo "❌  pre-commit: .project-starter.yml project_type is still a placeholder ('$PROJECT_TYPE')."
+    echo "[FAIL] pre-commit: .project-starter.yml project_type is still a placeholder ('$PROJECT_TYPE')."
     echo "    Replace it with your actual project type before committing."
     echo "    Valid values: web-app | cli-tool | library | data-pipeline | ml-pipeline | microservices | llm-app | iac | mobile-app"
     exit 1
@@ -77,7 +77,7 @@ if command -v python3 &>/dev/null && [ -f "docs/script/validators/verify_docs.py
     python3 "docs/script/validators/verify_docs.py" \
         --project-type "$PROJECT_TYPE" --docs "$DOCS_PATH" --content --strict 2>&1 || PASS=false
 else
-    echo "  ⚠️  docs/script/validators/verify_docs.py not found — skipping"
+    echo "  [WARN] docs/script/validators/verify_docs.py not found — skipping"
 fi
 
 # 2. Log quality
@@ -108,10 +108,10 @@ AGENTS_FILE=$(printf '%s\n' "$STAGED" | grep -E '(^|/)AGENTS\.md$' | head -1 || 
 if [ -n "$AGENTS_FILE" ]; then
     AGENTS_LINES=$(git show ":$AGENTS_FILE" 2>/dev/null | wc -l || echo 0)
     if [ "$AGENTS_LINES" -gt 200 ]; then
-        echo "  ❌ AGENTS.md is $AGENTS_LINES lines — token budget exceeded (limit: 200)"
+        echo "  [FAIL] AGENTS.md is $AGENTS_LINES lines — token budget exceeded (limit: 200)"
         PASS=false
     else
-        echo "  ✅ AGENTS.md token budget OK ($AGENTS_LINES / 200 lines)"
+        echo "  [OK] AGENTS.md token budget OK ($AGENTS_LINES / 200 lines)"
     fi
 fi
 
@@ -123,7 +123,7 @@ SPEC_ARCH_STAGED=$(printf '%s\n' "$STAGED" | grep -E '(specs/|architecture/).*\.
 if [ -n "$SPEC_ARCH_STAGED" ]; then
     CHANGELOG_STAGED=$(printf '%s\n' "$STAGED" | grep -E '(^|/)changelog\.md$' | head -1 || true)
     if [ -z "$CHANGELOG_STAGED" ]; then
-        echo "  ⚠️  spec or architecture files changed without changelog.md — add an audit trail entry"
+        echo "  [WARN] spec or architecture files changed without changelog.md — add an audit trail entry"
     fi
 fi
 
@@ -137,7 +137,7 @@ if [ -n "$CS_FILE" ]; then
     if printf '%s\n' "$CS_STATUS" | grep -qi 'Complete'; then
         CLOSEOUT_SECTION=$(printf '%s\n' "$CS_CONTENT" | awk '/^## Closeout/{p=1} p{print}')
         if printf '%s\n' "$CLOSEOUT_SECTION" | grep -qE '__+|<!--'; then
-            echo "  ❌ current-state.md Status is Complete but Closeout section has unfilled placeholders (___) or comments (<!--)"
+            echo "  [FAIL] current-state.md Status is Complete but Closeout section has unfilled placeholders (___) or comments (<!--)"
             PASS=false
         fi
     fi
@@ -159,7 +159,7 @@ if [ -n "$SPEC_FACING_STAGED" ]; then
             | grep -nE 'Sprint [0-9]+|Task [0-9]+|\(S[0-9]+\)' || true)
         if [ -n "$VIOLATIONS" ]; then
             if [ "$FOUND_VIOLATIONS" = false ]; then
-                echo "  ❌ Writing Audience violations in spec-facing documents:"
+                echo "  [FAIL] Writing Audience violations in spec-facing documents:"
                 FOUND_VIOLATIONS=true
             fi
             echo "     $file:"
@@ -193,9 +193,9 @@ fi
 
 if [ "$PASS" = false ]; then
     echo ""
-    echo "❌  pre-commit: verification failed — commit blocked."
+    echo "[FAIL] pre-commit: verification failed — commit blocked."
     echo "    Fix the issues above, then re-run: git commit"
     exit 1
 fi
 
-echo "✅  pre-commit: all checks passed."
+echo "[OK] pre-commit: all checks passed."

@@ -22,6 +22,21 @@ from _utils import _parse_config_table
 _TF_EXTENSIONS = ('.tf',)
 
 
+def _top_level_keys(body: str) -> list[str]:
+    """Return attribute keys assigned directly in `body` (a resource block's inner
+    text), skipping keys that appear one or more levels inside a nested block or map
+    (e.g. `tags = { Name = "x" }`, `root_block_device { volume_size = 20 }`) — those
+    belong to the nested structure, not the resource itself."""
+    keys = []
+    depth = 0
+    for line in body.splitlines():
+        m = re.match(r'\s*(\w+)\s*=', line)
+        if m and depth == 0:
+            keys.append(m.group(1))
+        depth = max(0, depth + line.count('{') - line.count('}'))
+    return keys
+
+
 class TerraformDetector(Detector):
     """
     Framework detector for Terraform HCL (Phase 52.5).
@@ -54,7 +69,7 @@ class TerraformDetector(Detector):
             rtype = m.group(1)
             label = m.group(2)
             body = m.group(3)
-            config_keys = re.findall(r'^\s{0,4}(\w+)\s*=', body, re.MULTILINE)
+            config_keys = _top_level_keys(body)
             resources.append(NormalizedResource(
                 name=label,
                 resource_type=rtype,

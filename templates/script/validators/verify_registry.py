@@ -24,7 +24,7 @@ from pathlib import Path
 try:
     import yaml
 except ImportError:
-    print("❌  PyYAML not found. Install with: pip install pyyaml", file=sys.stderr)
+    print("[FAIL] PyYAML not found. Install with: pip install pyyaml", file=sys.stderr)
     sys.exit(1)
 
 VALID_TYPES: frozenset[str] = frozenset([
@@ -187,13 +187,13 @@ def main() -> None:
     try:
         registry_path = _find_registry(args.registry)
     except FileNotFoundError as e:
-        print(f"❌  {e}", file=sys.stderr)
+        print(f"[FAIL] {e}", file=sys.stderr)
         sys.exit(2)
 
     try:
         errors = validate(registry_path)
     except (yaml.YAMLError, ValueError) as e:
-        print(f"❌  Failed to parse registry: {e}", file=sys.stderr)
+        print(f"[FAIL] Failed to parse registry: {e}", file=sys.stderr)
         sys.exit(2)
 
     if args.json_output:
@@ -205,9 +205,9 @@ def main() -> None:
         total = sum(1 for _ in (yaml.safe_load(
             registry_path.read_text(encoding='utf-8')
         ) or {}).get('documents', {}).items())
-        print(f"✅  Registry schema valid — {total} entries ({registry_path.name})")
+        print(f"[OK] Registry schema valid — {total} entries ({registry_path.name})")
     else:
-        print(f"❌  Registry schema violations ({registry_path.name}):")
+        print(f"[FAIL] Registry schema violations ({registry_path.name}):")
         for key in sorted(errors):
             for err in errors[key]:
                 print(f"    {key}: {err}")

@@ -51,10 +51,10 @@ def build_context(project_root: Path, task_type_override: str | None = None) -> 
     registry_path = project_root / "document-registry.yaml"
 
     if not yml_path.exists():
-        print(f"❌  .project-starter.yml not found at {yml_path}", file=sys.stderr)
+        print(f"[FAIL] .project-starter.yml not found at {yml_path}", file=sys.stderr)
         sys.exit(1)
     if not registry_path.exists():
-        print(f"❌  document-registry.yaml not found at {registry_path}", file=sys.stderr)
+        print(f"[FAIL] document-registry.yaml not found at {registry_path}", file=sys.stderr)
         sys.exit(1)
 
     cfg = _load_yaml(yml_path)
@@ -167,7 +167,7 @@ def main() -> None:
     out_path = ai_dir / "AI_CONTEXT.md"
     out_path.write_text(output, encoding="utf-8")
 
-    print(f"✅  Written to {out_path}")
+    print(f"[OK] Written to {out_path}")
     print(f"    Project type : {ctx['project_type']}")
     print(f"    Task type    : {ctx['task_type'] or 'unset — showing all Required docs'}")
     print(f"    Required     : {len(ctx['required'])} docs")

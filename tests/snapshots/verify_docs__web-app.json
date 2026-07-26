@@ -2,33 +2,39 @@
   "project_type": "web-app",
   "results": [
     {
+      "doc": "project-requirements.md",
+      "status": "missing_required",
+      "label": "Missing Required",
+      "note": ""
+    },
+    {
       "doc": "architecture/architecture.md",
       "status": "present",
-      "label": "✅ Present",
+      "label": "Present",
       "note": ""
     },
     {
       "doc": "architecture/backend.md",
       "status": "present",
-      "label": "✅ Present",
+      "label": "Present",
       "note": ""
     },
     {
       "doc": "architecture/frontend.md",
       "status": "missing_optional",
-      "label": "⚠️  Missing Optional",
+      "label": "Missing Optional",
       "note": ""
     },
     {
       "doc": "architecture/database.md",
       "status": "present",
-      "label": "✅ Present",
+      "label": "Present",
       "note": ""
     },
     {
       "doc": "architecture/deployment.md",
       "status": "present",
-      "label": "✅ Present",
+      "label": "Present",
       "note": ""
     },
     {
@@ -46,7 +52,7 @@
     {
       "doc": "specs/api-contract.md",
       "status": "present",
-      "label": "✅ Present",
+      "label": "Present",
       "note": ""
     },
     {
@@ -160,31 +166,31 @@
     {
       "doc": "specs/permissions.md",
       "status": "present",
-      "label": "✅ Present",
+      "label": "Present",
       "note": ""
     },
     {
       "doc": "specs/data-model.md",
       "status": "present",
-      "label": "✅ Present",
+      "label": "Present",
       "note": ""
     },
     {
       "doc": "specs/logging-spec.md",
       "status": "present",
-      "label": "✅ Present",
+      "label": "Present",
       "note": ""
     },
     {
       "doc": "specs/research.md",
       "status": "present",
-      "label": "✅ Present",
+      "label": "Present",
       "note": ""
     },
     {
       "doc": "specs/quickstart.md",
       "status": "present",
-      "label": "✅ Present",
+      "label": "Present",
       "note": ""
     },
     {
@@ -208,43 +214,43 @@
     {
       "doc": "specs/test-plan.md",
       "status": "present",
-      "label": "✅ Present",
+      "label": "Present",
       "note": ""
     },
     {
       "doc": "specs/test-report.md",
       "status": "present",
-      "label": "✅ Present",
+      "label": "Present",
       "note": ""
     },
     {
       "doc": "specs/glossary.md",
       "status": "missing_optional",
-      "label": "⚠️  Missing Optional",
+      "label": "Missing Optional",
       "note": ""
     },
     {
       "doc": "specs/dependencies.md",
       "status": "missing_optional",
-      "label": "⚠️  Missing Optional",
+      "label": "Missing Optional",
       "note": ""
     },
     {
       "doc": "business/business-process.md",
       "status": "present",
-      "label": "✅ Present",
+      "label": "Present",
       "note": ""
     },
     {
       "doc": "business/business-objects.md",
       "status": "present",
-      "label": "✅ Present",
+      "label": "Present",
       "note": ""
     },
     {
       "doc": "business/business-rules.md",
       "status": "present",
-      "label": "✅ Present",
+      "label": "Present",
       "note": ""
     }
   ]

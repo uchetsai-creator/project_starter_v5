@@ -21,6 +21,28 @@ from _utils import _parse_field_table
 
 _JS_EXTENSIONS = ('.js', '.ts', '.mjs', '.cjs')
 
+# Identifiers actually declared as an Express app/router in the file, e.g.
+#   const app = express()
+#   const router = express.Router()
+#   const router = Router()            (destructured `const { Router } = require('express')`)
+# Restricting matches to these (falling back to the common 'app'/'router' names when
+# none are declared in this file — e.g. the router is imported from elsewhere) avoids
+# treating unrelated calls like `axios.get('/other-service')` as a route registration
+# just because they share a method name with Express's routing API.
+_ROUTER_DECL_RE = re.compile(
+    r'\b(?:const|let|var)\s+(\w+)\s*=\s*express\s*\(\s*\)'
+    r'|\b(?:const|let|var)\s+(\w+)\s*=\s*express\.Router\s*\(\s*\)'
+    r'|\b(?:const|let|var)\s+(\w+)\s*=\s*Router\s*\(\s*\)'
+)
+_DEFAULT_ROUTER_NAMES = frozenset({'app', 'router'})
+
+
+def _find_router_identifiers(source: str) -> set[str]:
+    names: set[str] = set()
+    for m in _ROUTER_DECL_RE.finditer(source):
+        names.update(g for g in m.groups() if g)
+    return names
+
 
 class ExpressDetector(Detector):
     """
@@ -45,14 +67,19 @@ class ExpressDetector(Detector):
         except OSError:
             return []
 
+        router_names = _find_router_identifiers(source) or set(_DEFAULT_ROUTER_NAMES)
+
         endpoints: list[NormalizedEndpoint] = []
         pattern = re.compile(
-            r'\b\w+\.(get|post|put|delete|patch|head|options)\s*\(\s*[\'"`]([^\'"` \n]+)[\'"`]',
+            r'\b(\w+)\.(get|post|put|delete|patch|head|options)\s*\(\s*[\'"`]([^\'"` \n]+)[\'"`]',
             re.IGNORECASE,
         )
         for m in pattern.finditer(source):
-            method = m.group(1).upper()
-            path = m.group(2)
+            receiver = m.group(1)
+            if receiver not in router_names:
+                continue
+            method = m.group(2).upper()
+            path = m.group(3)
             endpoints.append(NormalizedEndpoint(method=method, path=path))
 
         return endpoints

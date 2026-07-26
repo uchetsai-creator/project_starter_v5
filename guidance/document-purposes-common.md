@@ -597,7 +597,7 @@ python3 docs/script/validators/verify_docs.py --project-type web-app --json     
 python3 docs/script/validators/verify_docs.py --project-type web-app --content  # also check fill quality
 ```
 
-Output statuses: ✅ Present · ❌ Missing Required · ⚠️ Missing Optional · — N/A · 🔍 Orphan
+Output statuses: Present · Missing Required · Missing Optional · — N/A · Orphan
 
 `--content` adds per-document fill score: placeholder detection, required section presence,
 fill ratio (non-placeholder content lines / total content lines). Summary line: "Spec fill: N / M
@@ -628,7 +628,7 @@ python3 docs/script/validators/verify_logs.py --project-type data-pipeline --str
 python3 docs/script/validators/verify_logs.py --project-type web-app --json
 ```
 
-Output statuses: ✅ pass · ⚠️ warn · ❌ fail. Per-file: trace_id, structured format, per-type fields.
+Output statuses: [OK] pass · [WARN] warn · [FAIL] fail. Per-file: trace_id, structured format, per-type fields.
 Verdict: PASS · WARN · FAIL. `--strict` exits 1 on any FAIL.
 
 Update when: new per-type log field requirements are added (e.g., a new project type is introduced).
@@ -775,7 +775,7 @@ Update when: a new project type is added, or per-document quality rules change.
 
 Purpose:
 Prompt template for LLM-as-a-Judge spec quality review. Load at sprint end for any Required
-spec document that was updated during the sprint (especially those with ⚠️ or ❌ from
+spec document that was updated during the sprint (especially those with [WARN] or [FAIL] from
 `verify_docs.py --content`). Scores the spec on five criteria (1–5 each) and returns a
 structured PASS/FAIL verdict with evidence.
 
@@ -943,7 +943,7 @@ python3 templates/script/framework/verify_framework.py --strict   # exits 1 if a
 python3 templates/script/framework/verify_framework.py --json     # machine-readable output
 ```
 
-Output statuses: ✅ Pass · ❌ Fail · ⚠️ Warning
+Output statuses: [OK] Pass · [FAIL] Fail · [WARN] Warning
 
 This script audits the framework, not a user project. Run it from the framework repo root.
 Update when: the set of checks should change — e.g., a new consistency invariant is introduced.

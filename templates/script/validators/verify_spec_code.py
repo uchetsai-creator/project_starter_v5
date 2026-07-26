@@ -73,6 +73,7 @@ import argparse
 import importlib
 import json
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -157,11 +158,57 @@ def _load_adapter(adapter_name: str, framework_hint: str | None = None):
 # Comparison helpers
 # ---------------------------------------------------------------------------
 
+# Type-vocabulary groups considered equivalent across spec prose and code-native type
+# names, e.g. spec 'string' vs Python 'str' vs a JSON-schema 'string'. Specs in this
+# framework are written with English/JSON-schema words (see every adapter docstring
+# and README example); code naturally uses the target language's own type keywords.
+# Without this, every field typed as a spec-prose word would show a false type_changed
+# mismatch against code using the equivalent native keyword.
+_TYPE_ALIAS_GROUPS: list[frozenset[str]] = [
+    frozenset({'string', 'str', 'text', 'char', 'varchar'}),
+    frozenset({'boolean', 'bool'}),
+    frozenset({'integer', 'int', 'long', 'number', 'float', 'double', 'decimal'}),
+    frozenset({'array', 'list', 'list[]'}),
+    frozenset({'object', 'dict', 'map'}),
+]
+_TYPE_ALIAS_LOOKUP: dict[str, frozenset[str]] = {
+    alias: group for group in _TYPE_ALIAS_GROUPS for alias in group
+}
+
+
+def _normalize_type(type_str: str) -> str:
+    """Strip generic wrappers (Optional[x], list[x], x | None) down to the base word,
+    lowercase it, and map it to a canonical alias-group name for comparison."""
+    t = type_str.strip()
+    t = re.sub(r'^(Optional|List|list|Sequence)\[(.+)\]$', r'\2', t)
+    t = t.split('|')[0].strip()
+    t = t.rstrip('?')
+    t = t.lower()
+    group = _TYPE_ALIAS_LOOKUP.get(t)
+    return min(group) if group else t
+
+
+def _types_match(spec_type: str, code_type: str) -> bool:
+    return _normalize_type(spec_type) == _normalize_type(code_type)
+
+
+# Path-parameter placeholder syntax varies by framework — FastAPI/Flask/OpenAPI-style
+# specs use {param}, Express/Ruby-style routers use :param — but a spec is meant to be
+# one framework-agnostic description shared across all of them (see README). Without
+# normalizing both to the same token, e.g. GET /orders/{id} (spec) can never equal
+# GET /orders/:id (Express code) even though they're the same route.
+_PATH_PARAM_RE = re.compile(r'\{(\w+)\}|:(\w+)')
+
+
+def _normalize_path(path: str) -> str:
+    return _PATH_PARAM_RE.sub(':param', path)
+
+
 def _item_key(item) -> str:
     if hasattr(item, 'stage_name'):
         return item.stage_name.lower()
     if hasattr(item, 'method') and hasattr(item, 'path'):
-        return f"{item.method.upper()}:{item.path}"
+        return f"{item.method.upper()}:{_normalize_path(item.path)}"
     return getattr(item, 'name', repr(item)).lower()
 
 
@@ -233,7 +280,7 @@ def compare(spec_items: list, code_items: list) -> dict:
                     'spec_type': sf.type,
                     'code_type': None,
                 })
-            elif sf.type and code_fields[fname].type and sf.type != code_fields[fname].type:
+            elif sf.type and code_fields[fname].type and not _types_match(sf.type, code_fields[fname].type):
                 field_mismatches.append({
                     'item': _item_label(spec_item),
                     'field': fname,
@@ -251,6 +298,22 @@ def compare(spec_items: list, code_items: list) -> dict:
                     'spec_type': None,
                     'code_type': cf.type,
                 })
+
+        # NormalizedFunction.return_type is a single scalar attribute, not part of
+        # _item_fields()'s params list — it's parsed on both the spec side
+        # (`#### Returns` table) and the code side (return annotation) but was
+        # previously never compared at all, so a function's documented return type
+        # could silently drift from what the code actually returns.
+        if (isinstance(spec_item, NormalizedFunction) and isinstance(code_item, NormalizedFunction)
+                and spec_item.return_type and code_item.return_type
+                and not _types_match(spec_item.return_type, code_item.return_type)):
+            field_mismatches.append({
+                'item': _item_label(spec_item),
+                'field': 'return',
+                'issue': 'type_changed',
+                'spec_type': spec_item.return_type,
+                'code_type': code_item.return_type,
+            })
 
     return {
         'missing_in_code': missing_in_code,
@@ -272,26 +335,26 @@ def _has_mismatches(report: dict) -> bool:
 # ---------------------------------------------------------------------------
 
 def print_report(report: dict, spec: str, src: str, adapter: str) -> None:
-    print(f"\nSpec ↔ Code Validator  adapter={adapter}")
+    print(f"\nSpec <-> Code Validator  adapter={adapter}")
     print(f"  spec : {spec}")
     print(f"  src  : {src}\n")
 
     if not _has_mismatches(report):
-        print("  ✅  No mismatches — spec and code are in sync.\n")
+        print("  [OK]  No mismatches — spec and code are in sync.\n")
         return
 
     if report['missing_in_code']:
-        print("  ❌  Declared in spec, missing in code:")
+        print("  [FAIL]  Declared in spec, missing in code:")
         for label in report['missing_in_code']:
             print(f"       — {label}")
 
     if report['extra_in_code']:
-        print("  ⚠️   In code, not declared in spec:")
+        print("  [WARN]  In code, not declared in spec:")
         for label in report['extra_in_code']:
             print(f"       — {label}")
 
     if report['field_mismatches']:
-        print("  ❌  Field mismatches:")
+        print("  [FAIL]  Field mismatches:")
         for m in report['field_mismatches']:
             if m['issue'] == 'removed_from_code':
                 print(f"       — {m['item']}.{m['field']}: "
@@ -310,9 +373,9 @@ def print_report(report: dict, spec: str, src: str, adapter: str) -> None:
 # ---------------------------------------------------------------------------
 
 _VERDICT_ICON = {
-    'likely_same': '⚠️ ',
-    'different':   '❌',
-    'uncertain':   '❓',
+    'likely_same': '[WARN]',
+    'different':   '[FAIL]',
+    'uncertain':   '[?]',
 }
 
 
@@ -321,7 +384,7 @@ def print_semantic_report(verdicts: list[dict]) -> None:
         return
     print("  Semantic matching (LLM-assisted):")
     for v in verdicts:
-        icon = _VERDICT_ICON.get(v['verdict'], '❓')
+        icon = _VERDICT_ICON.get(v['verdict'], '[?]')
         print(
             f"       {icon} {v['item']}: "
             f"spec={v['spec_field']!r}:{v['spec_type']!r}  "
@@ -412,7 +475,7 @@ def main() -> None:
     # before the project has set up --adapter / --spec / --src.
     if not all([args.adapter, args.spec, args.src]):
         print(
-            "⚠️   verify_spec_code: --adapter / --spec / --src not configured — skipping.\n"
+            "[WARN] verify_spec_code: --adapter / --spec / --src not configured — skipping.\n"
             "    Pass all three flags (or configure via .project-starter.yml in a future phase).",
         )
         sys.exit(0)

@@ -3,6 +3,7 @@ Generated: {{TIMESTAMP}}
 
 ## Read (Required)
 - docs/current-state.md   # Active task: goal, steps, and required context
+- docs/project-requirements.md   # Functional requirements (FR-XXX), acceptance criteria (AC-XXX), scope, roles, and non-functional requirements
 - docs/architecture/topology.md   # Infrastructure resource topology and environment promotion path
 - docs/specs/runbook.md   # Health check commands, rollback procedures, and incident response steps
 - docs/specs/drift-policy.md   # Detection cadence, remediation SLA, exempt resources, and approval gate

@@ -19,11 +19,11 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from _registry import load_registry, build_matrix, build_file_locations, build_replaces_for, VALID_TYPES
+from _registry import load_registry, build_matrix, build_doc_paths, build_replaces_for, VALID_TYPES
 
 _reg = load_registry()
 MATRIX = build_matrix(_reg)
-FILE_LOCATIONS = build_file_locations(_reg)
+DOC_PATHS = build_doc_paths(_reg)
 REPLACES_FOR = build_replaces_for(_reg)
 TYPE_INDEX = {t: i for i, t in enumerate(VALID_TYPES)}
 
@@ -143,8 +143,13 @@ def effective_status(doc_name, types):
 
 
 def collect_existing(docs_dir):
-    """Return set of (subdir, filename) for all .md files in scanned subdirectories."""
+    """Return set of (subdir, filename) for all .md files in docs_dir's root and scanned
+    subdirectories. subdir is '' for files directly in docs_dir (e.g. project-requirements.md)."""
     found = set()
+    if os.path.isdir(docs_dir):
+        for fname in os.listdir(docs_dir):
+            if fname.endswith('.md') and os.path.isfile(os.path.join(docs_dir, fname)):
+                found.add(('', fname))
     for subdir in SCANNED_DIRS:
         path = os.path.join(docs_dir, subdir)
         if not os.path.isdir(path):
@@ -161,10 +166,10 @@ def run_audit(types, docs_dir, check_content=False):
     results = []
 
     for doc_name in MATRIX:
-        location = FILE_LOCATIONS.get(doc_name, 'specs')
+        path = DOC_PATHS.get(doc_name, f'specs/{doc_name}')
+        location, _, _ = path.rpartition('/')
         status = effective_status(doc_name, types)
         file_exists = (location, doc_name) in existing
-        path = f'{location}/{doc_name}'
 
         if status == 'N':
             replacement = next(
@@ -175,26 +180,26 @@ def run_audit(types, docs_dir, check_content=False):
                        else (f'→ use {replacement}' if replacement else ''))
             entry = {
                 'doc': path, 'status': 'orphan' if file_exists else 'na',
-                'label': '🔍 Orphan' if file_exists else '—  N/A',
+                'label': 'Orphan' if file_exists else '—  N/A',
                 'note': na_note,
             }
         elif status == 'R':
             entry = {
                 'doc': path,
                 'status': 'present' if file_exists else 'missing_required',
-                'label': '✅ Present' if file_exists else '❌ Missing Required',
+                'label': 'Present' if file_exists else 'Missing Required',
                 'note': '',
             }
         else:
             entry = {
                 'doc': path,
                 'status': 'present' if file_exists else 'missing_optional',
-                'label': '✅ Present' if file_exists else '⚠️  Missing Optional',
+                'label': 'Present' if file_exists else 'Missing Optional',
                 'note': '(optional)' if file_exists else '',
             }
 
         if check_content and file_exists and status == 'R':
-            full_path = os.path.join(docs_dir, location, doc_name)
+            full_path = os.path.join(docs_dir, path)
             entry['content'] = scan_content(full_path, doc_name)
 
         results.append(entry)
@@ -202,8 +207,8 @@ def run_audit(types, docs_dir, check_content=False):
     for subdir, fname in sorted(existing):
         if fname not in matrix_names:
             results.append({
-                'doc': f'{subdir}/{fname}', 'status': 'orphan',
-                'label': '🔍 Orphan', 'note': 'not in document matrix',
+                'doc': fname if not subdir else f'{subdir}/{fname}', 'status': 'orphan',
+                'label': 'Orphan', 'note': 'not in document matrix',
             })
 
     return results
@@ -215,14 +220,14 @@ def _content_suffix(c):
     if c is None:
         return ''
     if c['status'] == 'full':
-        return f"  {c['fill_pct']}% filled ✅"
+        return f"  {c['fill_pct']}% filled"
     issues = []
     if c['placeholder_count']:
         issues.append(f"{c['placeholder_count']} placeholder(s)")
     if c['unfilled_sections']:
         short = [s.lstrip('# ') for s in c['unfilled_sections']]
         issues.append(f"unfilled: {', '.join(short)}")
-    symbol = '⚠️ ' if c['status'] == 'partial' else '❌'
+    symbol = '[WARN]' if c['status'] == 'partial' else '[FAIL]'
     return f"  {c['fill_pct']}% filled {symbol} {'; '.join(issues)}"
 
 

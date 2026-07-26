@@ -135,14 +135,14 @@ def check_test_report(docs_dir, types):
             'file': TEST_REPORT_PATH,
             'check': 'overall status recorded',
             'status': 'pass',
-            'detail': 'Overall status line filled (✅ Pass or ❌ Fail)',
+            'detail': 'Overall status line filled (marked Pass or Fail)',
         })
     else:
         results.append({
             'file': TEST_REPORT_PATH,
             'check': 'overall status recorded',
             'status': 'fail',
-            'detail': 'Overall status not filled — set to "✅ Pass" or "❌ Fail"',
+            'detail': 'Overall status not filled — mark the Overall status line Pass or Fail',
         })
 
     # ── Check 3: Results by Module populated (non-pipeline) ──────────────────
@@ -219,7 +219,7 @@ def check_test_report(docs_dir, types):
 
 # ── output ────────────────────────────────────────────────────────────────────
 
-_STATUS_ICON = {'pass': '✅', 'warn': '⚠️ ', 'fail': '❌'}
+_STATUS_ICON = {'pass': '[OK]', 'warn': '[WARN]', 'fail': '[FAIL]'}
 
 
 def print_results(results, types):

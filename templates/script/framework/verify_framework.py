@@ -144,8 +144,7 @@ def parse_matrix(content: str) -> dict[str, dict[str, str]]:
 def find_template(doc_name: str) -> Path | None:
     """Return the first matching template file, including versioned variants (e.g. -v2)."""
     stem = Path(doc_name).stem
-    for subdir in TEMPLATE_SUBDIRS:
-        d = TEMPLATES_DIR / subdir
+    for d in [TEMPLATES_DIR] + [TEMPLATES_DIR / subdir for subdir in TEMPLATE_SUBDIRS]:
         if not d.exists():
             continue
         for f in sorted(d.glob("*.md")):
@@ -724,22 +723,22 @@ CHECK_ORDER = [
 
 CHECK_LABELS = {
     "stale-pointer":        "Stale pointer check          (AGENTS.md .md file refs)",
-    "token-budget":         "Token budget check           (AGENTS.md ≤ 200 lines)",
-    "matrix-templates":     "Matrix ↔ template consistency",
+    "token-budget":         "Token budget check           (AGENTS.md <= 200 lines)",
+    "matrix-templates":     "Matrix <-> template consistency",
     "sprint-sync":          "Sprint-sync coverage",
     "purposes-coverage":    "Per-type purposes coverage   (Required docs only)",
     "cross-ref":            "Cross-reference integrity    (document-purposes → templates)",
     "type-completeness":    "Type completeness            (init file + purposes file per type)",
-    "script-type-sync":     "Script type sync             (scan_codebase.py ↔ verify_docs.py)",
+    "script-type-sync":     "Script type sync             (scan_codebase.py <-> verify_docs.py)",
     "build-pdf-type-sync":  "Build PDF type sync          (build_pdf.py VALID_PROJECT_TYPES)",
     "content-coverage":     "Content coverage             (verify_content.py completeness)",
-    "registry-matrix-sync": "Registry ↔ matrix sync      (document-registry.yaml ↔ document-matrix.md)",
-    "task-types-field-sync": "Task-types field sync        (document-registry.yaml task_types ↔ workflow-registry.yaml)",
+    "registry-matrix-sync": "Registry <-> matrix sync     (document-registry.yaml <-> document-matrix.md)",
+    "task-types-field-sync": "Task-types field sync        (document-registry.yaml task_types <-> workflow-registry.yaml)",
     "no-new-shims":         "No new shims                 (_spec_code_adapters/ *Adapter class guard)",
-    "test-suite-exists":    "Test suite exists            (tests/ with ≥1 test_*.py file)",
+    "test-suite-exists":    "Test suite exists            (tests/ with >=1 test_*.py file)",
 }
 
-LEVEL_ICON = {"pass": "✅", "warn": "⚠️ ", "fail": "❌", "error": "❌"}
+LEVEL_ICON = {"pass": "[OK]", "warn": "[WARN]", "fail": "[FAIL]", "error": "[FAIL]"}
 
 
 def print_results(all_issues: list[dict]) -> None:
@@ -755,17 +754,17 @@ def print_results(all_issues: list[dict]) -> None:
     for check_key in CHECK_ORDER:
         items = by_check.get(check_key, [])
         if not items:
-            print(f"  ⚠️  {CHECK_LABELS[check_key]}  — check did not run")
+            print(f"  [WARN] {CHECK_LABELS[check_key]}  — check did not run")
             continue
 
         # Determine overall status for this check
         lvls = {i["level"] for i in items}
         if "error" in lvls or "fail" in lvls:
-            top_icon = "❌"
+            top_icon = "[FAIL]"
         elif "warn" in lvls:
-            top_icon = "⚠️ "
+            top_icon = "[WARN]"
         else:
-            top_icon = "✅"
+            top_icon = "[OK]"
 
         print(f"  {top_icon} {CHECK_LABELS[check_key]}")
 
@@ -778,7 +777,7 @@ def print_results(all_issues: list[dict]) -> None:
     if any_fail:
         print("  Result: FAIL — one or more checks failed.")
     elif any_warn:
-        print("  Result: PASS with warnings — review ⚠️  items above.")
+        print("  Result: PASS with warnings — review [WARN] items above.")
     else:
         print("  Result: PASS — all checks passed.")
     print()

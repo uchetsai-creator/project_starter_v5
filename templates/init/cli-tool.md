@@ -1,32 +1,6 @@
 # Project Initialization — CLI Tool
 
-1. Create docs/project-requirements.md from templates/project-requirements.md.
-2. Create docs/specs/research.md from templates/specs/research.md.
-3. Create docs/specs/quickstart.md from templates/specs/quickstart.md.
-4. Create docs/architecture/architecture.md from templates/architecture/architecture.md.
-5. Create docs/architecture/backend.md from templates/architecture/backend.md.
-6. Create docs/architecture/distribution.md from templates/architecture/distribution.md.
-7. Create docs/specs/cli-contract.md from templates/specs/cli-contract.md.
-8. Create docs/specs/release-guide.md from templates/specs/release-guide.md.
-9. Create docs/specs/logging-spec.md from templates/specs/logging-spec.md.
-10. Create docs/business/business-rules.md from templates/business/business-rules.md (CLI constraints and validation rules).
-11. If this CLI tool uses a database: Create docs/architecture/database.md from templates/architecture/database.md and docs/specs/data-model.md from templates/specs/data-model.md.
-12. If this CLI tool may also be used as a library: Create docs/specs/compatibility-matrix.md from templates/specs/compatibility-matrix.md.
-13. Create docs/modules/module-data-flow.md from templates/flows/module-data-flow-v2.md.
-14. Create docs/modules/module-flow.md from templates/flows/module-flow-v2.md.
-15. Create docs/codebase-map.md from templates/codebase-map.md.
-16. Create docs/specs/test-plan.md from templates/specs/test-plan.md.
-17. Create docs/specs/test-report.md from templates/specs/test-report.md.
-18. Create docs/project-plan.md from templates/project-plan.md.
-19. Create docs/task-log.md from templates/task-log.md.
-20. Create docs/sprint-change-log.md from templates/sprint-change-log.md.
-21. Create docs/current-state.md from templates/current-state.md.
-
-22. Install the verification hook (see `README.md → Verification` for details):
-    ```bash
-    cp .githooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
-    ```
-23. Create `.project-starter.yml` at the project root (used by the hook and all verify scripts):
+1. Create `.project-starter.yml` at the project root (used by the hook and all verify scripts):
     ```yaml
     project_type: cli-tool
     docs_path: docs/
@@ -34,11 +8,39 @@
     # drift gate in pre-commit + orchestrator. See README.md → Spec ↔ Code Validator →
     # Wiring it into pre-commit.
     ```
-24. Copy `document-registry.yaml` from the framework root to your project root:
+2. Copy `document-registry.yaml` from the framework root to your project root:
     ```bash
     cp /path/to/project_starter_v5/document-registry.yaml .
     ```
     This file is required by all verify scripts and `build_pdf.py`. Without it, scripts will fail with "document-registry.yaml not found".
+3. Install the verification hook (see `README.md → Verification` for details):
+    ```bash
+    cp .githooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+    ```
+
+4. Create docs/project-requirements.md from templates/project-requirements.md.
+5. Create docs/specs/research.md from templates/specs/research.md.
+6. Create docs/specs/quickstart.md from templates/specs/quickstart.md.
+7. Create docs/architecture/architecture.md from templates/architecture/architecture.md.
+8. Create docs/architecture/backend.md from templates/architecture/backend.md.
+9. Create docs/architecture/distribution.md from templates/architecture/distribution.md.
+10. Create docs/specs/cli-contract.md from templates/specs/cli-contract.md.
+11. Create docs/specs/release-guide.md from templates/specs/release-guide.md.
+12. Create docs/specs/logging-spec.md from templates/specs/logging-spec.md.
+13. Create docs/business/business-rules.md from templates/business/business-rules.md (CLI constraints and validation rules).
+14. If this CLI tool uses a database: Create docs/architecture/database.md from templates/architecture/database.md and docs/specs/data-model.md from templates/specs/data-model.md.
+15. If this CLI tool may also be used as a library: Create docs/specs/compatibility-matrix.md from templates/specs/compatibility-matrix.md.
+16. Create docs/modules/module-data-flow.md from templates/flows/module-data-flow-v2.md.
+17. Create docs/modules/module-flow.md from templates/flows/module-flow-v2.md.
+18. Create docs/codebase-map.md from templates/codebase-map.md.
+19. Create docs/specs/test-plan.md from templates/specs/test-plan.md.
+20. Create docs/specs/test-report.md from templates/specs/test-report.md.
+21. Create docs/project-plan.md from templates/project-plan.md.
+22. Create docs/task-log.md from templates/task-log.md.
+23. Create docs/sprint-change-log.md from templates/sprint-change-log.md.
+24. Create docs/current-state.md from templates/current-state.md. Run `python3 build-context.py`
+    now (steps 1-2 already put `.project-starter.yml` + `document-registry.yaml` in place) to
+    fill in its Doc Checklist section.
 
 **Optional utility documents (create on demand, any time):**
 - `docs/specs/glossary.md` — if the project introduces domain-specific terms, abbreviations, or flag conventions that need a shared definition. Create from `templates/specs/glossary.md`.

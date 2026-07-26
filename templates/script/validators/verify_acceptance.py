@@ -210,8 +210,8 @@ def check_test_report(docs_path: str, project_type: str) -> list[str]:
     # Overall status must be ✅ Pass
     if not _OVERALL_PASS.search(text):
         issues.append(
-            'specs/test-report.md: **Overall status:** is not ✅ Pass '
-            '(either placeholder or ❌ Fail)'
+            'specs/test-report.md: **Overall status:** is not marked Pass '
+            '(either placeholder or marked Fail)'
         )
 
     # Summary table must have at least one real number
@@ -270,7 +270,7 @@ def check_pipeline_contracts(docs_path: str) -> list[str]:
     if not has_result:
         issues.append(
             'specs/test-report.md: Contract Tests section has no real results '
-            '(✅ / ❌ expected; still placeholder)'
+            '(Pass/Fail marker expected; still placeholder)'
         )
 
     return issues
@@ -306,7 +306,7 @@ def check_llm_eval(docs_path: str) -> list[str]:
 
     if '✅' not in data_rows[-1]:
         issues.append(
-            'specs/eval-log.md: latest eval run does not show ✅ pass '
+            'specs/eval-log.md: latest eval run does not show a pass mark '
             '(check Pass? column in the most recent row)'
         )
 
@@ -373,10 +373,10 @@ def main() -> None:
         print(json.dumps(result, indent=2))
     else:
         if result['passed']:
-            print(f'verify_acceptance ✅  all acceptance checks passed ({args.project_type})')
+            print(f'verify_acceptance [OK]  all acceptance checks passed ({args.project_type})')
         else:
             print(
-                f'verify_acceptance ❌  {len(result["issues"])} issue(s) found '
+                f'verify_acceptance [FAIL]  {len(result["issues"])} issue(s) found '
                 f'({args.project_type}):'
             )
             for issue in result['issues']:

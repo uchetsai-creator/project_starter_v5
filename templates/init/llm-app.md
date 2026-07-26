@@ -1,39 +1,6 @@
 # Project Initialization — AI / LLM Application
 
-1. Create docs/project-requirements.md from templates/project-requirements.md.
-2. Create docs/specs/research.md from templates/specs/research.md (model selection, provider, alternatives considered).
-3. Create docs/specs/quickstart.md from templates/specs/quickstart.md (API key setup, local run, first query).
-4. Create docs/architecture/architecture.md from templates/architecture/architecture.md.
-5. Create docs/specs/llm-contract.md from templates/specs/llm-contract.md (model, system prompt, parameters, tools).
-6. Create docs/specs/prompt-library.md from templates/specs/prompt-library.md (index only — prompt content goes in per-prompt files).
-7. Create docs/specs/prompts/ folder. For each prompt, create docs/specs/prompts/[prompt-id]-prompt.md from templates/specs/prompts/prompt.md.
-8. Create docs/specs/eval-spec.md from templates/specs/eval-spec.md (judge model, criteria, test case set).
-9. Create docs/specs/eval-log.md from templates/specs/eval-log.md (append-only run log — load only during eval tasks).
-10. Create docs/specs/llm-debug.md from templates/specs/llm-debug.md.
-11. Create docs/specs/logging-spec.md from templates/specs/logging-spec.md.
-12. If using RAG: Create docs/specs/rag-contract.md from templates/specs/rag-contract.md.
-13. If using MCP servers: Create docs/specs/mcp-contract.md from templates/specs/mcp-contract.md. Add one Server Detail block per connected server. Cross-reference tool names in llm-contract.md Tool Calling section.
-14. If this app has a frontend UI (chat interface, dashboard): Create docs/architecture/frontend.md from templates/architecture/frontend.md.
-15. If this app is deployed as a hosted service: Create docs/architecture/deployment.md from templates/architecture/deployment.md.
-16. If this app stores conversation history or user data: Create docs/architecture/database.md from templates/architecture/database.md and docs/specs/data-model.md from templates/specs/data-model.md.
-17. If this app exposes an external API: Create docs/specs/api-contract.md from templates/specs/api-contract.md.
-18. If this app has multiple users with different roles: Create docs/specs/permissions.md from templates/specs/permissions.md.
-19. If this app enforces domain-specific rules (e.g. content policy, output constraints): Create docs/business/business-rules.md from templates/business/business-rules.md.
-20. Create docs/modules/module-data-flow.md from templates/flows/module-data-flow-v2.md.
-21. Create docs/modules/module-flow.md from templates/flows/module-flow-v2.md.
-22. Create docs/codebase-map.md from templates/codebase-map.md.
-23. Create docs/specs/test-plan.md from templates/specs/test-plan.md.
-24. Create docs/specs/test-report.md from templates/specs/test-report.md.
-25. Create docs/project-plan.md from templates/project-plan.md.
-26. Create docs/task-log.md from templates/task-log.md.
-27. Create docs/sprint-change-log.md from templates/sprint-change-log.md.
-28. Create docs/current-state.md from templates/current-state.md.
-
-29. Install the verification hook (see `README.md → Verification` for details):
-    ```bash
-    cp .githooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
-    ```
-30. Create `.project-starter.yml` at the project root (used by the hook and all verify scripts):
+1. Create `.project-starter.yml` at the project root (used by the hook and all verify scripts):
     ```yaml
     project_type: llm-app
     docs_path: docs/
@@ -41,11 +8,46 @@
     # drift gate in pre-commit + orchestrator. See README.md → Spec ↔ Code Validator →
     # Wiring it into pre-commit.
     ```
-31. Copy `document-registry.yaml` from the framework root to your project root:
+2. Copy `document-registry.yaml` from the framework root to your project root:
     ```bash
     cp /path/to/project_starter_v5/document-registry.yaml .
     ```
     This file is required by all verify scripts and `build_pdf.py`. Without it, scripts will fail with "document-registry.yaml not found".
+3. Install the verification hook (see `README.md → Verification` for details):
+    ```bash
+    cp .githooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+    ```
+
+4. Create docs/project-requirements.md from templates/project-requirements.md.
+5. Create docs/specs/research.md from templates/specs/research.md (model selection, provider, alternatives considered).
+6. Create docs/specs/quickstart.md from templates/specs/quickstart.md (API key setup, local run, first query).
+7. Create docs/architecture/architecture.md from templates/architecture/architecture.md.
+8. Create docs/specs/llm-contract.md from templates/specs/llm-contract.md (model, system prompt, parameters, tools).
+9. Create docs/specs/prompt-library.md from templates/specs/prompt-library.md (index only — prompt content goes in per-prompt files).
+10. Create docs/specs/prompts/ folder. For each prompt, create docs/specs/prompts/[prompt-id]-prompt.md from templates/specs/prompts/prompt.md.
+11. Create docs/specs/eval-spec.md from templates/specs/eval-spec.md (judge model, criteria, test case set).
+12. Create docs/specs/eval-log.md from templates/specs/eval-log.md (append-only run log — load only during eval tasks).
+13. Create docs/specs/llm-debug.md from templates/specs/llm-debug.md.
+14. Create docs/specs/logging-spec.md from templates/specs/logging-spec.md.
+15. If using RAG: Create docs/specs/rag-contract.md from templates/specs/rag-contract.md.
+16. If using MCP servers: Create docs/specs/mcp-contract.md from templates/specs/mcp-contract.md. Add one Server Detail block per connected server. Cross-reference tool names in llm-contract.md Tool Calling section.
+17. If this app has a frontend UI (chat interface, dashboard): Create docs/architecture/frontend.md from templates/architecture/frontend.md.
+18. If this app is deployed as a hosted service: Create docs/architecture/deployment.md from templates/architecture/deployment.md.
+19. If this app stores conversation history or user data: Create docs/architecture/database.md from templates/architecture/database.md and docs/specs/data-model.md from templates/specs/data-model.md.
+20. If this app exposes an external API: Create docs/specs/api-contract.md from templates/specs/api-contract.md.
+21. If this app has multiple users with different roles: Create docs/specs/permissions.md from templates/specs/permissions.md.
+22. If this app enforces domain-specific rules (e.g. content policy, output constraints): Create docs/business/business-rules.md from templates/business/business-rules.md.
+23. Create docs/modules/module-data-flow.md from templates/flows/module-data-flow-v2.md.
+24. Create docs/modules/module-flow.md from templates/flows/module-flow-v2.md.
+25. Create docs/codebase-map.md from templates/codebase-map.md.
+26. Create docs/specs/test-plan.md from templates/specs/test-plan.md.
+27. Create docs/specs/test-report.md from templates/specs/test-report.md.
+28. Create docs/project-plan.md from templates/project-plan.md.
+29. Create docs/task-log.md from templates/task-log.md.
+30. Create docs/sprint-change-log.md from templates/sprint-change-log.md.
+31. Create docs/current-state.md from templates/current-state.md. Run `python3 build-context.py`
+    now (steps 1-2 already put `.project-starter.yml` + `document-registry.yaml` in place) to
+    fill in its Doc Checklist section.
 
 **Optional utility documents (create on demand, any time):**
 - `docs/specs/glossary.md` — if the application introduces domain-specific terms, prompt taxonomy, or retrieval concepts that the team needs to align on. Create from `templates/specs/glossary.md`.

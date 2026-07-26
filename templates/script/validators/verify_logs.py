@@ -108,7 +108,7 @@ def check_logging_spec(docs_dir, types):
                 'file': 'specs/logging-spec.md',
                 'check': f'section filled: {section.lstrip("# ")}',
                 'status': 'warn',
-                'detail': f'{len(filled)} filled line(s) — need ≥ {MIN_SECTION_LINES}',
+                'detail': f'{len(filled)} filled line(s) — need >= {MIN_SECTION_LINES}',
             })
         else:
             results.append({
@@ -251,7 +251,7 @@ def run_audit(docs_dir, types):
 
 # ── output ────────────────────────────────────────────────────────────────────
 
-_STATUS_ICON = {'pass': '✅', 'warn': '⚠️ ', 'fail': '❌'}
+_STATUS_ICON = {'pass': '[OK]', 'warn': '[WARN]', 'fail': '[FAIL]'}
 
 
 def print_results(spec_results, log_results, log_file_count, types):

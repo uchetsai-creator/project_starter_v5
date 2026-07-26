@@ -306,11 +306,11 @@ def annotate_folders(folders: list[dict], documented: dict[str, str]) -> list[di
             f["flow_file"] = "— Not required"
         elif match:
             f["status"] = "Documented"
-            f["status_icon"] = "✅"
+            f["status_icon"] = "[OK]"
             f["flow_file"] = match
         else:
             f["status"] = "Not documented"
-            f["status_icon"] = "❌"
+            f["status_icon"] = "[MISSING]"
             f["flow_file"] = "—"
     return folders
 
@@ -439,13 +439,13 @@ def print_coverage(folders: list[dict], project_type: str | None = None) -> str:
     shared = [f for f in folders if f["status"] == "—"]
 
     if documented:
-        lines.append("✅  Documented:")
+        lines.append("Documented:")
         for f in documented:
             lines.append(f"    {f['rel']:<40}  →  {f['flow_file']}")
         lines.append("")
 
     if undocumented:
-        lines.append("❌  Not yet documented:")
+        lines.append("Not yet documented:")
         for f in undocumented:
             lines.append(f"    {f['rel']:<40}  →  needs module-data-flow.md  [{f['type']}]")
         lines.append("")
@@ -548,7 +548,7 @@ def scaffold_stubs(folders: list[dict], docs_dir: str) -> None:
     if created:
         print(f"Scaffolded {len(created)} stub(s):")
         for p in created:
-            print(f"  ✅  {p}")
+            print(f"  {p}")
     if skipped:
         print(f"Skipped {len(skipped)} (already exist):")
         for p in skipped:
@@ -572,8 +572,7 @@ def build_coverage_table(folders: list[dict]) -> str:
     lines.append("| Module / Folder | Type | Status | Flow file |")
     lines.append("|---|---|---|---|")
     for f in folders:
-        icon = f["status_icon"]
-        status_text = f"{icon} {f['status']}" if f["status_icon"] != "—" else "— Not required"
+        status_text = f['status'] if f["status_icon"] != "—" else "— Not required"
         flow = f["flow_file"] if f["flow_file"] != "—" else "—"
         lines.append(f"| `{f['rel']}` | {f['type']} | {status_text} | {flow} |")
     return "\n".join(lines)

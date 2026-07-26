@@ -18,7 +18,7 @@ import os
 import re
 
 from _base import Detector, FrameworkAdapter, NormalizedEndpoint, NormalizedField
-from _utils import _annotation_str, _HTTP_METHODS, _parse_field_table
+from _utils import _annotation_str, _HTTP_METHODS, _parse_field_table, _resolve_output_fields
 
 _SKIP_PARAMS = frozenset({'self', 'request', 'response', 'db', 'session', 'background_tasks'})
 
@@ -71,11 +71,7 @@ class FastAPIDetector(Detector):
                     for a in node.args.args
                     if a.arg not in _SKIP_PARAMS
                 ]
-                response_fields = []
-                if node.returns:
-                    ret = _annotation_str(node.returns)
-                    if ret and ret.lower() not in ('none', 'any'):
-                        response_fields.append(NormalizedField(name='return', type=ret))
+                response_fields = _resolve_output_fields(tree, node)
 
                 endpoints.append(NormalizedEndpoint(
                     method=method,

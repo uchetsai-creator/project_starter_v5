@@ -18,7 +18,7 @@ import os
 import re
 
 from _base import Detector, FrameworkAdapter, NormalizedField, NormalizedStageContract
-from _utils import _annotation_str, _PLACEHOLDER_NAMES, _parse_schema_value
+from _utils import _annotation_str, _PLACEHOLDER_NAMES, _parse_schema_value, _resolve_output_fields
 
 
 class AirflowDetector(Detector):
@@ -66,11 +66,7 @@ class AirflowDetector(Detector):
                 for a in node.args.args
                 if a.arg not in ('self', 'context', 'kwargs', 'args')
             ]
-            output_fields = []
-            if node.returns:
-                ret = _annotation_str(node.returns)
-                if ret and ret.lower() not in ('none', 'any'):
-                    output_fields.append(NormalizedField(name='return', type=ret))
+            output_fields = _resolve_output_fields(tree, node)
 
             if input_fields or output_fields:
                 contracts.append(NormalizedStageContract(

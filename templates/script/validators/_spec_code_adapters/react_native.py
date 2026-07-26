@@ -20,6 +20,30 @@ from _base import Detector, FrameworkAdapter, NormalizedField, NormalizedScreen
 
 _RN_EXTENSIONS = ('.tsx', '.jsx', '.ts', '.js')
 
+# Boundary used to bound how far a "component body" search extends when a component's
+# props aren't destructured in its parameter list (see _component_body below) — the
+# next top-level function/const-arrow/class declaration, or end of file.
+_NEXT_COMPONENT_RE = re.compile(
+    r'\n\s*(?:export\s+)?(?:default\s+)?'
+    r'(?:function\s+[A-Z]\w*|const\s+[A-Z]\w*\s*(?::[^=]+)?=|class\s+[A-Z]\w*\s+extends)',
+)
+
+# Non-destructured single `props` parameter, e.g. `function Name(props: Type)` or
+# `const Name = (props: Type) => ...` — as common in real TypeScript React code as the
+# destructured-parameter style, but the original regexes here only matched the latter.
+_FN_PROPS_PARAM_RE = re.compile(
+    r'\bfunction\s+([A-Z]\w*)\s*\(\s*(\w+)\s*(?::\s*[^),]+)?\s*\)',
+)
+_CONST_PROPS_PARAM_RE = re.compile(
+    r'\bconst\s+([A-Z]\w*)\s*(?::\s*\S+)?\s*=\s*\(\s*(\w+)\s*(?::\s*[^),]+)?\s*\)\s*(?::\s*\S+)?\s*=>',
+)
+
+# Class components — still common, fully valid React; the original detector had no
+# pattern for them at all.
+_CLASS_COMPONENT_RE = re.compile(
+    r'\bclass\s+([A-Z]\w*)\s+extends\s+(?:React\.)?(?:Component|PureComponent)\b',
+)
+
 
 def _parse_props_table(section: str) -> list[NormalizedField]:
     h = re.search(r'^#### Props', section, re.MULTILINE)
@@ -88,6 +112,30 @@ class ReactNativeDetector(Detector):
             if not any(s.name == name for s in screens):
                 screens.append(NormalizedScreen(name=name, props=props))
 
+        # Non-destructured single `props` parameter — resolve prop names from how
+        # `props` is used in the function body instead (destructured there, or
+        # accessed as props.x).
+        for pattern in (_FN_PROPS_PARAM_RE, _CONST_PROPS_PARAM_RE):
+            for m in pattern.finditer(source):
+                name, props_var = m.group(1), m.group(2)
+                if any(s.name == name for s in screens):
+                    continue
+                body = self._component_body(source, m.end())
+                screens.append(NormalizedScreen(
+                    name=name, props=self._extract_props_usage(body, props_var),
+                ))
+
+        # Class components (`class Name extends React.Component`) — not recognized
+        # by any pattern above at all.
+        for m in _CLASS_COMPONENT_RE.finditer(source):
+            name = m.group(1)
+            if any(s.name == name for s in screens):
+                continue
+            body = self._component_body(source, m.end())
+            screens.append(NormalizedScreen(
+                name=name, props=self._extract_this_props_usage(body),
+            ))
+
         return screens
 
     def _extract_destructured_props(self, destructure_body: str) -> list[NormalizedField]:
@@ -96,6 +144,40 @@ class ReactNativeDetector(Detector):
             part = part.strip()
             m = re.match(r'^(\w+)', part)
             if m and m.group(1) not in ('', 'children'):
+                fields.append(NormalizedField(name=m.group(1), type=''))
+        return fields
+
+    def _component_body(self, source: str, start: int) -> str:
+        """Return the text from `start` up to the next top-level component
+        declaration (or end of file) — a bounded window to search for how a
+        non-destructured `props` parameter is actually used."""
+        m = _NEXT_COMPONENT_RE.search(source, start)
+        end = m.start() if m else len(source)
+        return source[start:end]
+
+    def _extract_props_usage(self, body: str, props_var: str) -> list[NormalizedField]:
+        fields: list[NormalizedField] = []
+        seen: set[str] = set()
+        destructure_m = re.search(
+            r'\b(?:const|let|var)\s*\{([^}]*)\}\s*=\s*' + re.escape(props_var) + r'\b', body,
+        )
+        if destructure_m:
+            for f in self._extract_destructured_props(destructure_m.group(1)):
+                if f.name not in seen:
+                    seen.add(f.name)
+                    fields.append(f)
+        for m in re.finditer(re.escape(props_var) + r'\.(\w+)', body):
+            if m.group(1) not in seen and m.group(1) != 'children':
+                seen.add(m.group(1))
+                fields.append(NormalizedField(name=m.group(1), type=''))
+        return fields
+
+    def _extract_this_props_usage(self, body: str) -> list[NormalizedField]:
+        fields: list[NormalizedField] = []
+        seen: set[str] = set()
+        for m in re.finditer(r'this\.props\.(\w+)', body):
+            if m.group(1) not in seen and m.group(1) != 'children':
+                seen.add(m.group(1))
                 fields.append(NormalizedField(name=m.group(1), type=''))
         return fields
 

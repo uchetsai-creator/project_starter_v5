@@ -2,9 +2,15 @@
   "project_type": "library",
   "results": [
     {
+      "doc": "project-requirements.md",
+      "status": "missing_required",
+      "label": "Missing Required",
+      "note": ""
+    },
+    {
       "doc": "architecture/architecture.md",
       "status": "missing_optional",
-      "label": "⚠️  Missing Optional",
+      "label": "Missing Optional",
       "note": ""
     },
     {
@@ -34,7 +40,7 @@
     {
       "doc": "architecture/distribution.md",
       "status": "present",
-      "label": "✅ Present",
+      "label": "Present",
       "note": ""
     },
     {
@@ -58,7 +64,7 @@
     {
       "doc": "specs/public-api.md",
       "status": "present",
-      "label": "✅ Present",
+      "label": "Present",
       "note": ""
     },
     {
@@ -148,13 +154,13 @@
     {
       "doc": "specs/release-guide.md",
       "status": "present",
-      "label": "✅ Present",
+      "label": "Present",
       "note": ""
     },
     {
       "doc": "specs/compatibility-matrix.md",
       "status": "present",
-      "label": "✅ Present",
+      "label": "Present",
       "note": ""
     },
     {
@@ -178,13 +184,13 @@
     {
       "doc": "specs/research.md",
       "status": "present",
-      "label": "✅ Present",
+      "label": "Present",
       "note": ""
     },
     {
       "doc": "specs/quickstart.md",
       "status": "present",
-      "label": "✅ Present",
+      "label": "Present",
       "note": ""
     },
     {
@@ -208,25 +214,25 @@
     {
       "doc": "specs/test-plan.md",
       "status": "present",
-      "label": "✅ Present",
+      "label": "Present",
       "note": ""
     },
     {
       "doc": "specs/test-report.md",
       "status": "present",
-      "label": "✅ Present",
+      "label": "Present",
       "note": ""
     },
     {
       "doc": "specs/glossary.md",
       "status": "missing_optional",
-      "label": "⚠️  Missing Optional",
+      "label": "Missing Optional",
       "note": ""
     },
     {
       "doc": "specs/dependencies.md",
       "status": "missing_optional",
-      "label": "⚠️  Missing Optional",
+      "label": "Missing Optional",
       "note": ""
     },
     {

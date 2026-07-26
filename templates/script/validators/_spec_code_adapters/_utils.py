@@ -33,6 +33,109 @@ def _annotation_str(node) -> str:
         return ''
 
 
+# ── Output/return field resolution (shared by web-api + data-pipeline detectors) ──
+#
+# A bare return-type annotation (`-> dict`, `-> MyModel`) carries no field names, so
+# it cannot be compared field-by-field against a spec's response/output table. These
+# helpers make a best effort to resolve the actual field names a function returns:
+#   1. the return annotation names a class defined in the same file (Pydantic
+#      BaseModel, dataclass, or TypedDict-via-class-syntax) — use its annotated
+#      attributes.
+#   2. a `return` statement in the function body is a dict literal, a `jsonify(...)`
+#      call wrapping one, a `(dict, status_code)` tuple, or a constructor call with
+#      keyword arguments (e.g. `MyModel(status="ok")`) — use those keys/kwargs.
+#   3. neither applies — return [] rather than a fabricated field, since a bare
+#      scalar/opaque return has no named sub-fields to compare.
+
+def _literal_type(node) -> str:
+    """Best-effort type name for an AST literal value node. Returns '' if unknown."""
+    if isinstance(node, ast.Constant):
+        if isinstance(node.value, bool):
+            return 'bool'
+        if isinstance(node.value, int):
+            return 'int'
+        if isinstance(node.value, float):
+            return 'float'
+        if isinstance(node.value, str):
+            return 'str'
+    return ''
+
+
+def _resolve_class_fields(tree, class_name: str) -> list[NormalizedField]:
+    """Find a module-level class definition named `class_name` and return its
+    annotated attributes (covers Pydantic BaseModel, dataclasses, TypedDict-via-class)."""
+    if not class_name:
+        return []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ClassDef) and node.name == class_name:
+            return [
+                NormalizedField(name=item.target.id, type=_annotation_str(item.annotation))
+                for item in node.body
+                if isinstance(item, ast.AnnAssign) and isinstance(item.target, ast.Name)
+            ]
+    return []
+
+
+def _dict_literal_fields(dict_node: ast.Dict) -> list[NormalizedField]:
+    return [
+        NormalizedField(name=k.value, type=_literal_type(v))
+        for k, v in zip(dict_node.keys, dict_node.values)
+        if isinstance(k, ast.Constant) and isinstance(k.value, str)
+    ]
+
+
+def _call_kwarg_fields(call_node: ast.Call) -> list[NormalizedField]:
+    return [
+        NormalizedField(name=kw.arg, type=_literal_type(kw.value))
+        for kw in call_node.keywords
+        if kw.arg is not None
+    ]
+
+
+def _resolve_return_literal_fields(func_node) -> list[NormalizedField]:
+    """Best-effort field names from a function's `return` statement(s): a dict
+    literal, a `jsonify(...)`-wrapped dict, a `(dict, status_code)` tuple, or a
+    constructor call with keyword arguments. Returns [] if none match."""
+    seen: set[str] = set()
+    fields: list[NormalizedField] = []
+
+    for node in ast.walk(func_node):
+        if not isinstance(node, ast.Return) or node.value is None:
+            continue
+        value = node.value
+        if isinstance(value, ast.Tuple) and value.elts:
+            value = value.elts[0]
+        if (isinstance(value, ast.Call) and isinstance(value.func, ast.Name)
+                and value.func.id == 'jsonify' and value.args):
+            value = value.args[0]
+
+        if isinstance(value, ast.Dict):
+            candidates = _dict_literal_fields(value)
+        elif isinstance(value, ast.Call):
+            candidates = _call_kwarg_fields(value)
+        else:
+            candidates = []
+
+        for f in candidates:
+            if f.name not in seen:
+                seen.add(f.name)
+                fields.append(f)
+
+    return fields
+
+
+def _resolve_output_fields(tree, func_node) -> list[NormalizedField]:
+    """Resolve a function's output/response field names — see module note above."""
+    ret_node = getattr(func_node, 'returns', None)
+    if ret_node is not None:
+        ret_name = _annotation_str(ret_node)
+        base_name = re.sub(r'^\w+\[(.+)\]$', r'\1', ret_name).strip()
+        class_fields = _resolve_class_fields(tree, base_name)
+        if class_fields:
+            return class_fields
+    return _resolve_return_literal_fields(func_node)
+
+
 # ── HTTP / Web API ────────────────────────────────────────────────────────────
 
 _HTTP_METHODS = frozenset({'GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'})

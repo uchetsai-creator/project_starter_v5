@@ -3,17 +3,18 @@ Document Content Quality — cli-tool
 ────────────────────────────────────────────────────────────────────
 Document                       Required     Quality
 ────────────────────────────────────────────────────────────────────
-research.md                    ✅            ✅  Fully filled
-quickstart.md                  ✅            ✅  Fully filled
-test-plan.md                   ✅            ✅  Fully filled
-test-report.md                 ✅            ⚠️  No checker available
-architecture.md                ✅            ✅  Fully filled
-backend.md                     ✅            ✅  Fully filled
-distribution.md                ✅            ✅  Fully filled
-cli-contract.md                ✅            ✅  Fully filled
-release-guide.md               ✅            ✅  Fully filled
-logging-spec.md                ✅            ⚠️  No checker available
+project-requirements.md        Missing      —
+research.md                    Present      Fully filled
+quickstart.md                  Present      Fully filled
+test-plan.md                   Present      Fully filled
+test-report.md                 Present      No checker available
+architecture.md                Present      Fully filled
+backend.md                     Present      Fully filled
+distribution.md                Present      Fully filled
+cli-contract.md                Present      Fully filled
+release-guide.md               Present      Fully filled
+logging-spec.md                Present      No checker available
 
-Documents  : 10 / 10 present
+Documents  : 10 / 11 present
 Quality    : 8 / 10 existing documents fully filled
 

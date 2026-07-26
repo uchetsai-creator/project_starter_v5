@@ -3,6 +3,7 @@ Generated: {{TIMESTAMP}}
 
 ## Read (Required)
 - docs/current-state.md   # Active task: goal, steps, and required context
+- docs/project-requirements.md   # Functional requirements (FR-XXX), acceptance criteria (AC-XXX), scope, roles, and non-functional requirements
 - docs/specs/api-contract.md   # REST/GraphQL/WebSocket endpoint contracts, error codes, and validation rules
 - docs/specs/permissions.md   # Roles, permission matrix, and API endpoint access by role
 - docs/specs/data-model.md   # Schema, entities, relationships, indexes, and state machine

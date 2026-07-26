@@ -1,141 +1,338 @@
 # Contributing a Framework Adapter
 
-`verify_spec_code.py` catches spec–code drift through **adapters** — one per framework. Each adapter translates both the spec document and the source code into the same `NormalizedForm` objects, which the core validator then compares. The core is zero-knowledge about any framework; all framework-specific logic lives in the adapter.
-
-This guide shows you how to add an adapter for a framework that isn't covered yet.
+`verify_spec_code.py` catches spec-code drift by comparing a spec document against real source
+code. It never has framework-specific knowledge itself — that logic lives entirely in
+**capability adapters** and **detectors**. This guide tells you exactly what to build when your
+framework, language, or tool isn't covered yet.
 
 ---
 
-## Step 1 — Choose your NormalizedForm type
+## Two-layer architecture (Phase 52.5)
 
-Pick the `NormalizedForm` subclass that matches what your framework exposes:
+```
+verify_spec_code.py
+        │  --adapter <name> [--framework <hint>]
+        ▼
+Capability Adapter            (one per project type — 7 total)
+  │  extract_spec()  — parses the shared spec format for this project type
+  │  extract_code()  — discovers source files, dispatches to detector(s)
+  ├── Framework Detector A    (e.g. FastAPIDetector)
+  ├── Framework Detector B    (e.g. FlaskDetector)
+  └── Framework Detector C    (e.g. ExpressDetector)
+              │
+              ▼
+      NormalizedForm objects → compared by verify_spec_code.py
+```
 
-| Project type | NormalizedForm | Used by |
+- **Capability adapter** — owns the spec format for a whole project type (Web App, CLI Tool,
+  Data Pipeline, etc.) and discovers source files. All web-API frameworks, for example, share
+  the same `api-contract.md` format, so `WebAPIAdapter` parses it once for all of them.
+- **Detector** — the only framework-specific piece. Receives a pre-discovered file list from its
+  capability adapter and returns `NormalizedForm` objects. **Does not** touch the filesystem or
+  parse the spec.
+
+**The 7 existing capability adapters and what they currently detect:**
+
+| Capability (`--adapter`) | File | Detectors registered today |
 |---|---|---|
-| Web App / Microservices | `NormalizedEndpoint` | FastAPI, Flask, Express |
-| Data Pipeline / ML Pipeline | `NormalizedStageContract` | Airflow, Dagster, Prefect |
-| CLI Tool | `NormalizedCommand` | Click |
-| Library / SDK | `NormalizedFunction` | Python library |
-| AI / LLM App | `NormalizedTool` | Tool schema |
-| IaC / DevOps | `NormalizedResource` | Terraform, Pulumi |
-| Mobile App | `NormalizedScreen` | React Native, Flutter |
+| `web-api` | `_capability_web_api.py` | `fastapi`, `flask` (Python), `express` (Node.js) |
+| `cli` | `_capability_cli.py` | `click` (Python) |
+| `data-pipeline` | `_capability_pipeline.py` | `airflow`, `dagster`, `prefect` (Python) |
+| `library` | `_capability_library.py` | `python_library` |
+| `llm-app` | `_capability_llm.py` | `tool_schema` (Python functions / OpenAI JSON schema) |
+| `iac` | `_capability_iac.py` | `terraform` (HCL), `pulumi` (Python) |
+| `mobile` | `_capability_mobile.py` | `react_native` (TSX/JSX), `flutter` (Dart) |
 
-All types are defined in `_spec_code_adapters/_base.py`.
+If your tool isn't in the right-hand column, you're in one of two situations:
 
 ---
 
-## Step 2 — Create the adapter file
+## Situation A — Your tool fits an existing capability (common case)
 
-Create `templates/script/validators/_spec_code_adapters/<framework>.py`.
+Example: you use **Django**, **NestJS**, **Gin** (Go), or **Spring Boot** — all Web App /
+Microservices frameworks, same `api-contract.md` format, just not detected yet.
+Same idea for **argparse/Typer** (CLI Tool), **Luigi/Kubeflow** (Data Pipeline),
+**LangChain tools** (LLM App), **CloudFormation/Ansible/Helm** (IaC), **native iOS/Android**
+(Mobile), or a **non-Python library** (Library/SDK).
+
+**You only need to add a Detector — do not create a new file-per-framework adapter, and do not
+touch `extract_spec()`.**
+
+### Step A1 — Confirm the NormalizedForm you're producing
+
+| Project type | NormalizedForm | Comparison key |
+|---|---|---|
+| Web App / Microservices | `NormalizedEndpoint` | `f"{method.upper()}:{path}"` |
+| CLI Tool | `NormalizedCommand` | subcommand `name` |
+| Data Pipeline / ML Pipeline | `NormalizedStageContract` | `stage_name` |
+| Library / SDK | `NormalizedFunction` | function `name` |
+| AI / LLM App | `NormalizedTool` | tool `name` |
+| IaC / DevOps | `NormalizedResource` | resource `name` |
+| Mobile App | `NormalizedScreen` | screen `name` |
+
+All defined in `_spec_code_adapters/_base.py` — do not invent a new shape for an existing project type.
+
+### Step A2 — Write the Detector
+
+**Recommended: scaffold it.** `new_detector.py` generates the file below and registers it in
+one step:
+
+```bash
+python3 templates/script/generators/new_detector.py --list-capabilities
+python3 templates/script/generators/new_detector.py --capability web-api --name django
+# --dry-run to preview first; --alias to also register a standalone --adapter django;
+# --ext .py (repeatable) to override the default file extension for your capability.
+```
+
+This writes `templates/script/validators/_spec_code_adapters/<framework>.py` and adds the
+`_DETECTORS` entry from Step A3 automatically — skip straight to Step A5 (fill in `_parse_file`
+and the self-test). The manual version below is what the tool generates, for reference or if
+you'd rather write it by hand:
 
 ```python
 from __future__ import annotations
-from _base import FrameworkAdapter, NormalizedFunction, NormalizedField
+from _base import Detector, NormalizedEndpoint, NormalizedField
 
-class MyFrameworkAdapter(FrameworkAdapter):
+_MY_EXTENSIONS = ('.ext',)  # file extensions your detector understands
 
-    def extract_spec(self, spec_path: str) -> list[NormalizedFunction]:
-        # Parse your spec format, return NormalizedFunction list.
-        # Return [] on any error — never raise.
-        ...
 
-    def extract_code(self, src_path: str) -> list[NormalizedFunction]:
-        # Walk src_path, parse source files, return NormalizedFunction list.
-        # Return [] on any error — never raise.
-        ...
+class MyFrameworkDetector(Detector):
+    """
+    Framework detector for MyFramework (Web App / Microservices).
+    Receives pre-discovered files from WebAPIAdapter. Must not perform file discovery.
+    """
+
+    def extract(self, files: list[str]) -> list[NormalizedEndpoint]:
+        endpoints: list[NormalizedEndpoint] = []
+        for fpath in files:
+            if fpath.endswith(_MY_EXTENSIONS):
+                endpoints.extend(self._parse_file(fpath))
+        return endpoints
+
+    def _parse_file(self, fpath: str) -> list[NormalizedEndpoint]:
+        try:
+            with open(fpath, encoding='utf-8') as f:
+                source = f.read()
+        except OSError:
+            return []
+        # ... regex/AST parsing specific to MyFramework goes here ...
+        return []
 ```
 
-Rules:
-- **No comparison logic** in the adapter. Comparison lives in `verify_spec_code.py`.
-- **No framework imports at module level**. Import lazily inside methods to avoid hard dependencies.
-- Both methods must **return `[]` (not raise)** on any error condition.
-- See `_example_adapter.py` for a fully annotated reference implementation.
+Rules (same as every detector in the codebase):
+- **No file discovery** — `os.walk` belongs in the capability adapter, never here.
+- **No comparison logic** — comparison lives only in `verify_spec_code.py`.
+- **Never raise** — return `[]` on any parse error or unsupported file.
+- **No framework imports at module level** — import lazily inside methods if you need a real
+  parser (AST, a JS parser, etc.) instead of regex.
 
-### Spec format convention
+### Step A3 — Register the detector in its capability adapter
 
-Define a Markdown section format for your adapter's spec document and document it in the adapter's class docstring. Follow the pattern used by existing adapters:
-
-```markdown
-### item_name
-#### <ContractSection>
-| Field | Type | Description |
-|---|---|---|
-| field1 | str | ... |
-```
-
----
-
-## Step 3 — Register the adapter
-
-Open `templates/script/validators/verify_spec_code.py` and add one line to `ADAPTER_REGISTRY`:
+Already done if you used `new_detector.py` in Step A2. To do it by hand instead: open the
+relevant `_capability_*.py` (e.g. `_capability_web_api.py`) and add one line to its
+`_DETECTORS` dict:
 
 ```python
-ADAPTER_REGISTRY: dict[str, tuple[str, str]] = {
-    ...
-    'my_framework': ('my_framework', 'MyFrameworkAdapter'),  # add this
+_DETECTORS: dict[str, tuple[str, str, tuple[str, ...]]] = {
+    'fastapi':  ('fastapi',  'FastAPIDetector',  ('.py',)),
+    'flask':    ('flask',    'FlaskDetector',    ('.py',)),
+    'express':  ('express',  'ExpressDetector',  ('.js', '.ts', '.mjs', '.cjs')),
+    'myframework': ('myframework', 'MyFrameworkDetector', ('.ext',)),  # add this
 }
 ```
 
-The key is the value users pass to `--adapter`. The tuple is `(module_filename_without_.py, ClassName)`.
+That's it — the capability adapter's file discovery, spec parsing, and dispatch logic are
+unchanged. Your detector now runs automatically whenever `--adapter web-api` is used, or
+exclusively when `--adapter web-api --framework myframework` is passed.
 
----
+### Step A4 — Optional: register a standalone `--adapter` alias
 
-## Step 4 — Write a unit test
+Pass `--alias` to `new_detector.py` in Step A2 to do this automatically. To do it by hand:
+if users would find it more natural to type `--adapter myframework` directly (instead of
+`--adapter web-api --framework myframework`), add a legacy-style alias in
+`verify_spec_code.py`'s `ADAPTER_REGISTRY`:
 
-Add a self-contained test. The simplest approach is an `if __name__ == '__main__':` block in your adapter file that creates temporary files and asserts round-trip correctness — see `_example_adapter.py` for the pattern.
+```python
+ADAPTER_REGISTRY: dict[str, tuple[str, str, str | None]] = {
+    ...
+    'myframework': ('_capability_web_api', 'WebAPIAdapter', 'myframework'),
+}
+```
+
+This is purely a convenience alias — it routes through the same capability adapter with the
+framework hint pre-filled. Not required.
+
+### Step A5 — Write a self-test
+
+Add an `if __name__ == '__main__':` block that builds a small temp spec + temp source file and
+asserts the detector extracts the expected `NormalizedForm` objects. See
+`_example_adapter.py` for the pattern.
 
 ```bash
-python3 templates/script/validators/_spec_code_adapters/my_framework.py
-# Should print: ✅  my_framework.py self-test passed
+python3 templates/script/validators/_spec_code_adapters/myframework.py
+# Should print: [OK] myframework.py self-test passed
 ```
 
 ---
 
-## Step 5 — Add pre-commit trigger (optional)
+## Situation B — Your project type doesn't fit any of the 7 capabilities (rare)
 
-If your adapter has a canonical spec filename (e.g. `my-contract.md`), add a trigger to `.githooks/pre-commit` so drift is caught automatically when that file is staged:
+This only applies if what you're building is not a Web App, CLI Tool, Data Pipeline/ML Pipeline,
+Library/SDK, LLM App, IaC, or Mobile App project — i.e. a genuinely new **project type**, not
+just a new framework within an existing one. Check the **Situation A** list again first; almost
+every "my tool isn't supported" case is actually Situation A.
+
+### Step B1 — Define a new NormalizedForm (only if none of the existing 7 fit)
+
+Add a new `@dataclass` to `_base.py`, following the existing pattern: a name/key field plus one
+or two `list[NormalizedField]` fields for whatever "matches" means in your domain. Document the
+comparison key in the docstring, same as `NormalizedEndpoint`, `NormalizedResource`, etc.
+
+### Step B2 — Create the capability adapter file
+
+Create `templates/script/validators/_spec_code_adapters/_capability_<name>.py`, following
+`_capability_web_api.py` as the reference structure:
+- `extract_spec(spec_path)` — parse your project type's spec document format (define and
+  document the Markdown convention in the class docstring).
+- `extract_code(src_path)` — discover relevant source files, then call
+  `self._dispatch_detectors(...)` (inherited from `FrameworkAdapter`) to hand them to detector(s).
+- Both methods return `[]` on any error — never raise.
+- No framework-specific parsing in this file — that's what detectors are for, even if you start
+  with only one.
+
+### Step B3 — Write at least one Detector for it
+
+Same as Step A2 — your new capability adapter needs at least one detector to be useful.
+
+### Step B4 — Register in `verify_spec_code.py`
+
+```python
+ADAPTER_REGISTRY: dict[str, tuple[str, str, str | None]] = {
+    ...
+    'my-project-type': ('_capability_my_type', 'MyTypeAdapter', None),
+}
+```
+
+### Step B5 — Update the framework surface
+
+A new project type touches more than the validator — update:
+- `document-registry.yaml` + `templates/init/document-matrix.md` (new type's document set)
+- `guidance/document-purposes-<type>.md` + `guidance/document-purposes.md` index
+- `templates/init/<type>.md` (init sequence)
+- `scan_codebase.py` `--project-type` choices
+- `build_pdf.py` `VALID_PROJECT_TYPES`
+
+Run `python3 templates/script/framework/verify_framework.py --strict` — it audits exactly this
+kind of cross-file consistency and will tell you what's missing.
+
+---
+
+## Step 6 (both situations) — Add a pre-commit trigger (optional)
+
+If your project type has a canonical contract filename (e.g. `my-contract.md`), extend the
+`SPEC_CONTRACT_STAGED` pattern in `.githooks/pre-commit` so drift is caught automatically:
 
 ```bash
-# In .githooks/pre-commit, extend SPEC_CONTRACT_STAGED:
 SPEC_CONTRACT_STAGED=$(printf '%s\n' "$STAGED" \
     | grep -E '(pipeline-contract|cli-contract|api-contract|public-api|my-contract)\.md$' || true)
 ```
 
----
-
-## Step 6 — Update workflow-registry.yaml (optional)
-
-If your framework is commonly used in a specific task type, add `verify_spec_code.py` to that workflow's validator sequence in `workflow-registry.yaml`.
-
----
+Also consider setting `spec_code_adapter` / `spec_code_spec` / `spec_code_src` in your project's
+`.project-starter.yml` — see README.md → **Spec ↔ Code Validator → Wiring it into pre-commit**.
 
 ## Step 7 — Open a pull request
 
-1. Include your adapter file and any pre-commit / registry changes.
+1. Include your detector (and capability adapter, if Situation B) plus any registry/pre-commit changes.
 2. Confirm `python3 templates/script/framework/verify_framework.py --strict` passes.
-3. Show sample output: spec-in-sync case (exit 0) and mismatch case (exit 1).
+3. Show sample output for both cases: spec-in-sync (exit 0) and a real mismatch (exit 1).
 
 ---
 
-## Shim Policy
+## Common pitfalls — check these before you consider a detector done
 
-The `*Adapter` classes (e.g. `AirflowAdapter`, `FastAPIAdapter`) in `_spec_code_adapters/` are **legacy shims** maintained for backward compatibility with `--adapter <name>` CLI usage. They will be removed in a future phase.
+Every item below is a real bug found by testing an *existing* detector against real,
+hand-written code — not a hypothetical. The mechanism now exists in shared code to prevent
+most of them automatically, but a brand-new detector for a language/framework not covered
+yet can still reintroduce the same *category* of mistake in a new shape. Check each one
+explicitly — `new_detector.py`'s generated stub repeats this list as a comment.
 
-**Do not add new `*Adapter` shims.** When adding support for a new framework:
+1. **Type vocabulary** — don't hand-roll a type comparison. `verify_spec_code.py`'s `compare()`
+   already normalizes spec-prose words (`string`, `boolean`, `integer`) against code-native type
+   names (`str`, `bool`, `int`) via `_types_match()` — automatic for any `NormalizedField` your
+   detector produces. Just don't bypass it with your own equality check.
 
-- Add your logic as a **detector** inside an existing `_capability_*.py` file in `templates/script/validators/`.
-- If no suitable capability adapter exists, open a discussion before creating a new file.
+2. **Output/return fields** — if your `NormalizedForm` has an output/response side (like
+   `NormalizedEndpoint.response_fields` or `NormalizedStageContract.output_fields`), do not
+   fabricate a single placeholder field (e.g. `name='return'`). If your language is Python, use
+   `_resolve_output_fields(tree, func_node)` from `_utils.py` — it already resolves
+   class/dataclass/TypedDict fields, dict literals, and constructor kwargs. If your language
+   isn't Python, write the equivalent, and return `[]` (not a fake field) when you truly can't
+   resolve real names.
 
-`verify_framework.py` (Check 13) will warn if a new `*Adapter` class appears outside the known-legacy shim list.
+3. **Key/identifier syntax normalization** — if your domain has more than one valid way to write
+   the same identifier (e.g. `/orders/{id}` vs `/orders/:id` for the same route), check whether
+   `_item_key()` in `verify_spec_code.py` already normalizes it (path params currently do, via
+   `_normalize_path()`). If your new syntax isn't covered, extend the shared normalizer instead of
+   assuming raw string equality is safe — a spec written in the framework-agnostic convention
+   will otherwise never match your framework's native syntax.
+
+4. **Don't match by method/keyword name alone** — a regex like `\w+\.get\(...\)` matches anything
+   with a `.get()` method, not just your framework's router (an HTTP client's `.get()`, a `Map`'s
+   `.get()`, ...). Verify the receiver is actually an instance of what you think it is — e.g. track
+   which identifiers were actually assigned from your framework's constructor in the same file
+   (see `express.py`'s `_find_router_identifiers()`), rather than accepting any identifier.
+
+5. **Nested structure leakage** — if your source format nests (blocks, maps, sub-objects), don't
+   extract keys/fields with a flat regex across the whole block — it will pick up keys that
+   belong to a deeper level as if they belonged to the top level (see `terraform.py`'s
+   `_top_level_keys()` for a depth-tracking approach). Scope extraction to the depth that
+   actually corresponds to what the spec describes.
+
+6. **More than one idiomatic way to write the same construct** — don't assume there's only one
+   syntax pattern for the thing you're detecting. Real code commonly has 2-3 equally valid styles
+   (destructured vs non-destructured function parameters, function vs class components, ...).
+   Check what real, idiomatic code in that ecosystem actually looks like — not just the first
+   example you write — before considering a pattern "done."
+
+7. **Scalar attributes outside the per-field list** — if your `NormalizedForm` has a single-value
+   attribute that isn't part of its per-field list (like `NormalizedFunction.return_type`),
+   confirm `compare()` actually checks it. It does for `return_type` today; if you add a new
+   `NormalizedForm` with an analogous scalar attribute, you'll need to add that check yourself.
+
+Test each new detector against **real code you write by hand**, not only a synthetic fixture that
+already matches your regex — every pitfall above was only found that way.
 
 ---
 
-## Adapter checklist
+## Shim policy — do not create new `*Adapter` classes for a single framework
 
-- [ ] Inherits from `FrameworkAdapter` in `_base.py`
-- [ ] Both methods return `[]` (not raise) on errors
+The standalone `*Adapter` classes still present in files like `express.py`, `fastapi.py`,
+`airflow.py` (e.g. `ExpressAdapter`, `FastAPIAdapter`) are **legacy shims** kept only for
+backward compatibility with old `--adapter <name>` usage from before the Phase 52.5 refactor.
+They duplicate logic that now lives in the capability adapter + detector. Do not extend them and
+do not create new ones — always add a **Detector**, per Situation A or B above.
+
+`verify_framework.py` (Check: "No new shims") will warn if a new `*Adapter` class appears outside
+the known-legacy list.
+
+---
+
+## Checklist
+
+**Situation A (new framework in an existing capability):**
+- [ ] New `<framework>.py` with a `Detector` subclass (not a `FrameworkAdapter` subclass)
+- [ ] `extract()` returns `[]` (not raise) on any error; no file discovery inside it
 - [ ] No framework imports at module level
-- [ ] Class docstring explains spec format with an example
-- [ ] Registered in `ADAPTER_REGISTRY` in `verify_spec_code.py`
+- [ ] Registered in the capability file's `_DETECTORS` dict
+- [ ] (Optional) alias added to `ADAPTER_REGISTRY` in `verify_spec_code.py`
 - [ ] Self-test passes (`python3 _spec_code_adapters/<framework>.py`)
-- [ ] README adapter table updated
+- [ ] README.md capability/detector table updated
+
+**Situation B (new project type):**
+- [ ] New `NormalizedForm` in `_base.py` (only if none of the 7 existing ones fit)
+- [ ] New `_capability_<name>.py` inheriting `FrameworkAdapter`, with `extract_spec` + `extract_code`
+- [ ] At least one `Detector` registered and self-tested
+- [ ] Registered in `ADAPTER_REGISTRY`
+- [ ] `document-registry.yaml`, `document-matrix.md`, `guidance/document-purposes-<type>.md`,
+      `templates/init/<type>.md`, `scan_codebase.py`, `build_pdf.py` all updated
+- [ ] `verify_framework.py --strict` passes

@@ -3,6 +3,7 @@ Generated: {{TIMESTAMP}}
 
 ## Read (Required)
 - docs/current-state.md   # Active task: goal, steps, and required context
+- docs/project-requirements.md   # Functional requirements (FR-XXX), acceptance criteria (AC-XXX), scope, roles, and non-functional requirements
 - docs/specs/llm-contract.md   # Model, system prompt, parameters, and tool schemas
 - docs/specs/prompt-library.md   # Index of all prompts with version, purpose, and per-prompt file link
 - docs/architecture/architecture.md   # Current system components and data-flow diagram

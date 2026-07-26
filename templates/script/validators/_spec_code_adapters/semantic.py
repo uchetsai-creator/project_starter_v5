@@ -92,7 +92,7 @@ class SemanticAdapter:
 
         if not os.environ.get('ANTHROPIC_API_KEY'):
             print(
-                "⚠️   --semantic requires ANTHROPIC_API_KEY — skipping LLM pass.\n"
+                "[WARN] --semantic requires ANTHROPIC_API_KEY — skipping LLM pass.\n"
                 "    Set the env var and re-run to get semantic verdicts.",
             )
             return []
@@ -128,7 +128,7 @@ def _get_client():
         return anthropic.Anthropic()
     except ImportError:
         print(
-            "⚠️   --semantic requires the 'anthropic' package.\n"
+            "[WARN] --semantic requires the 'anthropic' package.\n"
             "    Install it with: pip install anthropic",
         )
         return None
@@ -182,7 +182,7 @@ def _ask_llm(client, item_label: str, pairs: list[dict]) -> list[dict]:
         raw = response.content[0].text.strip()
         llm_results = json.loads(raw)
     except Exception as exc:  # noqa: BLE001
-        print(f"⚠️   Semantic LLM call failed for '{item_label}': {exc}")
+        print(f"[WARN] Semantic LLM call failed for '{item_label}': {exc}")
         return []
 
     verdicts = []
@@ -257,5 +257,5 @@ if __name__ == '__main__':
     if saved_key:
         os.environ['ANTHROPIC_API_KEY'] = saved_key
 
-    print("✅  semantic self-test passed")
+    print("[OK] semantic self-test passed")
     sys.exit(0)

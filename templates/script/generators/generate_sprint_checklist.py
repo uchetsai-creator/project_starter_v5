@@ -20,7 +20,7 @@ sys.path.insert(0, str(_validators_dir))
 try:
     from _registry import load_registry, VALID_TYPES
 except ImportError:
-    print("❌  _registry.py not found. Run from the project_starter_v5 repo root.", file=sys.stderr)
+    print("[FAIL] _registry.py not found. Run from the project_starter_v5 repo root.", file=sys.stderr)
     sys.exit(1)
 
 
@@ -84,7 +84,7 @@ def main() -> None:
     try:
         registry_path = _find_registry(args.registry)
     except FileNotFoundError as e:
-        print(f"❌  {e}", file=sys.stderr)
+        print(f"[FAIL] {e}", file=sys.stderr)
         sys.exit(2)
 
     registry = load_registry(registry_path)
@@ -92,7 +92,7 @@ def main() -> None:
 
     if args.output:
         Path(args.output).write_text(checklist, encoding='utf-8')
-        print(f"✅  Checklist written to {args.output}")
+        print(f"[OK] Checklist written to {args.output}")
     else:
         print(checklist)
 

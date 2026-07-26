@@ -1042,22 +1042,22 @@ def print_results(
     for r in doc_results:
         name = r['name'][:28]
         if not r['present']:
-            present_col = '❌ Missing'
+            present_col = 'Missing'
             quality_col = '—'
         else:
-            present_col = '✅'
+            present_col = 'Present'
             if r['quality'] == 'pass':
-                quality_col = '✅  Fully filled'
+                quality_col = 'Fully filled'
             elif r['quality'] == 'unknown':
-                quality_col = '⚠️  No checker available'
+                quality_col = 'No checker available'
             else:
                 first = r['issues'][0] if r['issues'] else 'issues found'
-                quality_col = f"⚠️  {first}"
+                quality_col = first
 
         print(f"{name:<30} {present_col:<12} {quality_col}")
 
         for issue in (r['issues'][1:] if r.get('present') and r['quality'] == 'fail' else []):
-            print(f"{'':30} {'':12} ⚠️  {issue}")
+            print(f"{'':30} {'':12} {issue}")
 
     if module_results:
         print()
@@ -1065,24 +1065,24 @@ def print_results(
             mod_name = f"modules/{m['name']}"[:28]
             flow_present = m.get('flow_file_present', False)
             if not flow_present:
-                present_col = '❌ Missing'
+                present_col = 'Missing'
                 quality_col = '—'
             else:
-                present_col = '✅'
+                present_col = 'Present'
                 type_lbl = m.get('module_type') or m.get('detected_type') or 'Unknown'
                 q = m.get('quality')
                 if q == 'pass':
-                    quality_col = f"✅  Fully filled  ({type_lbl})"
+                    quality_col = f"Fully filled  ({type_lbl})"
                 elif q == 'unknown':
-                    quality_col = f"⚠️  Unknown module type"
+                    quality_col = "Unknown module type"
                 else:
                     first = m['issues'][0] if m.get('issues') else 'issues found'
-                    quality_col = f"⚠️  {first}  ({type_lbl})"
+                    quality_col = f"{first}  ({type_lbl})"
 
             print(f"{mod_name:<30} {present_col:<12} {quality_col}")
 
             for issue in (m.get('issues', [])[1:] if flow_present and m.get('quality') == 'fail' else []):
-                print(f"{'':30} {'':12} ⚠️  {issue}")
+                print(f"{'':30} {'':12} {issue}")
 
     print()
 

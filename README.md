@@ -9,6 +9,38 @@ scaffolding under `templates/`. Copy `templates/` into a new project's `docs/` f
 
 ---
 
+## Quick Start
+
+**New project (no code yet):**
+
+1. Copy these into your project root: `AGENTS.md`, `orchestrator.py`, `build-context.py`,
+   `_workflow_utils.py`, `workflow-registry.yaml`, `document-registry.yaml`, `.githooks/`,
+   `guidance/`, and `templates/script/` → your project's `docs/script/`.
+2. Declare your project type at the top of `AGENTS.md` (see the type table in
+   [Project Initialization](#project-initialization)), then open `templates/init/<type>.md` for
+   your type and follow its numbered steps. Step 1 is always creating `.project-starter.yml` +
+   `document-registry.yaml` + installing the pre-commit hook, before any doc content is written.
+3. Run `python3 orchestrator.py --adapter claude` (or `codex` / `cursor`) — writes
+   `.ai/WORKFLOW.md` + `.ai/AI_CONTEXT.md` and renders your tool's native instruction file
+   (e.g. `.claude/commands/start-task.md`).
+4. Set the **Current Task** in `docs/current-state.md`, then start work: read
+   `.ai/AI_CONTEXT.md` first, follow `AGENTS.md`'s rules as you go, and run the validators listed
+   in `.ai/WORKFLOW.md` before closing out the task.
+5. `git commit` — install the hook once with
+   `cp .githooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit`; it then
+   blocks every commit where required docs are missing, unfilled, or (if you've configured
+   `spec_code_adapter` in `.project-starter.yml`) drifted from the code.
+
+**Existing project (already has code):** follow `templates/init/retrofit.md` instead of a
+type's init file — it scans your actual codebase first (via `scan_codebase.py`) and documents
+what's really there, rather than assuming a blank slate.
+
+From here: **Project Initialization** below has the full per-type document list, **Verification**
+covers exactly what the pre-commit hook checks, and **Spec ↔ Code Validator** covers wiring up
+automatic spec↔code drift detection.
+
+---
+
 ## How it works
 
 1. **`AGENTS.md`** defines the rules an AI agent follows: which docs to create, when to update
@@ -188,7 +220,8 @@ project_starter/                     ← this repo (template only)
         │   ├── plantuml.cfg         ← PlantUML renderer configuration
         │   ├── plantuml.jar         ← download separately (see Setting up PlantUML)
         │   ├── diagnose_spec.py     ← classifies spec fill gaps; triggers framework fix PRs
-        │   └── propose_framework_fix.py ← opens a PR on project_starter_v5 to add a missing template section
+        │   ├── propose_framework_fix.py ← opens a PR on project_starter_v5 to add a missing template section
+        │   └── new_detector.py      ← scaffolds a new framework Detector for verify_spec_code.py
         ├── scanners/                ← shipped to user projects (docs/script/scanners/)
         │   └── scan_codebase.py     ← scans src/ and reports which modules are undocumented
         └── framework/               ← framework-internal only — NOT copied to user projects
@@ -708,11 +741,11 @@ python3 docs/script/validators/verify_docs.py --project-type web-app --docs path
 
 | Status | Meaning |
 |---|---|
-| ✅ Present | File exists in docs/ |
-| ❌ Missing Required | File is Required for this type and does not exist |
-| ⚠️ Missing Optional | File is Optional for this type and does not exist |
+| Present | File exists in docs/ |
+| Missing Required | File is Required for this type and does not exist |
+| Missing Optional | File is Optional for this type and does not exist |
 | — N/A | File is not applicable for this type |
-| 🔍 Orphan | File exists but is N/A for this type, or is not in the document matrix |
+| Orphan | File exists but is N/A for this type, or is not in the document matrix |
 
 Valid `--project-type` values: `web-app`, `cli-tool`, `library`, `data-pipeline`, `ml-pipeline`, `microservices`, `llm-app`, `iac`, `mobile-app`
 
@@ -762,9 +795,9 @@ python3 templates/script/framework/verify_framework.py --json     # machine-read
 
 | Status | Meaning |
 |---|---|
-| ✅ Pass | Check passed |
-| ⚠️ Warning | Non-critical drift detected |
-| ❌ Fail | Check failed — lists affected file and line |
+| [OK] Pass | Check passed |
+| [WARN] Warning | Non-critical drift detected |
+| [FAIL] Fail | Check failed — lists affected file and line |
 
 ---
 
@@ -1101,20 +1134,36 @@ manually or from CI, per the **Usage** examples above.
 
 ### Writing a custom adapter
 
-The Custom Adapter SDK (Phase 47) lets you add support for any framework not covered here without modifying the core validator.
+Only 7 broad project-type **capability adapters** exist (`web-api`, `cli`, `data-pipeline`,
+`library`, `llm-app`, `iac`, `mobile`), each with a handful of **detectors** for specific
+frameworks (see the Adapters table above). If your framework isn't detected yet, you almost
+always just need to add a new detector to an existing capability — not a whole new adapter.
 
-**Quick steps:**
+**Quick steps (adding a framework to an existing capability — the common case):**
 
-1. Create `_spec_code_adapters/<framework>.py` subclassing `FrameworkAdapter` from `_base.py`.
-2. Implement `extract_spec(spec_path)` → `list[NormalizedForm]` and `extract_code(src_path)` → same type.
-3. Add an entry to `ADAPTER_REGISTRY` in `verify_spec_code.py`.
-4. Write a self-test (`python3 _spec_code_adapters/<framework>.py` → prints `✅  self-test passed`).
-5. Register in `workflow-registry.yaml` and add a pre-commit trigger for your spec file (optional).
+```bash
+# Scaffolds the detector file and registers it in one step:
+python3 docs/script/generators/new_detector.py --capability web-api --name django
+python3 docs/script/generators/new_detector.py --list-capabilities   # see all 7 + their NormalizedForm
+```
+
+1. Run `new_detector.py` (above) — creates `_spec_code_adapters/<framework>.py` with a
+   `Detector` subclass and registers it in the target capability's `_DETECTORS` dict.
+2. Implement `extract(files)` / `_parse_file()` for the files your detector understands.
+   No file discovery, no spec parsing needed — the capability adapter already does both.
+3. Replace the generated self-test with a real round-trip check
+   (`python3 _spec_code_adapters/<framework>.py` → prints `[OK] self-test passed`).
+4. (Optional) Re-run with `--alias` to also register a standalone `--adapter <framework>` in
+   `ADAPTER_REGISTRY`, and add a pre-commit trigger for your spec file.
+
+Building support for an entirely new **project type** (not just a new framework) is rarer and
+requires a new capability adapter — see `docs/contributing-adapters.md` → Situation B.
 
 **Reference files:**
 - `_spec_code_adapters/_example_adapter.py` — fully annotated implementation with a self-test
-- `_spec_code_adapters/_base.py` — all NormalizedForm types + FrameworkAdapter contract
-- `docs/contributing-adapters.md` — complete step-by-step contributor guide
+- `_spec_code_adapters/_base.py` — all NormalizedForm types, the `Detector` and `FrameworkAdapter` contracts
+- `docs/contributing-adapters.md` — complete step-by-step guide for both cases, with a decision
+  guide for "is my framework in-scope for an existing capability?"
 
 ```bash
 # List all registered adapters
@@ -1146,9 +1195,9 @@ with 3 field-name diffs costs ~600–1200 tokens (~$0.001 at Haiku pricing).
 
 ```
   Semantic matching (LLM-assisted):
-       ⚠️  POST /orders: spec='order_id':'string'  vs  code='id':'int'
+       [WARN] POST /orders: spec='order_id':'string'  vs  code='id':'int'
            → likely_same: order_id and id likely refer to the same order identifier; type widening is a mismatch worth reviewing
-       ❌  POST /orders: spec='order_total':'float'  vs  code='discount':'Decimal'
+       [FAIL] POST /orders: spec='order_total':'float'  vs  code='discount':'Decimal'
            → different: order_total (total price) and discount (reduction amount) are unrelated concepts
 ```
 

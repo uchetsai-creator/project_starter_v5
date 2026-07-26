@@ -12,7 +12,7 @@ def _load_yaml(path: Path) -> dict:
     try:
         import yaml
     except ImportError:
-        print("❌  PyYAML not found. Install with: pip install pyyaml", file=sys.stderr)
+        print("[FAIL] PyYAML not found. Install with: pip install pyyaml", file=sys.stderr)
         sys.exit(1)
     with path.open(encoding="utf-8") as fh:
         return yaml.safe_load(fh) or {}
@@ -60,7 +60,7 @@ def _coerce_project_type(raw) -> str:
         coerced = str(raw or "")
     if not coerced or coerced in ("your-project-type", "[your-project-type]"):
         print(
-            "❌  project_type not set in .project-starter.yml — replace [your-project-type] with your actual type",
+            "[FAIL] project_type not set in .project-starter.yml — replace [your-project-type] with your actual type",
             file=sys.stderr,
         )
         sys.exit(1)

@@ -75,7 +75,7 @@ class ExampleAdapter(FrameworkAdapter):
         try:
             import yaml  # lazy import — not a hard dependency of the base SDK
         except ImportError:
-            print("⚠️  ExampleAdapter: PyYAML not installed — spec parsing skipped",
+            print("[WARN] ExampleAdapter: PyYAML not installed — spec parsing skipped",
                   file=sys.stderr)
             return []
 
@@ -223,9 +223,9 @@ def _self_test() -> None:
         assert spec_fns[0].params[0].name == 'name'
 
     except ImportError:
-        print("⚠️  PyYAML not installed — spec extraction test skipped")
+        print("[WARN] PyYAML not installed — spec extraction test skipped")
 
-    print("✅  _example_adapter.py self-test passed")
+    print("[OK] _example_adapter.py self-test passed")
 
 
 if __name__ == '__main__':

@@ -256,7 +256,7 @@ def scan_modules_from_src(
     """Invoke scan_codebase.py --format json; return non-shared module list or None."""
     scan_script = _find_scan_script(script_dir, docs_dir)
     if not scan_script:
-        print("  ⚠️  scan_codebase.py not found — skipping coverage check", file=sys.stderr)
+        print("  [WARN] scan_codebase.py not found — skipping coverage check", file=sys.stderr)
         return None
     try:
         result = subprocess.run(
@@ -267,7 +267,7 @@ def scan_modules_from_src(
         )
         if result.returncode != 0:
             print(
-                f"  ⚠️  scan_codebase.py error (exit {result.returncode}): "
+                f"  [WARN] scan_codebase.py error (exit {result.returncode}): "
                 f"{result.stderr.strip()[:200]}",
                 file=sys.stderr,
             )
@@ -275,7 +275,7 @@ def scan_modules_from_src(
         data = json.loads(result.stdout)
         return [m for m in data.get('modules', []) if m.get('status') != '—']
     except (json.JSONDecodeError, subprocess.TimeoutExpired, OSError) as exc:
-        print(f"  ⚠️  scan_codebase.py call failed: {exc}", file=sys.stderr)
+        print(f"  [WARN] scan_codebase.py call failed: {exc}", file=sys.stderr)
         return None
 
 
@@ -409,24 +409,24 @@ def print_results(results: list[dict], project_type: str, src: str | None) -> No
         name = r['name'][:26]
         type_lbl = _type_label(r['module_type'], r['scan_type'])[:16]
         if not r['flow_present']:
-            flow_col = '❌ Missing'
+            flow_col = 'Missing'
             quality_col = '—'
         else:
-            flow_col = '✅ Present'
+            flow_col = 'Present'
             if r['quality'] == 'pass':
-                quality_col = '✅  Fully filled'
+                quality_col = 'Fully filled'
             elif r['quality'] == 'unknown':
-                quality_col = f"⚠️  Unknown type — {r['issues'][0] if r['issues'] else ''}"
+                quality_col = f"Unknown type — {r['issues'][0] if r['issues'] else ''}"
             else:
                 # Show first issue inline; rest on following lines
                 first = r['issues'][0] if r['issues'] else 'issues found'
-                quality_col = f"⚠️  {first}"
+                quality_col = first
 
         print(f"{name:<28} {type_lbl:<18} {flow_col:<14} {quality_col}")
 
         # Additional issues on continuation lines
         for issue in (r['issues'][1:] if r['flow_present'] and r['quality'] == 'fail' else []):
-            print(f"{'':28} {'':18} {'':14} ⚠️  {issue}")
+            print(f"{'':28} {'':18} {'':14} {issue}")
 
     print()
 
@@ -514,7 +514,7 @@ def main() -> None:
         if args.json_output:
             print(json.dumps({'project_type': full_type, 'modules': [], 'message': msg}))
         else:
-            print(f"⚠️  {msg}")
+            print(f"[WARN] {msg}")
         sys.exit(0)
 
     if args.json_output:
