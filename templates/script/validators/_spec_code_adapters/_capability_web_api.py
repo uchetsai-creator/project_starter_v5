@@ -31,6 +31,7 @@ _DETECTORS: dict[str, tuple[str, str, tuple[str, ...]]] = {
     'fastapi': ('fastapi', 'FastAPIDetector', ('.py',)),
     'flask':   ('flask',   'FlaskDetector',   ('.py',)),
     'express': ('express', 'ExpressDetector', ('.js', '.ts', '.mjs', '.cjs')),
+    'django': ('django', 'DjangoDetector', ('.py',)),
 }
 
 

@@ -106,6 +106,7 @@ ADAPTER_REGISTRY: dict[str, tuple[str, str, str | None]] = {
     'pulumi':         ('_capability_iac',       'IaCAdapter',          'pulumi'),
     'react_native':   ('_capability_mobile',   'MobileAdapter',       'react_native'),
     'flutter':        ('_capability_mobile',   'MobileAdapter',       'flutter'),
+    'django': ('_capability_web_api', 'WebAPIAdapter', 'django'),
 }
 
 _ADAPTER_DIR = Path(__file__).resolve().parent / '_spec_code_adapters'

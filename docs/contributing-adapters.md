@@ -35,7 +35,7 @@ Capability Adapter            (one per project type — 7 total)
 
 | Capability (`--adapter`) | File | Detectors registered today |
 |---|---|---|
-| `web-api` | `_capability_web_api.py` | `fastapi`, `flask` (Python), `express` (Node.js) |
+| `web-api` | `_capability_web_api.py` | `fastapi`, `flask`, `django` (Python), `express` (Node.js) |
 | `cli` | `_capability_cli.py` | `click` (Python) |
 | `data-pipeline` | `_capability_pipeline.py` | `airflow`, `dagster`, `prefect` (Python) |
 | `library` | `_capability_library.py` | `python_library` |
@@ -49,8 +49,10 @@ If your tool isn't in the right-hand column, you're in one of two situations:
 
 ## Situation A — Your tool fits an existing capability (common case)
 
-Example: you use **Django**, **NestJS**, **Gin** (Go), or **Spring Boot** — all Web App /
+Example: you use **NestJS**, **Gin** (Go), or **Spring Boot** — all Web App /
 Microservices frameworks, same `api-contract.md` format, just not detected yet.
+(Django used to be this repo's own example of an undetected framework — it now has a real
+detector; see the worked example after Step A5.)
 Same idea for **argparse/Typer** (CLI Tool), **Luigi/Kubeflow** (Data Pipeline),
 **LangChain tools** (LLM App), **CloudFormation/Ansible/Helm** (IaC), **native iOS/Android**
 (Mobile), or a **non-Python library** (Library/SDK).
@@ -175,6 +177,77 @@ python3 templates/script/validators/_spec_code_adapters/myframework.py
 
 ---
 
+## Worked example — adding Django (a real detector, not a hypothetical)
+
+`new_detector.py` only scaffolds: a file with `_parse_file()` returning `[]`, plus the
+`_DETECTORS` / `ADAPTER_REGISTRY` registration. It does not write the detection logic — that
+part is always manual. This section is the actual sequence used to take `django.py` from
+scaffold to a working detector, including the two problems that made it more than a copy of
+`flask.py`.
+
+**1. Scaffold it:**
+
+```bash
+python3 templates/script/generators/new_detector.py --capability web-api --name django --alias
+```
+
+**2. Recognize what doesn't transfer from the existing detectors.** Flask/FastAPI put the path,
+method, and function in one place (`@app.route('/orders', methods=['POST'])` directly above
+`def create_order(...)`). Django REST Framework splits this across two files: `urls.py` maps a
+path to a view function name (`path('orders/', views.create_order)`), and `views.py` declares
+the function with `@api_view(['POST'])` — no path in sight. A detector that only looks at one
+file at a time (like every other detector in this repo) cannot produce a single
+`NormalizedEndpoint` from either file alone.
+
+`django.py`'s `extract()` handles this by making two passes across *all* discovered files before
+emitting anything: `_find_url_paths()` builds a `view name -> path` map from every
+`path()`/`re_path()` call it finds, `_find_api_views()` builds a `view name -> methods` map from
+every `@api_view([...])`-decorated function, and only a name present in *both* maps becomes an
+endpoint. A view that exists but was never wired into any `urlpatterns` in the scanned files is
+skipped, not fabricated with a placeholder path.
+
+**3. Normalize the framework's own path syntax before comparing.** Django has two ways to write
+a path parameter, and neither matches the `{param}` convention a spec author would naturally
+write: `path()`'s converter syntax (`<int:order_id>`) and `re_path()`'s regex named groups
+(`(?P<order_id>\d+)`). `django.py`'s `_clean_path()` converts both to `{order_id}` before the
+path is compared — see pitfall #3 below; this is the same category of problem as Express's
+`:id` vs FastAPI's `{id}`, just a framework-specific shape of it.
+
+**4. Fix a shared helper that was accidentally framework-specific, instead of copy-pasting
+around it.** `_utils.py`'s `_resolve_return_literal_fields()` unwrapped a dict-returning call
+only when it was literally named `jsonify` (Flask's helper) — a hardcoded name is exactly
+pitfall #4 below, just in a shared file instead of a detector. Django's equivalent is
+`Response({...})`. Rather than adding a second name to special-case, the check was changed to
+recognize *any* single-positional-dict-argument call, regardless of its name — which is what
+actually makes it framework-agnostic, and benefits `flask.py`/`fastapi.py` too, not just
+`django.py`.
+
+**5. Prove it's not overfit to the one example you built it against.** The self-test at the
+bottom of `django.py` is necessary but not sufficient — it's still code the detector's author
+wrote. Before considering it done, it was run against a second, independently written test
+project in a different domain (blog posts, not orders), mixing `path()` and `re_path()` in the
+same `urls.py`, through the real CLI:
+
+```bash
+python3 templates/script/validators/verify_spec_code.py \
+    --project-type web-app --adapter django \
+    --spec docs/specs/api-contract.md --src src/ --strict
+```
+
+with one field deliberately removed from the spec's declared response so the run had something
+real to catch (`[FAIL] DELETE /posts/{post_id}/.archived_at: spec='str' → not found in code`) —
+confirming the detector genuinely compares, rather than trivially reporting success on
+whatever it's pointed at.
+
+**6. Test the detector itself, not just the happy path.** `tests/unit/test_django_detector.py`
+covers: correlation across two files, both path-parameter syntaxes, a view with no `@api_view`
+(must be ignored), an `@api_view` function never wired into `urlpatterns` (must be skipped, not
+fabricated), a view imported and referenced by bare name instead of `views.<name>`, and multiple
+methods on one `@api_view`. Each of these is a real case a synthetic single-happy-path fixture
+would not have caught.
+
+---
+
 ## Situation B — Your project type doesn't fit any of the 7 capabilities (rare)
 
 This only applies if what you're building is not a Web App, CLI Tool, Data Pipeline/ML Pipeline,
@@ -274,13 +347,21 @@ explicitly — `new_detector.py`'s generated stub repeats this list as a comment
    `_item_key()` in `verify_spec_code.py` already normalizes it (path params currently do, via
    `_normalize_path()`). If your new syntax isn't covered, extend the shared normalizer instead of
    assuming raw string equality is safe — a spec written in the framework-agnostic convention
-   will otherwise never match your framework's native syntax.
+   will otherwise never match your framework's native syntax. If the normalization is specific to
+   your own framework's syntax rather than a cross-framework convention, do it in your detector
+   instead of the shared normalizer (see `django.py`'s `_clean_path()`, which converts both
+   `path()`'s `<int:id>` converters and `re_path()`'s `(?P<id>...)` regex groups to `{id}` before
+   the path ever reaches comparison).
 
 4. **Don't match by method/keyword name alone** — a regex like `\w+\.get\(...\)` matches anything
    with a `.get()` method, not just your framework's router (an HTTP client's `.get()`, a `Map`'s
    `.get()`, ...). Verify the receiver is actually an instance of what you think it is — e.g. track
    which identifiers were actually assigned from your framework's constructor in the same file
-   (see `express.py`'s `_find_router_identifiers()`), rather than accepting any identifier.
+   (see `express.py`'s `_find_router_identifiers()`), rather than accepting any identifier. This
+   applies to shared helpers too: `_utils.py`'s output-field resolver used to unwrap a
+   dict-returning call only when it was literally named `jsonify`; it now recognizes the shape
+   (a call with one positional dict argument) instead of one framework's function name, which is
+   what let `django.py`'s `Response({...})` work without adding a second hardcoded name.
 
 5. **Nested structure leakage** — if your source format nests (blocks, maps, sub-objects), don't
    extract keys/fields with a flat regex across the whole block — it will pick up keys that

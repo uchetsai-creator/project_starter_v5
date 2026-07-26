@@ -105,8 +105,12 @@ def _resolve_return_literal_fields(func_node) -> list[NormalizedField]:
         value = node.value
         if isinstance(value, ast.Tuple) and value.elts:
             value = value.elts[0]
-        if (isinstance(value, ast.Call) and isinstance(value.func, ast.Name)
-                and value.func.id == 'jsonify' and value.args):
+        # Unwrap a single positional dict argument from any wrapping call —
+        # jsonify(...), Response(...), JsonResponse(...), make_response(...), etc.
+        # Keyed on argument shape, not the callable's name, so it isn't tied to
+        # one framework's wrapper function.
+        if (isinstance(value, ast.Call) and len(value.args) == 1
+                and isinstance(value.args[0], ast.Dict) and not value.keywords):
             value = value.args[0]
 
         if isinstance(value, ast.Dict):

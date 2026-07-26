@@ -56,11 +56,11 @@ def test_missing_required_args_errors(tmp_path):
 
 def test_dry_run_does_not_write_files(tmp_path):
     proj = _setup_project(tmp_path)
-    detector_path = proj / "templates/script/validators/_spec_code_adapters/django.py"
+    detector_path = proj / "templates/script/validators/_spec_code_adapters/acme.py"
     capability_path = proj / "templates/script/validators/_spec_code_adapters/_capability_web_api.py"
     before = capability_path.read_text(encoding="utf-8")
 
-    result = _run(proj, "--capability", "web-api", "--name", "django", "--dry-run")
+    result = _run(proj, "--capability", "web-api", "--name", "acme", "--dry-run")
 
     assert result.returncode == 0
     assert not detector_path.exists()
@@ -70,24 +70,24 @@ def test_dry_run_does_not_write_files(tmp_path):
 
 def test_scaffold_creates_valid_detector_and_registers_it(tmp_path):
     proj = _setup_project(tmp_path)
-    detector_path = proj / "templates/script/validators/_spec_code_adapters/django.py"
+    detector_path = proj / "templates/script/validators/_spec_code_adapters/acme.py"
     capability_path = proj / "templates/script/validators/_spec_code_adapters/_capability_web_api.py"
 
-    result = _run(proj, "--capability", "web-api", "--name", "django")
+    result = _run(proj, "--capability", "web-api", "--name", "acme")
 
     assert result.returncode == 0, result.stderr
     assert detector_path.exists()
 
     content = detector_path.read_text(encoding="utf-8")
-    assert "class DjangoDetector(Detector):" in content
+    assert "class AcmeDetector(Detector):" in content
     assert "NormalizedEndpoint" in content
-    assert "[OK] django.py self-test passed" in content
+    assert "[OK] acme.py self-test passed" in content
 
     # Generated file must be syntactically valid Python.
     compile(content, str(detector_path), "exec")
 
     registry_text = capability_path.read_text(encoding="utf-8")
-    assert "'django': ('django', 'DjangoDetector', ('.py',))," in registry_text
+    assert "'acme': ('acme', 'AcmeDetector', ('.py',))," in registry_text
     compile(registry_text, str(capability_path), "exec")
 
 
@@ -95,18 +95,18 @@ def test_scaffold_with_alias_registers_in_verify_spec_code(tmp_path):
     proj = _setup_project(tmp_path)
     verify_spec_code_path = proj / "templates/script/validators/verify_spec_code.py"
 
-    result = _run(proj, "--capability", "web-api", "--name", "django", "--alias")
+    result = _run(proj, "--capability", "web-api", "--name", "acme", "--alias")
 
     assert result.returncode == 0, result.stderr
     registry_text = verify_spec_code_path.read_text(encoding="utf-8")
-    assert "'django': ('_capability_web_api', 'WebAPIAdapter', 'django')," in registry_text
+    assert "'acme': ('_capability_web_api', 'WebAPIAdapter', 'acme')," in registry_text
     compile(registry_text, str(verify_spec_code_path), "exec")
 
 
 def test_duplicate_name_errors_without_overwriting(tmp_path):
     proj = _setup_project(tmp_path)
-    _run(proj, "--capability", "web-api", "--name", "django")
-    result = _run(proj, "--capability", "web-api", "--name", "django")
+    _run(proj, "--capability", "web-api", "--name", "acme")
+    result = _run(proj, "--capability", "web-api", "--name", "acme")
     assert result.returncode != 0
     assert "already" in result.stderr
 
@@ -127,7 +127,7 @@ def test_invalid_name_rejected(tmp_path, bad_name):
 
 def test_mixed_case_name_is_lowercased(tmp_path):
     proj = _setup_project(tmp_path)
-    result = _run(proj, "--capability", "web-api", "--name", "Django")
+    result = _run(proj, "--capability", "web-api", "--name", "Acme")
     assert result.returncode == 0, result.stderr
-    detector_path = proj / "templates/script/validators/_spec_code_adapters/django.py"
+    detector_path = proj / "templates/script/validators/_spec_code_adapters/acme.py"
     assert detector_path.exists()
