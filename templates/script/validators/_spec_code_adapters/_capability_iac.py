@@ -2,14 +2,15 @@
 _capability_iac.py — IaCAdapter for project_starter_v5 (Phase 52.5).
 
 Capability adapter for Infrastructure-as-Code (IaC / DevOps) projects.
-Orchestrates: TerraformDetector, PulumiDetector.
+Orchestrates: TerraformDetector, PulumiDetector, AnsibleDetector.
 
 Architecture:
   IaCAdapter (this file)
       │  extract_spec() — parses topology.md
-      │  extract_code() — discovers .tf + .py files, delegates to detector(s)
+      │  extract_code() — discovers .tf + .py + .yml/.yaml files, delegates to detector(s)
       ├── TerraformDetector  (receives .tf files)
-      └── PulumiDetector     (receives .py files)
+      ├── PulumiDetector     (receives .py files)
+      └── AnsibleDetector    (receives .yml/.yaml files)
 
 Invariants:
   - No framework-specific parsing logic here.
@@ -37,7 +38,7 @@ class IaCAdapter(FrameworkAdapter):
     """
     Capability adapter for IaC / DevOps projects (Phase 52.5).
 
-    Recognized frameworks: terraform, pulumi.
+    Recognized frameworks: terraform, pulumi, ansible.
 
     Args:
         framework: Optional framework hint (e.g. 'terraform'). When supplied,
@@ -93,7 +94,7 @@ class IaCAdapter(FrameworkAdapter):
 
     def extract_code(self, src_path: str) -> list[NormalizedResource]:
         """
-        Discover .tf and .py files and delegate to IaC detector(s).
+        Discover .tf, .py, and .yml/.yaml files and delegate to IaC detector(s).
 
         With framework hint: only the matching detector runs.
         Without hint: all detectors run and results are unioned.

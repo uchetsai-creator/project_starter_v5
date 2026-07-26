@@ -2,13 +2,14 @@
 _capability_cli.py — CLIAdapter for project_starter_v5 (Phase 52.5).
 
 Capability adapter for CLI tool projects.
-Orchestrates: ClickDetector.
+Orchestrates: ClickDetector, TyperDetector.
 
 Architecture:
   CLIAdapter (this file)
       │  extract_spec() — parses cli-contract.md
       │  extract_code() — discovers .py files, delegates to detector(s)
-      └── ClickDetector
+      ├── ClickDetector
+      └── TyperDetector
 
 Invariants:
   - No framework-specific parsing logic here.
@@ -34,7 +35,7 @@ class CLIAdapter(FrameworkAdapter):
     """
     Capability adapter for CLI tool projects (Phase 52.5).
 
-    Recognized frameworks: click.
+    Recognized frameworks: click, typer.
 
     Args:
         framework: Optional framework hint (e.g. 'click'). When supplied,

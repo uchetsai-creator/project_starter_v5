@@ -2,13 +2,14 @@
 _capability_library.py — LibraryAdapter for project_starter_v5 (Phase 52.5).
 
 Capability adapter for library / SDK projects.
-Orchestrates: PythonLibraryDetector.
+Orchestrates: PythonLibraryDetector, TypescriptDetector.
 
 Architecture:
   LibraryAdapter (this file)
       │  extract_spec() — parses public-api.md
-      │  extract_code() — discovers .py files, delegates to detector(s)
-      └── PythonLibraryDetector
+      │  extract_code() — discovers .py/.ts/.tsx files, delegates to detector(s)
+      ├── PythonLibraryDetector  (receives .py files)
+      └── TypescriptDetector     (receives .ts/.tsx files)
 
 Invariants:
   - No framework-specific parsing logic here.
@@ -34,7 +35,7 @@ class LibraryAdapter(FrameworkAdapter):
     """
     Capability adapter for library / SDK projects (Phase 52.5).
 
-    Recognized frameworks: python_library.
+    Recognized frameworks: python_library, typescript.
 
     Args:
         framework: Optional framework hint (e.g. 'python_library'). When supplied,
@@ -106,7 +107,7 @@ class LibraryAdapter(FrameworkAdapter):
 
     def extract_code(self, src_path: str) -> list[NormalizedFunction]:
         """
-        Discover .py files and delegate to library detector(s).
+        Discover .py/.ts/.tsx files and delegate to library detector(s).
 
         With framework hint: only the matching detector runs.
         Without hint: all detectors run and results are unioned.

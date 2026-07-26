@@ -2,7 +2,7 @@
 _capability_pipeline.py — DataPipelineAdapter for project_starter_v5 (Phase 52.5).
 
 Capability adapter for data / ML pipelines.
-Orchestrates: AirflowDetector, DagsterDetector, PrefectDetector.
+Orchestrates: AirflowDetector, DagsterDetector, PrefectDetector, LuigiDetector.
 
 Architecture:
   DataPipelineAdapter (this file)
@@ -10,7 +10,8 @@ Architecture:
       │  extract_code() — discovers .py files, delegates to detector(s)
       ├── AirflowDetector
       ├── DagsterDetector
-      └── PrefectDetector
+      ├── PrefectDetector
+      └── LuigiDetector
 
 Invariants:
   - No framework-specific parsing logic here.
@@ -39,7 +40,7 @@ class DataPipelineAdapter(FrameworkAdapter):
     """
     Capability adapter for data / ML pipeline projects (Phase 52.5).
 
-    Recognized frameworks: airflow, dagster, prefect.
+    Recognized frameworks: airflow, dagster, prefect, luigi.
 
     Args:
         framework: Optional framework hint (e.g. 'airflow'). When supplied,

@@ -2,13 +2,14 @@
 _capability_llm.py — LLMAdapter for project_starter_v5 (Phase 52.5).
 
 Capability adapter for AI / LLM app projects.
-Orchestrates: ToolSchemaDetector.
+Orchestrates: ToolSchemaDetector, LangchainDetector.
 
 Architecture:
   LLMAdapter (this file)
       │  extract_spec() — parses llm-contract.md
       │  extract_code() — discovers .py + .json files, delegates to detector(s)
-      └── ToolSchemaDetector
+      ├── ToolSchemaDetector  (receives .py/.json files)
+      └── LangchainDetector   (receives .py files)
 
 Invariants:
   - No framework-specific parsing logic here.
@@ -34,7 +35,7 @@ class LLMAdapter(FrameworkAdapter):
     """
     Capability adapter for AI / LLM app projects (Phase 52.5).
 
-    Recognized frameworks: tool_schema.
+    Recognized frameworks: tool_schema, langchain.
 
     Args:
         framework: Optional framework hint (e.g. 'tool_schema'). When supplied,

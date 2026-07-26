@@ -2,14 +2,15 @@
 _capability_mobile.py — MobileAdapter for project_starter_v5 (Phase 52.5).
 
 Capability adapter for mobile app projects.
-Orchestrates: ReactNativeDetector, FlutterDetector.
+Orchestrates: ReactNativeDetector, FlutterDetector, SwiftuiDetector.
 
 Architecture:
   MobileAdapter (this file)
       │  extract_spec() — parses mobile-contract.md
-      │  extract_code() — discovers .tsx/.jsx/.ts/.js + .dart files, delegates to detector(s)
+      │  extract_code() — discovers .tsx/.jsx/.ts/.js + .dart + .swift files, delegates to detector(s)
       ├── ReactNativeDetector  (receives .tsx/.jsx/.ts/.js files)
-      └── FlutterDetector      (receives .dart files)
+      ├── FlutterDetector      (receives .dart files)
+      └── SwiftuiDetector      (receives .swift files)
 
 Invariants:
   - No framework-specific parsing logic here.
@@ -59,7 +60,7 @@ class MobileAdapter(FrameworkAdapter):
     """
     Capability adapter for mobile app projects (Phase 52.5).
 
-    Recognized frameworks: react_native, flutter.
+    Recognized frameworks: react_native, flutter, swiftui.
 
     Args:
         framework: Optional framework hint (e.g. 'react_native'). When supplied,
@@ -114,7 +115,7 @@ class MobileAdapter(FrameworkAdapter):
 
     def extract_code(self, src_path: str) -> list[NormalizedScreen]:
         """
-        Discover .tsx/.jsx/.ts/.js and .dart files and delegate to mobile detector(s).
+        Discover .tsx/.jsx/.ts/.js, .dart, and .swift files and delegate to mobile detector(s).
 
         Deduplicates by screen name across detector results.
         With framework hint: only the matching detector runs.

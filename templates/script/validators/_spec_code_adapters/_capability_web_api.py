@@ -2,7 +2,7 @@
 _capability_web_api.py — WebAPIAdapter for project_starter_v5 (Phase 52.5).
 
 Capability adapter for web / microservice API projects.
-Orchestrates: FastAPIDetector, FlaskDetector, ExpressDetector.
+Orchestrates: FastAPIDetector, FlaskDetector, ExpressDetector, DjangoDetector.
 
 Architecture:
   WebAPIAdapter (this file)
@@ -10,6 +10,7 @@ Architecture:
       │  extract_code() — discovers .py + .js/.ts files, delegates to detector(s)
       ├── FastAPIDetector  (receives .py files)
       ├── FlaskDetector    (receives .py files)
+      ├── DjangoDetector   (receives .py files)
       └── ExpressDetector  (receives .js/.ts files)
 
 Invariants:
@@ -39,7 +40,7 @@ class WebAPIAdapter(FrameworkAdapter):
     """
     Capability adapter for web API / microservices projects (Phase 52.5).
 
-    Recognized frameworks: fastapi, flask, express.
+    Recognized frameworks: fastapi, flask, express, django.
 
     Args:
         framework: Optional framework hint (e.g. 'fastapi'). When supplied,
