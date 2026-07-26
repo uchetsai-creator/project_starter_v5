@@ -29,6 +29,7 @@ from _utils import _parse_config_table
 _DETECTORS: dict[str, tuple[str, str, tuple[str, ...]]] = {
     'terraform': ('terraform', 'TerraformDetector', ('.tf',)),
     'pulumi':    ('pulumi',    'PulumiDetector',    ('.py',)),
+    'ansible': ('ansible', 'AnsibleDetector', ('.yml', '.yaml',)),
 }
 
 
@@ -68,7 +69,7 @@ class IaCAdapter(FrameworkAdapter):
 
         resources: list[NormalizedResource] = []
         section_matches = list(re.finditer(
-            r'^### (`?)(\w+)\1(?:\s+\(([^)]+)\))?',
+            r'^### (`?)([\w-]+)\1(?:\s+\(([^)]+)\))?',
             text, re.MULTILINE,
         ))
 

@@ -109,7 +109,7 @@ class TerraformAdapter(FrameworkAdapter):
         resources: list[NormalizedResource] = []
         # Match: ### label (resource_type)  or  ### label
         section_matches = list(re.finditer(
-            r'^### (`?)(\w+)\1(?:\s+\(([^)]+)\))?',
+            r'^### (`?)([\w-]+)\1(?:\s+\(([^)]+)\))?',
             text, re.MULTILINE,
         ))
 

@@ -133,7 +133,7 @@ class PythonLibraryAdapter(FrameworkAdapter):
             return []
 
         functions: list[NormalizedFunction] = []
-        section_matches = list(re.finditer(r'^### (`?)(\w+)\1', text, re.MULTILINE))
+        section_matches = list(re.finditer(r'^### (`?)([\w-]+)\1', text, re.MULTILINE))
 
         for idx, match in enumerate(section_matches):
             func_name = match.group(2)

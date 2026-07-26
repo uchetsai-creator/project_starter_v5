@@ -30,6 +30,7 @@ _DETECTORS: dict[str, tuple[str, str, tuple[str, ...]]] = {
     'airflow': ('airflow', 'AirflowDetector', ('.py',)),
     'dagster': ('dagster', 'DagsterDetector', ('.py',)),
     'prefect': ('prefect', 'PrefectDetector', ('.py',)),
+    'luigi': ('luigi', 'LuigiDetector', ('.py',)),
 }
 
 

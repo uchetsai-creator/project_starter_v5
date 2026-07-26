@@ -26,6 +26,7 @@ from _utils import _parse_params_table
 
 _DETECTORS: dict[str, tuple[str, str, tuple[str, ...]]] = {
     'python_library': ('python_library', 'PythonLibraryDetector', ('.py',)),
+    'typescript': ('typescript', 'TypescriptDetector', ('.ts', '.tsx',)),
 }
 
 
@@ -68,7 +69,7 @@ class LibraryAdapter(FrameworkAdapter):
             return []
 
         functions: list[NormalizedFunction] = []
-        section_matches = list(re.finditer(r'^### (`?)(\w+)\1', text, re.MULTILINE))
+        section_matches = list(re.finditer(r'^### (`?)([\w-]+)\1', text, re.MULTILINE))
 
         for idx, match in enumerate(section_matches):
             func_name = match.group(2)

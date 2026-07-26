@@ -104,7 +104,7 @@ class PulumiAdapter(FrameworkAdapter):
 
         resources: list[NormalizedResource] = []
         section_matches = list(re.finditer(
-            r'^### (`?)(\w+)\1(?:\s+\(([^)]+)\))?',
+            r'^### (`?)([\w-]+)\1(?:\s+\(([^)]+)\))?',
             text, re.MULTILINE,
         ))
 

@@ -26,6 +26,7 @@ from _utils import _parse_params_table
 
 _DETECTORS: dict[str, tuple[str, str, tuple[str, ...]]] = {
     'tool_schema': ('tool_schema', 'ToolSchemaDetector', ('.py', '.json')),
+    'langchain': ('langchain', 'LangchainDetector', ('.py',)),
 }
 
 
@@ -65,7 +66,7 @@ class LLMAdapter(FrameworkAdapter):
             return []
 
         tools: list[NormalizedTool] = []
-        section_matches = list(re.finditer(r'^### (`?)(\w+)\1', text, re.MULTILINE))
+        section_matches = list(re.finditer(r'^### (`?)([\w-]+)\1', text, re.MULTILINE))
 
         for idx, match in enumerate(section_matches):
             tool_name = match.group(2)

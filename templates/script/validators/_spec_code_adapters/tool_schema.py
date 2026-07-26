@@ -138,7 +138,7 @@ class ToolSchemaAdapter(FrameworkAdapter):
             return []
 
         tools: list[NormalizedTool] = []
-        section_matches = list(re.finditer(r'^### (`?)(\w+)\1', text, re.MULTILINE))
+        section_matches = list(re.finditer(r'^### (`?)([\w-]+)\1', text, re.MULTILINE))
 
         for idx, match in enumerate(section_matches):
             tool_name = match.group(2)

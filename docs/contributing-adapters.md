@@ -36,12 +36,12 @@ Capability Adapter            (one per project type — 7 total)
 | Capability (`--adapter`) | File | Detectors registered today |
 |---|---|---|
 | `web-api` | `_capability_web_api.py` | `fastapi`, `flask`, `django` (Python), `express` (Node.js) |
-| `cli` | `_capability_cli.py` | `click` (Python) |
-| `data-pipeline` | `_capability_pipeline.py` | `airflow`, `dagster`, `prefect` (Python) |
-| `library` | `_capability_library.py` | `python_library` |
-| `llm-app` | `_capability_llm.py` | `tool_schema` (Python functions / OpenAI JSON schema) |
-| `iac` | `_capability_iac.py` | `terraform` (HCL), `pulumi` (Python) |
-| `mobile` | `_capability_mobile.py` | `react_native` (TSX/JSX), `flutter` (Dart) |
+| `cli` | `_capability_cli.py` | `click`, `typer` (Python) |
+| `data-pipeline` | `_capability_pipeline.py` | `airflow`, `dagster`, `prefect`, `luigi` (Python) |
+| `library` | `_capability_library.py` | `python_library` (Python), `typescript` (TS/TSX) |
+| `llm-app` | `_capability_llm.py` | `tool_schema` (Python functions / OpenAI JSON schema), `langchain` (`@tool`-decorated functions) |
+| `iac` | `_capability_iac.py` | `terraform` (HCL), `pulumi` (Python), `ansible` (YAML) |
+| `mobile` | `_capability_mobile.py` | `react_native` (TSX/JSX), `flutter` (Dart), `swiftui` (Swift) |
 
 If your tool isn't in the right-hand column, you're in one of two situations:
 

@@ -107,6 +107,12 @@ ADAPTER_REGISTRY: dict[str, tuple[str, str, str | None]] = {
     'react_native':   ('_capability_mobile',   'MobileAdapter',       'react_native'),
     'flutter':        ('_capability_mobile',   'MobileAdapter',       'flutter'),
     'django': ('_capability_web_api', 'WebAPIAdapter', 'django'),
+    'typer': ('_capability_cli', 'CLIAdapter', 'typer'),
+    'luigi': ('_capability_pipeline', 'DataPipelineAdapter', 'luigi'),
+    'typescript': ('_capability_library', 'LibraryAdapter', 'typescript'),
+    'langchain': ('_capability_llm', 'LLMAdapter', 'langchain'),
+    'ansible': ('_capability_iac', 'IaCAdapter', 'ansible'),
+    'swiftui': ('_capability_mobile', 'MobileAdapter', 'swiftui'),
 }
 
 _ADAPTER_DIR = Path(__file__).resolve().parent / '_spec_code_adapters'

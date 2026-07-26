@@ -26,6 +26,7 @@ from _utils import _clean_flag_name, _PLACEHOLDER_CMD_NAMES
 
 _DETECTORS: dict[str, tuple[str, str, tuple[str, ...]]] = {
     'click': ('click', 'ClickDetector', ('.py',)),
+    'typer': ('typer', 'TyperDetector', ('.py',)),
 }
 
 

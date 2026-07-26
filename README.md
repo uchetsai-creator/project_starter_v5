@@ -997,11 +997,17 @@ logic is a bug.
 | `django` | Django REST Framework | Web App / Microservices | `api-contract.md` `### METHOD /path` + `#### Request Body` / `#### Response Body` tables | `@api_view([...])`-decorated functions, correlated with `path()`/`re_path()` entries in `urlpatterns` |
 | `dagster` | Dagster | Data Pipeline / ML Pipeline | `pipeline-contract.md` `### Stage` + `#### Input/Output Contract \| Schema \|` | `@op` / `@asset`-decorated Python functions |
 | `prefect` | Prefect | Data Pipeline / ML Pipeline | `pipeline-contract.md` `### Stage` + `#### Input/Output Contract \| Schema \|` | `@task` / `@flow`-decorated Python functions |
+| `luigi` | Luigi | Data Pipeline / ML Pipeline | `pipeline-contract.md` `### Stage` + `#### Input Contract \| Schema \|` (no Output Contract — Luigi's `output()` names a file target, not a data schema) | `class Stage(luigi.Task):` with `luigi.Parameter()`-typed class attributes |
+| `typer` | Typer | CLI Tool | `cli-contract.md` `### \`cmd\`` + `#### Flags` table | `@app.command()`-decorated functions; flags come from parameter type hints, not `@click.option()` decorators |
 | `python_library` | Python `__all__` | Library / SDK | `public-api.md` `### function_name` + `#### Parameters` table | Functions listed in `__all__` + type-annotated signatures |
+| `typescript` | TypeScript | Library / SDK | `public-api.md` `### function_name` + `#### Parameters` table | `export function`/`export const ... =>` declarations, or an internal function named in `export { a as b }` |
 | `tool_schema` | Python docstrings / OpenAI JSON | AI / LLM App | `llm-contract.md` `### tool_name` + `#### Parameters` table | Type-annotated Python functions or OpenAI-compatible JSON schema |
+| `langchain` | LangChain | AI / LLM App | `llm-contract.md` `### tool_name` + `#### Parameters` table | `@tool` / `@tool("name")`-decorated functions |
 | `terraform` | Terraform HCL | IaC / DevOps | `topology.md` `### label (resource_type)` + `#### Configuration` table | `resource "type" "name" { ... }` blocks in `.tf` files |
 | `pulumi` | Pulumi (Python) | IaC / DevOps | `topology.md` `### label (resource_type)` + `#### Configuration` table | `ResourceClass("name", key=val, ...)` constructor calls in Python |
+| `ansible` | Ansible | IaC / DevOps | `topology.md` `### label (resource_type)` + `#### Configuration` table | YAML tasks — one module key per task, e.g. `amazon.aws.s3_bucket: {name: ..., ...}` |
 | `react_native` | React Native | Mobile App | `mobile-contract.md` `### ScreenName` + `#### Props` table | Function/const components with destructured props in `.tsx`/`.jsx` |
+| `swiftui` | SwiftUI | Mobile App | `mobile-contract.md` `### ScreenName` + `#### Props` table | `struct ScreenName: View { ... }` — non-private stored properties |
 | `flutter` | Flutter / Dart | Mobile App | `mobile-contract.md` `### ScreenName` + `#### Props` table | `class ScreenName extends StatelessWidget` with `final` fields in `.dart` |
 
 ### Spec format (Airflow)
@@ -1065,14 +1071,35 @@ python3 docs/script/validators/verify_spec_code.py \
     --project-type data-pipeline --adapter prefect \
     --spec docs/specs/pipeline-contract.md --src src/ --strict
 
+# Data Pipeline — validate stage contracts against Luigi code (input side only —
+# Luigi's output() names a file target, not a data schema)
+python3 docs/script/validators/verify_spec_code.py \
+    --project-type data-pipeline --adapter luigi \
+    --spec docs/specs/pipeline-contract.md --src src/ --strict
+
+# CLI Tool — validate subcommands and flags against Typer code
+python3 docs/script/validators/verify_spec_code.py \
+    --project-type cli-tool --adapter typer \
+    --spec docs/specs/cli-contract.md --src src/ --strict
+
 # Library / SDK — validate public API against Python __all__ + signatures
 python3 docs/script/validators/verify_spec_code.py \
     --project-type library --adapter python_library \
     --spec docs/specs/public-api.md --src src/ --strict
 
+# Library / SDK — validate public API against a TypeScript library
+python3 docs/script/validators/verify_spec_code.py \
+    --project-type library --adapter typescript \
+    --spec docs/specs/public-api.md --src src/ --strict
+
 # AI / LLM App — validate tool definitions against Python functions or OpenAI JSON schema
 python3 docs/script/validators/verify_spec_code.py \
     --project-type llm-app --adapter tool_schema \
+    --spec docs/specs/llm-contract.md --src src/ --strict
+
+# AI / LLM App — validate tool definitions against LangChain @tool functions
+python3 docs/script/validators/verify_spec_code.py \
+    --project-type llm-app --adapter langchain \
     --spec docs/specs/llm-contract.md --src src/ --strict
 
 # IaC — validate topology against Terraform HCL
@@ -1085,6 +1112,11 @@ python3 docs/script/validators/verify_spec_code.py \
     --project-type iac --adapter pulumi \
     --spec docs/specs/topology.md --src infra/ --strict
 
+# IaC — validate topology against Ansible playbooks/tasks
+python3 docs/script/validators/verify_spec_code.py \
+    --project-type iac --adapter ansible \
+    --spec docs/specs/topology.md --src playbooks/ --strict
+
 # Mobile App — validate screen contracts against React Native TSX/JSX
 python3 docs/script/validators/verify_spec_code.py \
     --project-type mobile-app --adapter react_native \
@@ -1094,6 +1126,11 @@ python3 docs/script/validators/verify_spec_code.py \
 python3 docs/script/validators/verify_spec_code.py \
     --project-type mobile-app --adapter flutter \
     --spec docs/specs/mobile-contract.md --src lib/screens/ --strict
+
+# Mobile App — validate screen contracts against native SwiftUI
+python3 docs/script/validators/verify_spec_code.py \
+    --project-type mobile-app --adapter swiftui \
+    --spec docs/specs/mobile-contract.md --src ios/Screens/ --strict
 
 # List all registered adapters
 python3 docs/script/validators/verify_spec_code.py --list-adapters

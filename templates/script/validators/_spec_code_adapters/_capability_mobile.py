@@ -28,6 +28,7 @@ from _base import FrameworkAdapter, NormalizedField, NormalizedScreen
 _DETECTORS: dict[str, tuple[str, str, tuple[str, ...]]] = {
     'react_native': ('react_native', 'ReactNativeDetector', ('.tsx', '.jsx', '.ts', '.js')),
     'flutter':      ('flutter',      'FlutterDetector',     ('.dart',)),
+    'swiftui': ('swiftui', 'SwiftuiDetector', ('.swift',)),
 }
 
 
