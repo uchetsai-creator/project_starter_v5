@@ -281,6 +281,31 @@ def _collect(
             _collect(src_root, entry, project_root, project_type, max_depth, cur_depth + 1, results)
 
 
+def find_unscanned_nesting(folders: list[dict], max_depth: int) -> list[str]:
+    """Folders at the deepest scanned level that themselves contain further
+    subdirectories --depth did not reach.
+
+    Without this, a container folder at the scan's depth limit (e.g. Terraform's
+    conventional `modules/<name>/` layout, scanned at the default --depth 1) reports
+    as fully covered — 0 modules found, 100% coverage — while its real content sits
+    one level deeper, unscanned and undocumented.
+    """
+    unscanned = []
+    for f in folders:
+        if f["depth"] != max_depth:
+            continue
+        try:
+            has_subdirs = any(
+                p.is_dir() and not p.name.startswith(".") and p.name not in SKIP_DIRS
+                for p in Path(f["path"]).iterdir()
+            )
+        except (PermissionError, FileNotFoundError):
+            has_subdirs = False
+        if has_subdirs:
+            unscanned.append(f["rel"])
+    return unscanned
+
+
 def find_documented_modules(docs_dir: str = "docs") -> dict[str, str]:
     """Return {module_name: flow_file_path} for all existing module flow files."""
     pattern = os.path.join(docs_dir, "modules", "**", "*-module-data-flow.md")
@@ -428,7 +453,9 @@ def print_tree(src_dir: str, folders: list[dict], docs_dir: str = "docs") -> str
 # Output: Coverage table
 # ---------------------------------------------------------------------------
 
-def print_coverage(folders: list[dict], project_type: str | None = None) -> str:
+def print_coverage(
+    folders: list[dict], project_type: str | None = None, unscanned: list[str] | None = None,
+) -> str:
     _, plural_label = MODULE_VOCAB.get(project_type, ("Feature", "feature modules"))
 
     lines = []
@@ -460,6 +487,16 @@ def print_coverage(folders: list[dict], project_type: str | None = None) -> str:
     pct = int(len(documented) / total * 100) if total else 100
     lines.append(f"Coverage: {len(documented)}/{total} {plural_label} documented ({pct}%)")
 
+    if unscanned:
+        lines.append("")
+        lines.append(
+            "[WARN] Not fully scanned — these folders contain further subdirectories "
+            "past the current --depth:"
+        )
+        for rel in unscanned:
+            lines.append(f"    {rel}")
+        lines.append("  Re-run with a higher --depth to check for undocumented modules inside them.")
+
     if undocumented:
         lines.append("")
         lines.append("Next steps:")
@@ -478,7 +515,8 @@ def print_coverage(folders: list[dict], project_type: str | None = None) -> str:
 # ---------------------------------------------------------------------------
 
 def format_json(
-    folders: list[dict], src_dir: str, project_type: str | None, depth: int, docs_dir: str
+    folders: list[dict], src_dir: str, project_type: str | None, depth: int, docs_dir: str,
+    unscanned: list[str] | None = None,
 ) -> str:
     documented = [f for f in folders if f["status"] == "Documented"]
     undocumented = [f for f in folders if f["status"] == "Not documented"]
@@ -504,6 +542,7 @@ def format_json(
         "depth": depth,
         "docs_dir": docs_dir,
         "modules": modules,
+        "unscanned_nested_dirs": unscanned or [],
         "summary": {
             "documented": len(documented),
             "undocumented": len(undocumented),
@@ -664,10 +703,11 @@ def main():
     folders = find_source_folders(args.src_dir, project_type, args.depth)
     documented = find_documented_modules(args.docs)
     folders = annotate_folders(folders, documented)
+    unscanned = find_unscanned_nesting(folders, args.depth)
 
     # JSON mode — output and exit
     if args.output_format == "json":
-        print(format_json(folders, args.src_dir, project_type, args.depth, args.docs))
+        print(format_json(folders, args.src_dir, project_type, args.depth, args.docs, unscanned))
         return
 
     # Default: show both tree and coverage if no specific output flag given
@@ -678,7 +718,7 @@ def main():
         print()
 
     if args.coverage or show_all:
-        print(print_coverage(folders, project_type))
+        print(print_coverage(folders, project_type, unscanned))
 
     if args.update:
         update_codebase_map(args.update, args.src_dir, folders, args.docs)

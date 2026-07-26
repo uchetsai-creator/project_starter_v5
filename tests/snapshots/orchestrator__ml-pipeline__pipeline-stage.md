@@ -8,7 +8,7 @@ Generated: {{TIMESTAMP}}
 - Follow Steps in `docs/current-state.md`
 
 ## Post-task validators (run in order)
-1. `python3 docs/script/validators/verify_registry.py --project-type ml-pipeline`
+1. `python3 docs/script/validators/verify_registry.py`
 2. `python3 docs/script/validators/verify_docs.py --project-type ml-pipeline --content`
 3. `python3 docs/script/validators/verify_logs.py --project-type ml-pipeline --strict`
 4. `python3 docs/script/validators/verify_content.py --project-type ml-pipeline --strict`

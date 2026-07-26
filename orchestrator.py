@@ -25,6 +25,103 @@ from _workflow_utils import _coerce_project_type, _load_valid_task_types, _load_
 
 VALID_ADAPTERS = ["claude", "codex", "cursor"]
 
+# Adapter output templates, embedded so `--adapter` works from a plain copy of this
+# file with no `adapters/` directory present (adapters/ stays in the framework repo —
+# see README.md -> Agent Adapters). Keep byte-identical to adapters/<tool>/<file> in
+# the framework repo; tests/contract/test_adapter_contracts.py guards against drift.
+_ADAPTER_TEMPLATES = {
+    "claude": {
+        "start-task.md": (
+            "Run `python3 orchestrator.py` in the project root to refresh the workflow plan and context for the current task.\n"
+            "\n"
+            "Then read:\n"
+            "- `.ai/AI_CONTEXT.md` — ordered read list for the current task\n"
+            "- `.ai/WORKFLOW.md` — deterministic workflow plan (pre-task, validators, closeout)\n"
+            "\n"
+            "**Last generated workflow snapshot** (from the most recent `orchestrator.py` run):\n"
+            "\n"
+            "{{WORKFLOW_CONTENT}}\n"
+            "\n"
+            "After running the orchestrator and reading both context files, confirm the task type and workflow key, present the steps, and ask which step to begin.\n"
+        ),
+    },
+    "codex": {
+        "setup.md": (
+            "# Codex Setup\n"
+            "\n"
+            "This project uses [project_starter](<your-fork-url>) for documentation-driven development.\n"
+            "\n"
+            "## Before starting work\n"
+            "\n"
+            "Run the orchestrator to generate the workflow plan and context:\n"
+            "\n"
+            "```bash\n"
+            "python3 orchestrator.py\n"
+            "```\n"
+            "\n"
+            "This writes:\n"
+            "- `.ai/AI_CONTEXT.md` — ordered read list for the current task\n"
+            "- `.ai/WORKFLOW.md` — deterministic workflow plan with post-task validators\n"
+            "\n"
+            "Then read `.codex/task-instructions.md` for the current workflow steps.\n"
+            "\n"
+            "> **Note:** if `.codex/task-instructions.md` shows `{{WORKFLOW_CONTENT}}` as literal text, run `python3 orchestrator.py --adapter codex` first to inject the current workflow snapshot.\n"
+            "\n"
+            "## Regenerating adapter output\n"
+            "\n"
+            "```bash\n"
+            "python3 orchestrator.py --adapter codex\n"
+            "```\n"
+            "\n"
+            "This re-runs the orchestrator and refreshes `.codex/task-instructions.md` with the current workflow snapshot.\n"
+        ),
+        "task-instructions.md": (
+            "# Task Instructions\n"
+            "\n"
+            "Follow the steps below. Run post-task validators in order before committing.\n"
+            "\n"
+            "{{WORKFLOW_CONTENT}}\n"
+            "\n"
+            "---\n"
+            "\n"
+            "Regenerate this file at any time:\n"
+            "\n"
+            "```bash\n"
+            "python3 orchestrator.py --adapter codex\n"
+            "```\n"
+        ),
+    },
+    "cursor": {
+        ".cursorrules": (
+            "# project_starter workflow rules\n"
+            "\n"
+            "## Before starting any task\n"
+            "\n"
+            "1. Run `python3 orchestrator.py` in the project root\n"
+            "2. Read `.ai/AI_CONTEXT.md` — ordered context for the current task\n"
+            "3. Read `.ai/WORKFLOW.md` — deterministic workflow plan\n"
+            "\n"
+            "## Current workflow snapshot\n"
+            "\n"
+            "{{WORKFLOW_CONTENT}}\n"
+            "\n"
+            "## Post-task\n"
+            "\n"
+            "Run all validators listed under \"Post-task validators\" in `.ai/WORKFLOW.md` in order before committing.\n"
+            "\n"
+            "## Constraint\n"
+            "\n"
+            "Document selection logic lives exclusively in `document-registry.yaml` and `orchestrator.py`. Do not add selection logic to adapter files.\n"
+            "\n"
+            "## Regenerate\n"
+            "\n"
+            "```bash\n"
+            "python3 orchestrator.py --adapter cursor\n"
+            "```\n"
+        ),
+    },
+}
+
 
 def _invoke_build_context(project_root: Path, task_type: str | None) -> None:
     cmd = [sys.executable, str(project_root / "build-context.py")]
@@ -102,7 +199,11 @@ def _render(ctx: dict) -> str:
         for i, v in enumerate(ctx["validators"], start=1):
             script = v.get("script", "")
             extra_args = [str(a) for a in v.get("args", [])]
-            parts = ["python3", script, f"--project-type {pt}"]
+            parts = ["python3", script]
+            # verify_registry.py validates document-registry.yaml itself — it has no
+            # project-type concept and does not accept --project-type.
+            if not script.endswith("verify_registry.py"):
+                parts.append(f"--project-type {pt}")
             if spec_code and script.endswith("verify_spec_code.py"):
                 parts.append(f"--adapter {spec_code['adapter']} --spec {spec_code['spec']} --src {spec_code['src']}")
             parts += extra_args
@@ -134,19 +235,15 @@ def _track_orchestrator_run(project_root: Path, task_name: str) -> None:
     state_file.write_text(json.dumps(state), encoding="utf-8")
 
 
-def _render_adapter_file(template_path: Path, workflow_content: str) -> str:
-    return template_path.read_text(encoding="utf-8").replace("{{WORKFLOW_CONTENT}}", workflow_content)
+def _render_adapter_file(template_text: str, workflow_content: str) -> str:
+    return template_text.replace("{{WORKFLOW_CONTENT}}", workflow_content)
 
 
 def _run_adapter(adapter: str, project_root: Path, workflow_content: str, dry_run: bool) -> None:
-    adapter_dir = project_root / "adapters" / adapter
+    templates = _ADAPTER_TEMPLATES[adapter]
 
     if adapter == "claude":
-        template = adapter_dir / "start-task.md"
-        if not template.exists():
-            print(f"[FAIL] Adapter template not found: {template}", file=sys.stderr)
-            sys.exit(1)
-        rendered = _render_adapter_file(template, workflow_content)
+        rendered = _render_adapter_file(templates["start-task.md"], workflow_content)
         if dry_run:
             print("\n--- .claude/commands/start-task.md (dry-run) ---")
             print(rendered)
@@ -159,11 +256,7 @@ def _run_adapter(adapter: str, project_root: Path, workflow_content: str, dry_ru
 
     elif adapter == "codex":
         for filename in ("setup.md", "task-instructions.md"):
-            template = adapter_dir / filename
-            if not template.exists():
-                print(f"[FAIL] Adapter template not found: {template}", file=sys.stderr)
-                sys.exit(1)
-            rendered = _render_adapter_file(template, workflow_content)
+            rendered = _render_adapter_file(templates[filename], workflow_content)
             if dry_run:
                 print(f"\n--- .codex/{filename} (dry-run) ---")
                 print(rendered)
@@ -175,11 +268,7 @@ def _run_adapter(adapter: str, project_root: Path, workflow_content: str, dry_ru
                 print(f"[OK] Adapter → {out_path}")
 
     elif adapter == "cursor":
-        template = adapter_dir / ".cursorrules"
-        if not template.exists():
-            print(f"[FAIL] Adapter template not found: {template}", file=sys.stderr)
-            sys.exit(1)
-        rendered = _render_adapter_file(template, workflow_content)
+        rendered = _render_adapter_file(templates[".cursorrules"], workflow_content)
         if dry_run:
             print("\n--- .cursorrules (dry-run) ---")
             print(rendered)

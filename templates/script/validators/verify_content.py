@@ -57,7 +57,20 @@ def check_architecture(lines: list[str]) -> list[str]:
         issues.append("plantuml block missing (@startuml / @enduml not found)")
         return issues
     block = uml_m.group(1)
-    components = re.findall(r'\[([^\]]+)\]|component\s+"([^"]+)"', block)
+    # Two legitimate component forms: bare PlantUML shorthand `[Label]` (real content —
+    # e.g. `[API Service] --> [Database]`), and `component`/`database "Label"` (may itself
+    # be a bracket-wrapped placeholder, e.g. `component "[Component A]" as CompA`). Match
+    # the quoted label of the second form as one piece so a wrapped placeholder is checked
+    # as "[Component A]", not silently de-bracketed to "Component A".
+    #
+    # Only look at the part of each line before ":" — text after it is an edge label
+    # (e.g. `CompA -down-> CompB : [protocol, e.g. HTTP]`), not a component reference,
+    # and must not be counted as a "real component".
+    components = []
+    for ln in block.splitlines():
+        components.extend(re.findall(
+            r'\[([^\]]+)\]|(?:component|database)\s+"([^"]+)"', ln.split(':', 1)[0]
+        ))
     real = [c for pair in components for c in pair if c and not _is_placeholder(c)]
     if not real:
         issues.append("plantuml block: no real component defined (only placeholders or empty)")

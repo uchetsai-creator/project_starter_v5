@@ -29,6 +29,7 @@ _PLACEHOLDER_RES = [
     re.compile(r'\[fill\s+', re.IGNORECASE),
     re.compile(r'^\s*_\s*$'),
     re.compile(r'^\s*\.\.\.\s*$'),
+    re.compile(r'^\s*[-*_]{3,}\s*$'),  # bare markdown horizontal rule (---, ***, ___)
     re.compile(r'\[e\.g\.', re.IGNORECASE),
     re.compile(r'\[Component\]', re.IGNORECASE),
     re.compile(r'\[Method\]', re.IGNORECASE),
@@ -40,12 +41,29 @@ _PLACEHOLDER_RES = [
     re.compile(r'\[module\s+name\]', re.IGNORECASE),
     re.compile(r'\bactualFunctionName\b'),
     re.compile(r'\bpath/to/file\b', re.IGNORECASE),
+    # Generic catch-all: templates wrap unfilled values in a single bracket pair
+    # (e.g. "[Component A]", "[Database]", "[your API key]"). A value that is
+    # *entirely* one bracket span, start to end, is always unfilled template
+    # content — real project content has no reason to bracket-wrap a whole field.
+    re.compile(r'^\s*\[.+\]\s*$', re.DOTALL),
 ]
 
 
 def _is_placeholder(text: str) -> bool:
     """Return True if text contains a template placeholder pattern."""
     return any(r.search(text) for r in _PLACEHOLDER_RES)
+
+
+def _strip_bracket_blocks(text: str) -> str:
+    """Remove `[ ... ]` instructional/example spans from section bodies.
+
+    Templates wrap entire unfilled blocks in a single bracket pair, sometimes
+    spanning many lines (e.g. backend.md's Stack section). Per-line placeholder
+    checks can't see across lines to know a line is still inside such a span, so
+    callers that check "is there real content in this section" strip these spans
+    from the whole body first.
+    """
+    return re.sub(r'\[[^\[\]]*\]', '', text, flags=re.DOTALL)
 
 
 def _read_file(path: str) -> list[str] | None:
@@ -131,4 +149,5 @@ def _section_body(text_or_lines: 'str | list[str]', header_re: str) -> 'str | li
     after = text[m.end():]
     boundary = re.search(r'(?m)^#{1,' + str(level) + r'}\s', after)
     result = after[:boundary.start()] if boundary else after
+    result = _strip_bracket_blocks(result)
     return result.splitlines() if is_list else result

@@ -300,8 +300,10 @@ new_project/
 > Without it, scripts exit with: `FileNotFoundError: document-registry.yaml not found.`
 
 > **Note:** `adapters/` stays in the framework repo — it is **not** copied to user projects.
-> The adapter output (`.claude/commands/start-task.md`, `.codex/`, `.cursorrules`) is generated
-> into your project by running `orchestrator.py --adapter <tool>`.
+> The adapter templates are embedded directly in `orchestrator.py` (see `_ADAPTER_TEMPLATES`),
+> so the adapter output (`.claude/commands/start-task.md`, `.codex/`, `.cursorrules`) can be
+> generated into your project by running `orchestrator.py --adapter <tool>` from nothing more
+> than the files listed above — no `adapters/` directory needs to exist in your project.
 
 The `docs/specs/`, `docs/architecture/`, and `docs/modules/` contents differ per project type:
 
@@ -992,6 +994,7 @@ logic is a bug.
 | `fastapi` | FastAPI | Web App / Microservices | `api-contract.md` `### METHOD /path` + `#### Request Body` / `#### Response Body` tables | `@app.{method}("/path")` / `@router.{method}` decorated functions |
 | `flask` | Flask | Web App / Microservices | `api-contract.md` `### METHOD /path` + `#### Request Body` / `#### Response Body` tables | `@app.route('/path', methods=[...])` decorated functions |
 | `express` | Express | Web App / Microservices | `api-contract.md` `### METHOD /path` + `#### Request Body` / `#### Response Body` tables | `router.{method}('/path', ...)` in JS/TS files |
+| `django` | Django REST Framework | Web App / Microservices | `api-contract.md` `### METHOD /path` + `#### Request Body` / `#### Response Body` tables | `@api_view([...])`-decorated functions, correlated with `path()`/`re_path()` entries in `urlpatterns` |
 | `dagster` | Dagster | Data Pipeline / ML Pipeline | `pipeline-contract.md` `### Stage` + `#### Input/Output Contract \| Schema \|` | `@op` / `@asset`-decorated Python functions |
 | `prefect` | Prefect | Data Pipeline / ML Pipeline | `pipeline-contract.md` `### Stage` + `#### Input/Output Contract \| Schema \|` | `@task` / `@flow`-decorated Python functions |
 | `python_library` | Python `__all__` | Library / SDK | `public-api.md` `### function_name` + `#### Parameters` table | Functions listed in `__all__` + type-annotated signatures |
@@ -1040,6 +1043,11 @@ python3 docs/script/validators/verify_spec_code.py \
 # Web App — validate HTTP endpoints against Flask code
 python3 docs/script/validators/verify_spec_code.py \
     --project-type web-app --adapter flask \
+    --spec docs/specs/api-contract.md --src src/ --strict
+
+# Web App — validate HTTP endpoints against Django REST Framework code
+python3 docs/script/validators/verify_spec_code.py \
+    --project-type web-app --adapter django \
     --spec docs/specs/api-contract.md --src src/ --strict
 
 # Microservices — validate HTTP endpoints against Express (Node.js) code

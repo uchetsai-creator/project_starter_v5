@@ -67,6 +67,10 @@ The following documents from other project types are **N/A** — do not create t
 
 13. (Optional) Set up `docs/codebase-map.md` using the template.
     Run `scan_codebase.py <src_dir> --project-type iac` to classify Terraform modules / resource groups.
+    The conventional Terraform layout nests each resource group one level under a container
+    folder (e.g. `modules/storage/`, `modules/network/`) — scan with `--depth 2` in that case,
+    or the top-level `modules/` folder is classified as Shared / Infrastructure and its actual
+    contents are never scanned. The tool warns when it detects this (`[WARN] Not fully scanned`).
 
 **Optional utility documents (create on demand, any time):**
 - `docs/specs/glossary.md` — if the project uses infrastructure-specific terms, resource naming conventions, or tagging taxonomy that the team needs to agree on. Create from `templates/specs/glossary.md`.

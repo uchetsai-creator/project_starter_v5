@@ -3,8 +3,8 @@
   "results": [
     {
       "doc": "project-requirements.md",
-      "status": "missing_required",
-      "label": "Missing Required",
+      "status": "present",
+      "label": "Present",
       "note": ""
     },
     {
