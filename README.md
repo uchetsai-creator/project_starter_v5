@@ -5,7 +5,8 @@ an AI agent (Claude Code, etc.) starts writing code — then keep every doc in s
 as work progresses.
 
 This repo is a **pure template repository**. It contains no real project content — only blank
-scaffolding under `templates/`. Copy `templates/` into a new project's `docs/` folder to start.
+scaffolding under `templates/`. The validator scripts (`templates/script/`) go into your project's
+`docs/script/`; individual doc templates are filled in one at a time as you follow the init guide.
 
 ---
 
@@ -29,8 +30,9 @@ scaffolding under `templates/`. Copy `templates/` into a new project's `docs/` f
    `.project-starter.yml`: replace `[your-project-type]` with your actual type — **the
    pre-commit hook blocks every commit until this placeholder is removed.**
 2. Declare your project type at the top of `AGENTS.md` (see the type table in
-   [Project Initialization](#project-initialization)), then open `templates/init/<type>.md` for
-   your type and follow its numbered steps.
+   [Project Initialization](#project-initialization)), then open `templates/init/<type>.md`
+   **from this framework repo** and follow its numbered steps. (The init files are not copied
+   to your project — keep the framework repo around for reference.)
 3. Run `python3 orchestrator.py --adapter claude` (or `codex` / `cursor`) — writes
    `.ai/WORKFLOW.md` + `.ai/AI_CONTEXT.md` and renders your tool's native instruction file
    (e.g. `.claude/commands/start-task.md`).
