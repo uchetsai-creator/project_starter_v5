@@ -221,7 +221,7 @@ def _render(ctx: dict) -> str:
 
 
 def _track_orchestrator_run(project_root: Path, task_name: str) -> None:
-    telemetry_dir = project_root / ".ai" / "telemetry"
+    telemetry_dir = project_root / "logs" / "telemetry"
     telemetry_dir.mkdir(parents=True, exist_ok=True)
     state_file = telemetry_dir / ".orchestrator_runs.json"
     try:
@@ -302,6 +302,11 @@ def main() -> None:
         metavar="TOOL",
         help=f"Render adapter output after writing WORKFLOW.md ({', '.join(VALID_ADAPTERS)})",
     )
+    parser.add_argument(
+        "--no-overwrite",
+        action="store_true",
+        help="Skip writing .ai/WORKFLOW.md if it already exists (preserves manual edits)",
+    )
     args = parser.parse_args()
 
     ctx = _build_workflow(project_root, args.task_type)
@@ -318,17 +323,21 @@ def main() -> None:
     ai_dir = project_root / ".ai"
     ai_dir.mkdir(exist_ok=True)
     out_path = ai_dir / "WORKFLOW.md"
-    out_path.write_text(output, encoding="utf-8")
 
-    docs_dir = project_root / ctx["docs_path"]
-    task_name = _read_task_name_from_current_state(docs_dir / "current-state.md")
-    _track_orchestrator_run(project_root, task_name)
+    if args.no_overwrite and out_path.exists():
+        print(f"[SKIP] {out_path} already exists — skipped (--no-overwrite active, manual edits preserved)")
+    else:
+        out_path.write_text(output, encoding="utf-8")
+        print(f"[OK] Written to {out_path}")
 
-    print(f"[OK] Written to {out_path}")
     print(f"    Project type : {ctx['project_type']}")
     print(f"    Task type    : {ctx['task_type'] or 'unset'}")
     print(f"    Workflow     : {ctx['workflow_key']}")
     print(f"    Validators   : {len(ctx['validators'])}")
+
+    docs_dir = project_root / ctx["docs_path"]
+    task_name = _read_task_name_from_current_state(docs_dir / "current-state.md")
+    _track_orchestrator_run(project_root, task_name)
 
     if args.adapter:
         _run_adapter(args.adapter, project_root, output, dry_run=False)

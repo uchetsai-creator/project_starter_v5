@@ -6,11 +6,9 @@
 #
 # Install: add to .claude/settings.json:
 #   { "hooks": { "Stop": [{ "matcher": "", "hooks": [{ "type": "command", "command": "bash adapters/claude/stop-hook.sh" }] }] } }
-set -euo pipefail
-
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 CURRENT_STATE="$PROJECT_ROOT/docs/current-state.md"
-TELEMETRY_DIR="$PROJECT_ROOT/.ai/telemetry"
+TELEMETRY_DIR="$PROJECT_ROOT/logs/telemetry"
 TASK_RUN_FILE="$TELEMETRY_DIR/task-run.json"
 ORCH_STATE_FILE="$TELEMETRY_DIR/.orchestrator_runs.json"
 
@@ -23,11 +21,12 @@ if [[ -f "$CURRENT_STATE" ]]; then
     [[ -z "$TASK_NAME" ]] && TASK_NAME="(unknown)"
 fi
 
-# Write telemetry row
-mkdir -p "$TELEMETRY_DIR"
+# Write telemetry row — always attempt; log but don't hard-fail on error
+mkdir -p "$TELEMETRY_DIR" || true
 python3 "$(dirname "$0")/telemetry_writer.py" \
     --task "$TASK_NAME" \
     --adapter claude \
     --orch-state "$ORCH_STATE_FILE" \
     --output "$TASK_RUN_FILE" \
-    --ts "$TIMESTAMP"
+    --ts "$TIMESTAMP" \
+    || echo "[stop-hook] telemetry_writer.py failed — telemetry row not written" >&2

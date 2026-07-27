@@ -57,7 +57,7 @@ def main():
     args = _parse_args()
 
     ts = args.ts or datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    output = args.output or os.path.join(".ai", "telemetry", "task-run.json")
+    output = args.output or os.path.join("logs", "telemetry", "task-run.json")
 
     os.makedirs(os.path.dirname(os.path.abspath(output)), exist_ok=True)
 

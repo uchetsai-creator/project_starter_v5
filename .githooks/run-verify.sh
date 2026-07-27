@@ -4,12 +4,18 @@
 # Writes verify output to logs/ as a valid JSON array — non-blocking (always exits 0).
 
 mkdir -p logs
+STAMP=$(date +%Y%m%d-%H%M%S)
 if [ ! -f .project-starter.yml ] || [ ! -f docs/script/validators/verify_docs.py ]; then
+    echo '{"skipped": true, "reason": "project not initialised — .project-starter.yml or validators not found"}' \
+        > "logs/verify-${STAMP}.json" 2>/dev/null || true
     exit 0
 fi
 TYPE=$(grep '^project_type:' .project-starter.yml | sed 's/project_type:[[:space:]]*//' | tr -d "\"'")
-[ -z "$TYPE" ] && exit 0
-STAMP=$(date +%Y%m%d-%H%M%S)
+if [ -z "$TYPE" ]; then
+    echo '{"skipped": true, "reason": "project_type not set in .project-starter.yml"}' \
+        > "logs/verify-${STAMP}.json" 2>/dev/null || true
+    exit 0
+fi
 
 # Each validator is invoked with --json and captured separately, then wrapped
 # in a top-level JSON array so the output file is always valid JSON.
