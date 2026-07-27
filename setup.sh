@@ -2,8 +2,9 @@
 # setup.sh — one-shot setup for project_starter_v5
 #
 # Usage:
-#   bash setup.sh                        # download plantuml.jar + check Java (framework dev)
-#   bash setup.sh --init <type> <dest>   # bootstrap a new project into <dest>
+#   bash setup.sh                                  # download plantuml.jar + check Java (framework dev)
+#   bash setup.sh --init <type> <dest>             # bootstrap a new project into <dest>
+#   bash setup.sh --detect [path] ["requirements"] # infer project type from code or text
 #
 # Valid types: web-app | cli-tool | library | data-pipeline | ml-pipeline
 #              microservices | llm-app | iac | mobile-app
@@ -16,6 +17,29 @@ PLANTUML_VERSION="1.2024.6"
 PLANTUML_URL="https://github.com/plantuml/plantuml/releases/download/v${PLANTUML_VERSION}/plantuml-${PLANTUML_VERSION}.jar"
 
 VALID_TYPES="web-app cli-tool library data-pipeline ml-pipeline microservices llm-app iac mobile-app"
+
+# ── --detect mode ─────────────────────────────────────────────────────────────
+if [[ "${1:-}" == "--detect" ]]; then
+    DETECT_PATH="${2:-.}"
+    REQUIREMENTS="${3:-}"
+
+    if ! command -v python3 &>/dev/null; then
+        echo "[FAIL] python3 not found. Install Python 3.8+ to use --detect."
+        exit 1
+    fi
+
+    DETECT_SCRIPT="${SCRIPT_DIR}/detect_type.py"
+    if [[ ! -f "$DETECT_SCRIPT" ]]; then
+        echo "[FAIL] detect_type.py not found at ${DETECT_SCRIPT}"
+        exit 1
+    fi
+
+    CMD=(python3 "$DETECT_SCRIPT" "$DETECT_PATH")
+    [[ -n "$REQUIREMENTS" ]] && CMD+=(--requirements "$REQUIREMENTS")
+
+    "${CMD[@]}"
+    exit 0
+fi
 
 # ── --init mode ───────────────────────────────────────────────────────────────
 if [[ "${1:-}" == "--init" ]]; then
@@ -45,7 +69,7 @@ if [[ "${1:-}" == "--init" ]]; then
 
     # Copy framework files
     for f in AGENTS.md orchestrator.py build-context.py _workflow_utils.py \
-              workflow-registry.yaml document-registry.yaml; do
+              workflow-registry.yaml document-registry.yaml detect_type.py; do
         cp "${SCRIPT_DIR}/${f}" "${DEST}/"
         echo "[OK] copied $f"
     done
@@ -139,6 +163,10 @@ fi
 
 echo ""
 echo "Setup complete."
+echo ""
+echo "To detect project type from existing code or a description:"
+echo "  bash setup.sh --detect /path/to/your-project"
+echo "  bash setup.sh --detect . \"web API with LLM chatbot\""
 echo ""
 echo "To bootstrap a new project:"
 echo "  bash setup.sh --init <type> /path/to/your-project"
