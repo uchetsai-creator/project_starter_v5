@@ -83,14 +83,14 @@ spec_code_src:
 EOF
     echo "[OK] wrote .project-starter.yml (project_type: ${PROJECT_TYPE})"
 
-    # Install pre-commit hook
-    mkdir -p "${DEST}/.git/hooks" 2>/dev/null || true
-    if [[ -d "${DEST}/.git" ]]; then
+    # Install pre-commit hook — only if a real git repo exists (HEAD file is the marker)
+    if [[ -f "${DEST}/.git/HEAD" ]]; then
+        mkdir -p "${DEST}/.git/hooks"
         cp "${DEST}/.githooks/pre-commit" "${DEST}/.git/hooks/pre-commit"
         chmod +x "${DEST}/.git/hooks/pre-commit"
         echo "[OK] pre-commit hook installed"
     else
-        echo "[WARN] ${DEST}/.git not found — run this after git init, then:"
+        echo "[WARN] ${DEST} is not a git repository — run git init first, then:"
         echo "       cp .githooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit"
     fi
 
