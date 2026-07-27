@@ -6,8 +6,8 @@ Then read:
 
 **Last generated workflow snapshot** (from the most recent `orchestrator.py` run):
 
-> **Note:** if you see `{{WORKFLOW_CONTENT}}` as literal text below, the snapshot has not been
-> generated yet. Run `python3 orchestrator.py --adapter claude` to inject the current workflow.
+> **Note:** if this section is empty or shows a raw placeholder, run
+> `python3 orchestrator.py --adapter claude` to inject the current workflow snapshot.
 
 {{WORKFLOW_CONTENT}}
 
