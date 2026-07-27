@@ -54,6 +54,22 @@ if [ -f "$CONFIG" ]; then
     SPEC_CODE_SRC=$(grep '^spec_code_src:' "$CONFIG" | sed 's/spec_code_src:[[:space:]]*//' | tr -d "\"' ") || true
 fi
 
+# ── spec_code_adapter value guard ─────────────────────────────────────────────
+# Catches: typos in adapter name that would cause verify_spec_code.py to silently skip
+KNOWN_ADAPTERS="fastapi flask django express click typer airflow dagster prefect luigi python_library typescript tool_schema langchain terraform pulumi ansible react_native flutter swiftui"
+if [ -n "$SPEC_CODE_ADAPTER" ]; then
+    ADAPTER_VALID=false
+    for known in $KNOWN_ADAPTERS; do
+        [ "$SPEC_CODE_ADAPTER" = "$known" ] && ADAPTER_VALID=true && break
+    done
+    if [ "$ADAPTER_VALID" = false ]; then
+        echo "[FAIL] pre-commit: spec_code_adapter '$SPEC_CODE_ADAPTER' is not a recognised adapter."
+        echo "    Known adapters: $KNOWN_ADAPTERS"
+        echo "    Fix the value in .project-starter.yml or leave spec_code_adapter blank to disable the gate."
+        exit 1
+    fi
+fi
+
 if [ -z "$PROJECT_TYPE" ]; then
     echo "[WARN] pre-commit: .project-starter.yml not found or project_type missing — skipping verification."
     exit 0

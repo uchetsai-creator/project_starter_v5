@@ -1,12 +1,17 @@
 # project_starter_v5 — project configuration
 # Created at project initialization. Used by .githooks/pre-commit and all verify scripts.
 # Do not rename this file.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# STEP 0 (required before anything else):
+#   Replace [your-project-type] below with your actual project type.
+#   The pre-commit hook will block ALL commits until this placeholder is removed.
+#   Valid values: web-app | cli-tool | library | data-pipeline | ml-pipeline
+#                 microservices | llm-app | iac | mobile-app
+# ─────────────────────────────────────────────────────────────────────────────
 
 project_type: [your-project-type]
-# Valid values: web-app | cli-tool | library | data-pipeline | ml-pipeline
-#               microservices | llm-app | iac | mobile-app
 # Hybrid: data-pipeline+web-app
-# ⚠️  Do not commit with [your-project-type] as-is — replace it with your actual project type.
 
 docs_path: docs/
 # Path to your docs/ directory relative to the project root.

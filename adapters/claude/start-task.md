@@ -6,6 +6,9 @@ Then read:
 
 **Last generated workflow snapshot** (from the most recent `orchestrator.py` run):
 
+> **Note:** if you see `{{WORKFLOW_CONTENT}}` as literal text below, the snapshot has not been
+> generated yet. Run `python3 orchestrator.py --adapter claude` to inject the current workflow.
+
 {{WORKFLOW_CONTENT}}
 
 After running the orchestrator and reading both context files, confirm the task type and workflow key, present the steps, and ask which step to begin.
