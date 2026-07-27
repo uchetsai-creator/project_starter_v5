@@ -12,6 +12,23 @@ scaffolding under `templates/`. The validator scripts (`templates/script/`) go i
 
 ## Quick Start
 
+**Not sure which type fits?** Run the detector first:
+
+```bash
+# From code structure (existing project)
+python3 detect_type.py /path/to/your-project
+
+# From a text description
+python3 detect_type.py --requirements "web API with LLM chatbot"
+
+# Or via setup.sh
+bash setup.sh --detect /path/to/your-project
+```
+
+Outputs a ranked recommendation — including hybrids like `web-app+llm-app`. Pass `--apply` to write the result directly into `.project-starter.yml`.
+
+---
+
 **New project (no code yet):**
 
 1. **Bootstrap** — from this repo, run:
@@ -74,7 +91,8 @@ project_starter/                     ← this repo (template only)
 ├── document-registry.yaml           ← single source of truth for all document metadata
 ├── .project-starter.yml             ← template with [your-project-type] placeholder; copy + fill in per project
 ├── .gitignore                       ← excludes .ai/ (generated, not committed)
-├── setup.sh                         ← setup helper: downloads plantuml.jar; `--init <type> <dest>` bootstraps a new project
+├── setup.sh                         ← setup helper: downloads plantuml.jar; `--init <type> <dest>` bootstraps a new project; `--detect` infers project type
+├── detect_type.py                   ← infer project type from code structure or requirements text; supports hybrid types
 ├── debug-instrumentation-rules.md
 ├── code-quality-check.md            ← code review checklist for retrofitting existing projects
 ├── .githooks/
