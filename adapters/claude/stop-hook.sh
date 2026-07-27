@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Called by Claude Code Stop hook on session end.
-# Writes .ai/telemetry/task-run.json row (session boundary tracking).
+# Writes logs/telemetry/task-run.json row (session boundary tracking).
 # Does NOT write to task-log.md — that file records completed-task verification
 # results only and is written during task closeout, not on every session end.
 #

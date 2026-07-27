@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Write one session-boundary row to .ai/telemetry/task-run.json.
+"""Write one session-boundary row to logs/telemetry/task-run.json.
 
 Called by adapters/claude/stop-hook.sh on Claude Code session end.
 
@@ -19,9 +19,9 @@ def _parse_args():
     p.add_argument("--task", required=True, help="Task name from current-state.md")
     p.add_argument("--adapter", required=True, help="Adapter name (e.g. claude)")
     p.add_argument("--orch-state", required=True, dest="orch_state",
-                   help="Path to .ai/telemetry/.orchestrator_runs.json")
+                   help="Path to logs/telemetry/.orchestrator_runs.json")
     p.add_argument("--output", default=None,
-                   help="Path to task-run.json (default: .ai/telemetry/task-run.json)")
+                   help="Path to task-run.json (default: logs/telemetry/task-run.json)")
     p.add_argument("--ts", default=None,
                    help="ISO-8601 UTC timestamp (default: now)")
     return p.parse_args()

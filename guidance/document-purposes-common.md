@@ -980,12 +980,12 @@ Update when: the task-log row format changes or `current-state.md` field names c
 **Applies to: All project types (Claude Code users)**
 
 Purpose:
-Standalone Python script that writes one session-boundary row to `.ai/telemetry/task-run.json`. Extracted
+Standalone Python script that writes one session-boundary row to `logs/telemetry/task-run.json`. Extracted
 from the embedded Python heredoc in `stop-hook.sh` so it can be tested and invoked independently.
 
 Interface: `python3 telemetry_writer.py --task TASK_NAME --adapter claude --orch-state ORCH_STATE_FILE`
 
-Optional flags: `--output TASK_RUN_FILE` (default: `.ai/telemetry/task-run.json`), `--ts TIMESTAMP` (default: current UTC time).
+Optional flags: `--output TASK_RUN_FILE` (default: `logs/telemetry/task-run.json`), `--ts TIMESTAMP` (default: current UTC time).
 
 Not called directly by users — invoked by `stop-hook.sh` on every session end.
 

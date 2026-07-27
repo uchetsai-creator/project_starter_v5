@@ -1510,8 +1510,8 @@ The framework manages documents, workflow, and validators but has no visibility 
 | `.gitignore` | Add `.ai/telemetry/` (generated, not committed) |
 | `templates/script/validators/verify_docs.py` | Add `--telemetry` flag: appends run result to `.ai/telemetry/validation-result.json` |
 | `templates/script/validators/verify_content.py` | Same `--telemetry` flag and output format |
-| `adapters/claude/stop-hook.sh` | Also write `.ai/telemetry/task-run.json` row on session end |
-| `orchestrator.py` | On each run, increment `orchestrator_runs` in `.ai/telemetry/task-run.json` for the current task |
+| `adapters/claude/stop-hook.sh` | Also write `logs/telemetry/task-run.json` row on session end |
+| `orchestrator.py` | On each run, increment `orchestrator_runs` in `logs/telemetry/task-run.json` for the current task |
 | `README.md` | Add "Validation Telemetry" section: schema description, what is logged, what requires adapter data |
 | `guidance/document-purposes-common.md` | Add `.ai/telemetry/` directory entry |
 
@@ -2017,15 +2017,15 @@ Two problems cause side-effects that accumulate silently: uncommitted log files 
 printf "| %s | %s | session-end | — |\n" "$TIMESTAMP" "$TASK_NAME" >> "$TASK_LOG"
 ```
 
-Every session boundary appends an incomplete row (status always `—`). `task-log.md` is designed to record completed-task verification results, not session boundaries. The telemetry row in `.ai/telemetry/task-run.json` already captures session boundaries — the `task-log.md` write is redundant and noisy.
+Every session boundary appends an incomplete row (status always `—`). `task-log.md` is designed to record completed-task verification results, not session boundaries. The telemetry row in `logs/telemetry/task-run.json` already captures session boundaries — the `task-log.md` write is redundant and noisy.
 
 ### Changes
 
 | File | Change |
 |---|---|
 | `.gitignore` | Add `logs/` |
-| `adapters/claude/stop-hook.sh` | Remove the `printf` line that writes to `task-log.md`; telemetry row in `.ai/telemetry/task-run.json` is sufficient for session-boundary tracking |
-| `README.md` | Update "Validation Telemetry" section: clarify that session boundaries are recorded in `.ai/telemetry/task-run.json` only, not in `task-log.md` |
+| `adapters/claude/stop-hook.sh` | Remove the `printf` line that writes to `task-log.md`; telemetry row in `logs/telemetry/task-run.json` is sufficient for session-boundary tracking |
+| `README.md` | Update "Validation Telemetry" section: clarify that session boundaries are recorded in `logs/telemetry/task-run.json` only, not in `task-log.md` |
 
 **Token impact:** zero — AGENTS.md unchanged.
 
@@ -2211,7 +2211,7 @@ Phase 52.5 introduced capability adapters (`_capability_*.py`) as the authoritat
 
 **Token impact:** zero — AGENTS.md unchanged.
 
-**Verification:** trigger Stop hook; confirm `.ai/telemetry/task-run.json` is written correctly; run `python3 -m py_compile adapters/claude/telemetry_writer.py` — no errors.
+**Verification:** trigger Stop hook; confirm `logs/telemetry/task-run.json` is written correctly; run `python3 -m py_compile adapters/claude/telemetry_writer.py` — no errors.
 
 ---
 
