@@ -19,6 +19,8 @@ before starting. For example, if you use `docs/flows/` instead of `docs/modules/
 Declare the project type at the top of your project's AGENTS.md.
 The type gates which documents are required and which are N/A — do not create N/A documents.
 
+> **Not sure which type fits?** Run `python3 detect_type.py` (or `bash setup.sh --detect`) to infer the type from your codebase or a plain-text description. It supports hybrid output (e.g. `web-app+llm-app`).
+
 **Supported types:**
 
 | Type | Description |
