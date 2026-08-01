@@ -100,6 +100,7 @@
 - **Test report verification**: `python3 docs/script/validators/verify_tests.py --project-type TYPE --strict` — Verdict: ___
 - **Content quality verification**: `python3 docs/script/validators/verify_content.py --project-type TYPE --strict` — Verdict: ___
 - **sprint-change-log.md**: append one entry — implementation summary, impact flags (Architecture/DB/API/Deployment/Module flow), status `Pending documentation synchronization`
+  Then count entries at that status. **At 3, run Sprint Documentation Sync (`templates/sprint-sync.md`) now, before starting the next task** — this is a count trigger, not a calendar one; do not wait for a "sprint end."
 - **task-log.md**: write one row — all columns must be ✅ before writing
 
 > Need the full verification table or step detail? Load `templates/task-completion.md`.

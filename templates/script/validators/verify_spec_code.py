@@ -113,6 +113,12 @@ ADAPTER_REGISTRY: dict[str, tuple[str, str, str | None]] = {
     'langchain': ('_capability_llm', 'LLMAdapter', 'langchain'),
     'ansible': ('_capability_iac', 'IaCAdapter', 'ansible'),
     'swiftui': ('_capability_mobile', 'MobileAdapter', 'swiftui'),
+    # Logging capability — checks docs/modules/*/log-*.md against real logger calls in src/.
+    # Language-keyed, not framework-keyed: Python's logging module works the same
+    # regardless of Flask/FastAPI/Django, so there is one detector per language, not
+    # per web framework. Add an entry here each time a new language detector is built.
+    'python_logging': ('_capability_logging', 'LoggingAdapter', 'python_logging'),
+    'javascript_logging': ('_capability_logging', 'LoggingAdapter', 'javascript_logging'),
 }
 
 _ADAPTER_DIR = Path(__file__).resolve().parent / '_spec_code_adapters'
@@ -121,7 +127,7 @@ sys.path.insert(0, str(_ADAPTER_DIR))
 from _base import (  # noqa: E402
     NormalizedField, NormalizedStageContract, NormalizedEndpoint,
     NormalizedCommand, NormalizedFunction, NormalizedTool,
-    NormalizedResource, NormalizedScreen,
+    NormalizedResource, NormalizedScreen, NormalizedLogPoint,
 )
 
 
@@ -211,11 +217,19 @@ def _normalize_path(path: str) -> str:
     return _PATH_PARAM_RE.sub(':param', path)
 
 
+def _log_point_category(state: str) -> str:
+    """'failed: insufficient stock' -> 'failed' — the free-text reason after ':'
+    is not part of the comparison key, since spec and code rarely word it identically."""
+    return state.split(':', 1)[0].strip().lower()
+
+
 def _item_key(item) -> str:
     if hasattr(item, 'stage_name'):
         return item.stage_name.lower()
     if hasattr(item, 'method') and hasattr(item, 'path'):
         return f"{item.method.upper()}:{_normalize_path(item.path)}"
+    if isinstance(item, NormalizedLogPoint):
+        return f"{item.function}:{_log_point_category(item.state)}".lower()
     return getattr(item, 'name', repr(item)).lower()
 
 
@@ -224,6 +238,8 @@ def _item_label(item) -> str:
         return item.stage_name
     if hasattr(item, 'method') and hasattr(item, 'path'):
         return f"{item.method} {item.path}"
+    if isinstance(item, NormalizedLogPoint):
+        return f"{item.function} — {item.state}"
     return getattr(item, 'name', repr(item))
 
 
@@ -243,6 +259,8 @@ def _item_fields(item) -> list:
         return [NormalizedField(name=k, type='') for k in item.config_keys]
     if isinstance(item, NormalizedScreen):
         return list(item.props)
+    if isinstance(item, NormalizedLogPoint):
+        return []  # level is compared separately below, like NormalizedFunction.return_type
     return []
 
 
@@ -320,6 +338,21 @@ def compare(spec_items: list, code_items: list) -> dict:
                 'issue': 'type_changed',
                 'spec_type': spec_item.return_type,
                 'code_type': code_item.return_type,
+            })
+
+        # NormalizedLogPoint.level is a scalar attribute, not part of _item_fields()'s
+        # (empty) list — compared here the same way NormalizedFunction.return_type is
+        # above, so a log point that exists at the right place but the wrong level
+        # (e.g. documented as 'error', logged as 'info') is still caught.
+        if (isinstance(spec_item, NormalizedLogPoint) and isinstance(code_item, NormalizedLogPoint)
+                and spec_item.level and code_item.level
+                and spec_item.level.lower() != code_item.level.lower()):
+            field_mismatches.append({
+                'item': _item_label(spec_item),
+                'field': 'level',
+                'issue': 'type_changed',
+                'spec_type': spec_item.level,
+                'code_type': code_item.level,
             })
 
     return {

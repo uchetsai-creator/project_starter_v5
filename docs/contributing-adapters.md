@@ -13,7 +13,7 @@ framework, language, or tool isn't covered yet.
 verify_spec_code.py
         │  --adapter <name> [--framework <hint>]
         ▼
-Capability Adapter            (one per project type — 7 total)
+Capability Adapter            (one per project type, plus `logging` which applies to all — 8 total)
   │  extract_spec()  — parses the shared spec format for this project type
   │  extract_code()  — discovers source files, dispatches to detector(s)
   ├── Framework Detector A    (e.g. FastAPIDetector)
@@ -31,7 +31,7 @@ Capability Adapter            (one per project type — 7 total)
   capability adapter and returns `NormalizedForm` objects. **Does not** touch the filesystem or
   parse the spec.
 
-**The 7 existing capability adapters and what they currently detect:**
+**The 8 existing capability adapters and what they currently detect:**
 
 | Capability (`--adapter`) | File | Detectors registered today |
 |---|---|---|
@@ -42,6 +42,7 @@ Capability Adapter            (one per project type — 7 total)
 | `llm-app` | `_capability_llm.py` | `tool_schema` (Python functions / OpenAI JSON schema), `langchain` (`@tool`-decorated functions) |
 | `iac` | `_capability_iac.py` | `terraform` (HCL), `pulumi` (Python), `ansible` (YAML) |
 | `mobile` | `_capability_mobile.py` | `react_native` (TSX/JSX), `flutter` (Dart), `swiftui` (Swift) |
+| `logging` | `_capability_logging.py` | `python_logging` (Python), `javascript_logging` (JS/TS/React) — unlike the other 7, this one applies to every project type, not just one; see README → Spec ↔ Code Validator → NormalizedForm table |
 
 If your tool isn't in the right-hand column, you're in one of two situations:
 
@@ -248,11 +249,11 @@ would not have caught.
 
 ---
 
-## Situation B — Your project type doesn't fit any of the 7 capabilities (rare)
+## Situation B — Your project type doesn't fit any of the 8 capabilities (rare)
 
 This only applies if what you're building is not a Web App, CLI Tool, Data Pipeline/ML Pipeline,
-Library/SDK, LLM App, IaC, or Mobile App project — i.e. a genuinely new **project type**, not
-just a new framework within an existing one. Check the **Situation A** list again first; almost
+Library/SDK, LLM App, IaC, Mobile App, or Logging (any type) project — i.e. a genuinely new
+**project type**, not just a new framework within an existing one. Check the **Situation A** list again first; almost
 every "my tool isn't supported" case is actually Situation A.
 
 ### Step B1 — Define a new NormalizedForm (only if none of the existing 7 fit)

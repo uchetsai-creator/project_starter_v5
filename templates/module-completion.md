@@ -14,6 +14,11 @@ Creating these files mid-module causes repeated read/write cycles during review.
        Direct print/console statements are not allowed.
        logging-spec.md itself is the rule definition — do not add module-specific content to it.
        Create or update docs/modules/<module-name>/log-<module-name>.md to list every log point added, in call order.
+       Verify coverage now, while the module is fresh (this is why the check is not run
+       mid-module — see the note above about repeated read/write cycles):
+       `python3 docs/script/validators/verify_module_docs.py --project-type TYPE --src <src-dir> --strict`
+       This confirms both the module-flow file and the log-<module-name>.md file actually
+       exist for this module — neither is caught by any other automated check.
     2. Ask: "Would you like to add debug instrumentation to this module? (follows debug-instrumentation-rules.md)"
        * If yes: follow debug-instrumentation-rules.md and instrument the module.
        * If no: continue.

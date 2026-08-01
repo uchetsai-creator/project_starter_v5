@@ -11,6 +11,7 @@ from _base import (
     NormalizedCommand,
     NormalizedEndpoint,
     NormalizedFunction,
+    NormalizedLogPoint,
     NormalizedResource,
     NormalizedScreen,
     NormalizedStageContract,
@@ -20,6 +21,7 @@ from _capability_cli import CLIAdapter
 from _capability_iac import IaCAdapter
 from _capability_library import LibraryAdapter
 from _capability_llm import LLMAdapter
+from _capability_logging import LoggingAdapter
 from _capability_mobile import MobileAdapter
 from _capability_pipeline import DataPipelineAdapter
 from _capability_web_api import WebAPIAdapter
@@ -32,6 +34,7 @@ ALL_ADAPTER_CLASSES = [
     LLMAdapter,
     IaCAdapter,
     MobileAdapter,
+    LoggingAdapter,
 ]
 
 
@@ -201,3 +204,36 @@ def test_mobile_adapter_returns_screens(fixture_mobile_spec):
     results = MobileAdapter().extract_spec(fixture_mobile_spec)
     assert len(results) > 0, "MobileAdapter parsed no screens from fixture"
     assert all(isinstance(r, NormalizedScreen) for r in results)
+
+
+@pytest.fixture
+def fixture_logging_spec(tmp_path):
+    spec = tmp_path / "log-order.md"
+    spec.write_text(
+        "# Log Points — order\n\n"
+        "| Function | Operation | State | Level |\n"
+        "|---|---|---|---|\n"
+        "| create_order | create order | start | info |\n",
+        encoding="utf-8",
+    )
+    return str(spec)
+
+
+def test_logging_adapter_returns_log_points(fixture_logging_spec):
+    results = LoggingAdapter().extract_spec(fixture_logging_spec)
+    assert len(results) > 0, "LoggingAdapter parsed no log points from fixture"
+    assert all(isinstance(r, NormalizedLogPoint) for r in results)
+
+
+def test_logging_adapter_extract_spec_accepts_a_directory(tmp_path):
+    modules_dir = tmp_path / "order"
+    modules_dir.mkdir()
+    (modules_dir / "log-order.md").write_text(
+        "| Function | Operation | State | Level |\n"
+        "|---|---|---|---|\n"
+        "| create_order | create order | start | info |\n",
+        encoding="utf-8",
+    )
+    results = LoggingAdapter().extract_spec(str(tmp_path))
+    assert len(results) == 1
+    assert results[0].function == "create_order"

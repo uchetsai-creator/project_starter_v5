@@ -171,6 +171,33 @@ class NormalizedResource:
 
 
 @dataclass
+class NormalizedLogPoint:
+    """
+    Any project type: one log point inside a module (Logging capability).
+
+    Comparison key: f"{function}:{category(state)}" where category is the state's
+    leading token before any ':' (start / end / failed / warning) — the free-text
+    reason after ':' is not part of the key, since spec and code rarely word it
+    identically.
+
+    Used by: PythonLoggingDetector (via LoggingAdapter capability, `--adapter python_logging`).
+
+    Attributes:
+        function:  Enclosing function/method name (matches spec table row and code def).
+        operation: Human-readable operation label (e.g. 'create order') — the text
+                   before ' — ' in the log message, per logging-spec.md Message Format Rules.
+        state:     Full state text (e.g. 'start', 'end: success', 'failed: insufficient stock').
+        level:     Canonical log level — info | warn | error | debug (see logging-spec.md
+                   Log Levels table). Detectors must normalize the code's native method
+                   name (e.g. Python's `.warning()`) to this canonical vocabulary.
+    """
+    function: str
+    operation: str
+    state: str
+    level: str
+
+
+@dataclass
 class NormalizedScreen:
     """
     Mobile App: one screen or widget with its props.

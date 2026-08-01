@@ -203,9 +203,10 @@ def _render(ctx: dict) -> str:
             script = v.get("script", "")
             extra_args = [str(a) for a in v.get("args", [])]
             parts = ["python3", script]
-            # verify_registry.py validates document-registry.yaml itself — it has no
-            # project-type concept and does not accept --project-type.
-            if not script.endswith("verify_registry.py"):
+            # verify_registry.py validates document-registry.yaml itself, and
+            # verify_index_coverage.py checks index <-> per-item file coverage by
+            # existence alone — neither has a project-type concept or accepts --project-type.
+            if not script.endswith(("verify_registry.py", "verify_index_coverage.py")):
                 parts.append(f"--project-type {pt}")
             if spec_code and script.endswith("verify_spec_code.py"):
                 parts.append(f"--adapter {spec_code['adapter']} --spec {spec_code['spec']} --src {spec_code['src']}")

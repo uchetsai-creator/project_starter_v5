@@ -230,6 +230,43 @@ The same `trace_id` threads all three log lines together — you can filter by `
 
 ---
 
+## Module Log File Format
+
+Each `docs/modules/<module-name>/log-<module-name>.md` must contain a table in this exact
+shape — it is parsed by `verify_spec_code.py --adapter <language>_logging` to confirm the
+log points listed here actually exist in the source code, not just in the doc:
+
+```
+| Function | Operation | State | Level |
+|---|---|---|---|
+| create_order | create order | start | info |
+| create_order | create order | end: success | info |
+| create_order | create order | failed: insufficient stock | error |
+```
+
+- **Function** — the exact function/method name in source (must match a `def` in code).
+- **Operation** — the human-readable label used in the message, before ` — ` (em dash).
+- **State** — `start` / `end: <reason>` / `failed: <reason>` / `warning: <reason>`, per
+  Message Format Rules above. The free-text reason does not need to match code exactly —
+  only the leading word (`start`/`end`/`failed`/`warning`) is compared.
+- **Level** — canonical level from the Log Levels table (`info` / `warn` / `error` / `debug`),
+  not the code's method name (e.g. Python's `.warning()` is still `warn` here).
+
+One row per log point, in call order, as already required above. This table is in addition
+to — not a replacement for — the free-text call-order description if you want to keep one.
+
+**Running the check** (once a language detector exists — see `docs/contributing-adapters.md`):
+
+```bash
+python3 docs/script/validators/verify_spec_code.py --project-type TYPE \
+    --adapter python_logging --spec docs/modules/ --src src/ --strict
+```
+
+`--spec` accepts either one `log-<module-name>.md` file or a directory (e.g. `docs/modules/`)
+to check every module's log points in one run.
+
+---
+
 ## Module Log Files
 
 | Module | Log File |

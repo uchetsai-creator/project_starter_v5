@@ -1,12 +1,17 @@
 # Sprint Documentation Sync
 
 <!--
-  Read this file ONLY at sprint end (or when sprint-change-log.md has enough Pending entries).
-  Do NOT load this file during normal task work — the Doc Checklist in current-state.md
-  covers all per-task doc updates without needing this file.
+  Read this file as soon as docs/sprint-change-log.md has 3 entries at
+  Status: Pending documentation synchronization — not on a calendar/sprint-boundary
+  basis. Do NOT load this file during normal task work otherwise — the Doc Checklist
+  in current-state.md covers all per-task doc updates without needing this file.
 -->
 
-Run at the end of each sprint (or when `docs/sprint-change-log.md` has accumulated enough Pending entries).
+Run as soon as `docs/sprint-change-log.md` has 3 entries at
+**Status: Pending documentation synchronization** — count-triggered, not calendar-triggered.
+A solo/small project may never hit a natural "sprint end"; waiting for one risks the
+Pending backlog growing indefinitely. If a genuine sprint/release boundary also applies
+in this project, run this early if the Pending count reaches 3 first — whichever comes first.
 
 1. Open `docs/sprint-change-log.md`
 2. For each entry with **Status: Pending documentation synchronization**:
@@ -15,18 +20,22 @@ Run at the end of each sprint (or when `docs/sprint-change-log.md` has accumulat
    - Update only the affected documents — do not check unaffected ones
    - Mark the entry **Status: Documentation synchronized — [date]**
 3. Run Module Completion Check for any modules touched during the sprint
-4. **Quality gate** — run all four verifiers and record combined verdict:
+4. **Quality gate** — run all six verifiers and record combined verdict:
    ```bash
    python3 docs/script/validators/verify_docs.py --project-type TYPE --content
    python3 docs/script/validators/verify_logs.py --project-type TYPE
    python3 docs/script/validators/verify_tests.py --project-type TYPE
    python3 docs/script/validators/verify_content.py --project-type TYPE
-   ```
-   Optional — source-code coverage check only (`verify_content.py` already audits quality of existing flow files internally):
-   ```bash
    python3 docs/script/validators/verify_module_docs.py --project-type TYPE --src <src-dir>
+   python3 docs/script/validators/verify_index_coverage.py
    ```
-   Record in `docs/task-log.md`: `verify_docs`, `verify_logs`, `verify_tests`, `verify_content` verdict (PASS / WARN / FAIL).
+   `verify_module_docs.py --src` is the only check that catches a module with no flow file
+   or no log file at all — `verify_content.py` only audits the quality of files that already
+   exist, it does not know a module is missing one. `verify_index_coverage.py` does the
+   equivalent cross-check for business-objects.md / business-process.md / prompt-library.md,
+   whose per-item files have no source code to scan against (see the header comment in
+   `verify_index_coverage.py` for why it can't reuse `scan_codebase.py`).
+   Record in `docs/task-log.md`: verdict (PASS / WARN / FAIL) for each of the six.
    All four must reach PASS or WARN before proceeding — resolve any FAIL before continuing.
 
    **Decision gate — after manual triage of any WARN results:**

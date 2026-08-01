@@ -80,6 +80,14 @@ if [[ "${1:-}" == "--init" ]]; then
     cp -r "${SCRIPT_DIR}/guidance" "${DEST}/"
     echo "[OK] copied guidance/"
 
+    # CLAUDE.md is Claude Code's auto-loaded context file — importing AGENTS.md here
+    # guarantees its rules (including Learning Checkpoint) load at the start of every
+    # session, with no dependency on which task-specific docs current-state.md points to.
+    if [[ ! -f "${DEST}/CLAUDE.md" ]]; then
+        echo "@AGENTS.md" > "${DEST}/CLAUDE.md"
+        echo "[OK] wrote CLAUDE.md (@AGENTS.md)"
+    fi
+
     mkdir -p "${DEST}/docs/script"
     cp -r "${SCRIPT_DIR}/templates/script/." "${DEST}/docs/script/"
     echo "[OK] copied templates/script/ → docs/script/"

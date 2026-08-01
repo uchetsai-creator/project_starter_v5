@@ -47,6 +47,14 @@ PRIMARY_MODULE_TYPE = {
 
 MIN_EH_LINES = 3   # minimum non-blank lines required in an Error Handling section
 
+# Types where logging-spec.md (and per-module log-<name>.md) applies — mirrors
+# verify_logs.py's LOGGING_REQUIRED. library/iac are N/A, so a missing log file
+# there is not a coverage gap.
+LOGGING_APPLICABLE_TYPES = {
+    'web-app', 'cli-tool', 'data-pipeline', 'ml-pipeline',
+    'microservices', 'mobile-app', 'llm-app',
+}
+
 
 # ---------------------------------------------------------------------------
 # Module type detection
@@ -242,6 +250,12 @@ def check_quality(lines: list[str], module_type: str) -> tuple[str, list[str]]:
 
 def _find_scan_script(script_dir: str, docs_dir: str) -> str | None:
     for candidate in (
+        # Real layout: scan_codebase.py lives in scanners/, a sibling of validators/
+        # (script_dir) — both under templates/script/ in this repo, or docs/script/
+        # in a bootstrapped project (see setup.sh --init). Coverage mode (--src)
+        # silently no-ops without this candidate; the two below never match in
+        # practice and are kept only for layouts that deviate from the default.
+        os.path.join(script_dir, '..', 'scanners', 'scan_codebase.py'),
         os.path.join(script_dir, 'scan_codebase.py'),
         os.path.join(docs_dir, 'script', 'scan_codebase.py'),
     ):
@@ -279,6 +293,10 @@ def scan_modules_from_src(
         return None
 
 
+def _log_file_present(docs_dir: str, name: str) -> bool:
+    return os.path.isfile(os.path.join(docs_dir, 'modules', name, f'log-{name}.md'))
+
+
 def find_docs_modules(docs_dir: str) -> list[dict]:
     """Return [{name, flow_file_path}] for all subdirs under docs/modules/."""
     modules_root = os.path.join(docs_dir, 'modules')
@@ -302,7 +320,12 @@ def find_docs_modules(docs_dir: str) -> list[dict]:
 
 def audit(project_type: str, docs_dir: str, src: str | None, script_dir: str) -> list[dict]:
     """Build per-module result list. Each entry: {name, scan_type, flow_present, module_type,
-    quality, issues, flow_file_path}."""
+    quality, issues, flow_file_path, log_present}.
+
+    log_present is None (N/A) for project types where logging-spec.md itself is N/A
+    (library, iac) — a missing log-<name>.md there is not a coverage gap.
+    """
+    logging_applicable = any(t in LOGGING_APPLICABLE_TYPES for t in parse_types(project_type))
     results: list[dict] = []
 
     if src:
@@ -325,6 +348,8 @@ def audit(project_type: str, docs_dir: str, src: str | None, script_dir: str) ->
                 if scan_flow and os.path.isfile(scan_flow):
                     flow_path = scan_flow
 
+            log_present = _log_file_present(docs_dir, name) if logging_applicable else None
+
             if not flow_path:
                 results.append({
                     'name': name,
@@ -334,6 +359,7 @@ def audit(project_type: str, docs_dir: str, src: str | None, script_dir: str) ->
                     'quality': None,
                     'issues': [],
                     'flow_file_path': None,
+                    'log_present': log_present,
                 })
                 continue
 
@@ -348,12 +374,14 @@ def audit(project_type: str, docs_dir: str, src: str | None, script_dir: str) ->
                 'quality': quality,
                 'issues': issues,
                 'flow_file_path': flow_path,
+                'log_present': log_present,
             })
     else:
         # Quality-only mode: audit whatever exists in docs/modules/
         for m in find_docs_modules(docs_dir):
             name = m['name']
             flow_path = m['flow_file_path']
+            log_present = _log_file_present(docs_dir, name) if logging_applicable else None
             if not flow_path:
                 # Directory exists but no flow file
                 results.append({
@@ -364,6 +392,7 @@ def audit(project_type: str, docs_dir: str, src: str | None, script_dir: str) ->
                     'quality': None,
                     'issues': [],
                     'flow_file_path': None,
+                    'log_present': log_present,
                 })
                 continue
             lines = _read_file(flow_path) or []
@@ -377,6 +406,7 @@ def audit(project_type: str, docs_dir: str, src: str | None, script_dir: str) ->
                 'quality': quality,
                 'issues': issues,
                 'flow_file_path': flow_path,
+                'log_present': log_present,
             })
 
     return results
@@ -398,16 +428,23 @@ def _type_label(module_type: str | None, scan_type: str) -> str:
     return 'Unknown'
 
 
+def _log_col(log_present: bool | None) -> str:
+    if log_present is None:
+        return 'N/A'
+    return 'Present' if log_present else 'Missing'
+
+
 def print_results(results: list[dict], project_type: str, src: str | None) -> None:
     SEP = '─' * 70
     print(f"\nModule Flow Coverage & Quality — {project_type}")
     print(SEP)
-    print(f"{'Module':<28} {'Type':<18} {'Flow file':<14} Quality")
+    print(f"{'Module':<24} {'Type':<16} {'Flow file':<12} {'Log file':<10} Quality")
     print(SEP)
 
     for r in results:
-        name = r['name'][:26]
-        type_lbl = _type_label(r['module_type'], r['scan_type'])[:16]
+        name = r['name'][:22]
+        type_lbl = _type_label(r['module_type'], r['scan_type'])[:14]
+        log_col = _log_col(r['log_present'])
         if not r['flow_present']:
             flow_col = 'Missing'
             quality_col = '—'
@@ -422,11 +459,11 @@ def print_results(results: list[dict], project_type: str, src: str | None) -> No
                 first = r['issues'][0] if r['issues'] else 'issues found'
                 quality_col = first
 
-        print(f"{name:<28} {type_lbl:<18} {flow_col:<14} {quality_col}")
+        print(f"{name:<24} {type_lbl:<16} {flow_col:<12} {log_col:<10} {quality_col}")
 
         # Additional issues on continuation lines
         for issue in (r['issues'][1:] if r['flow_present'] and r['quality'] == 'fail' else []):
-            print(f"{'':28} {'':18} {'':14} {issue}")
+            print(f"{'':24} {'':16} {'':12} {'':10} {issue}")
 
     print()
 
@@ -434,10 +471,14 @@ def print_results(results: list[dict], project_type: str, src: str | None) -> No
     total = len(results)
     present = sum(1 for r in results if r['flow_present'])
     fully_filled = sum(1 for r in results if r['flow_present'] and r['quality'] == 'pass')
+    log_applicable = [r for r in results if r['log_present'] is not None]
+    log_present_count = sum(1 for r in log_applicable if r['log_present'])
 
     if src:
         print(f"Coverage : {present} / {total} modules documented")
     print(f"Quality  : {fully_filled} / {present} existing flow files fully filled")
+    if log_applicable:
+        print(f"Log docs : {log_present_count} / {len(log_applicable)} modules have a log-<name>.md")
     print()
 
 
@@ -445,6 +486,8 @@ def print_results_json(results: list[dict], project_type: str, docs_dir: str, sr
     total = len(results)
     present = sum(1 for r in results if r['flow_present'])
     fully_filled = sum(1 for r in results if r['flow_present'] and r['quality'] == 'pass')
+    log_applicable = [r for r in results if r['log_present'] is not None]
+    log_present_count = sum(1 for r in log_applicable if r['log_present'])
 
     payload = {
         'project_type': project_type,
@@ -459,6 +502,7 @@ def print_results_json(results: list[dict], project_type: str, docs_dir: str, sr
                 'flow_file_path': r['flow_file_path'],
                 'quality': r['quality'],
                 'issues': r['issues'],
+                'log_file_present': r['log_present'],
             }
             for r in results
         ],
@@ -466,6 +510,8 @@ def print_results_json(results: list[dict], project_type: str, docs_dir: str, sr
             'total_modules': total,
             'documented': present,
             'quality_pass': fully_filled,
+            'log_docs_applicable': len(log_applicable),
+            'log_docs_present': log_present_count,
         },
     }
     print(json.dumps(payload, ensure_ascii=False, indent=2))
@@ -522,8 +568,11 @@ def main() -> None:
     else:
         print_results(results, primary_type, args.src)
 
+    def _is_failure(r: dict) -> bool:
+        return not r['flow_present'] or r['quality'] == 'fail' or r['log_present'] is False
+
     if args.telemetry:
-        fail_count = sum(1 for r in results if not r['flow_present'] or r['quality'] == 'fail')
+        fail_count = sum(1 for r in results if _is_failure(r))
         _append_telemetry({
             'ts': _telemetry_ts(),
             'project_type': full_type,
@@ -531,15 +580,11 @@ def main() -> None:
             'level': 'fail' if fail_count > 0 else 'pass',
             'warn_count': 0,
             'fail_count': fail_count,
-            'failed_docs': [r['name'] for r in results if not r['flow_present'] or r['quality'] == 'fail'],
+            'failed_docs': [r['name'] for r in results if _is_failure(r)],
         })
 
     if args.strict:
-        has_failure = any(
-            not r['flow_present'] or r['quality'] == 'fail'
-            for r in results
-        )
-        if has_failure:
+        if any(_is_failure(r) for r in results):
             sys.exit(1)
 
 

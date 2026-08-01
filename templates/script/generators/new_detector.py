@@ -46,6 +46,7 @@ _CAPABILITIES: dict[str, dict[str, str]] = {
     "llm-app":       {"file": "_capability_llm.py",      "normalized": "NormalizedTool",          "adapter_class": "LLMAdapter",          "default_ext": ".py"},
     "iac":           {"file": "_capability_iac.py",      "normalized": "NormalizedResource",      "adapter_class": "IaCAdapter",          "default_ext": ".tf"},
     "mobile":        {"file": "_capability_mobile.py",   "normalized": "NormalizedScreen",        "adapter_class": "MobileAdapter",       "default_ext": ".tsx"},
+    "logging":       {"file": "_capability_logging.py",  "normalized": "NormalizedLogPoint",      "adapter_class": "LoggingAdapter",      "default_ext": ".py"},
 }
 
 _DETECTORS_DICT_RE = re.compile(

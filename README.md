@@ -38,12 +38,15 @@ Outputs a ranked recommendation — including hybrids like `web-app+llm-app`. Pa
    Valid types: `web-app` | `cli-tool` | `library` | `data-pipeline` | `ml-pipeline` |
    `microservices` | `llm-app` | `iac` | `mobile-app`
 
-   This copies all required framework files, writes a pre-filled `.project-starter.yml`, and
+   This copies all required framework files, writes a pre-filled `.project-starter.yml`, writes
+   `CLAUDE.md` (`@AGENTS.md` — see Agent Adapters below) if it doesn't already exist, and
    installs the pre-commit hook. Skip to step 2 once done.
 
    *Manual alternative:* copy `AGENTS.md`, `orchestrator.py`, `build-context.py`,
    `_workflow_utils.py`, `workflow-registry.yaml`, `document-registry.yaml`, `.githooks/`,
-   `guidance/`, and `templates/script/` → `docs/script/` into your project root. Then edit
+   `guidance/`, and `templates/script/` → `docs/script/` into your project root. Also create a
+   `CLAUDE.md` containing just `@AGENTS.md` so Claude Code auto-loads AGENTS.md's rules every
+   session (Codex reads `AGENTS.md` directly and needs no such file). Then edit
    `.project-starter.yml`: replace `[your-project-type]` with your actual type — **the
    pre-commit hook blocks every commit until this placeholder is removed.**
 2. Declare your project type at the top of `AGENTS.md` (see the type table in
@@ -84,6 +87,7 @@ generate or enforce code from the spec.
 ```
 project_starter/                     ← this repo (template only)
 ├── AGENTS.md
+├── CLAUDE.md                        ← `@AGENTS.md` — Claude Code auto-loads this every session (see adapters/claude)
 ├── orchestrator.py                  ← workflow manager: writes .ai/WORKFLOW.md + calls build-context.py
 ├── build-context.py                 ← context builder: writes .ai/AI_CONTEXT.md from registry
 ├── _workflow_utils.py               ← shared helpers imported by orchestrator.py / build-context.py
@@ -150,7 +154,17 @@ project_starter/                     ← this repo (template only)
 │   ├── document-purposes-microservices.md
 │   ├── document-purposes-llm-app.md
 │   ├── document-purposes-iac.md
-│   └── document-purposes-mobile-app.md
+│   ├── document-purposes-mobile-app.md
+│   ├── learning-checkpoints-common.md    ← unfamiliar-tech / existing-code / new-requirement / review question templates
+│   ├── learning-checkpoints-web-app.md
+│   ├── learning-checkpoints-cli-tool.md
+│   ├── learning-checkpoints-library.md
+│   ├── learning-checkpoints-data-pipeline.md
+│   ├── learning-checkpoints-ml-pipeline.md
+│   ├── learning-checkpoints-microservices.md
+│   ├── learning-checkpoints-llm-app.md
+│   ├── learning-checkpoints-iac.md
+│   └── learning-checkpoints-mobile-app.md
 └── templates/
     ├── project-requirements.md      ← project scope, goals, edge cases, acceptance criteria
     ├── project-plan.md              ← sprint/task breakdown per feature
@@ -238,7 +252,8 @@ project_starter/                     ← this repo (template only)
         │   ├── verify_logs.py       ← log format + trace_id documentation audit
         │   ├── verify_tests.py      ← test-report.md fill quality audit
         │   ├── verify_acceptance.py ← functional acceptance gate: FR-XXX → test plan → test report (all 9 types)
-        │   ├── verify_module_docs.py ← module flow coverage + quality audit
+        │   ├── verify_module_docs.py ← module flow + log-<module>.md coverage (via --src) + quality audit
+        │   ├── verify_index_coverage.py ← business-objects.md / business-process.md / prompt-library.md index ↔ per-item file coverage
         │   ├── verify_content.py    ← full document content quality gate (all Required docs × project type)
         │   ├── verify_spec_code.py  ← spec ↔ code drift validator (core — no framework logic)
         │   ├── _spec_code_adapters/ ← framework detectors (one per framework; *Adapter classes are legacy shims)
@@ -253,11 +268,13 @@ project_starter/                     ← this repo (template only)
         │   │   ├── fastapi.py            ← FastAPIDetector (Web App / Microservices)
         │   │   ├── flask.py              ← FlaskDetector (Web App / Microservices)
         │   │   ├── flutter.py            ← FlutterDetector (Mobile App — Dart)
+        │   │   ├── javascript_logging.py ← JavaScriptLoggingDetector (Logging — JS/TS/React, any project type)
         │   │   ├── langchain.py          ← LangchainDetector (AI / LLM App)
         │   │   ├── luigi.py              ← LuigiDetector (Data Pipeline / ML Pipeline)
         │   │   ├── prefect.py            ← PrefectDetector (Data Pipeline / ML Pipeline)
         │   │   ├── pulumi.py             ← PulumiDetector (IaC / DevOps — Python)
         │   │   ├── python_library.py     ← PythonLibraryDetector (Library / SDK)
+        │   │   ├── python_logging.py     ← PythonLoggingDetector (Logging — any project type)
         │   │   ├── react_native.py       ← ReactNativeDetector (Mobile App — TSX/JSX)
         │   │   ├── swiftui.py            ← SwiftuiDetector (Mobile App — Swift)
         │   │   ├── terraform.py          ← TerraformDetector (IaC / DevOps — HCL)
@@ -322,6 +339,11 @@ The root files are the same for every type:
 ```
 new_project/
 ├── AGENTS.md                        ← declare Project Type at the top
+├── CLAUDE.md                        ← `@AGENTS.md` — written automatically by `setup.sh --init`;
+│                                        guarantees AGENTS.md's rules (incl. Learning Checkpoint) load
+│                                        every Claude Code session regardless of which task-specific
+│                                        docs current-state.md points to. Codex reads AGENTS.md directly
+│                                        (no import needed); see README → Agent Adapters.
 ├── orchestrator.py                  ← workflow manager: writes .ai/WORKFLOW.md + context
 ├── build-context.py                 ← context builder (called internally by orchestrator.py)
 ├── workflow-registry.yaml           ← task_type → validator sequence mapping
@@ -331,7 +353,9 @@ new_project/
 ├── guidance/
 │   ├── document-purposes.md         ← index: maps project type → per-type file
 │   ├── document-purposes-common.md  ← loaded by all types
-│   └── document-purposes-<type>.md  ← loaded for your declared type (e.g. document-purposes-web-app.md)
+│   ├── document-purposes-<type>.md  ← loaded for your declared type (e.g. document-purposes-web-app.md)
+│   ├── learning-checkpoints-common.md   ← question templates for Checkpoint 0/A/B/C (see AGENTS.md)
+│   └── learning-checkpoints-<type>.md   ← type-specific angle on the same checkpoints
 └── docs/
     ├── project-requirements.md
     ├── project-plan.md
@@ -815,10 +839,30 @@ Valid `--project-type` values: `web-app`, `cli-tool`, `library`, `data-pipeline`
 
 `verify_module_docs.py` audits module flow file coverage and quality — checking that every module in `docs/modules/` has a complete `*-module-flow.md` and, for pipeline stages, a `*-module-data-flow.md`.
 
-This script is a **contributor tool**: run it manually before opening a PR, not at every commit. It is intentionally excluded from the pre-commit gate because it is slow and produces noisy output on work-in-progress modules.
+This script is a **contributor tool**: run it manually before opening a PR, not at every commit. It is intentionally excluded from the pre-commit gate because it is slow and produces noisy output on work-in-progress modules. `templates/module-completion.md` and `templates/sprint-sync.md` do call it, but only at the two event-triggered points where a module (or the whole sprint) is actually supposed to be finished — not per-task.
 
 ```bash
 python3 docs/script/validators/verify_module_docs.py --docs docs/
+```
+
+**With `--src`, it also cross-references `scan_codebase.py`** to catch a module that exists in
+source but has no flow file at all — a gap that `--docs`-only mode can't see, since it only
+audits files that already exist. In this mode it additionally reports whether each module has a
+`log-<module-name>.md` (N/A for project types where `logging-spec.md` itself is N/A, e.g.
+library/iac):
+
+```bash
+python3 docs/script/validators/verify_module_docs.py --project-type web-app --src src/ --strict
+```
+
+**`verify_index_coverage.py`** does the equivalent coverage check for documents that have no
+source-code equivalent to scan against — `business-objects.md`, `business-process.md`, and
+`prompt-library.md` each index a set of per-item files, and this checks both directions: an
+indexed row with no file, and a file with no indexed row (orphan). It needs no `--project-type` —
+each index is checked only if it exists, which is itself the type-applicability gate:
+
+```bash
+python3 docs/script/validators/verify_index_coverage.py --docs docs/ --strict
 ```
 
 ---
@@ -1045,6 +1089,7 @@ logic is a bug.
 | AI / LLM App | `NormalizedTool` | tool name, parameter schema |
 | IaC / DevOps | `NormalizedResource` | resource name, resource type, config keys |
 | Mobile App | `NormalizedScreen` | screen name, props (name + type) |
+| Any (Logging capability) | `NormalizedLogPoint` | function, operation, state, level — checks docs/modules/*/log-*.md against real logger calls in src/, not gated by project type |
 
 ### Adapters
 
@@ -1070,6 +1115,8 @@ logic is a bug.
 | `react_native` | React Native | Mobile App | `mobile-contract.md` `### ScreenName` + `#### Props` table | Function/const components with destructured props in `.tsx`/`.jsx` |
 | `swiftui` | SwiftUI | Mobile App | `mobile-contract.md` `### ScreenName` + `#### Props` table | `struct ScreenName: View { ... }` — non-private stored properties |
 | `flutter` | Flutter / Dart | Mobile App | `mobile-contract.md` `### ScreenName` + `#### Props` table | `class ScreenName extends StatelessWidget` with `final` fields in `.dart` |
+| `python_logging` | Python `logging` | Any (Logging capability) | `log-<module-name>.md` `\| Function \| Operation \| State \| Level \|` table (see logging-spec.md → Module Log File Format) | `logger.<level>(...)` calls anywhere in a function, matched via `ast` |
+| `javascript_logging` | JS / TS / React | Any (Logging capability) | Same `log-<module-name>.md` table format as `python_logging` | `logger.<level>(...)` calls in `.js`/`.jsx`/`.ts`/`.tsx`; regex + brace-depth scan (no JS AST available in Python) |
 
 ### Spec format (Airflow)
 
@@ -1193,6 +1240,18 @@ python3 docs/script/validators/verify_spec_code.py \
     --project-type mobile-app --adapter swiftui \
     --spec docs/specs/mobile-contract.md --src ios/Screens/ --strict
 
+# Logging capability — validate log-<module-name>.md points against real Python logger calls
+# (--spec accepts a single log-<module-name>.md file OR a directory, e.g. docs/modules/,
+# to check every module's log points in one run)
+python3 docs/script/validators/verify_spec_code.py \
+    --project-type web-app --adapter python_logging \
+    --spec docs/modules/ --src src/ --strict
+
+# Logging capability — same check against JS/TS/React logger calls
+python3 docs/script/validators/verify_spec_code.py \
+    --project-type web-app --adapter javascript_logging \
+    --spec docs/modules/ --src src/ --strict
+
 # List all registered adapters
 python3 docs/script/validators/verify_spec_code.py --list-adapters
 
@@ -1240,17 +1299,22 @@ manually or from CI, per the **Usage** examples above.
 
 ### Writing a custom adapter
 
-Only 7 broad project-type **capability adapters** exist (`web-api`, `cli`, `data-pipeline`,
-`library`, `llm-app`, `iac`, `mobile`), each with a handful of **detectors** for specific
-frameworks (see the Adapters table above). If your framework isn't detected yet, you almost
-always just need to add a new detector to an existing capability — not a whole new adapter.
+Only 8 broad project-type **capability adapters** exist (`web-api`, `cli`, `data-pipeline`,
+`library`, `llm-app`, `iac`, `mobile`, `logging`), each with a handful of **detectors** for
+specific frameworks or languages (see the Adapters table above). The `logging` capability is
+keyed by language, not framework — it applies to every project type, not just one (see
+`NormalizedForm per project type` above). If your framework or language isn't detected yet,
+you almost always just need to add a new detector to an existing capability — not a whole new
+adapter.
 
 **Quick steps (adding a framework to an existing capability — the common case):**
 
 ```bash
 # Scaffolds the detector file and registers it in one step:
 python3 docs/script/generators/new_detector.py --capability web-api --name django
-python3 docs/script/generators/new_detector.py --list-capabilities   # see all 7 + their NormalizedForm
+# Adding a language to the logging capability works the same way, e.g.:
+python3 docs/script/generators/new_detector.py --capability logging --name go_logging
+python3 docs/script/generators/new_detector.py --list-capabilities   # see all 8 + their NormalizedForm
 ```
 
 1. Run `new_detector.py` (above) — creates `_spec_code_adapters/<framework>.py` with a
@@ -1344,10 +1408,14 @@ listing available adapters whenever a spec contract file is committed without th
 the tip — the gate does not turn itself on. `--strict` is also required for the check to actually
 fail a commit; without it, output is informational only.
 
-**Coverage is limited to the frameworks with a detector.** ~27 framework detectors exist across 7
-capabilities today (see the Adapters table above). Any other language or framework — Rails, Spring
-Boot, native Android/Kotlin, Vue, Go, PHP, and everything else not listed — has **no automated
-drift detection at all**. Spec and code can diverge indefinitely for these; manual code review is
+**Coverage is limited to the frameworks/languages with a detector.** ~29 framework/language
+detectors exist across 8 capabilities today (see the Adapters table above). Any other language
+or framework — Rails, Spring Boot, native Android/Kotlin, Vue, Go, PHP, and everything else not
+listed — has **no automated drift detection at all**. This applies separately to the `logging`
+capability too: only Python and JS/TS/React have a detector; a project's `log-<module>.md` ↔
+code check silently has no coverage in any other language until one is added (see Learning
+Checkpoint C's escalation step in `guidance/learning-checkpoints-common.md` for the "build one
+on the spot" procedure). Spec and code can diverge indefinitely for these; manual code review is
 the only safety net. Running a capability adapter without a `--framework` hint unions *all* of its
 detectors, and two frameworks sharing a similar idiom (e.g. Click's and Typer's `.command()`
 decorator) can both match the same code and produce overlapping or duplicate results — pass

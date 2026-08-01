@@ -76,6 +76,11 @@ workflows:
         # Type-specific: data-pipeline/ml-pipeline → Contract Tests; llm-app → eval-log ✅.
       - script: docs/script/validators/verify_content.py
         args: [--strict]
+      - script: docs/script/validators/verify_index_coverage.py
+        args: [--strict]
+        # No --project-type: this checks business-objects.md / business-process.md /
+        # prompt-library.md index tables against their per-item files — applicability
+        # is gated by whether each index file exists, not by project type.
 
   eval-run:
     validators:

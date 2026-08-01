@@ -108,10 +108,35 @@ Record WHEN a rule changed in `changelog.md` — not in spec documents.
 
 ---
 
+## Learning Checkpoint
+
+Runs every task, independent of doc/validator sync timing (see Sprint Documentation Sync
+below) — this is live discussion during the task, not a file to write and defer.
+
+- **Unfamiliar technology** (never used before) → run Checkpoint 0 first.
+- **Modifying existing code** → run Checkpoint A before implementing.
+- **New feature / no existing code** → run Checkpoint B before implementing.
+- **Always, before Closeout** → run Checkpoint C (post-implementation review).
+
+Load `guidance/learning-checkpoints-common.md` for triggers + question templates, and
+`guidance/learning-checkpoints-[your-declared-type].md` for type-specific angles.
+
+---
+
 ## Current State
 
 docs/current-state.md is the active task. It is self-contained — reading it should give you
 everything needed to start work and to close out the task when done.
+
+### New requirement from the user
+
+If the user describes a new requirement/feature in conversation that is NOT already a scoped
+Current Task in `docs/current-state.md`, do not silently start implementing and do not
+silently write a task breakdown from your own assumptions. Ask clarifying questions first —
+scope, edge cases, acceptance criteria (see Learning Checkpoint B below) — then, with the
+user's answers, update `docs/project-plan.md` and set `docs/current-state.md → Current Task`
+before proceeding to "Starting work." A one-line request is rarely a fully-scoped task; treat
+brevity from the user as a prompt to ask, not as permission to guess.
 
 ### Starting work
 
@@ -153,4 +178,7 @@ current-state.md is a state machine with two fields:
 
 ## Sprint Documentation Sync
 
-> Load `templates/sprint-sync.md` only at sprint end — not during normal task work. It contains the full sprint sync procedure and Document Update Checklist.
+> Trigger is a count, not a calendar: after appending a `sprint-change-log.md` entry at
+> Closeout, check how many entries are `Status: Pending documentation synchronization`.
+> At 3, load `templates/sprint-sync.md` and run it now, before starting the next task —
+> do not wait for a "sprint end" that may never arrive in a solo/small project.

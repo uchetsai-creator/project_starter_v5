@@ -5,8 +5,12 @@
   Purpose: lightweight memory between development tasks and sprint doc sync.
   The AI records what changed here instead of immediately updating all spec docs.
 
-  At sprint end: run Sprint Documentation Sync (see AGENTS.md) to process all
-  Pending entries and update affected documentation files.
+  Trigger, not calendar: run Sprint Documentation Sync (see AGENTS.md) as soon as
+  3 entries below are Status: Pending documentation synchronization — regardless of
+  how many days or tasks that took. "Sprint end" is not a fixed time boundary in a
+  solo/small project; a count threshold is. After appending an entry below, count
+  the Pending ones — if it reaches 3, run Sprint Documentation Sync before starting
+  the next task, not after.
 
   Entries are APPENDED at end in chronological order (oldest first, newest last).
   After every Edit, run: grep -n "^### \|^## " docs/sprint-change-log.md
