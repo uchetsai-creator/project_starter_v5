@@ -22,6 +22,23 @@ task_type:
 # Leave blank to show all Required documents for the project type.
 # Can also be set per-task in docs/current-state.md → Task Type field (overrides this value).
 
+test_command:
+# Optional. The exact shell command that runs this project's test suite, e.g.
+# `pytest -q` | `npm test` | `go test ./...` | `cargo test`. When set, .githooks/pre-commit
+# actually executes it on every commit and blocks if it exits non-zero. Leave blank to skip
+# this gate (default — matches prior behavior).
+#
+# This is a different check from verify_tests.py (run separately by pre-commit): that one only checks whether
+# docs/specs/test-report.md has been filled with non-placeholder numbers — it never runs
+# anything, so a fabricated "42 passed" line would satisfy it. test_command actually runs
+# the suite and blocks on a real failure (or the command not existing).
+#
+# Example (Python/pytest):
+#   test_command: pytest -q
+#
+# Point this at a fast subset (unit tests) if your full suite is slow — every commit runs
+# it. Reserve the full/integration suite for CI.
+
 spec_code_adapter:
 spec_code_spec:
 spec_code_src:

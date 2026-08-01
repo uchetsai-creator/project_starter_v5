@@ -26,6 +26,12 @@ Review the output with the user:
 - ❌ folders → ask the user: "Is this a module that needs documentation, a shared utility, or something else?"
 - — folders → confirm they do not need a flow file
 
+If the output shows `Coverage: 0/0 (100%)` alongside a `[WARN]` about real files existing, do
+NOT treat that as "nothing to document" — it means the src layout defeated folder-based
+classification (flat files with no subfolders, `--depth` too shallow, or a naming collision with
+the Shared/Infrastructure patterns). Re-run with a higher `--depth`, or ask the user to confirm
+the actual module boundaries by hand before proceeding.
+
 Classify every folder before proceeding. Do not proceed until the user confirms the inventory is complete.
 
 ## Step 1c — Code Quality Check
@@ -62,7 +68,11 @@ Follow the confirmed inventory from Step 1b. For each module:
 
 0. Verify `docs/modules/module-data-flow.md` contains a "## Module Types" section. If missing, copy from `templates/flows/module-data-flow-v2.md` before proceeding.
 1. Determine the module type: Feature / Background Job / Pipeline Stage / Shared Utility.
-2. Create `docs/modules/[module]/[module]-module-data-flow.md` using real function names and file paths.
+2. Run `python3 docs/script/generators/draft_module_flow.py <module_src_dir> --project-type <type> --docs docs`
+   to generate a starting draft at `docs/modules/[module]/[module]-module-data-flow.md` with real
+   class/function names pre-filled from static analysis (Python/JS/TS only — other languages get
+   a bare template). This replaces starting from an empty file, not the work of writing the
+   Overview and Flow Format sections — those still require understanding what the code does.
 3. Update `docs/modules/module-data-flow.md` index with the new module entry.
 4. Update `docs/codebase-map.md` with the files in this module.
 

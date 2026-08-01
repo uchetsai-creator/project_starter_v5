@@ -44,6 +44,7 @@ DOCS_PATH="docs"
 SPEC_CODE_ADAPTER=""
 SPEC_CODE_SPEC=""
 SPEC_CODE_SRC=""
+TEST_COMMAND=""
 
 if [ -f "$CONFIG" ]; then
     PROJECT_TYPE=$(grep '^project_type:' "$CONFIG" | sed 's/project_type:[[:space:]]*//' | tr -d "\"' ")
@@ -52,6 +53,11 @@ if [ -f "$CONFIG" ]; then
     SPEC_CODE_ADAPTER=$(grep '^spec_code_adapter:' "$CONFIG" | sed 's/spec_code_adapter:[[:space:]]*//' | tr -d "\"' ") || true
     SPEC_CODE_SPEC=$(grep '^spec_code_spec:' "$CONFIG" | sed 's/spec_code_spec:[[:space:]]*//' | tr -d "\"' ") || true
     SPEC_CODE_SRC=$(grep '^spec_code_src:' "$CONFIG" | sed 's/spec_code_src:[[:space:]]*//' | tr -d "\"' ") || true
+    # Not tr -d "'\" " here — unlike the fields above, a real command legitimately
+    # contains spaces and quotes (e.g. python3 -c "..."), so the raw value is used
+    # as-is (just trimmed of leading whitespace after the YAML key) instead of
+    # stripping characters that could be part of the command itself.
+    TEST_COMMAND=$(grep '^test_command:' "$CONFIG" | sed -E 's/^test_command:[[:space:]]*//') || true
 fi
 
 # ── spec_code_adapter value guard ─────────────────────────────────────────────
@@ -115,6 +121,22 @@ if [ -f "docs/script/validators/verify_content.py" ]; then
     echo "  → verify_content.py ..."
     python3 "docs/script/validators/verify_content.py" \
         --project-type "$PROJECT_TYPE" --docs "$DOCS_PATH" --strict 2>&1 || PASS=false
+fi
+
+# 5. Test suite execution
+# Trigger: test_command set in .project-starter.yml
+# Catches what verify_tests.py (step 3) cannot — that check only looks at whether
+# docs/specs/test-report.md has non-placeholder numbers, it never runs anything, so a
+# fabricated "42 passed" line satisfies it. This actually executes the configured test
+# command and blocks the commit on a real failure or on the command not existing.
+if [ -n "$TEST_COMMAND" ]; then
+    echo "  → running test suite: $TEST_COMMAND ..."
+    if bash -c "$TEST_COMMAND"; then
+        echo "  [OK] test suite passed"
+    else
+        echo "  [FAIL] test suite failed (command: $TEST_COMMAND) — commit blocked."
+        PASS=false
+    fi
 fi
 
 # ── AGENTS.md token budget ─────────────────────────────────────────────────────

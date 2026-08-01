@@ -112,6 +112,11 @@ spec_code_spec:
 spec_code_src:
 # Optional — all three must be set together to enable the spec ↔ code drift gate.
 # See README.md → Spec ↔ Code Validator for the full list of adapter names.
+
+test_command:
+# Optional. Shell command that runs this project's test suite, e.g. \`pytest -q\` |
+# \`npm test\` | \`go test ./...\`. When set, .githooks/pre-commit actually runs it on every
+# commit and blocks if it exits non-zero. Leave blank to skip this gate.
 EOF
     echo "[OK] wrote .project-starter.yml (project_type: ${PROJECT_TYPE})"
 

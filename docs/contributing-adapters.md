@@ -44,7 +44,11 @@ Capability Adapter            (one per project type, plus `logging` which applie
 | `mobile` | `_capability_mobile.py` | `react_native` (TSX/JSX), `flutter` (Dart), `swiftui` (Swift) |
 | `logging` | `_capability_logging.py` | `python_logging` (Python), `javascript_logging` (JS/TS/React) — unlike the other 7, this one applies to every project type, not just one; see README → Spec ↔ Code Validator → NormalizedForm table |
 
-If your tool isn't in the right-hand column, you're in one of two situations:
+If your tool isn't in the right-hand column, you're in one of two situations. You'll usually
+discover this from the validator itself rather than by reading the table above first:
+running `verify_spec_code.py` against real code with no matching detector prints
+`[WARN] 0 code items extracted from --src, but real file(s) exist there` instead of a normal
+report — that warning means nothing was compared, not that the code is compliant.
 
 ---
 
@@ -72,6 +76,7 @@ touch `extract_spec()`.**
 | AI / LLM App | `NormalizedTool` | tool `name` |
 | IaC / DevOps | `NormalizedResource` | resource `name` |
 | Mobile App | `NormalizedScreen` | screen `name` |
+| Logging (any project type) | `NormalizedLogPoint` | `function` name + state category (start/end/failed/warning); `level` is compared separately as a scalar, not part of the key — see pitfall #7 |
 
 All defined in `_spec_code_adapters/_base.py` — do not invent a new shape for an existing project type.
 
@@ -256,7 +261,7 @@ Library/SDK, LLM App, IaC, Mobile App, or Logging (any type) project — i.e. a 
 **project type**, not just a new framework within an existing one. Check the **Situation A** list again first; almost
 every "my tool isn't supported" case is actually Situation A.
 
-### Step B1 — Define a new NormalizedForm (only if none of the existing 7 fit)
+### Step B1 — Define a new NormalizedForm (only if none of the existing 8 fit)
 
 Add a new `@dataclass` to `_base.py`, following the existing pattern: a name/key field plus one
 or two `list[NormalizedField]` fields for whatever "matches" means in your domain. Document the
@@ -377,9 +382,10 @@ explicitly — `new_detector.py`'s generated stub repeats this list as a comment
    example you write — before considering a pattern "done."
 
 7. **Scalar attributes outside the per-field list** — if your `NormalizedForm` has a single-value
-   attribute that isn't part of its per-field list (like `NormalizedFunction.return_type`),
-   confirm `compare()` actually checks it. It does for `return_type` today; if you add a new
-   `NormalizedForm` with an analogous scalar attribute, you'll need to add that check yourself.
+   attribute that isn't part of its per-field list (like `NormalizedFunction.return_type` or
+   `NormalizedLogPoint.level`), confirm `compare()` actually checks it. It does for both of those
+   today; if you add a new `NormalizedForm` with an analogous scalar attribute, you'll need to add
+   that check yourself.
 
 Test each new detector against **real code you write by hand**, not only a synthetic fixture that
 already matches your regex — every pitfall above was only found that way.
@@ -411,7 +417,7 @@ the known-legacy list.
 - [ ] README.md capability/detector table updated
 
 **Situation B (new project type):**
-- [ ] New `NormalizedForm` in `_base.py` (only if none of the 7 existing ones fit)
+- [ ] New `NormalizedForm` in `_base.py` (only if none of the 8 existing ones fit)
 - [ ] New `_capability_<name>.py` inheriting `FrameworkAdapter`, with `extract_spec` + `extract_code`
 - [ ] At least one `Detector` registered and self-tested
 - [ ] Registered in `ADAPTER_REGISTRY`
