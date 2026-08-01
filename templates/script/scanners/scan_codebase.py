@@ -54,6 +54,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / 'validators'))
 from _registry import VALID_TYPES
+from _verify_common import parse_types
 
 # ---------------------------------------------------------------------------
 # Folders that are almost never feature modules — skip or mark as "—"
@@ -662,10 +663,11 @@ def main():
     parser.add_argument(
         "--project-type",
         metavar="TYPE",
-        choices=VALID_TYPES,
         help=(
             f"Project type — controls module boundary detection heuristic. "
-            f"Valid values: {', '.join(VALID_TYPES)}"
+            f"Valid values: {', '.join(VALID_TYPES)}. Hybrid types use + (e.g. "
+            f"data-pipeline+web-app) — the first declared type's vocabulary is used "
+            f"for module classification."
         ),
     )
     parser.add_argument(
@@ -699,8 +701,12 @@ def main():
         sys.exit(2)
 
     project_type = args.project_type  # None if not supplied — falls back to web-app behaviour
+    # Hybrid types (e.g. 'data-pipeline+web-app') have no single classification vocabulary —
+    # use the first declared type's vocabulary for module labeling, same convention as
+    # AGENTS.md's hybrid table (the first-listed type is the primary one).
+    classify_type = parse_types(project_type)[0] if project_type else None
 
-    folders = find_source_folders(args.src_dir, project_type, args.depth)
+    folders = find_source_folders(args.src_dir, classify_type, args.depth)
     documented = find_documented_modules(args.docs)
     folders = annotate_folders(folders, documented)
     unscanned = find_unscanned_nesting(folders, args.depth)
@@ -718,7 +724,7 @@ def main():
         print()
 
     if args.coverage or show_all:
-        print(print_coverage(folders, project_type, unscanned))
+        print(print_coverage(folders, classify_type, unscanned))
 
     if args.update:
         update_codebase_map(args.update, args.src_dir, folders, args.docs)

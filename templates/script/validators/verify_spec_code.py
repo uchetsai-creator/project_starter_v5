@@ -79,6 +79,7 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _registry import VALID_TYPES
+from _verify_common import parse_types
 
 # adapter_name → (module_filename, class_name, framework_hint | None)
 # Phase 52.5: 3-tuple. framework_hint is passed to the capability adapter's
@@ -444,8 +445,8 @@ def main() -> None:
         description='Validate that source code matches what the spec declares.',
     )
     parser.add_argument(
-        '--project-type', choices=VALID_TYPES, metavar='TYPE',
-        help=f"Project type ({', '.join(VALID_TYPES)})",
+        '--project-type', metavar='TYPE',
+        help=f"Project type ({', '.join(VALID_TYPES)}); hybrid types use + (e.g. data-pipeline+web-app)",
     )
     parser.add_argument(
         '--adapter', metavar='NAME',
@@ -491,6 +492,9 @@ def main() -> None:
         ),
     )
     args = parser.parse_args()
+
+    if args.project_type:
+        parse_types(args.project_type)  # validates each '+'-separated part; exits 2 on typo
 
     if args.list_adapters:
         # Group by capability (module) for readability
