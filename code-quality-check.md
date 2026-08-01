@@ -80,13 +80,18 @@ more columns to every row:
 |------|----------|----------|----------|----------------|-----------------|------------------|
 
 - **Why It's Wrong** — the general principle being violated, not a guess about this
-  specific author's intent (e.g. "Controllers that write to the DB directly can't be
-  unit-tested without a database, and the same validation logic gets duplicated the next
-  time another endpoint needs it" — not "the author probably didn't know better").
+  specific author's intent (not "the author probably didn't know better"). Ground it in
+  the Layering / Type-Specific rule this project's declared type actually uses — see the
+  Layering table and Type-Specific Checks sections below for the rule per type. For
+  example: a Web App controller writing to the DB directly can't be unit-tested without
+  a database; a CLI Tool's flag parser running a network call during parsing means the
+  command can't be tested without side effects; a Data Pipeline stage skipping input
+  contract validation risks silently corrupting every downstream stage; a Terraform
+  module with a hardcoded secret is a security finding regardless of which cloud it targets.
 - **Correct Pattern** — what the idiomatic fix looks like for this project's actual
-  language/framework, named concretely (e.g. "move the stock-check logic into an
-  `OrderService.create()` method; the controller only calls it and maps the result to
-  an HTTP response") — not a generic textbook description disconnected from this codebase.
+  language/framework/type, named concretely using real file, function, or resource names
+  from this codebase — not a generic textbook description disconnected from it, and not
+  assumed to be a web-app fix by default.
 
 Both fields describe the rule and the fix shape, not this specific finding's root cause —
 the Evidence Rules below still apply: never guess why the original author did something,
