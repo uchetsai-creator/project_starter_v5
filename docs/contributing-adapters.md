@@ -291,7 +291,7 @@ ADAPTER_REGISTRY: dict[str, tuple[str, str, str | None]] = {
 
 A new project type touches more than the validator — update:
 - `document-registry.yaml` + `templates/init/document-matrix.md` (new type's document set)
-- `guidance/document-purposes-<type>.md` + `guidance/document-purposes.md` index
+- `guidance/document-purposes/<type>.md` + `guidance/document-purposes/index.md`
 - `templates/init/<type>.md` (init sequence)
 - `scan_codebase.py` `--project-type` choices
 - `build_pdf.py` `VALID_PROJECT_TYPES`
@@ -415,6 +415,6 @@ the known-legacy list.
 - [ ] New `_capability_<name>.py` inheriting `FrameworkAdapter`, with `extract_spec` + `extract_code`
 - [ ] At least one `Detector` registered and self-tested
 - [ ] Registered in `ADAPTER_REGISTRY`
-- [ ] `document-registry.yaml`, `document-matrix.md`, `guidance/document-purposes-<type>.md`,
+- [ ] `document-registry.yaml`, `document-matrix.md`, `guidance/document-purposes/<type>.md`,
       `templates/init/<type>.md`, `scan_codebase.py`, `build_pdf.py` all updated
 - [ ] `verify_framework.py --strict` passes

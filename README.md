@@ -155,27 +155,29 @@ project_starter/                     ← this repo (template only)
 │   ├── context-builder-design.md   ← build-context.py design: inputs, outputs, algorithm
 │   └── contributing-adapters.md    ← guide for writing new framework adapters
 ├── guidance/
-│   ├── document-purposes.md         ← index: type → per-type file lookup
-│   ├── document-purposes-common.md  ← applies to all project types
-│   ├── document-purposes-web-app.md
-│   ├── document-purposes-cli-tool.md
-│   ├── document-purposes-library.md
-│   ├── document-purposes-data-pipeline.md
-│   ├── document-purposes-ml-pipeline.md
-│   ├── document-purposes-microservices.md
-│   ├── document-purposes-llm-app.md
-│   ├── document-purposes-iac.md
-│   ├── document-purposes-mobile-app.md
-│   ├── learning-checkpoints-common.md    ← unfamiliar-tech / existing-code / new-requirement / review question templates
-│   ├── learning-checkpoints-web-app.md
-│   ├── learning-checkpoints-cli-tool.md
-│   ├── learning-checkpoints-library.md
-│   ├── learning-checkpoints-data-pipeline.md
-│   ├── learning-checkpoints-ml-pipeline.md
-│   ├── learning-checkpoints-microservices.md
-│   ├── learning-checkpoints-llm-app.md
-│   ├── learning-checkpoints-iac.md
-│   └── learning-checkpoints-mobile-app.md
+│   ├── document-purposes/
+│   │   ├── index.md         ← index: type → per-type file lookup
+│   │   ├── common.md        ← applies to all project types
+│   │   ├── web-app.md
+│   │   ├── cli-tool.md
+│   │   ├── library.md
+│   │   ├── data-pipeline.md
+│   │   ├── ml-pipeline.md
+│   │   ├── microservices.md
+│   │   ├── llm-app.md
+│   │   ├── iac.md
+│   │   └── mobile-app.md
+│   └── learning-checkpoints/
+│       ├── common.md    ← unfamiliar-tech / existing-code / new-requirement / review question templates
+│       ├── web-app.md
+│       ├── cli-tool.md
+│       ├── library.md
+│       ├── data-pipeline.md
+│       ├── ml-pipeline.md
+│       ├── microservices.md
+│       ├── llm-app.md
+│       ├── iac.md
+│       └── mobile-app.md
 └── templates/
     ├── project-requirements.md      ← project scope, goals, edge cases, acceptance criteria
     ├── project-plan.md              ← sprint/task breakdown per feature
@@ -362,11 +364,13 @@ new_project/
 ├── debug-instrumentation-rules.md
 ├── code-quality-check.md
 ├── guidance/
-│   ├── document-purposes.md         ← index: maps project type → per-type file
-│   ├── document-purposes-common.md  ← loaded by all types
-│   ├── document-purposes-<type>.md  ← loaded for your declared type (e.g. document-purposes-web-app.md)
-│   ├── learning-checkpoints-common.md   ← question templates for Checkpoint 0/A/B/C (see AGENTS.md)
-│   └── learning-checkpoints-<type>.md   ← type-specific angle on the same checkpoints
+│   ├── document-purposes/
+│   │   ├── index.md         ← index: maps project type → per-type file
+│   │   ├── common.md        ← loaded by all types
+│   │   └── <type>.md        ← loaded for your declared type (e.g. web-app.md)
+│   └── learning-checkpoints/
+│       ├── common.md        ← question templates for Checkpoint 0/A/B/C (see AGENTS.md)
+│       └── <type>.md        ← type-specific angle on the same checkpoints
 └── docs/
     ├── project-requirements.md
     ├── project-plan.md
@@ -882,7 +886,7 @@ python3 docs/script/validators/verify_index_coverage.py --docs docs/ --strict
 
 `verify_framework.py` audits the framework's own internal consistency. Run it after any framework update, or any time you modify `document-registry.yaml`, AGENTS.md, document-matrix.md, sprint-sync.md, or any document-purposes file.
 
-**Adding a new document:** edit `document-registry.yaml` only — `verify_docs.py` and `verify_content.py` derive their document lists from it automatically. Also update `templates/init/document-matrix.md` (human-readable copy) and the relevant `guidance/document-purposes-*.md` file.
+**Adding a new document:** edit `document-registry.yaml` only — `verify_docs.py` and `verify_content.py` derive their document lists from it automatically. Also update `templates/init/document-matrix.md` (human-readable copy) and the relevant `guidance/document-purposes/*.md` file.
 
 ```bash
 python3 templates/script/framework/verify_framework.py
@@ -899,7 +903,7 @@ python3 templates/script/framework/verify_framework.py --json     # machine-read
 | Matrix ↔ template | Every matrix row has a template file; every template has a matrix row |
 | Sprint-sync coverage | Every non-exempt R/O document has a sprint-sync checklist item |
 | Purposes coverage | Every Required document appears in the matching document-purposes file |
-| Cross-reference integrity | Every `### X.md` header in document-purposes-*.md has a template file |
+| Cross-reference integrity | Every `### X.md` header in guidance/document-purposes/*.md has a template file |
 | Type completeness | Every type slug in AGENTS.md's init table has a matching init file and document-purposes file |
 | Script type sync | `scan_codebase.py` and `document-registry.yaml` declare the same set of project types |
 | Build-PDF type sync | `build_pdf.py` VALID_PROJECT_TYPES matches all declared project types |
@@ -1425,7 +1429,7 @@ or framework — Rails, Spring Boot, native Android/Kotlin, Vue, Go, PHP, and ev
 listed — has **no automated drift detection at all**. This applies separately to the `logging`
 capability too: only Python and JS/TS/React have a detector; a project's `log-<module>.md` ↔
 code check silently has no coverage in any other language until one is added (see Learning
-Checkpoint C's escalation step in `guidance/learning-checkpoints-common.md` for the "build one
+Checkpoint C's escalation step in `guidance/learning-checkpoints/common.md` for the "build one
 on the spot" procedure). Spec and code can diverge indefinitely for these; manual code review is
 the only safety net. Running a capability adapter without a `--framework` hint unions *all* of its
 detectors, and two frameworks sharing a similar idiom (e.g. Click's and Typer's `.command()`

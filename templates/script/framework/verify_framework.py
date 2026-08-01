@@ -29,7 +29,7 @@ AGENTS_MD       = FRAMEWORK_ROOT / "AGENTS.md"
 DOCUMENT_MATRIX = FRAMEWORK_ROOT / "templates/init/document-matrix.md"
 SPRINT_SYNC     = FRAMEWORK_ROOT / "templates/sprint-sync.md"
 TEMPLATES_DIR   = FRAMEWORK_ROOT / "templates"
-PURPOSES_DIR    = FRAMEWORK_ROOT / "guidance"
+PURPOSES_DIR    = FRAMEWORK_ROOT / "guidance" / "document-purposes"
 
 AGENTS_LINE_BUDGET = 200
 
@@ -44,15 +44,15 @@ SHIPPED_GENERATORS = [
 ]
 
 PURPOSES_FILES = {
-    "web-app":       "document-purposes-web-app.md",
-    "cli-tool":      "document-purposes-cli-tool.md",
-    "library":       "document-purposes-library.md",
-    "data-pipeline": "document-purposes-data-pipeline.md",
-    "ml-pipeline":   "document-purposes-ml-pipeline.md",
-    "microservices": "document-purposes-microservices.md",
-    "llm-app":       "document-purposes-llm-app.md",
-    "iac":           "document-purposes-iac.md",
-    "mobile-app":    "document-purposes-mobile-app.md",
+    "web-app":       "web-app.md",
+    "cli-tool":      "cli-tool.md",
+    "library":       "library.md",
+    "data-pipeline": "data-pipeline.md",
+    "ml-pipeline":   "ml-pipeline.md",
+    "microservices": "microservices.md",
+    "llm-app":       "llm-app.md",
+    "iac":           "iac.md",
+    "mobile-app":    "mobile-app.md",
 }
 
 # Init file slugs to skip when extracting types from AGENTS.md
@@ -298,8 +298,8 @@ def check_sprint_sync_coverage(matrix: dict) -> list[dict]:
 
 def check_purposes_coverage(matrix: dict) -> list[dict]:
     """Check 5: For each (type, doc) where doc is Required, the doc appears in
-    document-purposes-common.md or document-purposes-[type].md as a ### header."""
-    common_names = section_names(read_text(PURPOSES_DIR / "document-purposes-common.md"))
+    guidance/document-purposes/common.md or guidance/document-purposes/[type].md as a ### header."""
+    common_names = section_names(read_text(PURPOSES_DIR / "common.md"))
 
     issues = []
     for type_key, purposes_file in PURPOSES_FILES.items():
@@ -328,13 +328,13 @@ def check_purposes_coverage(matrix: dict) -> list[dict]:
 
 
 def check_cross_references(matrix: dict) -> list[dict]:
-    """Check 6: Every `### X.md` header in document-purposes-*.md files that names
+    """Check 6: Every `### X.md` header in guidance/document-purposes/*.md files that names
     a known matrix document has a corresponding template file."""
     matrix_docs = set(matrix.keys())
     issues = []
     checked = 0
 
-    all_purposes = [PURPOSES_DIR / "document-purposes-common.md"]
+    all_purposes = [PURPOSES_DIR / "common.md"]
     for f in PURPOSES_FILES.values():
         p = PURPOSES_DIR / f
         if p.exists():
@@ -362,7 +362,7 @@ def check_cross_references(matrix: dict) -> list[dict]:
 def check_type_completeness() -> list[dict]:
     """Check 7: For every type slug in AGENTS.md's init table:
     - templates/init/[slug].md exists
-    - document-purposes-[slug].md exists
+    - guidance/document-purposes/[slug].md exists
     - type is registered in PURPOSES_FILES (so purposes-coverage check covers it)
     """
     content = read_text(AGENTS_MD)
@@ -375,7 +375,7 @@ def check_type_completeness() -> list[dict]:
     issues = []
     for slug in slugs:
         init_path = TEMPLATES_DIR / "init" / f"{slug}.md"
-        purposes_path = PURPOSES_DIR / f"document-purposes-{slug}.md"
+        purposes_path = PURPOSES_DIR / f"{slug}.md"
 
         if not init_path.exists():
             issues.append(_issue("type-completeness", "fail",
@@ -383,7 +383,7 @@ def check_type_completeness() -> list[dict]:
 
         if not purposes_path.exists():
             issues.append(_issue("type-completeness", "fail",
-                                 f"`{slug}`: purposes file missing — guidance/document-purposes-{slug}.md"))
+                                 f"`{slug}`: purposes file missing — guidance/document-purposes/{slug}.md"))
 
         if slug not in PURPOSES_FILES:
             issues.append(_issue("type-completeness", "warn",

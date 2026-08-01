@@ -4,7 +4,7 @@
 
 Module flow files live in: `docs/modules/`
 Codebase map lives in: `docs/codebase-map.md`
-Document purposes reference lives in: `guidance/document-purposes-common.md` + `guidance/document-purposes-[type].md`; see `guidance/document-purposes.md` for the type-to-file lookup table
+Document purposes reference lives in: `guidance/document-purposes/common.md` + `guidance/document-purposes/[type].md`; see `guidance/document-purposes/index.md` for the type-to-file lookup table
 
 If your project uses different folder names, search-replace the paths in this file
 before starting. For example, if you use `docs/flows/` instead of `docs/modules/`:
@@ -118,8 +118,8 @@ below) — this is live discussion during the task, not a file to write and defe
 - **New feature / no existing code** → run Checkpoint B before implementing.
 - **Always, before Closeout** → run Checkpoint C (post-implementation review).
 
-Load `guidance/learning-checkpoints-common.md` for triggers + question templates, and
-`guidance/learning-checkpoints-[your-declared-type].md` for type-specific angles.
+Load `guidance/learning-checkpoints/common.md` for triggers + question templates, and
+`guidance/learning-checkpoints/[your-declared-type].md` for type-specific angles.
 
 ---
 

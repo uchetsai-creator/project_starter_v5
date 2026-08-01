@@ -9,7 +9,7 @@ Do not begin writing documentation until all High severity issues have been reso
 **Also run this in full — not the lightweight Checkpoint A questions — whenever the user
 confirms this code needs a full quality review** (asked because there is no project
 record of who built it or whether it was reviewed — not because of a guess about whose
-code it is; see `guidance/learning-checkpoints-common.md` → Checkpoint A for the exact
+code it is; see `guidance/learning-checkpoints/common.md` → Checkpoint A for the exact
 ask-first trigger). In this case each finding must also include the two extra fields
 defined under **Report Format** below (Why It's Wrong / Correct Pattern) — the point is
 for the person reviewing it to learn from the findings, not just get a fix list.

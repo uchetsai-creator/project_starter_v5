@@ -164,4 +164,4 @@ Apply this filter first. Then run only the remaining items.
 - [ ] docs/specs/drift-policy.md `[Types: IaC / DevOps]` — did detection cadence, remediation SLA, exempt resources, or approval gate process change? If yes, update.
 - [ ] docs/specs/mobile-contract.md `[Types: Mobile App]` — was a screen added or removed, did navigation structure change, was a new OS permission added, or did a push notification payload schema change? If yes, update.
 
-For the full explanation of why each document updates on these triggers, see guidance/document-purposes-common.md + guidance/document-purposes-[your-type].md.
+For the full explanation of why each document updates on these triggers, see guidance/document-purposes/common.md + guidance/document-purposes/[your-type].md.
