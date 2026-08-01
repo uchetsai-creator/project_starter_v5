@@ -67,6 +67,9 @@ Trigger: the task is a new feature, or there is no existing code for it yet.
 1. "這段邏輯關鍵在哪一行？拿掉某個判斷式會發生什麼？"
 2. "有沒有邊界情況目前沒處理到？"
 3. "這次改的關鍵路徑，有沒有照 `docs/specs/logging-spec.md` 定義的 log point 加上 log？"
+4. **Teach-back** — 換你用自己的話跟我解釋這段程式碼在幹嘛、為什麼這樣寫，不是我講給你聽。
+   講不出來、或講錯了，那才是真正該深入的地方——這比我單方面問「懂了嗎」準確很多。不用逐行講，
+   挑這次改動裡最關鍵的那一小段就好。
 
 This checkpoint happens every task regardless of A/B/0 — it is what actually gets
 internalized, separate from whether the doc sync happens now or at sprint end.
@@ -98,4 +101,4 @@ before closing out the task:
 4. Then run the command above for real before marking the task's Verify step done.
 
 This is the only Learning Checkpoint item that can trigger writing framework code —
-the others (0, A, B, C.1, C.2) are conversation only.
+the others (0, A, B, C.1, C.2, C.4) are conversation only.
