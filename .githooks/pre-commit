@@ -56,7 +56,7 @@ fi
 
 # ── spec_code_adapter value guard ─────────────────────────────────────────────
 # Catches: typos in adapter name that would cause verify_spec_code.py to silently skip
-KNOWN_ADAPTERS="fastapi flask django express click typer airflow dagster prefect luigi python_library typescript tool_schema langchain terraform pulumi ansible react_native flutter swiftui"
+KNOWN_ADAPTERS="fastapi flask django express click typer airflow dagster prefect luigi python_library typescript tool_schema langchain terraform pulumi ansible react_native flutter swiftui python_logging javascript_logging"
 if [ -n "$SPEC_CODE_ADAPTER" ]; then
     ADAPTER_VALID=false
     for known in $KNOWN_ADAPTERS; do

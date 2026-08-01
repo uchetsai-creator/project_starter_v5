@@ -135,9 +135,15 @@ def _existing_item_files(docs_dir: str, cfg: dict) -> set[str]:
     item_dir = os.path.join(docs_dir, cfg['item_glob_dir'])
     if not os.path.isdir(item_dir):
         return set()
+    # Exclude the index file itself — e.g. business-process.md ends in '-process.md',
+    # the same suffix as its own per-item files, so it would otherwise flag itself as
+    # an orphan of its own index.
+    index_basename = os.path.basename(cfg['index_path'])
     return {
         fname for fname in os.listdir(item_dir)
-        if fname.endswith(cfg['item_suffix']) and os.path.isfile(os.path.join(item_dir, fname))
+        if fname.endswith(cfg['item_suffix'])
+        and fname != index_basename
+        and os.path.isfile(os.path.join(item_dir, fname))
     }
 
 

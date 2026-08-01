@@ -98,6 +98,22 @@ def test_business_process_missing_file_is_flagged(tmp_path):
     assert r["missing_files"] == ["business/order-create-process.md"]
 
 
+def test_index_file_itself_is_never_flagged_as_orphan_of_itself(tmp_path):
+    # business-process.md itself ends in '-process.md' — the same suffix as its own
+    # per-item files (found via a real bootstrapped project during manual testing).
+    _write(tmp_path / "business" / "business-process.md", """
+## Process Files
+
+| Process | File | Owner |
+|---|---|---|
+| Create Order | `docs/business/order-create-process.md` | Customer |
+""")
+    _write(tmp_path / "business" / "order-create-process.md", "# Create Order\n")
+    r = audit(str(tmp_path))[0]
+    assert r["missing_files"] == []
+    assert r["orphan_files"] == []
+
+
 # ---------------------------------------------------------------------------
 # prompt-library.md — File column not in position 1, and relative to specs/
 # ---------------------------------------------------------------------------
