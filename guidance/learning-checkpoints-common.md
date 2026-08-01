@@ -35,6 +35,14 @@ Trigger: the task modifies or extends code that already exists.
 See the matching `learning-checkpoints-<type>.md` for which nouns to substitute (endpoint,
 stage, screen, resource, etc.) at each step.
 
+**Escalation — taking over someone else's code for the first time** (a handoff, a new
+hire's codebase, code from another AI session with no docs — not just "existing code I
+already know"): run `code-quality-check.md` in full instead of stopping at items 1-4
+above. Report every finding with the two extra fields it defines for this case (Why It's
+Wrong / Correct Pattern) — the goal is to actually learn what's wrong and what the right
+shape looks like, not just get a silent fix. High-severity findings still block further
+work per that file's rules.
+
 ---
 
 ## Checkpoint B — Starting from a Requirement

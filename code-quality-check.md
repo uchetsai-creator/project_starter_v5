@@ -6,6 +6,14 @@ Run this immediately after Step 1 (Read Codebase) and before Step 2 (Documentati
 
 Do not begin writing documentation until all High severity issues have been resolved.
 
+**Also run this in full — not the lightweight Checkpoint A questions — whenever you are
+taking over code someone else wrote and have never reviewed before** (a new hire's
+codebase, a contractor's handoff, code produced by another AI session with no docs).
+See `guidance/learning-checkpoints-common.md` → Checkpoint A for the trigger. In this
+case each finding must also include the two extra fields defined under **Report Format**
+below (Why It's Wrong / Correct Pattern) — the point is for the person taking over the
+code to learn from the findings, not just get a fix list.
+
 ---
 
 # Required Context
@@ -64,6 +72,25 @@ Focus on correctness rather than style.
 | Layering | ... | src/... | High | ... |
 
 Only include areas that contain findings.
+
+**When taking over someone else's code** (see the note at the top of this file), add two
+more columns to every row:
+
+| Area | Finding | Evidence | Severity | Recommendation | Why It's Wrong | Correct Pattern |
+|------|----------|----------|----------|----------------|-----------------|------------------|
+
+- **Why It's Wrong** — the general principle being violated, not a guess about this
+  specific author's intent (e.g. "Controllers that write to the DB directly can't be
+  unit-tested without a database, and the same validation logic gets duplicated the next
+  time another endpoint needs it" — not "the author probably didn't know better").
+- **Correct Pattern** — what the idiomatic fix looks like for this project's actual
+  language/framework, named concretely (e.g. "move the stock-check logic into an
+  `OrderService.create()` method; the controller only calls it and maps the result to
+  an HTTP response") — not a generic textbook description disconnected from this codebase.
+
+Both fields describe the rule and the fix shape, not this specific finding's root cause —
+the Evidence Rules below still apply: never guess why the original author did something,
+only what the code does and what the correct alternative looks like.
 
 Possible areas:
 
