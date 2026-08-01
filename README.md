@@ -8,6 +8,17 @@ This repo is a **pure template repository**. It contains no real project content
 scaffolding under `templates/`. The validator scripts (`templates/script/`) go into your project's
 `docs/script/`; individual doc templates are filled in one at a time as you follow the init guide.
 
+**Who this is for:** developers using Claude Code, Codex, Cursor, or a similar AI coding tool who
+want the speed of AI-assisted development without the usual cost — code that nobody, including a
+future session of the same AI, can maintain because the docs never kept up. Works whether you're
+building solo or with a team.
+
+**What problem it solves:** AI can write code fast, but the common failure mode is that docs drift
+out of sync with the code, a module ships with no explanation of how it works, or the AI starts a
+new session with no memory of prior decisions. This framework makes the AI agree on scope and
+edge cases with you *before* writing code, then runs validators that catch spec↔code drift and
+missing documentation automatically — instead of relying on anyone remembering to check.
+
 ---
 
 ## Quick Start
