@@ -1130,6 +1130,7 @@ logic is a bug.
 | `react_native` | React Native | Mobile App | `mobile-contract.md` `### ScreenName` + `#### Props` table | Function/const components with destructured props in `.tsx`/`.jsx` |
 | `swiftui` | SwiftUI | Mobile App | `mobile-contract.md` `### ScreenName` + `#### Props` table | `struct ScreenName: View { ... }` — non-private stored properties |
 | `flutter` | Flutter / Dart | Mobile App | `mobile-contract.md` `### ScreenName` + `#### Props` table | `class ScreenName extends StatelessWidget` with `final` fields in `.dart` |
+| `logging` | (all — unions every logging detector) | Any (Logging capability) | Same `log-<module-name>.md` table, all languages present in `--src` | Runs `python_logging` + `javascript_logging` together — use this by default |
 | `python_logging` | Python `logging` | Any (Logging capability) | `log-<module-name>.md` `\| Function \| Operation \| State \| Level \|` table (see logging-spec.md → Module Log File Format) | `logger.<level>(...)` calls anywhere in a function, matched via `ast` |
 | `javascript_logging` | JS / TS / React | Any (Logging capability) | Same `log-<module-name>.md` table format as `python_logging` | `logger.<level>(...)` calls in `.js`/`.jsx`/`.ts`/`.tsx`; regex + brace-depth scan (no JS AST available in Python) |
 
@@ -1255,14 +1256,18 @@ python3 docs/script/validators/verify_spec_code.py \
     --project-type mobile-app --adapter swiftui \
     --spec docs/specs/mobile-contract.md --src ios/Screens/ --strict
 
-# Logging capability — validate log-<module-name>.md points against real Python logger calls
-# (--spec accepts a single log-<module-name>.md file OR a directory, e.g. docs/modules/,
-# to check every module's log points in one run)
+# Logging capability — validate log-<module-name>.md points against real logger calls,
+# every registered language at once (use this by default; --spec accepts a single
+# log-<module-name>.md file OR a directory, e.g. docs/modules/, to check every module
+# in one run)
+python3 docs/script/validators/verify_spec_code.py \
+    --project-type web-app --adapter logging \
+    --spec docs/modules/ --src src/ --strict
+
+# Logging capability — isolate one language's results instead of the union above
 python3 docs/script/validators/verify_spec_code.py \
     --project-type web-app --adapter python_logging \
     --spec docs/modules/ --src src/ --strict
-
-# Logging capability — same check against JS/TS/React logger calls
 python3 docs/script/validators/verify_spec_code.py \
     --project-type web-app --adapter javascript_logging \
     --spec docs/modules/ --src src/ --strict

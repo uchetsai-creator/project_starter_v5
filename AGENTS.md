@@ -41,6 +41,11 @@ Some projects genuinely span more than one type. Declare both using `+` (e.g. `P
 
 **Document rule for hybrid projects:** create all documents that are Required (✅) or Optional (⚠️) for ANY of the declared types. Skip only documents that are N/A (❌) for ALL declared types.
 
+**Guidance file rule for hybrid projects:** `guidance/document-purposes/[type].md` and
+`guidance/learning-checkpoints/[type].md` only exist per single type — for `A + B`, load
+both `.../A.md` and `.../B.md` and union them, the same as the init-file rule below. There
+is no `A+B.md` file to look for.
+
 **Common combinations:**
 
 | Combination | What the second type adds |

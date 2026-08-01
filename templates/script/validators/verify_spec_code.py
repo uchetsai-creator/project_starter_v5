@@ -117,6 +117,7 @@ ADAPTER_REGISTRY: dict[str, tuple[str, str, str | None]] = {
     # Language-keyed, not framework-keyed: Python's logging module works the same
     # regardless of Flask/FastAPI/Django, so there is one detector per language, not
     # per web framework. Add an entry here each time a new language detector is built.
+    'logging': ('_capability_logging', 'LoggingAdapter', None),
     'python_logging': ('_capability_logging', 'LoggingAdapter', 'python_logging'),
     'javascript_logging': ('_capability_logging', 'LoggingAdapter', 'javascript_logging'),
 }

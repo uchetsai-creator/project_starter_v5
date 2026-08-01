@@ -259,11 +259,13 @@ to — not a replacement for — the free-text call-order description if you wan
 
 ```bash
 python3 docs/script/validators/verify_spec_code.py --project-type TYPE \
-    --adapter python_logging --spec docs/modules/ --src src/ --strict
+    --adapter logging --spec docs/modules/ --src src/ --strict
 ```
 
-`--spec` accepts either one `log-<module-name>.md` file or a directory (e.g. `docs/modules/`)
-to check every module's log points in one run.
+`--adapter logging` runs every registered language detector at once (Python + JS/TS/React
+today); pass `--adapter python_logging` or `--adapter javascript_logging` instead to check
+only one language. `--spec` accepts either one `log-<module-name>.md` file or a directory
+(e.g. `docs/modules/`) to check every module's log points in one run.
 
 ---
 

@@ -76,8 +76,11 @@ was skipped, or you can't tell without checking), don't just take the conversati
 answer at face value — actually run the code-level check:
 
 ```bash
+# Runs every registered language detector at once (Python + JS/TS/React today) — use
+# this by default. Pass --adapter python_logging / javascript_logging instead only to
+# isolate one language's results.
 python3 docs/script/validators/verify_spec_code.py --project-type TYPE \
-    --adapter <language>_logging --spec docs/modules/ --src src/ --strict
+    --adapter logging --spec docs/modules/ --src src/ --strict
 ```
 
 If no detector exists yet for the current language (check `ADAPTER_REGISTRY` in
