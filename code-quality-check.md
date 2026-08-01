@@ -18,7 +18,10 @@ for the person reviewing it to learn from the findings, not just get a fix list.
 
 # Required Context
 
-Read the documents for your declared project type before inspecting code:
+Read the documents for your declared project type before inspecting code. **Hybrid
+projects (e.g. `Data Pipeline + Web App`):** there is no combined row below — read and
+apply every row for each declared type, union the "What to inspect" and Layering rules
+across them, same as the guidance-file rule in `AGENTS.md`.
 
 | Project type | Read before inspecting |
 |---|---|
