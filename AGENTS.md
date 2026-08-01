@@ -138,6 +138,12 @@ user's answers, update `docs/project-plan.md` and set `docs/current-state.md →
 before proceeding to "Starting work." A one-line request is rarely a fully-scoped task; treat
 brevity from the user as a prompt to ask, not as permission to guess.
 
+**Resolve project type before any of the above** if `.project-starter.yml`'s `project_type`
+is missing or still `[your-project-type]` — every downstream step (which docs, which
+validators, which guidance files) is selected by this value alone. Run
+`python3 detect_type.py --requirements "<the user's description>"` for a ranked guess, confirm
+it with the user, then write it into `.project-starter.yml` before asking anything else.
+
 ### Starting work
 
 Run `python3 orchestrator.py` → read `.ai/WORKFLOW.md` and `.ai/AI_CONTEXT.md` → follow the Read list.
