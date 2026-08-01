@@ -36,6 +36,12 @@ is not something to infer — you have no memory of authorship across sessions, 
 here is just a guess. If the user says yes, skip to the Escalation below instead of items
 1-4. If no, continue with items 1-4 as normal.
 
+**If there is no `docs/modules/<module>/` entry at all** (not even a stub), consider running
+`python3 templates/script/generators/draft_module_flow.py <module_src_dir> --project-type TYPE`
+first — it parses the module's actual source (Python/JS/TS) and pre-fills real class/function
+names instead of starting from a blank template. It does not invent the call sequence or
+business meaning — that part is still yours to answer in items 1-4 below.
+
 1. **Read the current state** — "這個功能/模組目前怎麼運作？資料怎麼流進來、處理、流出去？"
 2. **Locate the change** — "這個改動該放在哪個檔案/層？為什麼是這裡？有沒有現成 pattern 可以照抄？"
 3. **Assess blast radius** — "這個改動會不會影響到其他呼叫這裡的地方？有沒有隱藏的耦合？"
@@ -48,7 +54,9 @@ stage, screen, resource, etc.) at each step.
 in full instead of stopping at items 1-4 above. Report every finding with the two extra
 fields it defines for this case (Why It's Wrong / Correct Pattern) — the goal is to
 actually learn what's wrong and what the right shape looks like, not just get a silent
-fix. High-severity findings still block further work per that file's rules.
+fix. High-severity findings still block further work per that file's rules, including its
+independent-review gate — you cannot self-close a High finding in the same session that
+fixed it.
 
 ---
 
@@ -65,6 +73,10 @@ Trigger: the task is a new feature, or there is no existing code for it yet.
 ## Checkpoint C — Post-Implementation Review (always, before Closeout)
 
 1. "這段邏輯關鍵在哪一行？拿掉某個判斷式會發生什麼？"
+   **Escalation** — 如果這是關鍵路徑，而且答案是用猜的或講不清楚，不要只停在對話：真的把那個
+   判斷式暫時註解掉（或改成恆真/恆假），跑一次相關測試，確認測試會變紅。測試沒有紅，代表這段
+   邏輯根本沒被測到——這比事後回答「應該會壞掉吧」準確，也直接驗證了 code-quality-check.md
+   要求的測試覆蓋率是不是真的有效，不是照抄一個從不失敗的測試。改完記得把判斷式還原。
 2. "有沒有邊界情況目前沒處理到？"
 3. "這次改的關鍵路徑，有沒有照 `docs/specs/logging-spec.md` 定義的 log point 加上 log？"
 4. **Teach-back** — 換你用自己的話跟我解釋這段程式碼在幹嘛、為什麼這樣寫，不是我講給你聽。
@@ -88,10 +100,14 @@ python3 docs/script/validators/verify_spec_code.py --project-type TYPE \
     --adapter logging --spec docs/modules/ --src src/ --strict
 ```
 
-If no detector exists yet for the current language (check `ADAPTER_REGISTRY` in
-`verify_spec_code.py` — `python_logging` and `javascript_logging` (covers JS/TS/React)
-exist so far), build one on the spot
-before closing out the task:
+If no detector exists yet for the current language, the command above now tells you so
+directly — a `[WARN] 0 code items extracted from --src, but real file(s) exist there` means
+nothing was actually checked, not that the code is compliant (before this warning existed,
+an empty spec + undetected code silently printed `[OK] No mismatches`, which looked like a
+pass). Don't take a plain `[OK]` at face value without glancing at the file count either;
+the warning is the reliable signal. (Also check `ADAPTER_REGISTRY` in `verify_spec_code.py` —
+`python_logging` and `javascript_logging` (covers JS/TS/React) exist so far.) When you get
+this warning, build a detector on the spot before closing out the task:
 1. Add a `NormalizedLogPoint`-based language detector under `_spec_code_adapters/`,
    modeled on `python_logging.py` (walk the language's function/method definitions,
    match logger calls against the `<operation> — <state>` convention in

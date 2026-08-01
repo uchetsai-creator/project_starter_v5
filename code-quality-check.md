@@ -76,6 +76,20 @@ Focus on correctness rather than style.
 
 Only include areas that contain findings.
 
+**Good Things (optional but encouraged)** — note patterns worth keeping, not just problems.
+This applies regardless of project type — a well-isolated Data Pipeline stage boundary, a
+clean CLI flag/handler split, a Terraform module with real destroy protection, etc. are all
+equally valid entries. Use the same evidence discipline as findings — real file/function
+names, not generic praise:
+
+| Area | What's good | Why it's worth keeping |
+|------|-------------|------------------------|
+| Layering | ... | ... |
+
+Skip this table if nothing stands out — it's for genuinely worth-noting patterns, not a
+participation entry for every review. The point is the same as the Learning Checkpoint's
+teach-back: understanding what's correct and why matters as much as catching what's wrong.
+
 **When taking over someone else's code** (see the note at the top of this file), add two
 more columns to every row:
 
@@ -104,6 +118,7 @@ Possible areas:
 
 - Layering
 - Package First
+- Complexity
 - Naming
 - Schema
 - Security
@@ -148,6 +163,14 @@ Never infer missing behavior.
 ---
 
 # Severity Guide
+
+**Why only High blocks:** the goal of this review is to make the codebase healthier over
+time, not to reach a perfect state before continuing. A change that clearly improves code
+health should not be held up chasing every Medium/Low/Nit item — that's why only High
+blocks Step 2; Medium/Low get queued for the current sprint instead of blocking now, and
+Nit isn't queued at all. If you (the user) disagree with a finding's severity or validity,
+that's a discussion, not something to accept silently — downgrade or drop it together, with
+the reason recorded, rather than the review being the final word by default.
 
 ## High
 
@@ -194,6 +217,21 @@ Append to the current sprint.
 
 ---
 
+## Nit (optional — not a formal severity, not queued)
+
+Use when the observation is a personal style preference, not backed by this project's
+style guide, an existing convention in the codebase, or an objective correctness rule. The
+test: if the codebase has no established rule either way and this is just how you'd
+personally write it, it's a Nit — not a Low.
+
+Prefix the finding with `Nit:` in the Finding column instead of giving it a severity.
+
+Do NOT append Nits to project-plan.md — they carry no obligation to act. They're visibility
+only, and the user can ignore them freely without needing to justify skipping one (unlike a
+Low finding, which at least got queued for a reason grounded in a real rule).
+
+---
+
 # Area-Specific Rules
 
 ## Layering
@@ -228,6 +266,38 @@ If duplicate custom implementation exists:
 Report it.
 
 Do not recommend rewriting unless necessary.
+
+---
+
+## Complexity
+
+Check whether the code solves the actual, current, documented requirement — or an imagined
+future one that isn't written down anywhere (project-plan.md, research.md, or an actual
+ticket). Over-engineering is a maintainability cost with no offsetting benefit when the
+extensibility it was built for never gets used.
+
+| Project type | What to look for |
+|---|---|
+| **Web App / Microservices** | Abstraction layers (interfaces, factories, strategy patterns, dependency-injection containers) with only one real implementation and no documented plan for a second |
+| **CLI Tool** | A generic plugin/config system built for a small fixed set of commands with no stated need for third-party extensibility |
+| **Library / SDK** | Configuration options, hooks, or extension points with zero callers using them, added speculatively "in case someone needs it" |
+| **Data Pipeline / ML Pipeline** | A generic multi-stage orchestration framework built for a pipeline that only ever runs one fixed sequence |
+| **AI / LLM App** | Multi-step agent/tool-chaining orchestration for a task a single prompt call could resolve just as reliably |
+| **IaC / DevOps** | Wrapper modules or parameterized variables for values that never actually vary across this project's environments |
+| **Mobile App** | Generic state-management or navigation abstraction for a screen flow that never branches |
+
+Check:
+- Can you point to a real, current caller/requirement that needs this flexibility today?
+- Would removing the abstraction and inlining the single real case make the code easier to
+  follow, with no loss of behavior?
+
+Severity: **Medium** — usually a maintainability cost, not a correctness bug. Only use
+**High** if the added complexity itself is the source of an actual bug (e.g. a generic
+dispatch layer that silently drops an unhandled case).
+
+Recommendation: simplify to match the actual requirement, or — if genuine near-term
+extensibility is planned — point to where that's documented; if it isn't documented
+anywhere, that's itself part of the finding.
 
 ---
 
@@ -868,6 +938,17 @@ Continue until no High findings remain.
 
 Only then continue to Step 2.
 
+**Independent review gate — full-review case only** (triggered per the note at the top of
+this file: inherited/unreviewed code). The same session that wrote the fix cannot also be
+the one that declares it resolved — that is the reviewer grading its own fix. Before
+checking a High finding off in this case, do one of:
+1. Show the user the diff for this specific finding and get their explicit confirmation, or
+2. Have a separate session or `/code-review` pass look at just this fix and confirm it
+   independently.
+Do not mark "no High findings remain" on self-judgment alone when this gate applies. This
+does not apply to the lightweight Checkpoint A path (items 1-4) — only to a full review of
+code with no existing ownership/review record.
+
 ---
 
 ## Medium / Low
@@ -903,6 +984,6 @@ The review is complete only when:
 - No High severity findings remain.
 - Every finding includes evidence.
 - No speculative findings exist.
-- Medium/Low findings are appended to the current sprint.
+- Medium/Low findings are appended to the current sprint. Nits are not — they're visibility only.
 - Documentation has not started before High findings are resolved.
 - Only files related to confirmed findings have been modified.

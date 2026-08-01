@@ -1,5 +1,25 @@
 # AGENTS
 
+## Constitution
+
+These rarely change — everything else in this file is operational mechanics built on top
+of them. When a task pressures you to bend one of these, stop and ask instead of bending it.
+
+- **Maintainability First** — prefer readable, changeable architecture over temporary shortcuts
+- **Package First** — use existing packages, utilities, and framework conventions before writing custom code
+  - Priority: existing package → existing utility → framework convention → custom code
+  - Custom code only for: business logic, domain rules, data mapping, system integration
+- **Glue Code** — keep integration code thin; logic belongs in packages, not connectors
+- **Incremental Changes** — make the smallest change that achieves the goal
+- **No Unrelated Refactor** — do not clean up code outside the current task scope
+- **Type gates documents** — the declared project type decides which documents are required
+  vs N/A; never create an N/A document "just in case"
+- **No internal references in spec-facing docs** — no task numbers (Task 22), no sprint
+  references (Sprint 8, S9); those belong in `changelog.md`, not in documents external
+  stakeholders read (see Writing Audience below for the full file list)
+
+---
+
 ## Path Convention
 
 Module flow files live in: `docs/modules/`
@@ -21,19 +41,9 @@ The type gates which documents are required and which are N/A — do not create 
 
 > **Not sure which type fits?** Run `python3 detect_type.py` (or `bash setup.sh --detect`) to infer the type from your codebase or a plain-text description. It supports hybrid output (e.g. `web-app+llm-app`).
 
-**Supported types:**
-
-| Type | Description |
-|---|---|
-| **Web App** | Backend + optional frontend, HTTP/GraphQL API, user auth, persistent DB |
-| **CLI Tool** | Command-line interface, subcommands, flags, stdin/stdout; no persistent server |
-| **Library / SDK** | Reusable package published to a registry; callers import it; no deployment |
-| **Data Pipeline** | ETL/ELT batch or streaming; data in → data out; no user-facing API |
-| **ML Pipeline** | Training → evaluation → serving; model artifact is the primary output |
-| **Microservices** | Multiple independently deployed services communicating via API or events |
-| **AI / LLM Application** | Chatbot, copilot, or agent built on a foundation model; prompt-driven, no model training |
-| **IaC / DevOps** | Infrastructure-as-Code or DevOps tooling; Terraform, Pulumi, Ansible, Helm; resource topology, runbooks, drift policy |
-| **Mobile App** | Native or cross-platform mobile app (React Native, Flutter, iOS/Swift, Android/Kotlin); screen-based, app-store distributed |
+**Supported types:** Web App, CLI Tool, Library/SDK, Data Pipeline, ML Pipeline,
+Microservices, AI/LLM Application, IaC/DevOps, Mobile App — see `guidance/project-types.md`
+for the full description table.
 
 ### Mixed / Hybrid Project Types
 
@@ -46,14 +56,8 @@ Some projects genuinely span more than one type. Declare both using `+` (e.g. `P
 both `.../A.md` and `.../B.md` and union them, the same as the init-file rule below. There
 is no `A+B.md` file to look for.
 
-**Common combinations:**
-
-| Combination | What the second type adds |
-|---|---|
-| Data Pipeline + Web App | `api-contract.md`, `permissions.md`, `frontend.md` (dashboard/admin UI) |
-| CLI Tool + Library | `public-api.md`, `compatibility-matrix.md` (the tool also ships as an importable package) |
-| ML Pipeline + Web App | `api-contract.md`, `permissions.md` (model served via REST endpoint) |
-| AI / LLM App + Web App | `api-contract.md`, `frontend.md`, `deployment.md` (hosted chatbot with UI) |
+**Common combinations:** see `guidance/project-types.md` for illustrative examples
+(Data Pipeline + Web App, CLI Tool + Library, ML Pipeline + Web App, AI/LLM App + Web App).
 
 **Document matrix (Required/Optional/N/A by project type):** `templates/init/document-matrix.md`
 Load only when initializing or retrofitting — not during normal task work.
@@ -90,26 +94,12 @@ Not needed during normal task work on an established project.
 
 ## Writing Audience
 
-Spec PDF documents are read by external stakeholders — no internal tracking references allowed:
-- No task numbers: （Task 22）, (Task 15), etc.
-- No sprint references: Sprint 8, S9, etc.
-
-Spec-facing docs: `business/business-rules.md`, `specs/pipeline-contract.md`, `specs/research.md`,
+Spec PDF documents are read by external stakeholders — the Constitution's "no internal
+references" rule applies to these files specifically:
+`business/business-rules.md`, `specs/pipeline-contract.md`, `specs/research.md`,
 `architecture/*.md`, `modules/*/*-module-data-flow.md`, `specs/quickstart.md`
 
 Record WHEN a rule changed in `changelog.md` — not in spec documents.
-
----
-
-## Development Principles
-
-- **Maintainability First** — prefer readable, changeable architecture over temporary shortcuts
-- **Package First** — use existing packages, utilities, and framework conventions before writing custom code
-  - Priority: existing package → existing utility → framework convention → custom code
-  - Custom code only for: business logic, domain rules, data mapping, system integration
-- **Glue Code** — keep integration code thin; logic belongs in packages, not connectors
-- **Incremental Changes** — make the smallest change that achieves the goal
-- **No Unrelated Refactor** — do not clean up code outside the current task scope
 
 ---
 
