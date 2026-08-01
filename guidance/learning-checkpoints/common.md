@@ -70,6 +70,8 @@ Trigger: the task is a new feature, or there is no existing code for it yet.
 4. **Teach-back** — 換你用自己的話跟我解釋這段程式碼在幹嘛、為什麼這樣寫，不是我講給你聽。
    講不出來、或講錯了，那才是真正該深入的地方——這比我單方面問「懂了嗎」準確很多。不用逐行講，
    挑這次改動裡最關鍵的那一小段就好。
+   跟 Checkpoint 0 一樣可以跳過：如果這次的 task 真的夠瑣碎（改錯字、調設定值這類），而且你自己
+   判斷已經完全懂，可以跳過或簡化 teach-back，不用每個 task 都硬做——但拿不準的時候，做比不做安全。
 
 This checkpoint happens every task regardless of A/B/0 — it is what actually gets
 internalized, separate from whether the doc sync happens now or at sprint end.
