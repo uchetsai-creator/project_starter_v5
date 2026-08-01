@@ -6,13 +6,13 @@ Run this immediately after Step 1 (Read Codebase) and before Step 2 (Documentati
 
 Do not begin writing documentation until all High severity issues have been resolved.
 
-**Also run this in full — not the lightweight Checkpoint A questions — whenever you are
-taking over code someone else wrote and have never reviewed before** (a new hire's
-codebase, a contractor's handoff, code produced by another AI session with no docs).
-See `guidance/learning-checkpoints-common.md` → Checkpoint A for the trigger. In this
-case each finding must also include the two extra fields defined under **Report Format**
-below (Why It's Wrong / Correct Pattern) — the point is for the person taking over the
-code to learn from the findings, not just get a fix list.
+**Also run this in full — not the lightweight Checkpoint A questions — whenever the user
+confirms this code needs a full quality review** (asked because there is no project
+record of who built it or whether it was reviewed — not because of a guess about whose
+code it is; see `guidance/learning-checkpoints-common.md` → Checkpoint A for the exact
+ask-first trigger). In this case each finding must also include the two extra fields
+defined under **Report Format** below (Why It's Wrong / Correct Pattern) — the point is
+for the person reviewing it to learn from the findings, not just get a fix list.
 
 ---
 

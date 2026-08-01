@@ -27,6 +27,15 @@ Skip this checkpoint when the technology is already familiar — do not run it e
 
 Trigger: the task modifies or extends code that already exists.
 
+**Before items 1-4 — ask, don't guess:** the first time this session touches a given
+module/file, if there is no `docs/modules/<module>/` entry or `changelog.md` /
+`task-log.md` row showing this project's own workflow already built or reviewed it, ask
+the user directly: "這段程式碼需要我先做完整的 code quality 檢查嗎？（像是接手交接、
+沒審過的程式碼）" Whose code it originally is (yours, a teammate's, another AI session's)
+is not something to infer — you have no memory of authorship across sessions, so a guess
+here is just a guess. If the user says yes, skip to the Escalation below instead of items
+1-4. If no, continue with items 1-4 as normal.
+
 1. **Read the current state** — "這個功能/模組目前怎麼運作？資料怎麼流進來、處理、流出去？"
 2. **Locate the change** — "這個改動該放在哪個檔案/層？為什麼是這裡？有沒有現成 pattern 可以照抄？"
 3. **Assess blast radius** — "這個改動會不會影響到其他呼叫這裡的地方？有沒有隱藏的耦合？"
@@ -35,13 +44,11 @@ Trigger: the task modifies or extends code that already exists.
 See the matching `learning-checkpoints-<type>.md` for which nouns to substitute (endpoint,
 stage, screen, resource, etc.) at each step.
 
-**Escalation — taking over someone else's code for the first time** (a handoff, a new
-hire's codebase, code from another AI session with no docs — not just "existing code I
-already know"): run `code-quality-check.md` in full instead of stopping at items 1-4
-above. Report every finding with the two extra fields it defines for this case (Why It's
-Wrong / Correct Pattern) — the goal is to actually learn what's wrong and what the right
-shape looks like, not just get a silent fix. High-severity findings still block further
-work per that file's rules.
+**Escalation — user confirms this code needs a full review**: run `code-quality-check.md`
+in full instead of stopping at items 1-4 above. Report every finding with the two extra
+fields it defines for this case (Why It's Wrong / Correct Pattern) — the goal is to
+actually learn what's wrong and what the right shape looks like, not just get a silent
+fix. High-severity findings still block further work per that file's rules.
 
 ---
 
