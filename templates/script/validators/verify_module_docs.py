@@ -28,7 +28,10 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _registry import VALID_TYPES
-from _verify_common import _append_telemetry, _is_placeholder, _non_blank, _read_file, _telemetry_ts, parse_types
+from _verify_common import (
+    _append_telemetry, _is_placeholder, _non_blank, _read_file, _src_has_real_files,
+    _telemetry_ts, parse_types,
+)
 
 MODULE_TYPES = ['Pipeline Stage', 'Feature', 'Background Job', 'Shared Utility', 'Resource Group']
 
@@ -555,13 +558,37 @@ def main() -> None:
     results = audit(full_type, docs_dir, args.src, script_dir)
 
     if not results:
+        # In --src coverage mode, "0 modules found" can mean two very different
+        # things: a genuinely empty project (fine), or real code that scan_codebase.py
+        # couldn't classify as any module — wrong --depth, all folders read as Shared/
+        # Infrastructure, or code sitting in flat files scan_codebase.py doesn't look
+        # at. The second case is not a pass; it means nothing was actually audited.
+        zero_coverage = bool(args.src) and _src_has_real_files(args.src)
         msg = "No modules found"
         msg += f" in {docs_dir}/modules/" if not args.src else f" via scan_codebase.py ({args.src})"
+        if zero_coverage:
+            msg += (
+                " — but real file(s) exist there. This is NOT a confirmed pass; "
+                "see scan_codebase.py's own zero_coverage warning for likely causes."
+            )
         if args.json_output:
-            print(json.dumps({'project_type': full_type, 'modules': [], 'message': msg}))
+            print(json.dumps({
+                'project_type': full_type, 'modules': [], 'message': msg,
+                'zero_coverage': zero_coverage,
+            }))
         else:
             print(f"[WARN] {msg}")
-        sys.exit(0)
+        if args.telemetry:
+            _append_telemetry({
+                'ts': _telemetry_ts(),
+                'project_type': full_type,
+                'validator': 'verify_module_docs.py',
+                'level': 'fail' if zero_coverage else 'pass',
+                'warn_count': 0 if zero_coverage else 1,
+                'fail_count': 1 if zero_coverage else 0,
+                'failed_docs': ['<zero_coverage>'] if zero_coverage else [],
+            })
+        sys.exit(1 if (args.strict and zero_coverage) else 0)
 
     if args.json_output:
         print_results_json(results, full_type, docs_dir, args.src)

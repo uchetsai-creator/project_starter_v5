@@ -7,6 +7,7 @@ This file must be co-located with the other verify scripts (templates/script/ in
 """
 
 import json
+import os
 import re
 import sys
 from datetime import datetime, timezone
@@ -151,3 +152,34 @@ def _section_body(text_or_lines: 'str | list[str]', header_re: str) -> 'str | li
     result = after[:boundary.start()] if boundary else after
     result = _strip_bracket_blocks(result)
     return result.splitlines() if is_list else result
+
+
+# ---------------------------------------------------------------------------
+# Zero-coverage detection — shared by verify_spec_code.py and scan_codebase.py
+# ---------------------------------------------------------------------------
+
+# Files that commonly sit in an otherwise-empty source folder and don't count as
+# "real code exists here" — a bare .gitkeep or README shouldn't trigger a
+# zero-coverage warning meant for "code exists but nothing recognized it".
+_NON_CODE_FILENAMES = {'.gitkeep', '.gitignore', '.ds_store', 'readme.md', 'readme.txt', 'license'}
+_SKIP_DIRNAMES = {'.git', '__pycache__', 'node_modules', '.venv', 'venv', 'dist', 'build'}
+
+
+def _src_has_real_files(src: str) -> bool:
+    """True if `src` contains at least one file that isn't just a placeholder.
+
+    Used to distinguish two very different reasons a scan/extraction can come back
+    empty: legitimately no code written yet (nothing to warn about), vs real code
+    exists but nothing recognized it — wrong adapter/framework hint, a folder-naming
+    heuristic that doesn't match this project's layout, or no detector registered
+    for this language at all. Reporting "0/0 = 100%" or "no mismatches" in that
+    second case isn't a real pass — it means nothing was actually checked.
+    """
+    if os.path.isfile(src):
+        return Path(src).name.lower() not in _NON_CODE_FILENAMES
+    for root, dirs, files in os.walk(src):
+        dirs[:] = [d for d in dirs if d not in _SKIP_DIRNAMES and not d.startswith('.')]
+        for f in files:
+            if f.lower() not in _NON_CODE_FILENAMES:
+                return True
+    return False

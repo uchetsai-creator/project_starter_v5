@@ -303,7 +303,8 @@ project_starter/                     ← this repo (template only)
         │   ├── plantuml.jar         ← download separately (see Setting up PlantUML)
         │   ├── diagnose_spec.py     ← classifies spec fill gaps; triggers framework fix PRs
         │   ├── propose_framework_fix.py ← opens a PR on project_starter_v5 to add a missing template section
-        │   └── new_detector.py      ← scaffolds a new framework Detector for verify_spec_code.py
+        │   ├── new_detector.py      ← scaffolds a new framework Detector for verify_spec_code.py
+        │   └── draft_module_flow.py ← drafts a module-data-flow.md pre-filled with real class/function names (Python/JS/TS)
         ├── scanners/                ← shipped to user projects (docs/script/scanners/)
         │   └── scan_codebase.py     ← scans src/ and reports which modules are undocumented
         └── framework/               ← framework-internal only — NOT copied to user projects
@@ -722,10 +723,14 @@ The flow follows Steps 1, 1b, 1c, 2, 3, 4, and 5:
 - **Step 1b** — Run the module inventory scan — `scan_codebase.py` lists every source folder and flags
   undocumented ones. Confirm the list before any documentation is written
 - **Step 1c** — Code Quality Check — run `code-quality-check.md` and produce a report covering
-  layering, Package First violations, naming, schema design, security, and error handling
+  layering, Package First violations, complexity/over-engineering, naming, schema design,
+  security, and error handling
 - **Step 2** — Fill in architecture and spec documents — describe what actually exists, not what should
   exist. Use your actual layer names, not assumed patterns
-- **Step 3** — Fill in module flow files — one module at a time, following the confirmed inventory
+- **Step 3** — Fill in module flow files — one module at a time, following the confirmed inventory.
+  `draft_module_flow.py <module_dir> --project-type <type>` pre-fills real class/function names
+  from static analysis (Python/JS/TS) instead of starting from a blank file — it does not invent
+  the call sequence or business meaning, that part is still written by hand
 - **Step 4** — Fill in project status — reconstruct requirements, mark existing modules as completed
 - **Step 5** — Generate the PDF
 
@@ -870,6 +875,16 @@ library/iac):
 python3 docs/script/validators/verify_module_docs.py --project-type web-app --src src/ --strict
 ```
 
+**Zero-coverage safeguard:** if `scan_codebase.py` finds 0 modules to check — because the src
+layout doesn't match its folder-based classification (flat files with no subfolders, `--depth`
+too shallow, or every folder happens to match a Shared/Infrastructure naming pattern) — while
+real code files do exist under `--src`, this is reported as an explicit failure under `--strict`
+rather than a silent pass. Previously "0 modules found" always exited 0 regardless of `--strict`,
+which meant a src layout `scan_codebase.py` couldn't parse defeated the whole coverage check
+without any indication that nothing had actually been audited. `scan_codebase.py` itself carries
+the same safeguard — a `0/0 (100%)` coverage line is followed by a `[WARN]` when real files exist
+but none were classified as a module.
+
 **`verify_index_coverage.py`** does the equivalent coverage check for documents that have no
 source-code equivalent to scan against — `business-objects.md`, `business-process.md`, and
 `prompt-library.md` each index a set of per-item files, and this checks both directions: an
@@ -955,9 +970,12 @@ Any AI tool (Claude / Codex / Cursor / manual)
  verify_docs.py --content              ← doc completeness + fill quality (block)
  verify_logs.py                        ← log format + trace_id (when present, block)
  verify_tests.py                       ← test-report.md fill quality (when present, block)
- verify_acceptance.py                  ← FR-XXX → test plan → test report traceability (when present, block)
  verify_content.py                     ← document content quality gate (when present, block)
          [verify_module_docs.py called internally by verify_content.py]
+        ↓
+ [test_command set in .project-starter.yml]
+   actually runs the configured test command  ← real test execution (block on failure)
+   — unlike verify_tests.py above, which only checks that test-report.md is filled in
         ↓
  [AGENTS.md staged]      line count ≤ 200            ← token budget (block)
  [specs/*.md staged]     changelog.md also staged?   ← audit trail (warn)
@@ -974,6 +992,11 @@ Optional fast-feedback (Claude Code only):
 ```
 
 Spec-facing documents (writing audience check): `business-rules.md`, `pipeline-contract.md`, `research.md`, `quickstart.md`, `architecture/*.md`, `modules/*/*-module-data-flow.md`
+
+`verify_acceptance.py` (FR-XXX → test plan → test report traceability) is **not** part of
+`.githooks/pre-commit` — checking full requirement traceability on every commit would block
+normal mid-sprint work before all FRs have test-report entries. It runs at sprint end instead,
+via the `sprint-end` entry in `workflow-registry.yaml` (see `templates/sprint-sync.md`).
 
 ### Setup (once per project clone)
 
@@ -994,6 +1017,12 @@ Spec-facing documents (writing audience check): `business-rules.md`, `pipeline-c
    language or framework — and the pre-commit hook prints a non-blocking `[TIP]` (listing the
    adapters available for your project type) whenever you commit a spec contract file without
    this configured, as a reminder that it's off. See [Limitations](#limitations) below.
+5. **Recommended** — set `test_command` in `.project-starter.yml` to your project's real test
+   invocation (e.g. `test_command: pytest -q`) so pre-commit actually runs your test suite and
+   blocks on a real failure. Without it, `verify_tests.py` only checks that
+   `docs/specs/test-report.md` has been filled with non-placeholder numbers — it does not run
+   anything, so a fabricated result would pass. Point it at a fast subset if your full suite is
+   slow; every commit runs it.
 
 ### Tool compatibility
 
@@ -1432,11 +1461,14 @@ fail a commit; without it, output is informational only.
 detectors exist across 8 capabilities today (see the Adapters table above). Any other language
 or framework — Rails, Spring Boot, native Android/Kotlin, Vue, Go, PHP, and everything else not
 listed — has **no automated drift detection at all**. This applies separately to the `logging`
-capability too: only Python and JS/TS/React have a detector; a project's `log-<module>.md` ↔
-code check silently has no coverage in any other language until one is added (see Learning
-Checkpoint C's escalation step in `guidance/learning-checkpoints/common.md` for the "build one
-on the spot" procedure). Spec and code can diverge indefinitely for these; manual code review is
-the only safety net. Running a capability adapter without a `--framework` hint unions *all* of its
+capability too: only Python and JS/TS/React have a detector. This gap is no longer silent —
+running against a language with no detector prints an explicit `[WARN] 0 code items extracted
+from --src, but real file(s) exist there` and fails `--strict`, rather than the empty-vs-empty
+comparison quietly reporting `[OK] No mismatches`. But the underlying gap is unchanged: nothing
+is actually compared for that language until a detector is built (see Learning Checkpoint C's
+escalation step in `guidance/learning-checkpoints/common.md` for the "build one on the spot"
+procedure). Spec and code can diverge indefinitely for these; manual code review is the only
+safety net until then. Running a capability adapter without a `--framework` hint unions *all* of its
 detectors, and two frameworks sharing a similar idiom (e.g. Click's and Typer's `.command()`
 decorator) can both match the same code and produce overlapping or duplicate results — pass
 `--framework`, or use the standalone `--adapter <framework>` alias, to avoid this.

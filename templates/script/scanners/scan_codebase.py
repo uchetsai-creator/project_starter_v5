@@ -54,7 +54,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / 'validators'))
 from _registry import VALID_TYPES
-from _verify_common import parse_types
+from _verify_common import parse_types, _src_has_real_files
 
 # ---------------------------------------------------------------------------
 # Folders that are almost never feature modules — skip or mark as "—"
@@ -456,6 +456,7 @@ def print_tree(src_dir: str, folders: list[dict], docs_dir: str = "docs") -> str
 
 def print_coverage(
     folders: list[dict], project_type: str | None = None, unscanned: list[str] | None = None,
+    src_dir: str | None = None,
 ) -> str:
     _, plural_label = MODULE_VOCAB.get(project_type, ("Feature", "feature modules"))
 
@@ -488,6 +489,16 @@ def print_coverage(
     pct = int(len(documented) / total * 100) if total else 100
     lines.append(f"Coverage: {len(documented)}/{total} {plural_label} documented ({pct}%)")
 
+    if total == 0 and src_dir and _src_has_real_files(src_dir):
+        lines.append("")
+        lines.append(
+            f"[WARN] 0 {plural_label} found, but real file(s) exist under {src_dir} — "
+            "this 100% is not a real pass. Either every folder here was classified as "
+            "Shared/Infrastructure, the code sits in flat files with no subfolders "
+            "(this scan only looks at directories), or --depth is too shallow. Check "
+            "the tree above before trusting this coverage number."
+        )
+
     if unscanned:
         lines.append("")
         lines.append(
@@ -506,7 +517,9 @@ def print_coverage(
             lines.append(
                 f"  - Create docs/modules/{slug}/{slug}-module-data-flow.md  [{base_type(f['type'])}]"
             )
-        lines.append("  (run with --scaffold to generate stubs automatically)")
+        lines.append("  (run with --scaffold for a blank stub, or")
+        lines.append("   generators/draft_module_flow.py <module_dir> --project-type <type>")
+        lines.append("   for a draft pre-filled with real class/function names from the source)")
 
     return "\n".join(lines)
 
@@ -524,6 +537,7 @@ def format_json(
     shared = [f for f in folders if f["status"] == "—"]
     total = len(documented) + len(undocumented)
     pct = int(len(documented) / total * 100) if total else 100
+    zero_coverage = total == 0 and _src_has_real_files(src_dir)
 
     modules = []
     for f in folders:
@@ -550,6 +564,7 @@ def format_json(
             "shared": len(shared),
             "total_non_shared": total,
             "coverage_pct": pct,
+            "zero_coverage": zero_coverage,
         },
     }
     return json.dumps(payload, ensure_ascii=False, indent=2)
@@ -724,7 +739,7 @@ def main():
         print()
 
     if args.coverage or show_all:
-        print(print_coverage(folders, classify_type, unscanned))
+        print(print_coverage(folders, classify_type, unscanned, args.src_dir))
 
     if args.update:
         update_codebase_map(args.update, args.src_dir, folders, args.docs)

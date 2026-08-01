@@ -401,12 +401,23 @@ Purpose:
 Shell script that enforces process rules on every `git commit` — no AI tool dependency.
 Runs the following checks on every commit:
 
-**Quality verifiers** (5 scripts — Phase 17 + Phase 23 + Phase 24 + Phase 85):
+**Quality verifiers** (4 scripts — Phase 17 + Phase 23 + Phase 24):
 - `verify_docs.py --content` — document presence and fill quality
 - `verify_logs.py` — log documentation coverage
-- `verify_tests.py` — test coverage and report currency
-- `verify_acceptance.py` — functional acceptance gate (FR-XXX → test plan → test report)
+- `verify_tests.py` — checks `test-report.md` has non-placeholder numbers and a
+  Pass/Fail line filled in. Does **not** run anything — a fabricated result would
+  satisfy it. See `test_command` below for actual execution.
 - `verify_content.py` — spec content quality
+
+`verify_acceptance.py` (Phase 85 — FR-XXX → test plan → test report traceability) is
+**not** in this list — it runs at sprint end only (`workflow-registry.yaml`'s `sprint-end`
+entry, see `templates/sprint-sync.md`), not on every commit. Checking full requirement
+traceability mid-sprint, before all FRs have test-report entries, would block normal work.
+
+**Test suite execution** (conditional — only when `test_command` is set in
+`.project-starter.yml`): actually runs the configured command (e.g. `pytest -q`) and blocks
+the commit on a non-zero exit code — real execution, unlike `verify_tests.py` above. Skipped
+entirely when unset (default — matches prior behavior).
 
 **Process checks** (5 rules — Phase 21):
 - `verify_framework.py` — framework file integrity
@@ -834,6 +845,13 @@ Run at the start of a retrofit (Step 1b) to inventory all modules before documen
 Run again after Step 3 to confirm full coverage.
 Run with `--update docs/codebase-map.md` to write the tree and coverage table into codebase-map.md.
 
+**Zero-coverage warning:** a `0/0 (100%)` coverage line does not always mean "nothing to
+document" — it can also mean the src layout defeated folder-based classification entirely (flat
+files with no subfolders, `--depth` too shallow, or every folder matching a Shared/Infrastructure
+name). When real files exist under `--src` but 0 non-shared folders were found, both text and
+`--format json` output include an explicit warning (`zero_coverage: true` in JSON) instead of
+silently reporting a clean 100%.
+
 ### verify_module_docs.py
 **Applies to: All project types**
 **Internal** — called automatically by `verify_content.py`. Direct use required only for `--src` coverage checks.
@@ -866,7 +884,10 @@ python3 docs/script/validators/verify_module_docs.py --project-type TYPE --json
 ```
 
 Output: per-module table with flow file status and quality verdict; Coverage and Quality summary lines.
-`--strict` exits 1 if any module is missing a flow file or has a quality FAIL.
+`--strict` exits 1 if any module is missing a flow file or has a quality FAIL. In `--src` mode,
+it also exits 1 if `scan_codebase.py` found 0 modules while real code files exist under `--src` —
+a src layout it couldn't classify is a failure to audit, not a pass (`zero_coverage: true` in
+`--json` output; see `scan_codebase.py`'s zero-coverage warning above for likely causes).
 
 Update when: a new module type is added, or required sections for an existing module type change.
 
@@ -889,7 +910,11 @@ python3 docs/script/validators/verify_spec_code.py \
 ```
 
 Output: per-item mismatch report (missing_in_code, extra_in_code, field_mismatches).
-`--strict` exits 1 if any mismatch is found. Exits 0 (with warning) if `--adapter`/`--spec`/`--src`
+`--strict` exits 1 if any mismatch is found. It also exits 1 if 0 code items were extracted while
+real files exist under `--src` — the adapter/`--framework` likely doesn't match this code's actual
+language, or no detector is registered for it yet (`[WARN] 0 code items extracted...`,
+`zero_coverage: true` in `--json`); an empty spec would otherwise let this silently print
+`[OK] No mismatches`. Exits 0 (with warning) if `--adapter`/`--spec`/`--src`
 are not provided — safe to include in the pre-commit hook and workflow registry for all projects.
 
 Update when: a new adapter is added, or the comparison logic changes.

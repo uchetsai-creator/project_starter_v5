@@ -79,7 +79,7 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _registry import VALID_TYPES
-from _verify_common import parse_types
+from _verify_common import parse_types, _src_has_real_files
 
 # adapter_name → (module_filename, class_name, framework_hint | None)
 # Phase 52.5: 3-tuple. framework_hint is passed to the capability adapter's
@@ -372,18 +372,39 @@ def _has_mismatches(report: dict) -> bool:
     )
 
 
+# _src_has_real_files() now lives in _verify_common.py — shared with scan_codebase.py,
+# which has the same "did we actually find anything to check" problem for module
+# folder classification.
+
+_ZERO_COVERAGE_NOTE = (
+    "  [WARN]  0 code items extracted from --src, but real file(s) exist there — the\n"
+    "          adapter/--framework likely doesn't match this code's actual language or\n"
+    "          framework (or no detector is registered for it yet). This is NOT a\n"
+    "          confirmed pass — nothing on the code side was actually compared, so a\n"
+    "          spec that also has 0 items would otherwise silently print [OK] here.\n"
+    "          Run --list-adapters to see what's registered; see\n"
+    "          docs/contributing-adapters.md to add a detector for this language.\n"
+)
+
+
 # ---------------------------------------------------------------------------
 # Output
 # ---------------------------------------------------------------------------
 
-def print_report(report: dict, spec: str, src: str, adapter: str) -> None:
+def print_report(report: dict, spec: str, src: str, adapter: str, zero_coverage: bool = False) -> None:
     print(f"\nSpec <-> Code Validator  adapter={adapter}")
     print(f"  spec : {spec}")
     print(f"  src  : {src}\n")
 
     if not _has_mismatches(report):
-        print("  [OK]  No mismatches — spec and code are in sync.\n")
+        if zero_coverage:
+            print(_ZERO_COVERAGE_NOTE)
+        else:
+            print("  [OK]  No mismatches — spec and code are in sync.\n")
         return
+
+    if zero_coverage:
+        print(_ZERO_COVERAGE_NOTE)
 
     if report['missing_in_code']:
         print("  [FAIL]  Declared in spec, missing in code:")
@@ -546,6 +567,11 @@ def main() -> None:
     code_items = adapter_obj.extract_code(args.src)
     report = compare(spec_items, code_items)
 
+    # See _src_has_real_files() docstring: empty code_items means either "no code
+    # written yet" (fine) or "code exists but no detector matched it" (not fine —
+    # the comparison below is meaningless, not a real pass).
+    zero_coverage = not code_items and _src_has_real_files(args.src)
+
     semantic_verdicts: list[dict] = []
     if args.semantic and hasattr(adapter_obj, 'semantic_compare'):
         semantic_verdicts = adapter_obj.semantic_compare(report)
@@ -557,10 +583,11 @@ def main() -> None:
             'spec': args.spec,
             'src': args.src,
             **report,
+            'zero_coverage': zero_coverage,
             'semantic_verdicts': semantic_verdicts,
         }, indent=2))
     else:
-        print_report(report, args.spec, args.src, args.adapter)
+        print_report(report, args.spec, args.src, args.adapter, zero_coverage)
         if semantic_verdicts:
             print_semantic_report(semantic_verdicts)
 
@@ -569,7 +596,7 @@ def main() -> None:
             "warning: --strict is ignored when --dry-run is active; exit code will always be 0",
             file=sys.stderr,
         )
-    if args.strict and not args.dry_run and _has_mismatches(report):
+    if args.strict and not args.dry_run and (_has_mismatches(report) or zero_coverage):
         sys.exit(1)
 
 
