@@ -76,6 +76,7 @@ import os
 import re
 import sys
 from pathlib import Path
+from typing import Callable
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _registry import VALID_TYPES
@@ -225,44 +226,75 @@ def _log_point_category(state: str) -> str:
     return state.split(':', 1)[0].strip().lower()
 
 
+# Registry pattern (same shape as ADAPTER_REGISTRY above): one entry per
+# NormalizedForm type, each supplying its own key/label/fields logic. Adding a
+# new NormalizedForm subclass means adding one entry here — not editing three
+# separate isinstance/hasattr chains, which used to drift out of sync with
+# each other as new project types were added.
+_FORM_HANDLERS: dict[type, dict[str, Callable]] = {
+    NormalizedStageContract: {
+        'key':    lambda i: i.stage_name.lower(),
+        'label':  lambda i: i.stage_name,
+        'fields': lambda i: list(i.input_fields) + list(i.output_fields),
+    },
+    NormalizedEndpoint: {
+        'key':    lambda i: f"{i.method.upper()}:{_normalize_path(i.path)}",
+        'label':  lambda i: f"{i.method} {i.path}",
+        'fields': lambda i: list(i.request_fields) + list(i.response_fields),
+    },
+    NormalizedCommand: {
+        'key':    lambda i: i.name.lower(),
+        'label':  lambda i: i.name,
+        'fields': lambda i: list(i.flags),
+    },
+    NormalizedFunction: {
+        'key':    lambda i: i.name.lower(),
+        'label':  lambda i: i.name,
+        'fields': lambda i: list(i.params),
+    },
+    NormalizedTool: {
+        'key':    lambda i: i.name.lower(),
+        'label':  lambda i: i.name,
+        'fields': lambda i: list(i.parameters),
+    },
+    NormalizedResource: {
+        'key':    lambda i: i.name.lower(),
+        'label':  lambda i: i.name,
+        'fields': lambda i: [NormalizedField(name=k, type='') for k in i.config_keys],
+    },
+    NormalizedScreen: {
+        'key':    lambda i: i.name.lower(),
+        'label':  lambda i: i.name,
+        'fields': lambda i: list(i.props),
+    },
+    NormalizedLogPoint: {
+        'key':    lambda i: f"{i.function}:{_log_point_category(i.state)}".lower(),
+        'label':  lambda i: f"{i.function} — {i.state}",
+        # level is compared separately below, like NormalizedFunction.return_type
+        'fields': lambda i: [],
+    },
+}
+
+
 def _item_key(item) -> str:
-    if hasattr(item, 'stage_name'):
-        return item.stage_name.lower()
-    if hasattr(item, 'method') and hasattr(item, 'path'):
-        return f"{item.method.upper()}:{_normalize_path(item.path)}"
-    if isinstance(item, NormalizedLogPoint):
-        return f"{item.function}:{_log_point_category(item.state)}".lower()
+    handler = _FORM_HANDLERS.get(type(item))
+    if handler:
+        return handler['key'](item)
     return getattr(item, 'name', repr(item)).lower()
 
 
 def _item_label(item) -> str:
-    if hasattr(item, 'stage_name'):
-        return item.stage_name
-    if hasattr(item, 'method') and hasattr(item, 'path'):
-        return f"{item.method} {item.path}"
-    if isinstance(item, NormalizedLogPoint):
-        return f"{item.function} — {item.state}"
+    handler = _FORM_HANDLERS.get(type(item))
+    if handler:
+        return handler['label'](item)
     return getattr(item, 'name', repr(item))
 
 
 def _item_fields(item) -> list:
     """Return the list of NormalizedField objects for any NormalizedForm."""
-    if isinstance(item, NormalizedStageContract):
-        return list(item.input_fields) + list(item.output_fields)
-    if isinstance(item, NormalizedEndpoint):
-        return list(item.request_fields) + list(item.response_fields)
-    if isinstance(item, NormalizedCommand):
-        return list(item.flags)
-    if isinstance(item, NormalizedFunction):
-        return list(item.params)
-    if isinstance(item, NormalizedTool):
-        return list(item.parameters)
-    if isinstance(item, NormalizedResource):
-        return [NormalizedField(name=k, type='') for k in item.config_keys]
-    if isinstance(item, NormalizedScreen):
-        return list(item.props)
-    if isinstance(item, NormalizedLogPoint):
-        return []  # level is compared separately below, like NormalizedFunction.return_type
+    handler = _FORM_HANDLERS.get(type(item))
+    if handler:
+        return handler['fields'](item)
     return []
 
 

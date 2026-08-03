@@ -44,6 +44,9 @@ business meaning — that part is still yours to answer in items 1-4 below.
 
 1. **Read the current state** — "這個功能/模組目前怎麼運作？資料怎麼流進來、處理、流出去？"
 2. **Locate the change** — "這個改動該放在哪個檔案/層？為什麼是這裡？有沒有現成 pattern 可以照抄？"
+   如果找到現成 pattern，講出它的名字（Adapter / Strategy / Factory / Template Method /
+   Registry...），不只是說「跟著抄」——這個名字才是以後看到類似形狀時能認出來的線索。
+   叫不出名字也沒關係，但要講清楚「抄的是什麼結構」，而不是抄哪一行程式碼。
 3. **Assess blast radius** — "這個改動會不會影響到其他呼叫這裡的地方？有沒有隱藏的耦合？"
 4. **Match conventions** — "這裡的命名/錯誤處理/測試慣例是什麼？我這樣寫有沒有跟現有風格衝突？"
 
@@ -66,6 +69,11 @@ Trigger: the task is a new feature, or there is no existing code for it yet.
 
 1. **Clarify the requirement** — "有沒有隱含的邊界情況？什麼情況算做完（驗收標準）？"
 2. **Discuss the design before writing code** (use Plan Mode) — "打算怎麼實作？為什麼選這個做法，還有哪些替代方案、各自的取捨？"
+   接著問一句具體的：「這個問題的形狀符不符合某個已知 design pattern（Strategy / Factory /
+   Adapter / Observer / Template Method / Registry...）？」如果符合，講出名字並說明為什麼適用；
+   如果不符合、或符合但現在不值得上（例如只有一個實作、沒有第二個計畫），也講清楚為什麼不用
+   ——跟 `code-quality-check.md` 的 Complexity 檢查標準一樣：能不能點出「真的有第二個呼叫者/
+   需求」，是判斷值不值得上這個 pattern 的關鍵，不是「聽起來比較專業」。
 3. **Follow the implementation** — "這裡為什麼用這個寫法/套件，而不是自己刻？"
 
 ---
@@ -81,7 +89,9 @@ Trigger: the task is a new feature, or there is no existing code for it yet.
 3. "這次改的關鍵路徑，有沒有照 `docs/specs/logging-spec.md` 定義的 log point 加上 log？"
 4. **Teach-back** — 換你用自己的話跟我解釋這段程式碼在幹嘛、為什麼這樣寫，不是我講給你聽。
    講不出來、或講錯了，那才是真正該深入的地方——這比我單方面問「懂了嗎」準確很多。不用逐行講，
-   挑這次改動裡最關鍵的那一小段就好。
+   挑這次改動裡最關鍵的那一小段就好。順便講一句：這段有沒有用到（或者本來可以用、但沒用）某個
+   design pattern？講不出名字就算了，不用為了湊答案硬套一個——這題純粹是為了累積辨認 pattern
+   的直覺，跟其他 teach-back 一樣，答不出來才是該深入的訊號，不是每次都要有名詞可以講。
    跟 Checkpoint 0 一樣可以跳過：如果這次的 task 真的夠瑣碎（改錯字、調設定值這類），而且你自己
    判斷已經完全懂，可以跳過或簡化 teach-back，不用每個 task 都硬做——但拿不準的時候，做比不做安全。
 
