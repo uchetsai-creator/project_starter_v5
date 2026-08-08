@@ -15,10 +15,12 @@ import pytest
 
 from pathlib import Path
 
+from tests.conftest import find_posix_bash
+
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 SETUP_SH = REPO_ROOT / "setup.sh"
 
-_BASH = shutil.which("bash")
+_BASH = find_posix_bash()
 pytestmark = pytest.mark.skipif(_BASH is None, reason="bash not found on PATH")
 
 _REQUIRED_ROOT_FILES = [
@@ -46,7 +48,7 @@ _SKILL_DIRS = [
 
 def _run_init(dest: Path, project_type: str = "web-app") -> subprocess.CompletedProcess:
     return subprocess.run(
-        ["bash", str(SETUP_SH), "--init", project_type, str(dest)],
+        [_BASH, str(SETUP_SH), "--init", project_type, str(dest)],
         cwd=str(REPO_ROOT),
         capture_output=True,
         text=True,

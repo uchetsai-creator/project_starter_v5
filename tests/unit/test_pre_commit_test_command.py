@@ -10,17 +10,18 @@ command and blocks the commit on a real failure.
 writing this file) — these run the real bash script via subprocess against a minimal
 isolated git repo, skipped if bash isn't on PATH.
 """
-import shutil
 import subprocess
 
 import pytest
 
 from pathlib import Path
 
+from tests.conftest import find_posix_bash
+
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 HOOK = REPO_ROOT / ".githooks" / "pre-commit"
 
-_BASH = shutil.which("bash")
+_BASH = find_posix_bash()
 pytestmark = pytest.mark.skipif(_BASH is None, reason="bash not found on PATH")
 
 

@@ -1,3 +1,4 @@
+import os
 import sys
 import shutil
 from pathlib import Path
@@ -5,6 +6,32 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+
+
+def find_posix_bash() -> str | None:
+    """Locate a real POSIX bash (Git Bash / MSYS2), not
+    C:\\Windows\\System32\\bash.exe — the WSL launcher stub GitHub's windows-latest
+    runner PATH resolves "bash" to first. When WSL has no distro installed, that stub
+    ignores every argument, prints "Use 'wsl.exe --install <Distro>' to install." to
+    stdout, and exits 1 — for ANY command, not just a missing one. A caller checking
+    only the exit code sees an ordinary-looking non-zero failure with no obvious
+    connection to WSL; confirmed by reproducing this exact failure in CI (see
+    CHANGELOG.md) and decoding the UTF-16 byte fragment left in the pytest assertion
+    diff back to that message."""
+    if os.name != "nt":
+        return shutil.which("bash")
+    for env_var in ("ProgramFiles", "ProgramFiles(x86)"):
+        base = os.environ.get(env_var)
+        if base:
+            candidate = Path(base) / "Git" / "bin" / "bash.exe"
+            if candidate.exists():
+                return str(candidate)
+    # Fall back to scanning PATH for any bash.exe that isn't the System32 stub.
+    for directory in os.environ.get("PATH", "").split(os.pathsep):
+        candidate = Path(directory) / "bash.exe"
+        if candidate.exists() and "system32" not in str(candidate).lower():
+            return str(candidate)
+    return shutil.which("bash")
 
 
 def pytest_addoption(parser):
