@@ -124,6 +124,7 @@ Possible areas:
 - Layering
 - Package First
 - Complexity
+- Missing Pattern
 - Naming
 - Schema
 - Security
@@ -303,6 +304,43 @@ dispatch layer that silently drops an unhandled case).
 Recommendation: simplify to match the actual requirement, or — if genuine near-term
 extensibility is planned — point to where that's documented; if it isn't documented
 anywhere, that's itself part of the finding.
+
+---
+
+## Missing Pattern
+
+The mirror image of Complexity above: instead of an abstraction with no real second case,
+this is the same type-dispatch logic (an `if`/`elif` chain or `isinstance`/type-check chain
+over the same fixed set of types) hand-duplicated across two or more functions or files. Each
+copy has to be kept in sync by hand whenever a type is added, which is exactly the kind of
+drift risk a Registry, Strategy, or plain polymorphism (a method on each type instead of a
+chain checking every type from outside) is for.
+
+| Project type | What to look for |
+|---|---|
+| **Web App / Microservices** | The same business-type switch (order status, payment method, notification channel...) reimplemented in more than one function/file instead of one lookup table or polymorphic method |
+| **CLI Tool** | Subcommand-name → handler mapping duplicated between the parser and the dispatcher instead of one command registry |
+| **Library / SDK** | The same input-type branching (`isinstance`/type check) repeated across multiple public functions instead of dispatching once at the boundary |
+| **Data Pipeline / ML Pipeline** | Per-source-format or per-source-system branching (CSV vs. JSON vs. API vs. DB) duplicated across multiple stages instead of one pluggable reader/writer interface |
+| **AI / LLM App** | Per-provider branching (OpenAI vs. Anthropic vs. local model, or per-tool-name dispatch) duplicated across call sites instead of one adapter interface |
+| **IaC / DevOps** | Per-cloud-provider or per-environment conditional blocks duplicated across multiple modules instead of parameterized/adapter modules |
+| **Mobile App** | Per-platform (iOS/Android) branching duplicated inside shared business logic instead of one platform-abstraction layer |
+
+Check:
+- Is the exact same set of types/cases branched on in two or more places?
+- When a new type/case was added, did more than one of those places have to be edited to keep
+  it working? (Check `changelog.md` / `git log` for the type that was added most recently — did
+  every duplicate site actually get updated, or did one get missed?)
+- Would collapsing the duplicates into one registry/dispatch table, or moving the per-type
+  logic onto the type itself (polymorphism), remove the duplication with no loss of behavior?
+
+Severity: **Medium** — usually a maintainability/drift-risk cost, not a correctness bug yet.
+Use **High** only if a duplicate site was evidenced to have actually drifted (missing a case
+the other site(s) already handle — an outdated `elif` chain that silently falls through).
+
+Recommendation: name the specific pattern that fits (Strategy, Factory, Registry, Template
+Method, or plain polymorphism) and point to where this codebase already does it well, if it
+does — reuse that shape rather than inventing a new one.
 
 ---
 
