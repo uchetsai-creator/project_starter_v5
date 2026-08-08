@@ -23,6 +23,10 @@ missing documentation automatically — instead of relying on anyone remembering
 
 ---
 
+**Prerequisites:** Python 3.9+ and [PyYAML](https://pypi.org/project/PyYAML/)
+(`pip install pyyaml`) — `orchestrator.py`, `build-context.py`, and `verify_registry.py` all
+read `.yml`/`.yaml` config through it. `detect_type.py` and `setup.sh` need no extra packages.
+
 ## Quick Start
 
 **Not sure which type fits?** Run the detector first:
@@ -961,7 +965,7 @@ python3 templates/script/framework/verify_framework.py --json     # machine-read
 ## Running the test suite
 
 ```bash
-pip install "pytest>=7"
+pip install "pytest>=7" pyyaml
 pytest tests/
 ```
 

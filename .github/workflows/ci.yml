@@ -33,8 +33,12 @@ jobs:
       - name: Install dependencies
         # Version floor mirrors pyproject.toml's [project.optional-dependencies] dev entry —
         # can't install directly from it (`pip install .[dev]`) since this repo isn't a
-        # distributable package; see the comment there for why.
-        run: pip install "pytest>=7"
+        # distributable package; see the comment there for why. PyYAML is a hard runtime
+        # dependency of _workflow_utils.py / verify_registry.py (never declared anywhere
+        # before this) — without it, importing verify_registry.py as a module triggers its
+        # module-level sys.exit(1), which pytest's collector turns into an INTERNALERROR
+        # that aborts the entire run, not just that one file.
+        run: pip install "pytest>=7" pyyaml
 
       - name: Run test suite
         run: python -m pytest tests/ -q
