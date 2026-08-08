@@ -157,6 +157,13 @@ def write_gaps_log(gaps: list[dict], logs_dir: Path, dry_run: bool) -> Path:
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main() -> int:
+    # Force UTF-8 stdout/stderr — without this, a non-ASCII character (e.g. "→")
+    # crashes print() with UnicodeEncodeError on a non-UTF-8-default Windows console
+    # (confirmed in CI on windows-latest; see orchestrator.py's main() and CHANGELOG.md).
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
+
     parser = argparse.ArgumentParser(
         description="Classify spec quality gaps and open framework fix PRs (max 2 rounds)."
     )

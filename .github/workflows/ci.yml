@@ -23,6 +23,12 @@ jobs:
         os: [ubuntu-latest, windows-latest]
         python-version: ["3.11", "3.12"]
     runs-on: ${{ matrix.os }}
+    env:
+      # Belt-and-suspenders alongside each script's own sys.stdout.reconfigure(): forces
+      # every Python process this job runs into UTF-8 mode, regardless of the runner's
+      # default console codepage (confirmed cp1252 on windows-latest, which can't encode
+      # "→" — see CHANGELOG.md for the two real crashes this caused before both fixes).
+      PYTHONUTF8: "1"
     steps:
       - uses: actions/checkout@v4
 

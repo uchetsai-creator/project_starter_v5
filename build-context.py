@@ -136,6 +136,13 @@ def _render(ctx: dict) -> str:
 
 
 def main() -> None:
+    # Force UTF-8 stdout/stderr — without this, a non-ASCII character (e.g. "→")
+    # crashes print() with UnicodeEncodeError on a non-UTF-8-default Windows console
+    # (confirmed in CI on windows-latest; see orchestrator.py's main() and CHANGELOG.md).
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
+
     project_root = Path(__file__).resolve().parent
     valid_task_types = _load_valid_task_types(project_root)
 

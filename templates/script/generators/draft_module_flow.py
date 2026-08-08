@@ -386,6 +386,13 @@ def render_draft(
 # ---------------------------------------------------------------------------
 
 def main() -> None:
+    # Force UTF-8 stdout/stderr — without this, a non-ASCII character (e.g. "→")
+    # crashes print() with UnicodeEncodeError on a non-UTF-8-default Windows console
+    # (confirmed in CI on windows-latest; see orchestrator.py's main() and CHANGELOG.md).
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
+
     parser = argparse.ArgumentParser(
         description=(
             "Draft a module-data-flow.md from static analysis of a module's source "
