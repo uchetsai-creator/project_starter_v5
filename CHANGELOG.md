@@ -12,7 +12,7 @@ All notable changes to this framework are documented here. Format loosely follow
 
 ---
 
-## [0.2.0] — 2026-08-09
+## [0.2.0] — Unreleased
 
 ### Added
 - Claude Skills (`SKILL.md`) for five procedural workflows previously only reachable by
@@ -74,6 +74,13 @@ All notable changes to this framework are documented here. Format loosely follow
   --no-verify`, which skips the hook silently with no trace in the commit. The env var always
   prints a loud `[SKIP]` line instead, so a skipped commit is never mistaken for a verified
   one. Covered by `tests/unit/test_pre_commit_skip_verify.py`.
+- Restored the Codex agent adapter (`adapters/codex/`, `orchestrator.py --adapter codex`,
+  `.codex/setup.md` + `.codex/task-instructions.md` output) — removed in commit `4745c10`
+  ("real usage has been Claude Code only") on the assumption that nobody else needed it; that
+  assumption no longer holds. Cursor stays removed — no current need for it. Restored
+  `document-purposes/common.md` entries and `test_agent_adapter_templates.py` coverage for the
+  two Codex template files; `AGENTS.md`, README's Agent Adapters section, and the framework
+  repo file-tree diagram updated to reflect two shipped adapters instead of one.
 
 ### Removed
 - Codex and Cursor agent adapters (`adapters/codex/`, `adapters/cursor/`, the corresponding

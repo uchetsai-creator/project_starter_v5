@@ -13,6 +13,8 @@ spec.loader.exec_module(orchestrator)
 
 _SOURCE_FILES = {
     ("claude", "start-task.md"): REPO_ROOT / "adapters/claude/start-task.md",
+    ("codex", "setup.md"): REPO_ROOT / "adapters/codex/setup.md",
+    ("codex", "task-instructions.md"): REPO_ROOT / "adapters/codex/task-instructions.md",
 }
 
 

@@ -139,18 +139,21 @@ project_starter/                     ← this repo (template only)
 │   └── telemetry/
 │       ├── task-run.json           ← append-only: one entry per Claude Code session (stop-hook.sh)
 │       └── .orchestrator_runs.json ← orchestrator run counter per task (orchestrator.py)
-├── adapters/                        ← agent adapter layer (translate WORKFLOW.md to Claude Code's native format;
-│   │                                   Claude Code only today — see Agent Adapters below)
-│   └── claude/
-│       ├── start-task.md           ← slash command template (copy to .claude/commands/ in your project)
-│       ├── stop-hook.sh            ← writes session boundary to logs/telemetry/task-run.json on Claude Code session end
-│       ├── telemetry_writer.py     ← telemetry row writer invoked by stop-hook.sh
-│       └── skills/                 ← Claude Skills, static (copy to .claude/skills/ in your project — see Agent Adapters → Per-tool setup)
-│           ├── retrofit-existing-project/SKILL.md
-│           ├── code-quality-check/SKILL.md
-│           ├── module-completion-check/SKILL.md
-│           ├── sprint-doc-sync/SKILL.md
-│           └── learning-checkpoint/SKILL.md
+├── adapters/                        ← agent adapter layer (translate WORKFLOW.md to each tool's native format;
+│   │                                   Claude Code + Codex today — see Agent Adapters below)
+│   ├── claude/
+│   │   ├── start-task.md           ← slash command template (copy to .claude/commands/ in your project)
+│   │   ├── stop-hook.sh            ← writes session boundary to logs/telemetry/task-run.json on Claude Code session end
+│   │   ├── telemetry_writer.py     ← telemetry row writer invoked by stop-hook.sh
+│   │   └── skills/                 ← Claude Skills, static (copy to .claude/skills/ in your project — see Agent Adapters → Per-tool setup)
+│   │       ├── retrofit-existing-project/SKILL.md
+│   │       ├── code-quality-check/SKILL.md
+│   │       ├── module-completion-check/SKILL.md
+│   │       ├── sprint-doc-sync/SKILL.md
+│   │       └── learning-checkpoint/SKILL.md
+│   └── codex/
+│       ├── setup.md                ← one-time setup instructions (written to .codex/setup.md by orchestrator.py --adapter codex)
+│       └── task-instructions.md    ← current workflow snapshot template (written to .codex/task-instructions.md)
 ├── examples/                        ← minimal complete reference projects (one per type; golden regression tests run against these)
 │   ├── web-app/
 │   ├── cli-tool/
@@ -407,10 +410,11 @@ new_project/
 > Without it, scripts exit with: `FileNotFoundError: document-registry.yaml not found.`
 
 > **Note:** `adapters/` stays in the framework repo — it is **not** copied to user projects.
-> The adapter template is embedded directly in `orchestrator.py` (see `_ADAPTER_TEMPLATES`),
-> so the adapter output (`.claude/commands/start-task.md`) can be generated into your project by
-> running `orchestrator.py --adapter claude` from nothing more than the files listed above — no
-> `adapters/` directory needs to exist in your project.
+> Every adapter's template is embedded directly in `orchestrator.py` (see `_ADAPTER_TEMPLATES`),
+> so adapter output (`.claude/commands/start-task.md` or `.codex/setup.md` +
+> `.codex/task-instructions.md`) can be generated into your project by running
+> `orchestrator.py --adapter claude` or `orchestrator.py --adapter codex` from nothing more than
+> the files listed above — no `adapters/` directory needs to exist in your project.
 
 The `docs/specs/`, `docs/architecture/`, and `docs/modules/` contents differ per project type:
 
@@ -666,7 +670,7 @@ when a new task type is introduced; update an existing entry when the validator 
 The orchestrator produces a tool-agnostic `.ai/WORKFLOW.md` that any AI tool (or a human) can
 read directly. Adapters are an optional extra layer on top of that: they translate the same
 output into a specific tool's native instruction format so developers do not need to wire up
-the orchestrator manually. Claude Code is the only adapter shipped today — `AGENTS.md` and
+the orchestrator manually. Claude Code and Codex ship today — `AGENTS.md` and
 `.ai/WORKFLOW.md` remain plain Markdown any tool can follow without one.
 
 ```
@@ -675,6 +679,13 @@ orchestrator.py --adapter claude
         ├── writes  .ai/WORKFLOW.md          (always)
         │
         └── claude  → .claude/commands/start-task.md   (slash command with WORKFLOW.md injected)
+
+orchestrator.py --adapter codex
+        │
+        ├── writes  .ai/WORKFLOW.md          (always)
+        │
+        └── codex   → .codex/setup.md               (one-time setup instructions)
+                     .codex/task-instructions.md   (current workflow snapshot injected)
 ```
 
 **Constraint:** adapters contain only format translation. Document selection logic stays in
@@ -686,6 +697,9 @@ logic is a bug.
 ```bash
 # Generate workflow + render Claude Code slash command:
 python3 orchestrator.py --adapter claude
+
+# Generate workflow + render Codex setup/task-instructions files:
+python3 orchestrator.py --adapter codex
 
 # Preview without writing any files:
 python3 orchestrator.py --adapter claude --dry-run
@@ -734,14 +748,24 @@ python3 orchestrator.py --adapter claude --dry-run
    `guidance/learning-checkpoints/common.md`, `docs/contributing-adapters.md`), the same pattern
    `test_agent_adapter_templates.py` already uses for the slash-command templates above.
 
-**Other AI tools:** no dedicated adapter ships today (usage of this framework has been
-Claude Code only in practice) — `AGENTS.md` and `.ai/WORKFLOW.md` are plain Markdown, so any
-tool can still be pointed at them manually: run `python3 orchestrator.py` (no `--adapter` flag)
-and have the tool read `.ai/AI_CONTEXT.md` + `.ai/WORKFLOW.md` at the start of a session. A
+**Codex**
+
+1. Run `python3 orchestrator.py --adapter codex` — this writes `.codex/setup.md` (one-time
+   setup instructions) and `.codex/task-instructions.md` (current workflow snapshot).
+2. Point Codex at `.codex/setup.md` at the start of a session; it explains how to read
+   `.codex/task-instructions.md` for the current steps and how to regenerate both files.
+3. Re-run `python3 orchestrator.py --adapter codex` whenever the task or workflow changes —
+   `.codex/task-instructions.md` is regenerated each time, the same way
+   `.claude/commands/start-task.md` is for Claude Code.
+
+**Other AI tools:** no dedicated adapter ships today (Claude Code and Codex are the only tools
+this framework has real usage with) — `AGENTS.md` and `.ai/WORKFLOW.md` are plain Markdown, so
+any tool can still be pointed at them manually: run `python3 orchestrator.py` (no `--adapter`
+flag) and have the tool read `.ai/AI_CONTEXT.md` + `.ai/WORKFLOW.md` at the start of a session. A
 dedicated adapter for another tool, if one is genuinely needed later, would follow the same
-shape as `adapters/claude/` — a template embedded in `orchestrator.py`'s `_ADAPTER_TEMPLATES`,
-kept in sync by a `test_agent_adapter_templates.py`-style contract test. (Note: this is a
-different "adapter" concept from the spec↔code capability adapters described in
+shape as `adapters/claude/` / `adapters/codex/` — a template embedded in `orchestrator.py`'s
+`_ADAPTER_TEMPLATES`, kept in sync by a `test_agent_adapter_templates.py`-style contract test.
+(Note: this is a different "adapter" concept from the spec↔code capability adapters described in
 `docs/contributing-adapters.md` below — that doc is about `verify_spec_code.py` framework
 detectors, unrelated to agent-tool adapters.)
 
