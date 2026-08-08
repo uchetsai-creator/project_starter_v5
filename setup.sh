@@ -69,7 +69,8 @@ if [[ "${1:-}" == "--init" ]]; then
 
     # Copy framework files
     for f in AGENTS.md orchestrator.py build-context.py _workflow_utils.py \
-              workflow-registry.yaml document-registry.yaml detect_type.py; do
+              workflow-registry.yaml document-registry.yaml detect_type.py \
+              debug-instrumentation-rules.md code-quality-check.md; do
         cp "${SCRIPT_DIR}/${f}" "${DEST}/"
         echo "[OK] copied $f"
     done
@@ -186,7 +187,7 @@ echo "  bash setup.sh --init <type> /path/to/your-project"
 echo "  Valid types: $VALID_TYPES"
 echo ""
 echo "Next steps (framework development):"
-echo "  pip install pytest"
+echo "  pip install \"pytest>=7\""
 echo "  pytest tests/"
 echo ""
 echo "To generate a PDF (after initializing a project):"
