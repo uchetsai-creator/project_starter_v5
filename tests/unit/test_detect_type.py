@@ -1,4 +1,5 @@
 """Unit tests for detect_type.py."""
+import os
 import sys
 import json
 import subprocess
@@ -15,14 +16,21 @@ from detect_type import (
     _score_requirements,
     _merge,
     _recommend,
+    _suggest_adapter,
+    _suggest_spec_code,
     VALID_TYPES,
 )
 
 
 def _run(*args: str) -> subprocess.CompletedProcess:
+    # PYTHONUTF8 forces detect_type.py's own stdout/stderr encoding to UTF-8, matching the
+    # encoding="utf-8" this decodes with — without it, a non-ASCII character (e.g. the em
+    # dash in the .project-starter.yml template) encodes using the OS locale codepage
+    # (e.g. cp950 on Traditional Chinese Windows), which this decode would then reject.
     return subprocess.run(
         [sys.executable, str(DETECT_SCRIPT), *args],
-        capture_output=True, text=True,
+        capture_output=True, text=True, encoding="utf-8",
+        env={**os.environ, "PYTHONUTF8": "1"},
     )
 
 
@@ -238,7 +246,7 @@ def test_cli_apply_writes_yml(tmp_path):
     assert result.returncode == 0
     yml = tmp_path / ".project-starter.yml"
     assert yml.exists()
-    assert "iac" in yml.read_text()
+    assert "iac" in yml.read_text(encoding="utf-8")
 
 
 def test_cli_apply_updates_existing_yml(tmp_path):
@@ -247,8 +255,8 @@ def test_cli_apply_updates_existing_yml(tmp_path):
     (tmp_path / "main.tf").touch()
     result = _run(str(tmp_path), "--apply")
     assert result.returncode == 0
-    assert "iac" in yml.read_text()
-    assert "[your-project-type]" not in yml.read_text()
+    assert "iac" in yml.read_text(encoding="utf-8")
+    assert "[your-project-type]" not in yml.read_text(encoding="utf-8")
 
 
 def test_cli_invalid_path_exits_nonzero():
@@ -260,3 +268,84 @@ def test_cli_no_args_does_not_crash():
     # Running with no args defaults to current dir — should not crash
     result = _run("--no-scan")
     assert result.returncode == 0
+
+
+# ---------------------------------------------------------------------------
+# spec_code_* suggestion
+# ---------------------------------------------------------------------------
+
+def test_suggest_adapter_matches_python_dep(tmp_path):
+    (tmp_path / "requirements.txt").write_text("fastapi\nuvicorn\n", encoding="utf-8")
+    assert _suggest_adapter(tmp_path, "web-app") == "fastapi"
+
+
+def test_suggest_adapter_matches_file_glob(tmp_path):
+    (tmp_path / "main.tf").touch()
+    assert _suggest_adapter(tmp_path, "iac") == "terraform"
+
+
+def test_suggest_adapter_ignores_wrong_project_type(tmp_path):
+    (tmp_path / "requirements.txt").write_text("fastapi\n", encoding="utf-8")
+    # fastapi is a web-app signal — must not fire for an unrelated type
+    assert _suggest_adapter(tmp_path, "cli-tool") is None
+
+
+def test_suggest_adapter_no_signal_returns_none(tmp_path):
+    assert _suggest_adapter(tmp_path, "web-app") is None
+
+
+def test_suggest_spec_code_returns_full_triple(tmp_path):
+    (tmp_path / "requirements.txt").write_text("click\n", encoding="utf-8")
+    (tmp_path / "src").mkdir()
+    suggestion = _suggest_spec_code(tmp_path, "cli-tool")
+    assert suggestion == {
+        "adapter": "click",
+        "spec": "docs/specs/cli-contract.md",
+        "src": "src/",
+    }
+
+
+def test_suggest_spec_code_skips_hybrid_recommendation(tmp_path):
+    (tmp_path / "requirements.txt").write_text("fastapi\nlangchain\n", encoding="utf-8")
+    assert _suggest_spec_code(tmp_path, "web-app+llm-app") is None
+
+
+def test_cli_json_includes_spec_code_suggestion(tmp_path):
+    (tmp_path / "main.tf").touch()
+    result = _run(str(tmp_path), "--json")
+    assert result.returncode == 0
+    data = json.loads(result.stdout)
+    assert data["spec_code_suggestion"] == {
+        "adapter": "terraform",
+        "spec": "docs/architecture/topology.md",
+        "src": "src/",
+    }
+
+
+def test_cli_apply_prefills_spec_code_on_fresh_yml(tmp_path):
+    (tmp_path / "main.tf").touch()
+    result = _run(str(tmp_path), "--apply")
+    assert result.returncode == 0
+    text = (tmp_path / ".project-starter.yml").read_text(encoding="utf-8")
+    assert "spec_code_adapter: terraform" in text
+    assert "spec_code_spec: docs/architecture/topology.md" in text
+    assert "spec_code_src: src/" in text
+
+
+def test_cli_apply_does_not_overwrite_existing_spec_code_config(tmp_path):
+    (tmp_path / "main.tf").touch()
+    yml = tmp_path / ".project-starter.yml"
+    yml.write_text(
+        "project_type: [your-project-type]\n"
+        "docs_path: docs/\n"
+        "spec_code_adapter: pulumi\n"
+        "spec_code_spec: docs/architecture/topology.md\n"
+        "spec_code_src: infra/\n",
+        encoding="utf-8",
+    )
+    result = _run(str(tmp_path), "--apply")
+    assert result.returncode == 0
+    text = yml.read_text(encoding="utf-8")
+    # Existing user config must survive untouched — only project_type is rewritten.
+    assert "spec_code_adapter: pulumi" in text
+    assert "spec_code_src: infra/" in text

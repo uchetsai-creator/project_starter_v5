@@ -371,6 +371,51 @@ _KEYWORD_RULES: list[tuple[str, int]] = [
     (r"\bxcode\b",                 "mobile-app",    20),
 ]
 
+# Signals that also identify which verify_spec_code.py adapter applies — a strict
+# subset of the rules above (most type signals, e.g. "pandas" or "docker compose",
+# have no corresponding adapter). Order is priority within a project type: the first
+# matching row wins. Keep the (adapter alias, project type) pairs in sync with
+# .githooks/pre-commit's per-type adapter list and ADAPTER_REGISTRY in
+# templates/script/validators/verify_spec_code.py.
+_ADAPTER_SIGNALS: list[tuple[str, str, str, str]] = [
+    # (kind, pattern, adapter alias, project type)
+    ("py_dep",   "fastapi",       "fastapi",      "web-app"),
+    ("py_dep",   "flask",         "flask",        "web-app"),
+    ("py_dep",   "django",        "django",       "web-app"),
+    ("node_dep", "express",       "express",      "web-app"),
+    ("py_dep",   "click",         "click",        "cli-tool"),
+    ("py_dep",   "typer",         "typer",        "cli-tool"),
+    ("py_dep",   "apache-airflow","airflow",      "data-pipeline"),
+    ("py_dep",   "airflow",       "airflow",      "data-pipeline"),
+    ("py_dep",   "dagster",       "dagster",      "data-pipeline"),
+    ("py_dep",   "prefect",       "prefect",      "data-pipeline"),
+    ("py_dep",   "luigi",         "luigi",        "data-pipeline"),
+    ("py_dep",   "langchain",     "langchain",    "llm-app"),
+    ("node_dep", "langchain",     "langchain",    "llm-app"),
+    ("py_dep",   "ansible",       "ansible",      "iac"),
+    ("py_dep",   "pulumi",        "pulumi",       "iac"),
+    ("file_glob","**/*.tf",       "terraform",    "iac"),
+    ("node_dep", "react-native",  "react_native", "mobile-app"),
+    ("file",     "pubspec.yaml",  "flutter",      "mobile-app"),
+    ("file_glob","**/*.swift",    "swiftui",      "mobile-app"),
+]
+
+# project_type → canonical spec contract path (relative to docs/), mirroring
+# document-registry.yaml. hybrid types (e.g. "web-app+llm-app") are intentionally
+# not covered — spec_code_adapter is single-valued, so a suggestion is only made
+# for a clear, non-hybrid recommendation.
+_CANONICAL_SPEC_FILE: dict[str, str] = {
+    "web-app":       "docs/specs/api-contract.md",
+    "microservices": "docs/specs/api-contract.md",
+    "cli-tool":      "docs/specs/cli-contract.md",
+    "library":       "docs/specs/public-api.md",
+    "data-pipeline": "docs/specs/pipeline-contract.md",
+    "ml-pipeline":   "docs/specs/pipeline-contract.md",
+    "llm-app":       "docs/specs/llm-contract.md",
+    "iac":           "docs/architecture/topology.md",
+    "mobile-app":    "docs/specs/mobile-contract.md",
+}
+
 
 # ---------------------------------------------------------------------------
 # Scanning helpers
@@ -426,6 +471,51 @@ def _read_dep_names(root: Path) -> tuple[set[str], set[str]]:
             pass
 
     return python_deps, node_deps
+
+
+def _suggest_adapter(root: Path, project_type: str) -> str | None:
+    """Return the first verify_spec_code.py adapter alias whose signal is present in
+    root and whose project type matches, or None if nothing matched. Reuses
+    _read_dep_names — no separate dependency-parsing pass."""
+    python_deps, node_deps = _read_dep_names(root)
+    for kind, pattern, adapter, ptype in _ADAPTER_SIGNALS:
+        if ptype != project_type:
+            continue
+        if kind == "py_dep" and pattern in python_deps:
+            return adapter
+        if kind == "node_dep" and pattern in node_deps:
+            return adapter
+        if kind == "file" and (root / pattern).exists():
+            return adapter
+        if kind == "file_glob" and next(root.glob(pattern), None) is not None:
+            return adapter
+    return None
+
+
+def _guess_src_dir(root: Path) -> str:
+    """Best-effort source directory guess — always a guess, never authoritative;
+    the caller must mark it as unverified."""
+    for candidate in ("src", "app", "lib"):
+        if (root / candidate).is_dir():
+            return f"{candidate}/"
+    return "src/"
+
+
+def _suggest_spec_code(root: Path, recommendation: str) -> dict[str, str] | None:
+    """Suggest spec_code_adapter/spec_code_spec/spec_code_src for a non-hybrid
+    recommendation, or None if no adapter signal matched. Never authoritative —
+    always presented to the user as a starting guess to verify, not applied silently
+    to an existing .project-starter.yml."""
+    if "+" in recommendation or recommendation not in _CANONICAL_SPEC_FILE:
+        return None
+    adapter = _suggest_adapter(root, recommendation)
+    if not adapter:
+        return None
+    return {
+        "adapter": adapter,
+        "spec": _CANONICAL_SPEC_FILE[recommendation],
+        "src": _guess_src_dir(root),
+    }
 
 
 def _score_directory(root: Path) -> dict[str, int]:
@@ -574,12 +664,15 @@ def main() -> None:
     recommendation, ranked = _recommend(combined)
     top_score = ranked[0][1] if ranked else 0
 
+    spec_code_suggestion = _suggest_spec_code(root, recommendation) if not skip_scan else None
+
     if args.json:
         output = {
             "recommendation": recommendation,
             "scores": {t: combined[t] for t in VALID_TYPES},
             "ranked": [{"type": t, "score": s} for t, s in ranked],
             "confidence": "high" if top_score >= 40 else "medium" if top_score >= PRIMARY_THRESHOLD else "low",
+            "spec_code_suggestion": spec_code_suggestion,
         }
         print(json.dumps(output, indent=2))
         return
@@ -603,6 +696,16 @@ def main() -> None:
         print("No signals detected — defaulting to web-app.")
         print("Tip: run with --requirements to provide a description of your project.")
 
+    if spec_code_suggestion:
+        print()
+        print("Spec <-> code drift detection looks available for this project (unverified guess):")
+        print(f"  spec_code_adapter: {spec_code_suggestion['adapter']}")
+        print(f"  spec_code_spec:    {spec_code_suggestion['spec']}")
+        print(f"  spec_code_src:     {spec_code_suggestion['src']}")
+        print("Verify these three values, then add them to .project-starter.yml (or use --apply")
+        print("on a fresh project) to catch spec<->code drift automatically at every commit —")
+        print("see README.md -> Spec <-> Code Validator.")
+
     print()
     if args.apply:
         yml = root / ".project-starter.yml"
@@ -616,15 +719,35 @@ def main() -> None:
             )
             yml.write_text(new_text, encoding="utf-8")
             print(f"[OK] Updated project_type in {yml}")
+            if spec_code_suggestion:
+                print("     spec_code_adapter/spec/src left untouched — this file already exists;")
+                print("     see the suggestion above to fill them in by hand.")
         else:
-            yml.write_text(
-                f"# project_starter — project configuration\n"
-                f"project_type: {recommendation}\n"
-                f"docs_path: docs/\n"
-                f"task_type:\n",
-                encoding="utf-8",
-            )
-            print(f"[OK] Created {yml} with project_type: {recommendation}")
+            if spec_code_suggestion:
+                yml.write_text(
+                    f"# project_starter — project configuration\n"
+                    f"project_type: {recommendation}\n"
+                    f"docs_path: docs/\n"
+                    f"task_type:\n"
+                    f"# spec_code_* below is an UNVERIFIED guess from detect_type.py — confirm the\n"
+                    f"# adapter, spec path, and src path actually match this project before relying\n"
+                    f"# on it; clear all three to disable the gate.\n"
+                    f"spec_code_adapter: {spec_code_suggestion['adapter']}\n"
+                    f"spec_code_spec: {spec_code_suggestion['spec']}\n"
+                    f"spec_code_src: {spec_code_suggestion['src']}\n",
+                    encoding="utf-8",
+                )
+                print(f"[OK] Created {yml} with project_type: {recommendation}")
+                print("     spec_code_adapter/spec/src pre-filled with an unverified guess — confirm before relying on it.")
+            else:
+                yml.write_text(
+                    f"# project_starter — project configuration\n"
+                    f"project_type: {recommendation}\n"
+                    f"docs_path: docs/\n"
+                    f"task_type:\n",
+                    encoding="utf-8",
+                )
+                print(f"[OK] Created {yml} with project_type: {recommendation}")
     else:
         print(f"To apply:  python3 detect_type.py {args.path} --apply")
         print(f"To init:   bash setup.sh --init {recommendation} {args.path}")
