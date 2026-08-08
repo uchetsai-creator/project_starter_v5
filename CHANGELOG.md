@@ -52,6 +52,28 @@ All notable changes to this framework are documented here. Format loosely follow
   `[project.optional-dependencies] dev` extra (`pip install .[dev]` never worked — see Fixed
   below for why). `pyproject.toml`'s `[project]` table now says explicitly that it exists for
   dependency-metadata tooling only, not for `pip install .`.
+- `tests/unit/test_adapter_drift_detection.py`: golden spec+code fixtures (clean pair + one
+  known-planted drift each) for the fastapi, click, and langchain adapters, run end-to-end
+  through `verify_spec_code.py`. Closes a real coverage gap —
+  `tests/contract/test_adapter_contracts.py` only checked that each adapter's
+  `extract_spec()`/`extract_code()` never raises and returns the right `NormalizedForm`
+  subclass, never that a real, known drift is actually reported. A parsing bug in any of the
+  ~29 framework detectors could have silently stopped catching drift with nothing in the
+  suite noticing.
+- `init.py` — `setup.sh --init`'s copy-and-scaffold logic reimplemented in pure Python.
+  `setup.sh` is bash-only, so `--init` (the first command in the README Quick Start) could
+  not run on native Windows without Git Bash/WSL; CI's `windows-latest` job never caught this
+  because GitHub's runner ships Git Bash on PATH. `setup.sh --init` now delegates to
+  `init.py` (single source of truth, not a parallel reimplementation); `python3 init.py <type>
+  <dest>` also works standalone with zero bash involved. Covered by
+  `tests/unit/test_init_py.py`, which invokes it directly via `subprocess` with no bash in
+  the call chain.
+- `PROJECT_STARTER_SKIP_VERIFY` env var — an officially-documented escape hatch for
+  `.githooks/pre-commit` (`PROJECT_STARTER_SKIP_VERIFY=1 git commit -m "wip"`). Previously
+  the only way to bypass a blocking check during a prototype/spike was `git commit
+  --no-verify`, which skips the hook silently with no trace in the commit. The env var always
+  prints a loud `[SKIP]` line instead, so a skipped commit is never mistaken for a verified
+  one. Covered by `tests/unit/test_pre_commit_skip_verify.py`.
 
 ### Removed
 - Codex and Cursor agent adapters (`adapters/codex/`, `adapters/cursor/`, the corresponding

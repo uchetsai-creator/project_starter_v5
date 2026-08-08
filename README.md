@@ -52,6 +52,11 @@ Outputs a ranked recommendation — including hybrids like `web-app+llm-app`. Pa
    ```bash
    bash setup.sh --init <type> /path/to/your-project
    ```
+   `setup.sh` is bash-only. On native Windows without Git Bash/WSL, run the same logic directly
+   through Python instead — `setup.sh --init` just delegates to this script:
+   ```bash
+   python3 init.py <type> /path/to/your-project
+   ```
    Valid types: `web-app` | `cli-tool` | `library` | `data-pipeline` | `ml-pipeline` |
    `microservices` | `llm-app` | `iac` | `mobile-app`
 
@@ -113,6 +118,7 @@ project_starter/                     ← this repo (template only)
 ├── .project-starter.yml             ← template with [your-project-type] placeholder; copy + fill in per project
 ├── .gitignore                       ← excludes .ai/ (generated, not committed)
 ├── setup.sh                         ← setup helper: downloads plantuml.jar; `--init <type> <dest>` bootstraps a new project; `--detect` infers project type
+├── init.py                          ← `setup.sh --init`'s logic in pure Python — same outcome, no bash required (native Windows)
 ├── detect_type.py                   ← infer project type from code structure or requirements text; supports hybrid types
 ├── debug-instrumentation-rules.md
 ├── code-quality-check.md            ← code review checklist for retrofitting existing projects
@@ -1019,6 +1025,11 @@ Optional fast-feedback (Claude Code only):
 ```
 
 Spec-facing documents (writing audience check): `business-rules.md`, `pipeline-contract.md`, `research.md`, `quickstart.md`, `architecture/*.md`, `modules/*/*-module-data-flow.md`
+
+**Prototyping/spike escape hatch:** `PROJECT_STARTER_SKIP_VERIFY=1 git commit -m "wip"` skips
+every check above for that one commit. Prefer this over `git commit --no-verify` — `--no-verify`
+skips the hook silently with no trace in the commit, while the env var always prints a loud
+`[SKIP]` line so a skipped commit is never mistaken for a verified one.
 
 `verify_acceptance.py` (FR-XXX → test plan → test report traceability) is **not** part of
 `.githooks/pre-commit` — checking full requirement traceability on every commit would block

@@ -42,102 +42,16 @@ if [[ "${1:-}" == "--detect" ]]; then
 fi
 
 # ── --init mode ───────────────────────────────────────────────────────────────
+# Delegates to init.py — the single source of truth for --init's copy list and
+# .project-starter.yml template, also directly runnable as `python3 init.py <type> <dest>`
+# on native Windows (no Git Bash/WSL needed) since this script itself is bash-only.
 if [[ "${1:-}" == "--init" ]]; then
-    PROJECT_TYPE="${2:-}"
-    DEST="${3:-}"
-
-    if [[ -z "$PROJECT_TYPE" || -z "$DEST" ]]; then
-        echo "Usage: bash setup.sh --init <type> <dest>"
-        echo "  type: $VALID_TYPES"
-        echo "  dest: target project directory (will be created if absent)"
+    shift
+    if ! command -v python3 &>/dev/null; then
+        echo "[FAIL] python3 not found. Install Python 3.9+ to use --init."
         exit 1
     fi
-
-    VALID=false
-    for t in $VALID_TYPES; do
-        [[ "$PROJECT_TYPE" == "$t" ]] && VALID=true && break
-    done
-    if [[ "$VALID" == false ]]; then
-        echo "[FAIL] Unknown project type: $PROJECT_TYPE"
-        echo "       Valid values: $VALID_TYPES"
-        exit 1
-    fi
-
-    echo "=== project_starter_v5 init: $PROJECT_TYPE → $DEST ==="
-    echo ""
-    mkdir -p "$DEST"
-
-    # Copy framework files
-    for f in AGENTS.md orchestrator.py build-context.py _workflow_utils.py \
-              workflow-registry.yaml document-registry.yaml detect_type.py \
-              debug-instrumentation-rules.md code-quality-check.md; do
-        cp "${SCRIPT_DIR}/${f}" "${DEST}/"
-        echo "[OK] copied $f"
-    done
-
-    cp -r "${SCRIPT_DIR}/.githooks" "${DEST}/"
-    echo "[OK] copied .githooks/"
-
-    cp -r "${SCRIPT_DIR}/guidance" "${DEST}/"
-    echo "[OK] copied guidance/"
-
-    # CLAUDE.md is Claude Code's auto-loaded context file — importing AGENTS.md here
-    # guarantees its rules (including Learning Checkpoint) load at the start of every
-    # session, with no dependency on which task-specific docs current-state.md points to.
-    if [[ ! -f "${DEST}/CLAUDE.md" ]]; then
-        echo "@AGENTS.md" > "${DEST}/CLAUDE.md"
-        echo "[OK] wrote CLAUDE.md (@AGENTS.md)"
-    fi
-
-    mkdir -p "${DEST}/docs/script"
-    cp -r "${SCRIPT_DIR}/templates/script/." "${DEST}/docs/script/"
-    echo "[OK] copied templates/script/ → docs/script/"
-
-    # Write pre-filled .project-starter.yml
-    cat > "${DEST}/.project-starter.yml" <<EOF
-# project_starter — project configuration
-# Do not rename this file.
-
-project_type: ${PROJECT_TYPE}
-# Valid values: web-app | cli-tool | library | data-pipeline | ml-pipeline
-#               microservices | llm-app | iac | mobile-app
-
-docs_path: docs/
-
-task_type:
-# Optional. Filters .ai/AI_CONTEXT.md to task-relevant documents.
-# Valid values: feature | pipeline-stage | bug-fix | sprint-end | eval-run | iac-change
-
-spec_code_adapter:
-spec_code_spec:
-spec_code_src:
-# Optional — all three must be set together to enable the spec ↔ code drift gate.
-# See README.md → Spec ↔ Code Validator for the full list of adapter names.
-
-test_command:
-# Optional. Shell command that runs this project's test suite, e.g. \`pytest -q\` |
-# \`npm test\` | \`go test ./...\`. When set, .githooks/pre-commit actually runs it on every
-# commit and blocks if it exits non-zero. Leave blank to skip this gate.
-EOF
-    echo "[OK] wrote .project-starter.yml (project_type: ${PROJECT_TYPE})"
-
-    # Install pre-commit hook — only if a real git repo exists (HEAD file is the marker)
-    if [[ -f "${DEST}/.git/HEAD" ]]; then
-        mkdir -p "${DEST}/.git/hooks"
-        cp "${DEST}/.githooks/pre-commit" "${DEST}/.git/hooks/pre-commit"
-        chmod +x "${DEST}/.git/hooks/pre-commit"
-        echo "[OK] pre-commit hook installed"
-    else
-        echo "[WARN] ${DEST} is not a git repository — run git init first, then:"
-        echo "       cp .githooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit"
-    fi
-
-    echo ""
-    echo "Next steps:"
-    echo "  cd ${DEST}"
-    echo "  python3 orchestrator.py --adapter claude   # generate .ai/WORKFLOW.md + start-task.md"
-    echo "  Open templates/init/${PROJECT_TYPE}.md and follow its numbered steps."
-    exit 0
+    exec python3 "${SCRIPT_DIR}/init.py" "$@"
 fi
 
 # ── Standard setup (no --init) ────────────────────────────────────────────────

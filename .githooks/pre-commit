@@ -8,8 +8,22 @@
 # Requires .project-starter.yml at the project root with:
 #   project_type: <your-type>
 #   docs_path: docs/
+#
+# Prototyping/spike escape hatch:
+#   PROJECT_STARTER_SKIP_VERIFY=1 git commit -m "wip"
+#   Skips every check below for that one commit. Prefer this over `git commit --no-verify` —
+#   --no-verify skips this hook silently with no trace in the commit; the env var still
+#   prints a loud [SKIP] line so a skipped commit is never mistaken for a verified one.
 
 set -euo pipefail
+
+# ── Prototyping/spike escape hatch ────────────────────────────────────────────
+# Trigger: PROJECT_STARTER_SKIP_VERIFY set to any non-empty value.
+# Deliberately loud (always prints) so skipping never becomes an invisible habit.
+if [ -n "${PROJECT_STARTER_SKIP_VERIFY:-}" ]; then
+    echo "[SKIP] pre-commit: PROJECT_STARTER_SKIP_VERIFY is set — all checks skipped for this commit."
+    exit 0
+fi
 
 # Staged file list — collected once, used by multiple checks
 STAGED=$(git diff --cached --name-only 2>/dev/null || true)
