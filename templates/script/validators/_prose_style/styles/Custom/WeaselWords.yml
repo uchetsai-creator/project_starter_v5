@@ -1,0 +1,19 @@
+# Vague qualifiers that make a filled-in document read as complete while saying
+# nothing verifiable — exactly what verify_content.py's structural placeholder checks
+# cannot catch (a sentence like "this is obviously very simple" passes every fill-quality
+# check today; it isn't a placeholder, it's just empty writing).
+extends: existence
+message: "'%s' is vague — say specifically why/how instead."
+level: warning
+ignorecase: true
+tokens:
+  - very
+  - really
+  - obviously
+  - simply
+  - just
+  - clearly
+  - basically
+  - essentially
+  - somewhat
+  - fairly

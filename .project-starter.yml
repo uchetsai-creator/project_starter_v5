@@ -61,3 +61,27 @@ spec_code_src:
 # Only one adapter mapping is supported here. Projects needing more than one contract
 # validated (e.g. multiple services) can still run verify_spec_code.py directly with
 # additional --adapter/--spec/--src invocations — see README.md.
+
+security_scan_src:
+# Optional. Enables the SAST gate (verify_security.py) in .githooks/pre-commit and in the
+# validator sequences rendered by orchestrator.py. Leave blank to skip the gate (default —
+# matches prior behavior). Wraps bandit (Python), eslint-plugin-security (JS/TS), and Semgrep
+# (Go/Ruby/Java/PHP/Kotlin/Vue) — install whichever applies to your project; a language with
+# no tool installed is skipped with a [WARN], not silently reported clean. See README.md ->
+# Security Scan (SAST).
+#
+# Example:
+#   security_scan_src: src/
+#
+# Usually the same path as spec_code_src, if that's already set above.
+
+prose_scan_enabled:
+# Optional (true/false). Enables the prose-quality gate (verify_prose.py) in
+# .githooks/pre-commit — runs on docs_path above, no separate path needed. Leave blank/false
+# to skip the gate (default). Wraps Vale (https://vale.sh) with a small custom style shipped
+# in templates/script/validators/_prose_style/ — catches vague wording and prose-form
+# placeholders (a bare "TBD" or "coming soon" sentence) that verify_docs.py's structural
+# fill-quality checks can't see. See README.md -> Prose Quality (Vale).
+#
+# Example:
+#   prose_scan_enabled: true

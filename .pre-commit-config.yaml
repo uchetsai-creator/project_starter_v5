@@ -1,0 +1,41 @@
+# Optional alternative to `cp .githooks/pre-commit .git/hooks/pre-commit` — for projects
+# that already use https://pre-commit.com to manage git hooks across repos and want
+# project_starter_v5's checks wired in through that same mechanism instead of a second,
+# separate hook-install step.
+#
+# This does NOT reimplement .githooks/pre-commit's checks in YAML — it calls that same
+# script as a single local hook. Reimplementing verify_docs.py / verify_spec_code.py /
+# verify_security.py / verify_prose.py's config-reading logic (project_type, docs_path,
+# spec_code_*, security_scan_src, prose_scan_enabled — all read dynamically from
+# .project-starter.yml at runtime) as static pre-commit-framework entries would mean
+# maintaining two copies of that logic that could silently drift apart. One script, two
+# ways to install it.
+#
+# Setup:
+#   pip install pre-commit
+#   pre-commit install
+#
+# The generic hygiene hooks below (trailing-whitespace, end-of-file-fixer, check-yaml,
+# check-merge-conflict) are what adopting the pre-commit framework actually adds on top
+# of the raw git hook — a small slice of its wider hook ecosystem, included here as a
+# starting point. Add more from https://github.com/pre-commit/pre-commit-hooks or any
+# other pre-commit-compatible repo as needed.
+
+repos:
+  - repo: local
+    hooks:
+      - id: project-starter-verify
+        name: project_starter_v5 verification (.githooks/pre-commit)
+        entry: bash .githooks/pre-commit
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-merge-conflict

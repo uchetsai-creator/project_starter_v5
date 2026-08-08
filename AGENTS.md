@@ -12,6 +12,9 @@ of them. When a task pressures you to bend one of these, stop and ask instead of
 - **Glue Code** — keep integration code thin; logic belongs in packages, not connectors
 - **Incremental Changes** — make the smallest change that achieves the goal
 - **No Unrelated Refactor** — do not clean up code outside the current task scope
+- **Unscoped New Requirement** — a new feature/requirement not yet in `docs/current-state.md`:
+  ask scope, edge cases, and acceptance criteria before implementing; never guess (see
+  "New requirement from the user" and Learning Checkpoint B below)
 - **Type gates documents** — the declared project type decides which documents are required
   vs N/A; never create an N/A document "just in case"
 - **No internal references in spec-facing docs** — no task numbers (Task 22), no sprint
@@ -131,7 +134,9 @@ silently write a task breakdown from your own assumptions. Ask clarifying questi
 scope, edge cases, acceptance criteria (see Learning Checkpoint B below) — then, with the
 user's answers, update `docs/project-plan.md` and set `docs/current-state.md → Current Task`
 before proceeding to "Starting work." A one-line request is rarely a fully-scoped task; treat
-brevity from the user as a prompt to ask, not as permission to guess.
+brevity from the user as a prompt to ask, not as permission to guess. When you fill in Current
+Task, also set `Clarifying Questions Asked` to `Y` (asked) or `N/A` (pre-scoped task, or
+Checkpoint A applied instead) — pre-commit blocks a real Task left with this field unfilled.
 
 **Resolve project type before any of the above** if `.project-starter.yml`'s `project_type`
 is missing or still `[your-project-type]` — every downstream step (which docs, which

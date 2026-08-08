@@ -41,7 +41,7 @@ Valid project types:
 
 Capability adapters (Phase 52.5):
   data-pipeline   — Data Pipeline / ML Pipeline  (auto-detects: airflow, dagster, prefect)
-  web-api         — Web App / Microservices       (auto-detects: fastapi, flask, express)
+  web-api         — Web App / Microservices       (auto-detects: fastapi, flask, express, gin)
   cli             — CLI Tool                      (auto-detects: click)
   library         — Library / SDK                 (auto-detects: python_library)
   llm-app         — AI / LLM App                  (auto-detects: tool_schema)
@@ -54,6 +54,7 @@ Legacy adapter names (Phase 45-47) — still work, now route through capability 
   fastapi         — Web App / Microservices (FastAPI)
   flask           — Web App / Microservices (Flask)
   express         — Web App / Microservices (Express / Node.js)
+  gin             — Web App / Microservices (Go / Gin — requires tree-sitter + tree-sitter-go)
   dagster         — Data Pipeline / ML Pipeline (Dagster)
   prefect         — Data Pipeline / ML Pipeline (Prefect)
   python_library  — Library / SDK (Python __all__ + type hints)
@@ -101,6 +102,7 @@ ADAPTER_REGISTRY: dict[str, tuple[str, str, str | None]] = {
     'fastapi':        ('_capability_web_api',  'WebAPIAdapter',       'fastapi'),
     'flask':          ('_capability_web_api',  'WebAPIAdapter',       'flask'),
     'express':        ('_capability_web_api',  'WebAPIAdapter',       'express'),
+    'gin':            ('_capability_web_api',  'WebAPIAdapter',       'gin'),
     'click':          ('_capability_cli',      'CLIAdapter',          'click'),
     'python_library': ('_capability_library',  'LibraryAdapter',      'python_library'),
     'tool_schema':    ('_capability_llm',      'LLMAdapter',          'tool_schema'),

@@ -13,15 +13,60 @@
 #   PROJECT_STARTER_SKIP_VERIFY=1 git commit -m "wip"
 #   Skips every check below for that one commit. Prefer this over `git commit --no-verify` —
 #   --no-verify skips this hook silently with no trace in the commit; the env var still
-#   prints a loud [SKIP] line so a skipped commit is never mistaken for a verified one.
+#   prints a loud [SKIP] line, and also appends a row to logs/telemetry/skip-verify.json,
+#   so a skipped commit is never mistaken for a verified one — and how often this project
+#   uses the hatch is auditable after the fact, not just visible in the terminal at the
+#   moment it happened.
 
 set -euo pipefail
 
 # ── Prototyping/spike escape hatch ────────────────────────────────────────────
 # Trigger: PROJECT_STARTER_SKIP_VERIFY set to any non-empty value.
 # Deliberately loud (always prints) so skipping never becomes an invisible habit.
+# The telemetry row does not make this harder to bypass — a determined agent/developer
+# can still delete or never read logs/telemetry/skip-verify.json, same as any local log.
+# It exists so a human auditing the project later has a record at all, rather than nothing.
 if [ -n "${PROJECT_STARTER_SKIP_VERIFY:-}" ]; then
     echo "[SKIP] pre-commit: PROJECT_STARTER_SKIP_VERIFY is set — all checks skipped for this commit."
+    if command -v python3 &>/dev/null; then
+        STAGED_COUNT=$(git diff --cached --name-only 2>/dev/null | grep -c . || true)
+        PSV_STAGED_COUNT="$STAGED_COUNT" python3 -c "
+import json, os
+from datetime import datetime, timezone
+path = os.path.join('logs', 'telemetry', 'skip-verify.json')
+os.makedirs(os.path.dirname(path), exist_ok=True)
+rows = []
+if os.path.exists(path):
+    try:
+        with open(path, encoding='utf-8') as f:
+            rows = json.load(f)
+        if not isinstance(rows, list):
+            rows = []
+    except (json.JSONDecodeError, OSError):
+        rows = []
+entry = {
+    'ts': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
+    'staged_files': int(os.environ.get('PSV_STAGED_COUNT', '0') or '0'),
+}
+rows.append(entry)
+with open(path, 'w', encoding='utf-8') as f:
+    json.dump(rows, f, indent=2)
+
+# Optional OTel dual-emission (see docs/script/validators/_otel.py's docstring) —
+# no-ops unconditionally unless opentelemetry-* is installed and
+# OTEL_EXPORTER_OTLP_ENDPOINT is set; the local JSON write above is unaffected either way.
+import sys
+for _candidate in ('docs/script/validators', 'templates/script/validators'):
+    if os.path.isdir(_candidate):
+        sys.path.insert(0, _candidate)
+        break
+try:
+    from _otel import emit as _otel_emit
+    _otel_emit('skip-verify', entry)
+except ImportError:
+    pass
+" 2>/dev/null || true
+    fi
     exit 0
 fi
 
@@ -58,6 +103,8 @@ DOCS_PATH="docs"
 SPEC_CODE_ADAPTER=""
 SPEC_CODE_SPEC=""
 SPEC_CODE_SRC=""
+SECURITY_SCAN_SRC=""
+PROSE_SCAN_ENABLED=""
 TEST_COMMAND=""
 
 if [ -f "$CONFIG" ]; then
@@ -67,6 +114,8 @@ if [ -f "$CONFIG" ]; then
     SPEC_CODE_ADAPTER=$(grep '^spec_code_adapter:' "$CONFIG" | sed 's/spec_code_adapter:[[:space:]]*//' | tr -d "\"' ") || true
     SPEC_CODE_SPEC=$(grep '^spec_code_spec:' "$CONFIG" | sed 's/spec_code_spec:[[:space:]]*//' | tr -d "\"' ") || true
     SPEC_CODE_SRC=$(grep '^spec_code_src:' "$CONFIG" | sed 's/spec_code_src:[[:space:]]*//' | tr -d "\"' ") || true
+    SECURITY_SCAN_SRC=$(grep '^security_scan_src:' "$CONFIG" | sed 's/security_scan_src:[[:space:]]*//' | tr -d "\"' ") || true
+    PROSE_SCAN_ENABLED=$(grep '^prose_scan_enabled:' "$CONFIG" | sed 's/prose_scan_enabled:[[:space:]]*//' | tr -d "\"' ") || true
     # Not tr -d "'\" " here — unlike the fields above, a real command legitimately
     # contains spaces and quotes (e.g. python3 -c "..."), so the raw value is used
     # as-is (just trimmed of leading whitespace after the YAML key) instead of
@@ -76,7 +125,7 @@ fi
 
 # ── spec_code_adapter value guard ─────────────────────────────────────────────
 # Catches: typos in adapter name that would cause verify_spec_code.py to silently skip
-KNOWN_ADAPTERS="fastapi flask django express click typer airflow dagster prefect luigi python_library typescript tool_schema langchain terraform pulumi ansible react_native flutter swiftui python_logging javascript_logging"
+KNOWN_ADAPTERS="fastapi flask django express gin click typer airflow dagster prefect luigi python_library typescript tool_schema langchain terraform pulumi ansible react_native flutter swiftui python_logging javascript_logging"
 if [ -n "$SPEC_CODE_ADAPTER" ]; then
     ADAPTER_VALID=false
     for known in $KNOWN_ADAPTERS; do
@@ -193,6 +242,20 @@ if [ -n "$CS_FILE" ]; then
             PASS=false
         fi
     fi
+
+    # ── Clarifying Questions Asked guard ────────────────────────────────────
+    # Trigger: Current Task's **Task:** field is a real (non-placeholder) task.
+    # Catches: a real task set up without recording whether Checkpoint B's clarifying
+    # questions happened — see AGENTS.md -> New requirement from the user.
+    CS_TASK=$(printf '%s\n' "$CS_CONTENT" | grep -E '^\*\*Task:\*\*' | head -1 || true)
+    if [ -n "$CS_TASK" ] && ! printf '%s\n' "$CS_TASK" | grep -qE '\['; then
+        CS_CQA=$(printf '%s\n' "$CS_CONTENT" | grep -E '^\*\*Clarifying Questions Asked:\*\*' | head -1 || true)
+        if [ -z "$CS_CQA" ] || printf '%s\n' "$CS_CQA" | grep -qE '\['; then
+            echo "  [FAIL] current-state.md has a real Current Task but Clarifying Questions Asked is missing or still a placeholder"
+            echo "         Set it to Y (asked before implementing) or N/A (pre-scoped task / Checkpoint A applied) — see AGENTS.md -> New requirement from the user."
+            PASS=false
+        fi
+    fi
 fi
 
 # ── Writing Audience violations ────────────────────────────────────────────────
@@ -252,7 +315,7 @@ fi
 if [ -z "$SPEC_CODE_ADAPTER" ] && [ -n "$SPEC_CONTRACT_STAGED" ]; then
     ADAPTERS=""
     case "$PROJECT_TYPE" in
-        web-app|microservices)   ADAPTERS="fastapi, flask, django, express" ;;
+        web-app|microservices)   ADAPTERS="fastapi, flask, django, express, gin" ;;
         cli-tool)                ADAPTERS="click, typer" ;;
         library)                 ADAPTERS="python_library, typescript" ;;
         data-pipeline|ml-pipeline) ADAPTERS="airflow, dagster, prefect, luigi" ;;
@@ -266,6 +329,51 @@ if [ -z "$SPEC_CODE_ADAPTER" ] && [ -n "$SPEC_CONTRACT_STAGED" ]; then
         echo "        Set spec_code_adapter / spec_code_spec / spec_code_src in .project-starter.yml"
         echo "        to catch drift automatically on every commit — see README.md -> Spec <-> Code Validator."
     fi
+fi
+
+# ── Security scan (SAST) ───────────────────────────────────────────────────────
+# Trigger: any file under the configured security_scan_src tree staged.
+# Requires security_scan_src set in .project-starter.yml — skipped entirely (no check,
+# no noise) when unset, matching the spec<->code gate's opt-in pattern.
+if [ -n "$SECURITY_SCAN_SRC" ] && [ -f "docs/script/validators/verify_security.py" ]; then
+    SECURITY_SRC_STAGED=$(printf '%s\n' "$STAGED" | grep -F "$SECURITY_SCAN_SRC" || true)
+    if [ -n "$SECURITY_SRC_STAGED" ]; then
+        echo "  → verify_security.py --src $SECURITY_SCAN_SRC (src staged) ..."
+        python3 "docs/script/validators/verify_security.py" \
+            --project-type "$PROJECT_TYPE" --src "$SECURITY_SCAN_SRC" \
+            --strict 2>&1 || PASS=false
+    fi
+fi
+
+# ── Security scan coverage tip (non-blocking) ──────────────────────────────────
+# Trigger: spec_code_src is already configured (so a src path is known), but
+# security_scan_src isn't — this is the actionable moment to suggest enabling it,
+# reusing an existing signal instead of adding new file-staging detection.
+if [ -z "$SECURITY_SCAN_SRC" ] && [ -n "$SPEC_CODE_SRC" ]; then
+    echo "  [TIP] No SAST scan configured for this project."
+    echo "        Set security_scan_src: $SPEC_CODE_SRC in .project-starter.yml to run bandit"
+    echo "        (Python) / eslint-plugin-security (JS/TS) automatically on every commit —"
+    echo "        see README.md -> Security Scan (SAST)."
+fi
+
+# ── Prose quality (Vale) ────────────────────────────────────────────────────────
+# Trigger: any .md file under docs_path staged. Requires prose_scan_enabled: true in
+# .project-starter.yml — skipped entirely (no check, no noise) when unset/false.
+MD_STAGED=$(printf '%s\n' "$STAGED" | grep -E '\.md$' | grep -F "$DOCS_PATH" || true)
+if [ "$PROSE_SCAN_ENABLED" = "true" ] && [ -f "docs/script/validators/verify_prose.py" ]; then
+    if [ -n "$MD_STAGED" ]; then
+        echo "  → verify_prose.py --docs $DOCS_PATH (*.md staged) ..."
+        python3 "docs/script/validators/verify_prose.py" \
+            --project-type "$PROJECT_TYPE" --docs "$DOCS_PATH" \
+            --strict 2>&1 || PASS=false
+    fi
+fi
+
+# ── Prose quality coverage tip (non-blocking) ───────────────────────────────────
+if [ "$PROSE_SCAN_ENABLED" != "true" ] && [ -n "$MD_STAGED" ]; then
+    echo "  [TIP] No prose-quality scan configured for this project."
+    echo "        Set prose_scan_enabled: true in .project-starter.yml to run Vale on every"
+    echo "        commit that touches docs — see README.md -> Prose Quality (Vale)."
 fi
 
 if [ "$PASS" = false ]; then

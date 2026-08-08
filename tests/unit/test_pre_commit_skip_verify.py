@@ -4,10 +4,14 @@ Before this, the only documented way to bypass a blocking check during a prototy
 was `git commit --no-verify` — which skips the hook silently, leaving no trace that
 verification was bypassed. PROJECT_STARTER_SKIP_VERIFY=1 is the officially-documented
 alternative: it always prints a loud [SKIP] line, so a skipped commit can never be
-mistaken for a verified one later.
+mistaken for a verified one later. It also appends a row to
+logs/telemetry/skip-verify.json — doesn't make the hatch any harder to use, but means
+how often a project reaches for it is auditable after the fact instead of only visible
+in the terminal at the moment it happened.
 
 Follows the same real-bash-subprocess pattern as test_pre_commit_test_command.py.
 """
+import json
 import os
 import subprocess
 
@@ -72,3 +76,33 @@ def test_empty_skip_verify_env_var_does_not_trigger_skip(tmp_path):
     result = _run_hook(repo, {"PROJECT_STARTER_SKIP_VERIFY": ""})
     assert result.returncode == 1
     assert "[SKIP]" not in result.stdout
+
+
+def test_skip_verify_appends_telemetry_row(tmp_path):
+    repo = _make_repo_with_blocking_config(tmp_path)
+    result = _run_hook(repo, {"PROJECT_STARTER_SKIP_VERIFY": "1"})
+    assert result.returncode == 0
+
+    log_path = repo / "logs" / "telemetry" / "skip-verify.json"
+    assert log_path.exists()
+    rows = json.loads(log_path.read_text(encoding="utf-8"))
+    assert len(rows) == 1
+    assert "ts" in rows[0]
+    assert "staged_files" in rows[0]
+
+
+def test_skip_verify_telemetry_appends_not_overwrites(tmp_path):
+    repo = _make_repo_with_blocking_config(tmp_path)
+    _run_hook(repo, {"PROJECT_STARTER_SKIP_VERIFY": "1"})
+    _run_hook(repo, {"PROJECT_STARTER_SKIP_VERIFY": "1"})
+
+    log_path = repo / "logs" / "telemetry" / "skip-verify.json"
+    rows = json.loads(log_path.read_text(encoding="utf-8"))
+    assert len(rows) == 2
+
+
+def test_no_skip_used_means_no_telemetry_file(tmp_path):
+    repo = _make_repo_with_blocking_config(tmp_path)
+    _run_hook(repo)  # blocked, no skip
+    log_path = repo / "logs" / "telemetry" / "skip-verify.json"
+    assert not log_path.exists()

@@ -7,6 +7,12 @@
     # Optional: spec_code_adapter / spec_code_spec / spec_code_src — enables the spec↔code
     # drift gate in pre-commit + orchestrator. See README.md → Spec ↔ Code Validator →
     # Wiring it into pre-commit.
+    # Optional: security_scan_src — enables the SAST gate (bandit / eslint-plugin-security /
+    # semgrep). See README.md → Security Scan (SAST).
+    # Optional: prose_scan_enabled — enables the Vale prose-quality gate. See README.md →
+    # Prose Quality (Vale).
+    # Optional: generate_openapi.py can derive openapi.yaml from api-contract.md — see
+    # README.md → Beyond static comparison: runtime contract testing.
     ```
 2. Copy `document-registry.yaml` from the framework root to your project root:
     ```bash

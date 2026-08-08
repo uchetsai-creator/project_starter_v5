@@ -13,6 +13,7 @@ Generated: {{TIMESTAMP}}
 3. `python3 docs/script/validators/verify_logs.py --project-type cli-tool --strict`
 4. `python3 docs/script/validators/verify_content.py --project-type cli-tool --strict`
 5. `python3 docs/script/validators/verify_spec_code.py --project-type cli-tool --strict`
+6. `python3 docs/script/validators/verify_security.py --project-type cli-tool --strict`
 
 ## Closeout
 - Follow Closeout section in `docs/current-state.md`

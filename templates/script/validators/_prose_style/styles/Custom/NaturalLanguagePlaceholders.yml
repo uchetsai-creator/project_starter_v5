@@ -1,0 +1,17 @@
+# Unfinished-content markers written as plain prose, not the bracket-wrapped
+# ([placeholder], [TODO: ...]) or HTML-comment (<!-- TODO -->) forms
+# _verify_common.py's _is_placeholder() already catches. A bare "TBD" or "coming soon"
+# sentence currently passes every structural fill-quality check in this framework.
+extends: existence
+message: "'%s' reads as an unfinished placeholder left in prose — fill this in or remove it."
+level: error
+ignorecase: true
+tokens:
+  - TODO
+  - FIXME
+  - TBD
+  - 'coming soon'
+  - 'to be determined'
+  - 'to be filled in'
+  - 'will be added later'
+  - 'more details later'

@@ -2,16 +2,17 @@
 _capability_web_api.py — WebAPIAdapter for project_starter_v5 (Phase 52.5).
 
 Capability adapter for web / microservice API projects.
-Orchestrates: FastAPIDetector, FlaskDetector, ExpressDetector, DjangoDetector.
+Orchestrates: FastAPIDetector, FlaskDetector, ExpressDetector, DjangoDetector, GinDetector.
 
 Architecture:
   WebAPIAdapter (this file)
       │  extract_spec() — parses api-contract.md
-      │  extract_code() — discovers .py + .js/.ts files, delegates to detector(s)
+      │  extract_code() — discovers .py + .js/.ts + .go files, delegates to detector(s)
       ├── FastAPIDetector  (receives .py files)
       ├── FlaskDetector    (receives .py files)
       ├── DjangoDetector   (receives .py files)
-      └── ExpressDetector  (receives .js/.ts files)
+      ├── ExpressDetector  (receives .js/.ts files)
+      └── GinDetector      (receives .go files; requires tree-sitter + tree-sitter-go, see gin.py)
 
 Invariants:
   - No framework-specific parsing logic here.
@@ -33,6 +34,7 @@ _DETECTORS: dict[str, tuple[str, str, tuple[str, ...]]] = {
     'flask':   ('flask',   'FlaskDetector',   ('.py',)),
     'express': ('express', 'ExpressDetector', ('.js', '.ts', '.mjs', '.cjs')),
     'django': ('django', 'DjangoDetector', ('.py',)),
+    'gin': ('gin', 'GinDetector', ('.go',)),
 }
 
 

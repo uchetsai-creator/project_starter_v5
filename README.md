@@ -125,8 +125,9 @@ project_starter/                     ← this repo (template only)
 ├── .githooks/
 │   ├── pre-commit                   ← the hook itself (see Verification below); install via `cp` + `chmod +x`
 │   └── run-verify.sh                ← Claude Code Stop-hook script: writes validator --json output to logs/verify-{timestamp}.json
+├── .pre-commit-config.yaml          ← optional alternative install path via the pre-commit framework (wraps .githooks/pre-commit, doesn't reimplement it)
 ├── .claude/
-│   ├── settings.json                ← (optional, copy to your project) wires run-verify.sh + adapters/claude/stop-hook.sh into the Stop hook
+│   ├── settings.json                ← (optional, copy to your project) wires run-verify.sh + stop-hook.sh into Stop, session-start-hook.sh into SessionStart
 │   └── skills/
 │       └── add-framework-adapter/SKILL.md  ← framework-repo-only Claude Skill; NOT copied to user projects (see docs/contributing-adapters.md)
 ├── .ai/                             ← generated context (gitignored); recreate with orchestrator.py
@@ -138,12 +139,14 @@ project_starter/                     ← this repo (template only)
 │   ├── verify-{timestamp}.json     ← per-session validator output (run-verify.sh Stop hook)
 │   └── telemetry/
 │       ├── task-run.json           ← append-only: one entry per Claude Code session (stop-hook.sh)
-│       └── .orchestrator_runs.json ← orchestrator run counter per task (orchestrator.py)
+│       ├── .orchestrator_runs.json ← orchestrator run counter per task (orchestrator.py)
+│       └── skip-verify.json        ← append-only: one entry per PROJECT_STARTER_SKIP_VERIFY use (pre-commit)
 ├── adapters/                        ← agent adapter layer (translate WORKFLOW.md to each tool's native format;
 │   │                                   Claude Code + Codex today — see Agent Adapters below)
 │   ├── claude/
 │   │   ├── start-task.md           ← slash command template (copy to .claude/commands/ in your project)
 │   │   ├── stop-hook.sh            ← writes session boundary to logs/telemetry/task-run.json on Claude Code session end
+│   │   ├── session-start-hook.sh   ← non-blocking nudge: re-checks current-state.md scoping state fresh every session
 │   │   ├── telemetry_writer.py     ← telemetry row writer invoked by stop-hook.sh
 │   │   └── skills/                 ← Claude Skills, static (copy to .claude/skills/ in your project — see Agent Adapters → Per-tool setup)
 │   │       ├── retrofit-existing-project/SKILL.md
@@ -288,6 +291,13 @@ project_starter/                     ← this repo (template only)
         │   ├── verify_index_coverage.py ← business-objects.md / business-process.md / prompt-library.md index ↔ per-item file coverage
         │   ├── verify_content.py    ← full document content quality gate (all Required docs × project type)
         │   ├── verify_spec_code.py  ← spec ↔ code drift validator (core — no framework logic)
+        │   ├── verify_security.py   ← SAST wrapper (bandit / eslint-plugin-security / semgrep), independent of spec ↔ code drift
+        │   ├── verify_prose.py      ← prose-quality wrapper (Vale), independent of doc fill-quality checks
+        │   ├── _prose_style/        ← self-contained Vale config + custom rules shipped for verify_prose.py
+        │   │   ├── .vale.ini             ← StylesPath = styles, MinAlertLevel = suggestion
+        │   │   └── styles/Custom/
+        │   │       ├── WeaselWords.yml              ← vague qualifiers (very, obviously, simply, just, ...)
+        │   │       └── NaturalLanguagePlaceholders.yml ← TBD / coming soon / TODO written as prose, not brackets
         │   ├── _spec_code_adapters/ ← framework detectors (one per framework; *Adapter classes are legacy shims)
         │   │   ├── _base.py              ← FrameworkAdapter/Detector ABCs + all NormalizedForm dataclasses
         │   │   ├── _example_adapter.py   ← Custom Adapter SDK reference implementation (self-tests)
@@ -300,6 +310,7 @@ project_starter/                     ← this repo (template only)
         │   │   ├── fastapi.py            ← FastAPIDetector (Web App / Microservices)
         │   │   ├── flask.py              ← FlaskDetector (Web App / Microservices)
         │   │   ├── flutter.py            ← FlutterDetector (Mobile App — Dart)
+        │   │   ├── gin.py                ← GinDetector (Web App / Microservices — Go; requires tree-sitter + tree-sitter-go)
         │   │   ├── javascript_logging.py ← JavaScriptLoggingDetector (Logging — JS/TS/React, any project type)
         │   │   ├── langchain.py          ← LangchainDetector (AI / LLM App)
         │   │   ├── luigi.py              ← LuigiDetector (Data Pipeline / ML Pipeline)
@@ -314,6 +325,7 @@ project_starter/                     ← this repo (template only)
         │   │   ├── typer.py              ← TyperDetector (CLI Tool)
         │   │   └── typescript.py         ← TypescriptDetector (Library / SDK — TS/TSX)
         │   ├── _verify_common.py    ← shared placeholder patterns imported by verify scripts
+        │   ├── _otel.py             ← optional OpenTelemetry dual-emission (see Validation Telemetry -> OTel dual-emission)
         │   └── _registry.py         ← document registry loader
         ├── generators/              ← shipped to user projects (docs/script/generators/)
         │   ├── build_pdf.py         ← renders all ```plantuml blocks via PlantUML + merges docs/ into PDF
@@ -323,7 +335,8 @@ project_starter/                     ← this repo (template only)
         │   ├── diagnose_spec.py     ← classifies spec fill gaps; triggers framework fix PRs
         │   ├── propose_framework_fix.py ← opens a PR on project_starter_v5 to add a missing template section
         │   ├── new_detector.py      ← scaffolds a new framework Detector for verify_spec_code.py
-        │   └── draft_module_flow.py ← drafts a module-data-flow.md pre-filled with real class/function names (Python/JS/TS)
+        │   ├── draft_module_flow.py ← drafts a module-data-flow.md pre-filled with real class/function names (Python/JS/TS)
+        │   └── generate_openapi.py  ← generates openapi.yaml from api-contract.md, reusing WebAPIAdapter.extract_spec()
         ├── scanners/                ← shipped to user projects (docs/script/scanners/)
         │   └── scan_codebase.py     ← scans src/ and reports which modules are undocumented
         └── framework/               ← framework-internal only — NOT copied to user projects
@@ -1008,6 +1021,21 @@ pytest tests/golden/ --snapshot-update     # golden regression chain snapshots (
 
 The PDF smoke test (`tests/e2e/test_pdf_generation.py`) is skipped unless `plantuml.jar` is present.
 
+**Real-tool tests are skipped, not failed, when their tool isn't installed** — the mocked
+JSON-parsing unit tests (e.g. `test_verify_security.py`) still run either way, but the
+tests that exercise the actual tool (`test_gin_detector.py`, `test_verify_prose.py`,
+`test_verify_security_e2e.py`, `test_otel.py`'s real-collector cases) only run when it's
+present. `.github/workflows/ci.yml` installs all of them — bandit, semgrep,
+tree-sitter/tree-sitter-go, eslint + eslint-plugin-security (via npm, at the repo root —
+see `verify_security.py`'s `_run_eslint()` docstring for why location matters), Vale, and
+the opentelemetry packages — specifically so CI exercises the real integrations, not just
+the mocks. To run them locally the same way:
+```bash
+pip install bandit semgrep tree-sitter tree-sitter-go opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp-proto-http
+npm install --no-save eslint eslint-plugin-security   # must run at the repo root
+# Vale: see vale.sh/docs/install (not a pip/npm package)
+```
+
 ---
 
 ## Verification
@@ -1037,9 +1065,14 @@ Any AI tool (Claude Code / other / manual)
  [AGENTS.md staged]      line count ≤ 200            ← token budget (block)
  [specs/*.md staged]     changelog.md also staged?   ← audit trail (warn)
  [current-state.md + Status:Complete]  Closeout filled? ← closeout (block)
+ [current-state.md + real Task]  Clarifying Questions Asked filled? ← Checkpoint B audit trail (block)
  [spec-facing doc staged] no Sprint/Task refs         ← writing audience (block)
  [spec_code_* set in .project-starter.yml]
    [spec contract or configured src/ staged]  verify_spec_code.py ← spec↔code drift (block)
+ [security_scan_src set in .project-starter.yml]
+   [configured src/ staged]  verify_security.py ← SAST: bandit / eslint-plugin-security / semgrep (block)
+ [prose_scan_enabled: true in .project-starter.yml]
+   [*.md under docs_path staged]  verify_prose.py ← prose quality: Vale (block)
         ↓
  PASS → commit proceeds
  FAIL → commit blocked, output shown to developer
@@ -1053,12 +1086,27 @@ Spec-facing documents (writing audience check): `business-rules.md`, `pipeline-c
 **Prototyping/spike escape hatch:** `PROJECT_STARTER_SKIP_VERIFY=1 git commit -m "wip"` skips
 every check above for that one commit. Prefer this over `git commit --no-verify` — `--no-verify`
 skips the hook silently with no trace in the commit, while the env var always prints a loud
-`[SKIP]` line so a skipped commit is never mistaken for a verified one.
+`[SKIP]` line so a skipped commit is never mistaken for a verified one, and appends a row to
+`logs/telemetry/skip-verify.json` (`ts`, `staged_files`) so how often a project reaches for the
+hatch is auditable later, not just visible in the terminal at the moment it happened. This
+doesn't make the hatch any harder to use — a determined agent/developer can still ignore or
+delete the log, same as any local file — it exists for the human reviewing history afterward.
 
 `verify_acceptance.py` (FR-XXX → test plan → test report traceability) is **not** part of
 `.githooks/pre-commit` — checking full requirement traceability on every commit would block
 normal mid-sprint work before all FRs have test-report entries. It runs at sprint end instead,
 via the `sprint-end` entry in `workflow-registry.yaml` (see `templates/sprint-sync.md`).
+
+**Edge Case traceability (Web App / Microservices, opt-in):** `verify_acceptance.py` also
+cross-references `api-contract.md`'s `## Edge Cases` table against `test-plan.md`'s Test Scope —
+same FR-XXX traceability shape, reused for a second table. The ID column ships bracket-wrapped
+(`[EC-001]`) as a placeholder — a project that never replaces those with real, un-bracketed ids
+(e.g. `EC-001`) gets zero issues from this check, not a warning that it's missing something. Once
+you do adopt a real id, reference it from `test-plan.md`'s Requirement column (`FR-003, EC-002`)
+or `verify_acceptance.py` reports it as untested. This closes part of the gap `verify_spec_code.py`
+structurally can't: business rationale documented in prose (a `Design Note`, or *why* an edge case
+matters) can never be schema-checked — see Limitations below — but whether a documented edge case
+has *any* test referencing it at all now can be.
 
 ### Setup (once per project clone)
 
@@ -1066,6 +1114,14 @@ via the `sprint-end` entry in `workflow-registry.yaml` (see `templates/sprint-sy
    ```bash
    cp .githooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
    ```
+   **Alternative** — if your team already manages hooks with the
+   [pre-commit framework](https://pre-commit.com), copy `.pre-commit-config.yaml` into your
+   project instead and run `pip install pre-commit && pre-commit install`. It wires in the exact
+   same `.githooks/pre-commit` script as a single local hook (not a reimplementation — see the
+   file's header comment for why) plus a few generic hygiene hooks
+   (trailing-whitespace, end-of-file-fixer, check-yaml, check-merge-conflict) from
+   [pre-commit/pre-commit-hooks](https://github.com/pre-commit/pre-commit-hooks) as a starting
+   point for the wider ecosystem this unlocks. Pick one install method, not both.
 2. Create `.project-starter.yml` at the project root:
    ```yaml
    project_type: data-pipeline   # your declared type
@@ -1099,7 +1155,8 @@ via the `sprint-end` entry in `workflow-registry.yaml` (see `templates/sprint-sy
 
 The framework writes structured JSON after each validator run and each Claude Code session end,
 giving visibility into which validators fail most and how many orchestrator runs a task requires.
-All telemetry is gitignored and never leaves the local machine. Validator results go to `.ai/telemetry/`; session boundaries and orchestrator runs go to `logs/telemetry/`.
+All telemetry is gitignored. By default it never leaves the local machine — see OTel
+dual-emission below for the opt-in exception. Validator results go to `.ai/telemetry/`; session boundaries and orchestrator runs go to `logs/telemetry/`.
 
 ### What is logged
 
@@ -1149,6 +1206,37 @@ python3 docs/script/validators/verify_content.py --project-type data-pipeline --
 
 The Stop hook (`adapters/claude/stop-hook.sh`) writes to `task-run.json` automatically on
 Claude Code session end. No manual steps required once the hook is installed.
+
+### OTel dual-emission (opt-in)
+
+Every telemetry write point above (`_verify_common._append_telemetry`, used by all `verify_*.py`
+scripts; `orchestrator.py`'s run counter; `.githooks/pre-commit`'s skip-verify record) also emits
+the same event as an [OpenTelemetry](https://opentelemetry.io/) span, for teams that want
+telemetry visible in a real observability backend (Honeycomb, Grafana Tempo, Jaeger, ...) instead
+of only as local JSON files.
+
+**This is dual-write, not a replacement.** The local JSON files above are written exactly as
+before, unconditionally — some of that data is read back synchronously by this same framework
+(`orchestrator.py` reads its own `.orchestrator_runs.json` right after writing it, to compute the
+run count embedded in `task-run.json`), which an external OTel backend cannot serve back to a
+local process the same way a local file can. OTel is additive telemetry for outside observers, not
+a migration of the framework's own internal state.
+
+**Prerequisites:**
+```bash
+pip install opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp-proto-http
+export OTEL_EXPORTER_OTLP_ENDPOINT=https://your-collector:4318
+```
+
+Both installing the packages and setting the environment variable are required — either one
+missing means every emission call is a silent no-op, not an error. This matches the opt-in
+pattern used throughout this README (`spec_code_adapter`, `security_scan_src`,
+`prose_scan_enabled`): telemetry export is off by default and never blocks or slows down a commit
+because a collector happens to be unreachable — confirmed directly: an unreachable collector logs
+nothing and does not raise, even though the underlying OTel SDK's own internal error logging is
+verbose enough on its own (a multi-frame traceback per failed export) that this framework
+explicitly suppresses it (`_otel.py` sets the `opentelemetry` logger to `CRITICAL`) rather than
+let that noise appear on every commit whenever the collector is briefly down.
 
 ---
 
@@ -1206,6 +1294,7 @@ logic is a bug.
 | `flask` | Flask | Web App / Microservices | `api-contract.md` `### METHOD /path` + `#### Request Body` / `#### Response Body` tables | `@app.route('/path', methods=[...])` decorated functions |
 | `express` | Express | Web App / Microservices | `api-contract.md` `### METHOD /path` + `#### Request Body` / `#### Response Body` tables | `router.{method}('/path', ...)` in JS/TS files |
 | `django` | Django REST Framework | Web App / Microservices | `api-contract.md` `### METHOD /path` + `#### Request Body` / `#### Response Body` tables | `@api_view([...])`-decorated functions, correlated with `path()`/`re_path()` entries in `urlpatterns` |
+| `gin` | Gin (Go) | Web App / Microservices | `api-contract.md` `### METHOD /path` + `#### Request Body` / `#### Response Body` tables | `r.{METHOD}("/path", handler)` route registration; request/response fields read from the Go struct bound via `c.ShouldBindJSON(&x)` / passed to `c.JSON(status, x)`, using each struct's `json:"..."` tags — requires `pip install tree-sitter tree-sitter-go` (the only tree-sitter-based detector in this table; every other one is regex-based) |
 | `dagster` | Dagster | Data Pipeline / ML Pipeline | `pipeline-contract.md` `### Stage` + `#### Input/Output Contract \| Schema \|` | `@op` / `@asset`-decorated Python functions |
 | `prefect` | Prefect | Data Pipeline / ML Pipeline | `pipeline-contract.md` `### Stage` + `#### Input/Output Contract \| Schema \|` | `@task` / `@flow`-decorated Python functions |
 | `luigi` | Luigi | Data Pipeline / ML Pipeline | `pipeline-contract.md` `### Stage` + `#### Input Contract \| Schema \|` (no Output Contract — Luigi's `output()` names a file target, not a data schema) | `class Stage(luigi.Task):` with `luigi.Parameter()`-typed class attributes |
@@ -1508,6 +1597,172 @@ python3 docs/script/validators/verify_spec_code.py \
 
 ---
 
+## Beyond static comparison: runtime contract testing
+
+The Limitations section above is explicit that `verify_spec_code.py` only compares two things
+that already exist as *text* — it never executes anything, so it cannot tell you whether the
+running service actually honors its declared contract, only whether the spec document and the
+source code use matching field names and types. For teams that want that stronger guarantee —
+consumer-driven contract testing, or fuzzing a live endpoint against its schema — that's a
+different category of tool, and this framework does not build or ship one:
+
+- **[Pact](https://docs.pact.io/)** — consumer-driven contract testing. A consumer records the
+  requests/responses it expects; a "pact broker" verifies the provider's real, running
+  implementation actually satisfies every recorded interaction. Fits naturally at the
+  `microservices` project type, where `service-contract.md` already documents per-service
+  expectations — a Pact contract is a machine-checked, runtime-verified version of that same
+  information, not a replacement for the document.
+- **[Schemathesis](https://schemathesis.readthedocs.io/)** — property-based fuzzing against a
+  running OpenAPI/GraphQL endpoint: generates inputs from the schema itself and checks the live
+  server's responses actually conform to it. Fits at `web-app` / `microservices`, complementing
+  `api-contract.md` + the `fastapi`/`flask`/`express`/`django`/`gin` spec↔code adapters.
+
+**Bridging the gap: `generate_openapi.py`.** Schemathesis needs a real OpenAPI document, and
+`api-contract.md` is narrative markdown, not a machine schema — those are different formats, not
+different content. `templates/script/generators/generate_openapi.py` reuses
+`WebAPIAdapter.extract_spec()` (the exact same parser `verify_spec_code.py` already uses to
+compare the spec against code) and serializes the resulting `NormalizedEndpoint` list into
+`openapi.yaml`, in the other direction:
+
+```bash
+python3 templates/script/generators/generate_openapi.py \
+    --spec docs/specs/api-contract.md --output openapi.yaml --title "My API"
+```
+
+`openapi.yaml` is a **generated artifact** — regenerate it after every `api-contract.md` change,
+same lifecycle as `.ai/AI_CONTEXT.md`; don't hand-edit it, add it to `.gitignore`. This does not
+touch what `api-contract.md` holds that has no schema field to go in — `Design Note`s, the Edge
+Cases table, Non-Functional Requirements, the WebSocket/GraphQL/gRPC sections all stay exactly
+where they are, because none of that content is part of what `extract_spec()` reads into a
+`NormalizedEndpoint` in the first place. Scope limits (status codes inferred from HTTP method,
+nested response envelopes like a paginated list can't be expressed in the flat field model) are
+documented in the script's own docstring.
+
+**Heading format matters for both this script and `verify_spec_code.py`:** `extract_spec()` only
+recognizes `### METHOD /path` (level 3, no backticks) for each endpoint, and `#### Request Body` /
+`#### Response Body` (level 4, exact text) for field tables — anything else yields zero parsed
+endpoints or fields, silently. The shipped `api-contract.md` template follows this format for
+exactly this reason (see the template's own `<!-- -->` comment above its `## Endpoints` section).
+
+**Why this isn't a `verify_*.py` script:** every existing validator in this framework runs against
+files on disk — no network calls, no running process, no test environment to stand up. Pact and
+Schemathesis fundamentally need a live service to test against, which this repo (a template with
+no real project content — see the top of this README) has no way to provide or assume. Wiring
+either one in is a per-project decision, not something a template can pre-build:
+
+1. Stand up Pact (`pip install pact-python` for the consumer/provider verification pieces, or a
+   Pact Broker) or Schemathesis (`pip install schemathesis`) against your project's actual test
+   environment, following their own setup docs linked above.
+2. Run it from CI or a dedicated `test_command`-style step (see `.project-starter.yml` →
+   `test_command`) — not from `.githooks/pre-commit`, since these need a running service and
+   pre-commit hooks should stay fast and offline.
+3. Reference the contract test suite from `docs/specs/test-plan.md` (`## Testing Strategy`, the
+   `Contract` test level already listed for `microservices`/`data-pipeline`/`ml-pipeline` in
+   `verify_acceptance.py`'s `REQUIRED_TEST_LEVELS`) so it shows up in the same traceability chain
+   `verify_acceptance.py` already checks (FR-XXX → test-plan scope → test-report ✅ Pass) — this
+   framework can validate that a contract-test *level* is declared and reported on, it just can't
+   run the tests themselves.
+
+---
+
+## Security Scan (SAST)
+
+`verify_security.py` wraps existing static-analysis security tools — [bandit](https://bandit.readthedocs.io/)
+for Python, [eslint-plugin-security](https://github.com/eslint-community/eslint-plugin-security) for
+JS/TS, and [Semgrep](https://semgrep.dev/) for Go / Ruby / Java / PHP / Kotlin / Vue — and reports
+findings in the same style as the other validators. It is independent of the Spec ↔ Code Validator
+above: no spec input, just known-unsafe-pattern detection (`eval`, `shell=True`, unsafe regex,
+object injection, hardcoded secrets, etc.) in whatever code sits under `--src`.
+
+Semgrep only scans the languages bandit/eslint don't parse — exactly the language gap the Spec ↔
+Code Validator's Limitations section names as having zero automated drift detection (Rails, Spring
+Boot, Kotlin/Android, Vue, Go, PHP). It is never run against Python/JS/TS files, so a file is never
+scanned by two tools and reported twice under different check IDs.
+
+**Prerequisites (only for the languages actually present in `--src`):**
+```bash
+pip install bandit                                    # Python
+npm install --save-dev eslint eslint-plugin-security   # JS/TS
+pip install semgrep                                    # Go / Ruby / Java / PHP / Kotlin / Vue
+```
+
+**Usage:**
+```bash
+python3 docs/script/validators/verify_security.py --src src/ --strict
+python3 docs/script/validators/verify_security.py --src src/ --json
+python3 docs/script/validators/verify_security.py --src src/ --min-severity high --strict
+python3 docs/script/validators/verify_security.py --list-tools
+```
+
+`--min-severity` (default `medium`) sets the threshold that counts toward `--strict`; findings
+below it are still listed, just not blocking.
+
+**Wiring it into pre-commit:** set `security_scan_src` in `.project-starter.yml` (usually the same
+path as `spec_code_src`, if that's already set) — off by default, matching `spec_code_adapter`'s
+opt-in pattern. When set, the pre-commit hook runs the scan on any commit touching files under
+that path. When unset, the hook prints a non-blocking `[TIP]` if `spec_code_src` is already
+configured, since a src path is already known at that point.
+
+**Coverage-gap warning:** if `--src` contains Python or JS/TS files but the matching tool isn't
+installed, the report prints an explicit `[WARN]` naming the missing tool instead of silently
+reporting a clean scan — the same "don't let an unscanned language look like a pass" concern as
+the Spec ↔ Code Validator's zero-coverage warning above.
+
+**Scope:** this catches only what bandit's, eslint-plugin-security's, and Semgrep's `auto` rule
+sets catch, in Python, JS/TS/React, Go, Ruby, Java, PHP, Kotlin, and Vue code — not a general
+security audit, and not a substitute for a real SAST/DAST pipeline or manual review on anything
+security-critical. See Limitations below.
+
+---
+
+## Prose Quality (Vale)
+
+`verify_prose.py` wraps [Vale](https://vale.sh) with a small custom style shipped in
+`templates/script/validators/_prose_style/` and reports findings in the same style as the other
+validators. It is independent of `verify_docs.py` / `verify_content.py` above — those check *fill
+quality* (is a section a placeholder, does a table have real rows), not writing quality. A sentence
+like "This is obviously very simple to set up" passes every existing structural check exactly as
+well as a sentence that actually explains something; a bare `TBD` or `coming soon` written as
+prose (not `[TBD]` or `<!-- TODO -->`) passes `_verify_common.py`'s placeholder regex entirely.
+This is the layer above that.
+
+**Custom rules shipped** (`_prose_style/styles/Custom/*.yml` — extend this, don't hand-edit
+generated output):
+- `WeaselWords` — vague qualifiers (`very`, `obviously`, `simply`, `just`, `basically`, ...)
+- `NaturalLanguagePlaceholders` — `TODO` / `FIXME` / `TBD` / `coming soon` / `to be determined`
+  written as plain prose
+
+No `vale sync` and no external style package (Google/Microsoft/write-good) — self-contained on
+purpose, consistent with this framework's offline-friendly design elsewhere.
+
+**Prerequisites:** install Vale — see [vale.sh/docs/install](https://vale.sh/docs/install)
+(Homebrew / Scoop / a prebuilt binary from GitHub releases; not a pip/npm package).
+
+**Usage:**
+```bash
+python3 docs/script/validators/verify_prose.py --docs docs/ --strict
+python3 docs/script/validators/verify_prose.py --docs docs/ --json
+python3 docs/script/validators/verify_prose.py --docs docs/ --min-severity high --strict
+python3 docs/script/validators/verify_prose.py --list-tools
+```
+
+**Wiring it into pre-commit:** set `prose_scan_enabled: true` in `.project-starter.yml` — off by
+default, matching `spec_code_adapter`'s and `security_scan_src`'s opt-in pattern. No separate path
+setting needed (it scans `docs_path`, which is always set). When set, the pre-commit hook runs on
+any commit touching a `.md` file under `docs_path`. When unset, the hook prints a non-blocking
+`[TIP]` the first time a `.md` file under `docs_path` is staged.
+
+Also wired into the `sprint-end` sequence in `workflow-registry.yaml` (not every task type — this
+is a prose-quality convergence check, not a per-commit gate the way pre-commit's own `.md`-staged
+trigger is).
+
+**Scope:** three narrow custom rules, not a general writing-quality grader — no grammar checking,
+no style-guide enforcement (no Chicago/AP/house-style rules), no glossary-driven terminology
+consistency (a natural extension — generating a Vale rule from `docs/glossary.md`'s defined terms
+— was considered but not built; would need per-project generation, not a static shipped rule).
+
+---
+
 ## Limitations
 
 This is a documentation-completeness and drift-detection framework, not a spec-compiler. Read
@@ -1568,6 +1823,23 @@ check exactly as well as a correct one.
 `.project-starter.yml` at a time. A project validating more than one contract (multiple services,
 multiple libraries) needs additional manual or CI-driven `verify_spec_code.py` invocations for the
 rest — see the per-adapter commands under [Usage](#usage) above.
+
+**The security scan is opt-in too, and its coverage is narrow.** `security_scan_src` is unset by
+default — same invisible-until-you-turn-it-on shape as `spec_code_adapter`, mitigated the same
+way (a non-blocking `[TIP]` once `spec_code_src` is already configured). What it checks is limited
+to bandit's, eslint-plugin-security's, and Semgrep's own rule sets — known-unsafe *patterns*, not
+business logic, auth flows, or anything requiring cross-file reasoning. Language coverage is wider
+than the `logging` capability's Python/JS-TS-React (Semgrep adds Go, Ruby, Java, PHP, Kotlin, Vue),
+but still not universal — Rust, C/C++, Elixir, and anything else outside that list has no SAST
+coverage here either. It is a useful first pass, not a replacement for a real SAST/DAST pipeline or
+manual security review.
+
+**The prose scan checks three narrow rules, nothing close to real writing quality.** `WeaselWords`
+and `NaturalLanguagePlaceholders` catch specific word/phrase patterns — they cannot tell a
+genuinely clear explanation from a confusing one that happens to avoid "obviously" and "TBD".
+There is no grammar checking, no glossary-driven terminology consistency (glossary.md is not read
+by this validator today — see Prose Quality (Vale) above), and no house-style enforcement. Also
+opt-in and unset by default, same shape as the other two gates above.
 
 ---
 

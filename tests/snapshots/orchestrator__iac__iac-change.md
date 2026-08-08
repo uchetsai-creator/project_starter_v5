@@ -12,6 +12,7 @@ Generated: {{TIMESTAMP}}
 2. `python3 docs/script/validators/verify_docs.py --project-type iac --content`
 3. `python3 docs/script/validators/verify_content.py --project-type iac --strict`
 4. `python3 docs/script/validators/verify_spec_code.py --project-type iac --strict`
+5. `python3 docs/script/validators/verify_security.py --project-type iac --strict`
 
 ## Closeout
 - Follow Closeout section in `docs/current-state.md`

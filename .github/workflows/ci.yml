@@ -47,6 +47,51 @@ jobs:
         # entire run, not just that one file.
         run: pip install -r requirements-dev.txt
 
+      # ── Optional tools verify_security.py / verify_prose.py / generate_openapi.py /
+      #    _otel.py wrap — deliberately NOT in requirements.txt (see README.md: these are
+      #    opt-in, not framework dependencies). Without installing them here, every test
+      #    that exercises the real tool (not the mocked JSON-parsing unit tests) silently
+      #    skips instead of running — installing them is what turns "the mock parses this
+      #    shape correctly" into "the real tool integration actually works," which is how
+      #    two real bugs were caught during development: bare 'eslint' failing via
+      #    subprocess on Windows (npm ships .cmd/.ps1 shims, not a .exe — see
+      #    verify_security.py's _run_eslint() docstring), and the original eslint config
+      #    assuming the legacy .eslintrc system ESLint 9+ removed. Neither would have been
+      #    caught by the mocked tests alone.
+      - name: Install bandit, semgrep, tree-sitter, opentelemetry (pip)
+        run: pip install bandit semgrep tree-sitter tree-sitter-go opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp-proto-http
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install eslint + eslint-plugin-security (npm)
+        # Installed at the repo root (not a subdirectory) — required for
+        # require('eslint-plugin-security') to resolve from verify_security.py's
+        # generated eslint.config.cjs; see _run_eslint()'s docstring for why location
+        # matters here specifically (Node's module resolution walks up from the config
+        # file's own directory, not from wherever eslint itself happens to be installed).
+        run: npm install --no-save eslint eslint-plugin-security
+
+      - name: Install Vale (prose scan) — Linux
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          VALE_VERSION="3.9.5"
+          curl -sL -o vale.tar.gz "https://github.com/errata-ai/vale/releases/download/v${VALE_VERSION}/vale_${VALE_VERSION}_Linux_64-bit.tar.gz"
+          mkdir -p vale-bin
+          tar -xzf vale.tar.gz -C vale-bin
+          echo "$(pwd)/vale-bin" >> "$GITHUB_PATH"
+
+      - name: Install Vale (prose scan) — Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ValeVersion = "3.9.5"
+          Invoke-WebRequest -Uri "https://github.com/errata-ai/vale/releases/download/v$ValeVersion/vale_${ValeVersion}_Windows_64-bit.zip" -OutFile vale.zip
+          Expand-Archive -Path vale.zip -DestinationPath vale-bin -Force
+          Add-Content -Path $env:GITHUB_PATH -Value "$pwd\vale-bin"
+
       - name: Run test suite
         run: python -m pytest tests/ -q
 

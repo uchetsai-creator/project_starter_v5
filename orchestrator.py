@@ -139,6 +139,9 @@ def _build_workflow(project_root: Path, task_type_override: str | None = None) -
     if sc_adapter and sc_spec and sc_src:
         spec_code = {"adapter": sc_adapter, "spec": sc_spec, "src": sc_src}
 
+    security_scan_src = cfg.get("security_scan_src") or None
+    prose_scan_enabled = cfg.get("prose_scan_enabled") is True
+
     return {
         "project_type": project_type_str,
         "task_type": task_type,
@@ -146,6 +149,8 @@ def _build_workflow(project_root: Path, task_type_override: str | None = None) -
         "validators": validators,
         "docs_path": docs_path,
         "spec_code": spec_code,
+        "security_scan_src": security_scan_src,
+        "prose_scan_enabled": prose_scan_enabled,
     }
 
 
@@ -168,6 +173,7 @@ def _render(ctx: dict) -> str:
     ]
 
     spec_code = ctx.get("spec_code")
+    security_scan_src = ctx.get("security_scan_src")
 
     if ctx["validators"]:
         for i, v in enumerate(ctx["validators"], start=1):
@@ -181,6 +187,10 @@ def _render(ctx: dict) -> str:
                 parts.append(f"--project-type {pt}")
             if spec_code and script.endswith("verify_spec_code.py"):
                 parts.append(f"--adapter {spec_code['adapter']} --spec {spec_code['spec']} --src {spec_code['src']}")
+            if security_scan_src and script.endswith("verify_security.py"):
+                parts.append(f"--src {security_scan_src}")
+            if ctx.get("prose_scan_enabled") and script.endswith("verify_prose.py"):
+                parts.append(f"--docs {ctx['docs_path']}")
             parts += extra_args
             lines.append(f"{i}. `{' '.join(parts)}`")
     else:
@@ -208,6 +218,22 @@ def _track_orchestrator_run(project_root: Path, task_name: str) -> None:
     else:
         state = {"task": task_name, "runs": 1}
     state_file.write_text(json.dumps(state), encoding="utf-8")
+
+    # Optional OTel dual-emission (see _otel.py's docstring) — no-ops unconditionally
+    # unless opentelemetry-* is installed and OTEL_EXPORTER_OTLP_ENDPOINT is set. _otel.py
+    # lives in docs/script/validators/ in a deployed project, templates/script/validators/
+    # in this framework repo's own copy — try both, matching wherever this orchestrator.py
+    # actually is (a plain sibling-file import won't reach either).
+    try:
+        for _candidate in ("docs/script/validators", "templates/script/validators"):
+            _dir = project_root / _candidate
+            if _dir.is_dir():
+                sys.path.insert(0, str(_dir))
+                break
+        from _otel import emit as _otel_emit  # noqa: PLC0415
+        _otel_emit("orchestrator", state)
+    except ImportError:
+        pass
 
 
 def _render_adapter_file(template_text: str, workflow_content: str) -> str:

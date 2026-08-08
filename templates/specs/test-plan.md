@@ -52,6 +52,11 @@ Six test levels — include only the levels that apply to your project type (see
 |---|---|---|---|
 | [e.g., Auth] | FR-001, FR-003 | Unit, Component, Integration | [e.g., focus on token validation and expiry] |
 | [Module] | [FR-XXX] | [Levels] | [Notes] |
+<!-- Web App / Microservices only: also list any api-contract.md Edge Cases (EC-XXX) this
+     module's tests cover, e.g. "FR-001, EC-003" — verify_acceptance.py cross-references
+     these the same way it does FR-XXX, but only once api-contract.md actually has EC-XXX
+     IDs filled in. -->
+| [Module] | [FR-XXX, EC-XXX] | [Levels] | [Notes] |
 
 ### Out of Scope
 

@@ -16,6 +16,10 @@ Requirement cross-reference (Phase 86):
 Type-specific extensions (no web bias):
   data-pipeline, ml-pipeline  — Contract Tests section must have real results
   llm-app                     — eval-log.md latest entry must show ✅ pass
+  web-app, microservices      — every adopted EC-XXX id in api-contract.md's Edge Cases
+                                 table must be referenced in test-plan.md's In Scope
+                                 (opt-in — the template ships EC ids bracketed as
+                                 placeholders; only un-bracketed, adopted ids are checked)
 
 Usage:
   python3 docs/script/validators/verify_acceptance.py --project-type TYPE
@@ -57,10 +61,14 @@ REQUIRED_TEST_LEVELS: dict[str, list[str]] = {
 
 PIPELINE_TYPES = {'data-pipeline', 'ml-pipeline'}
 LLM_TYPES = {'llm-app'}
+API_CONTRACT_TYPES = {'web-app', 'microservices'}
 
 _FR_LINE = re.compile(r'\*\*FR-([A-Z0-9]+)\*\*')
 _AC_LINE = re.compile(r'\*\*AC-\d+\*\*')
 _FR_REF = re.compile(r'\bFR-([A-Z0-9]+)\b')
+# Negative lookaround excludes the bracketed placeholder form ([EC-001]) shipped in the
+# template — only a real, un-bracketed EC-XXX (adopted by replacing the placeholder) counts.
+_EC_REF = re.compile(r'(?<!\[)\bEC-([A-Z0-9]+)\b(?!\])')
 _PLACEHOLDER_ROW = re.compile(
     r'\[e\.g\.,|\[N\]|\[Module\]|\[Feature\]|\[Stage\]|\[Source|\[Command|\[Service|\[FR-',
     re.IGNORECASE,
@@ -313,6 +321,72 @@ def check_llm_eval(docs_path: str) -> list[str]:
     return issues
 
 
+def check_edge_case_traceability(docs_path: str) -> list[str]:
+    """Web App / Microservices: every EC-XXX id adopted in api-contract.md's Edge Cases
+    table (real ids only — the bracketed [EC-001] placeholder form the template ships
+    with does not count, see _EC_REF) must be referenced in test-plan.md's Test Scope ->
+    In Scope. Same traceability shape as check_test_plan()'s FR-XXX cross-reference,
+    reused for a second table.
+
+    Fully opt-in: a project that never adopts real EC-XXX ids (the common case — the
+    template ships with the id column bracketed) gets zero issues from this check, not a
+    warning that it's missing something. It only starts checking once a project starts
+    using the convention itself.
+    """
+    issues: list[str] = []
+
+    api_path = os.path.join(docs_path, 'specs', 'api-contract.md')
+    api_lines = _read_file(api_path)
+    if not api_lines:
+        return issues
+
+    ec_body = _section_body(api_lines, '## Edge Cases')
+    if not ec_body:
+        return issues
+
+    # Table rows only — not the whole section body, which also contains the template's
+    # own instructional HTML comment. That comment explains the EC-XXX convention using
+    # unbracketed example ids in prose, which would otherwise self-match here.
+    ec_ids: set[str] = set()
+    for line in ec_body:
+        if not line.strip().startswith('|'):
+            continue
+        for m in _EC_REF.finditer(line):
+            ec_ids.add(m.group(1))
+    if not ec_ids:
+        return issues
+
+    plan_path = os.path.join(docs_path, 'specs', 'test-plan.md')
+    plan_lines = _read_file(plan_path)
+    if not plan_lines:
+        issues.append(
+            'specs/test-plan.md not found or empty, but api-contract.md declares '
+            f'{len(ec_ids)} Edge Case id(s) (EC-XXX) — cannot verify coverage'
+        )
+        return issues
+
+    scope_body = _section_body(plan_lines, '### In Scope')
+    if not scope_body:
+        scope_body = _section_body(plan_lines, '## Test Scope')
+
+    covered: set[str] = set()
+    if scope_body:
+        for line in scope_body:
+            if not line.strip().startswith('|'):
+                continue
+            for m in _EC_REF.finditer(line):
+                covered.add(m.group(1))
+
+    for eid in sorted(ec_ids):
+        if eid not in covered:
+            issues.append(
+                f'api-contract.md: Edge Case EC-{eid} has no test coverage referenced in '
+                f'test-plan.md (add "EC-{eid}" to the Requirement column of Test Scope -> In Scope)'
+            )
+
+    return issues
+
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -340,6 +414,8 @@ def run_audit(project_types: list[str], docs_path: str) -> dict:
             all_issues += check_pipeline_contracts(docs_path)
         if pt in LLM_TYPES:
             all_issues += check_llm_eval(docs_path)
+        if pt in API_CONTRACT_TYPES:
+            all_issues += check_edge_case_traceability(docs_path)
 
     # Deduplicate while preserving order
     seen: set[str] = set()

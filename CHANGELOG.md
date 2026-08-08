@@ -12,6 +12,180 @@ All notable changes to this framework are documented here. Format loosely follow
 
 ---
 
+## [Unreleased]
+
+### Added
+- `verify_security.py`: SAST wrapper running bandit (Python) and eslint-plugin-security (JS/TS)
+  against `--src`, reported in the same style as the other validators. Independent of
+  `verify_spec_code.py` — no spec input, just known-unsafe-pattern detection. Opt-in via
+  `security_scan_src` in `.project-starter.yml`, wired into `.githooks/pre-commit` and the
+  `feature` / `pipeline-stage` / `bug-fix` / `eval-run` / `iac-change` sequences in
+  `workflow-registry.yaml`, following the same opt-in pattern as `spec_code_adapter` — including
+  the same non-blocking `[TIP]` mitigation (shown once `spec_code_src` is already configured, since
+  a src path is already known at that point). A language with no matching tool installed is
+  reported as an explicit `[WARN]`, not a silent clean pass — same philosophy as
+  `verify_spec_code.py`'s zero-coverage warning. See README.md → Security Scan (SAST).
+- `docs/current-state.md` → Current Task now has a `Clarifying Questions Asked` field (`Y` /
+  `N/A`). Previously, whether the agent actually asked scope/edge-case/acceptance-criteria
+  questions before implementing a new requirement (AGENTS.md → New requirement from the user /
+  Learning Checkpoint B) was conversation-only — no file recorded whether it happened, so a
+  compliant and a non-compliant session produced identical `current-state.md` output. Pre-commit
+  now blocks a commit that sets a real (non-placeholder) `Task` while leaving this field unfilled.
+- `PROJECT_STARTER_SKIP_VERIFY` now appends a row (`ts`, `staged_files`) to
+  `logs/telemetry/skip-verify.json` every time it's used, in addition to the existing loud
+  `[SKIP]` terminal line. Doesn't make the escape hatch any harder to use — it's still a full
+  bypass of every pre-commit gate, including the new Clarifying Questions Asked guard above —
+  but how often a project reaches for it is now auditable after the fact instead of only visible
+  in the terminal at the moment it happened.
+- AGENTS.md → Constitution gained an eighth item, "Unscoped New Requirement" — a compressed
+  pointer to the existing "New requirement from the user" rule (ask scope/edge-cases/acceptance-
+  criteria before implementing). The full rule already existed further down the file; this only
+  changes its priority framing, promoting it to the same "stop and ask instead of bending it"
+  tier as the other seven Constitution items, since a rule's position in AGENTS.md affects how
+  reliably an agent actually applies it. Not a technical gate — AGENTS.md compliance is always
+  prompt-driven, never enforced — see the Clarifying Questions Asked pre-commit guard above for
+  the mechanical backstop. AGENTS.md is now 190/200 lines.
+- `verify_security.py` gained a third tool, [Semgrep](https://semgrep.dev/), scoped to exactly
+  the languages bandit/eslint-plugin-security don't parse (Go, Ruby, Java, PHP, Kotlin, Vue) — the
+  same language gap `verify_spec_code.py`'s Limitations section names as having zero drift
+  detector coverage. Semgrep is never run against Python/JS/TS files, so no file is scanned twice
+  and double-reported under two different check-ID vocabularies. Requires `pip install semgrep`;
+  same graceful [WARN]-not-silent-pass treatment as the other two tools when missing.
+- New `gin` spec↔code adapter (`_spec_code_adapters/gin.py`) for Go / Gin, registered in
+  `verify_spec_code.py`'s `ADAPTER_REGISTRY` and `_capability_web_api.py`. Unlike every other
+  detector in this directory (all regex-based, see `express.py`), this one uses
+  [tree-sitter](https://tree-sitter.github.io/) + `tree-sitter-go` — justified specifically by Go
+  struct field declarations with `json:"..."` tags, which are multi-line and awkward for regex to
+  parse reliably; route registration (`r.GET("/path", handler)`) alone would not have justified a
+  new dependency. Requires `pip install tree-sitter tree-sitter-go`; extracts request/response
+  fields from `c.ShouldBindJSON(&x)` / `c.JSON(status, x)` handler bodies. Known scope limits are
+  documented in the module docstring (no cross-function value tracing, `json:"-"` fields excluded,
+  untagged fields fall back to the Go field name).
+- New Claude Code `SessionStart` hook (`adapters/claude/session-start-hook.sh`, wired in
+  `.claude/settings.json`) — the mechanical follow-through on the Constitution's "Unscoped New
+  Requirement" item: re-checks `docs/current-state.md`'s scoping state fresh at the start of every
+  session and injects a reminder via `hookSpecificOutput.additionalContext` if the Current Task is
+  still a placeholder, or is real but `Clarifying Questions Asked` is unfilled. Addresses a gap
+  observed directly in this session: `CLAUDE.md`'s `@AGENTS.md` auto-load did not visibly fire the
+  same way in every directory tested, so a rule buried in AGENTS.md text isn't guaranteed to be in
+  context every session regardless of its position in the file. Non-blocking — always exits 0; the
+  actual gate remains the Clarifying Questions Asked pre-commit check above.
+- `verify_prose.py`: new prose-quality wrapper around [Vale](https://vale.sh), using a small
+  self-contained custom style (`_prose_style/` — no `vale sync`, no external style package)
+  shipping two rules: `WeaselWords` (vague qualifiers) and `NaturalLanguagePlaceholders` (`TBD` /
+  `coming soon` / `TODO` written as prose, not the bracket/comment forms
+  `_verify_common.py`'s placeholder regex already catches). Independent of `verify_docs.py` /
+  `verify_content.py` — those check fill quality, this checks writing quality on top of that.
+  Opt-in via `prose_scan_enabled: true` in `.project-starter.yml` (no separate path needed, reuses
+  `docs_path`); wired into `.githooks/pre-commit` and the `sprint-end` sequence in
+  `workflow-registry.yaml`. Same opt-in/`[TIP]`/graceful-missing-tool pattern as the other two SAST
+  gates above.
+- New `.pre-commit-config.yaml` — optional alternative to `cp .githooks/pre-commit
+  .git/hooks/pre-commit` for teams already using the [pre-commit](https://pre-commit.com)
+  framework. Wraps `.githooks/pre-commit` as a single `repo: local` hook rather than
+  reimplementing its checks in YAML — that script reads `project_type` / `docs_path` /
+  `spec_code_*` / `security_scan_src` / `prose_scan_enabled` dynamically from
+  `.project-starter.yml` at runtime, and duplicating that logic as static pre-commit-framework
+  entries would mean maintaining two copies that could drift apart. Also includes a few generic
+  hooks from `pre-commit/pre-commit-hooks` (trailing-whitespace, end-of-file-fixer, check-yaml,
+  check-merge-conflict) as a starting point for the wider ecosystem this unlocks. Verified against
+  the real `pre-commit` CLI, both a passing run and a run correctly blocked by an existing
+  `.githooks/pre-commit` check (placeholder `project_type`).
+- `verify_acceptance.py` gained Edge Case traceability (`check_edge_case_traceability()`) for
+  Web App / Microservices — reuses the existing FR-XXX cross-reference shape for
+  `api-contract.md`'s `## Edge Cases` table. Added an ID column to the `api-contract.md`
+  template, shipped bracket-wrapped (`[EC-001]`) so it's opt-in: a project that never adopts
+  real ids gets zero issues. Caught and fixed a real false-positive during development — the
+  template's own instructional `<!-- -->` comment used unbracketed example ids in prose
+  (e.g. "EC-002"), which the extraction regex initially picked up as real declared ids;
+  fixed by restricting extraction to table rows only, with a regression test locking it in.
+- New `templates/script/generators/generate_openapi.py` — generates `openapi.yaml` from
+  `api-contract.md` by reusing `WebAPIAdapter.extract_spec()` (the exact same parser
+  `verify_spec_code.py` already uses), instead of replacing the narrative markdown spec with a
+  machine schema. `api-contract.md` stays the authored source of truth; `openapi.yaml` is a
+  regenerated derived artifact, feeding tooling like oasdiff / Schemathesis (see "Beyond static
+  comparison" below) without api-contract.md's Design Notes, Edge Cases, NFRs, or
+  WebSocket/GraphQL/gRPC sections ever needing schema fields that don't exist for them.
+- **Bug fix, found and fixed while building the above:** the shipped `api-contract.md` template
+  used a heading format (`## \`METHOD /path\``, level 2 + backticks) that
+  `WebAPIAdapter.extract_spec()` cannot parse at all — it requires `### METHOD /path` (level 3, no
+  backticks), confirmed against `examples/microservices-web-app/docs/specs/api-contract.md`, which
+  already used the working format. This meant `verify_spec_code.py`'s own field-level drift
+  detection for `fastapi`/`flask`/`express`/`django`/`gin` has been silently returning zero parsed
+  spec endpoints for any project that filled in the template's per-endpoint headings as shipped,
+  since before this template existed in its current form — not a regression introduced this
+  release, a latent bug this generator's own testing surfaced. A second, related issue: `**Validation
+  Rules:**` / `**Errors:**` used bold text instead of `#### ` headings, so `_parse_field_table()`'s
+  "read until next `#### ` heading" boundary had nothing to stop at and pulled those tables' rows in
+  as if they were request/response fields. Both fixed in the template, with regression tests in
+  `tests/unit/test_generate_openapi.py` asserting the shipped template now parses to exactly 5
+  endpoints with clean (non-bled) field sets.
+- New `templates/script/validators/_otel.py` — optional OpenTelemetry dual-emission for all
+  telemetry write points (`_verify_common._append_telemetry`, `orchestrator.py`'s run counter,
+  `.githooks/pre-commit`'s skip-verify record). Dual-write, not a migration: local JSON telemetry
+  is written exactly as before, unconditionally — `orchestrator.py` reads its own
+  `.orchestrator_runs.json` back synchronously right after writing it, which an external OTel
+  backend cannot serve to a local process the same way. No-ops unless both
+  `opentelemetry-api`/`-sdk`/`-exporter-otlp-proto-http` are installed AND
+  `OTEL_EXPORTER_OTLP_ENDPOINT` is set. Verified against a real (unreachable) collector: the
+  underlying OTel SDK logs a multi-frame traceback per failed export by default — confirmed this
+  is unacceptable noise for an optional, off-by-default feature, so `_otel.py` explicitly
+  suppresses the `opentelemetry` logger; re-verified silent afterward with a regression test.
+- `.github/workflows/ci.yml` now installs every optional tool `verify_security.py` /
+  `verify_prose.py` / `_otel.py` wrap (bandit, semgrep, tree-sitter/tree-sitter-go, eslint +
+  eslint-plugin-security via `actions/setup-node`, Vale via direct GitHub-release download —
+  OS-specific steps for Linux/Windows, exact asset filenames confirmed against the release API
+  rather than guessed — and the opentelemetry packages). Previously these were absent from CI
+  entirely, so every test exercising a real tool (as opposed to the mocked JSON-parsing unit
+  tests) silently skipped there, forever — CI provided a materially weaker guarantee than what
+  had actually been verified manually during development.
+- **Two more real bugs found while making the above actually true, not just configured:**
+  neither bandit nor eslint had ever been run for real end-to-end before this fix (only semgrep,
+  tree-sitter, Vale, and OTel had). Installing and actually running them surfaced:
+  1. `subprocess.run(['eslint', ...])` (bare command name, no `shell=True`) fails on Windows
+     with `FileNotFoundError` — npm installs eslint as `.cmd`/`.ps1` shims, not a native `.exe`,
+     and Windows `CreateProcess` cannot resolve those without going through a shell. Fixed by
+     passing the fully-resolved path from `_which()` instead of a hardcoded bare name — applied
+     to `_run_bandit()` and `_run_semgrep()` too for consistency, even though their pip-packaged
+     `.exe` files happened not to need it.
+  2. The original eslint integration generated a legacy `.eslintrc.json`-style config
+     (`--no-eslintrc -c <path>`) — ESLint 9+ (what a fresh `npm install eslint` gets today)
+     removed that entire system in favor of flat config (`eslint.config.cjs`), so every real
+     eslint invocation failed with `Invalid option '--eslintrc'`. Rewritten to generate a flat
+     config using `eslint-plugin-security`'s own `configs.recommended` export. This surfaced a
+     third, related detail: the generated config must be written inside the project directory
+     tree (this framework already assumes cwd == project root everywhere else), not an OS temp
+     directory — Node's `require('eslint-plugin-security')` resolution walks up from the config
+     file's own location looking for `node_modules/`, so a config file living outside the
+     project's directory tree can never find the plugin no matter how it was installed.
+  New real-tool regression tests in `tests/unit/test_verify_security_e2e.py` lock in all three
+  fixes (skipped, not failed, when bandit/eslint aren't installed locally).
+- All 9 `templates/init/<type>.md` walkthroughs now mention `security_scan_src` and
+  `prose_scan_enabled` in their `.project-starter.yml` snippet, matching the exact comment
+  pattern already used there for `spec_code_adapter` — previously only that one opt-in gate was
+  surfaced during initial setup; the two newer ones were only documented in the full README, so
+  someone following an init file step-by-step would never learn they exist. `web-app.md` and
+  `microservices.md` also gained a pointer to `generate_openapi.py`.
+- `.gitignore` gained three entries generated during this work: `node_modules/` (from
+  `npm install --no-save eslint eslint-plugin-security`, no `package.json` is committed so this
+  is always throwaway), `.eslint-security-*.config.cjs` (verify_security.py's throwaway eslint
+  config — a safety net for the rare case a run is killed before its own cleanup runs), and a
+  commented-out `# openapi.yaml` suggestion (not enabled by default — some projects deliberately
+  commit their generated OpenAPI file for client codegen or doc hosting).
+
+### Documented (no new script)
+- README.md → new "Beyond static comparison: runtime contract testing" section pointing at
+  [Pact](https://docs.pact.io/) and [Schemathesis](https://schemathesis.readthedocs.io/) for
+  consumer-driven contract testing / live-endpoint fuzzing. Deliberately not a `verify_*.py`
+  script: every existing validator runs against files on disk with no network calls and no
+  running process, and this repo — a template with no real project content — has no live service
+  to point either tool at. Documents where each fits (`microservices` / `web-app`), prerequisites,
+  and how to reference the resulting contract-test suite from `test-plan.md`'s `Contract` test
+  level so it stays inside `verify_acceptance.py`'s existing traceability chain even though this
+  framework can't run the tests itself.
+
+---
+
 ## [0.2.0] — 2026-08-09
 
 ### Added

@@ -14,6 +14,17 @@
           }
         ]
       }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash adapters/claude/session-start-hook.sh 2>/dev/null || true"
+          }
+        ]
+      }
     ]
   }
 }

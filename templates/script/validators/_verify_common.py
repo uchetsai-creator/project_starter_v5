@@ -115,6 +115,15 @@ def _append_telemetry(
     rows.append(entry)
     telemetry_file.write_text(json.dumps(rows, indent=2))
 
+    # Optional OTel dual-emission — see _otel.py's docstring. No-ops unconditionally
+    # unless both opentelemetry-* is installed AND OTEL_EXPORTER_OTLP_ENDPOINT is set;
+    # the local JSON write above is unaffected either way.
+    try:
+        from _otel import emit as _otel_emit  # noqa: PLC0415
+        _otel_emit(entry.get('script', 'verify'), entry)
+    except ImportError:
+        pass
+
 
 def _telemetry_ts() -> str:
     """Return current UTC timestamp in the standard telemetry format."""

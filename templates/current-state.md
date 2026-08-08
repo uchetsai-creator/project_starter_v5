@@ -20,6 +20,13 @@
      Used by build-context.py to filter .ai/AI_CONTEXT.md to relevant documents.
      Leave as [task-type] placeholder if unknown — script falls back to all Required docs. -->
 
+**Clarifying Questions Asked:** [Y / N/A — reason]
+<!-- Y: this task started from a new user requirement and scope/edge-case/acceptance-criteria
+     questions were asked before implementing (AGENTS.md -> New requirement from the user /
+     Learning Checkpoint B). N/A: task was already scoped in project-plan.md, or Checkpoint A
+     (existing code) applied instead. Fill this in when Task above stops being a placeholder —
+     pre-commit blocks the commit if it's still unfilled at that point. -->
+
 **Status:** In Progress
 <!-- When done: "Complete — Pending Sprint Doc Sync" -->
 

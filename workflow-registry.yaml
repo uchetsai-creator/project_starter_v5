@@ -11,6 +11,15 @@
 # Phase 48 — --semantic flag for verify_spec_code.py:
 #   --semantic is opt-in only. Do NOT add it to any sequence below.
 #   Adding --semantic here is a bug — it makes LLM API calls and is not a gate.
+#
+# verify_security.py (SAST wrapper — bandit / eslint-plugin-security / semgrep):
+#   Requires --src to be passed (orchestrator injects it from security_scan_src in
+#   .project-starter.yml); skips gracefully if omitted. Independent of verify_spec_code.py —
+#   no spec input, just known-unsafe-pattern detection in whatever code is under --src.
+#
+# verify_prose.py (prose-quality wrapper — Vale):
+#   Requires --docs to be passed (orchestrator injects it from docs_path when
+#   prose_scan_enabled: true in .project-starter.yml); skips gracefully if omitted.
 
 workflows:
 
@@ -30,6 +39,9 @@ workflows:
         # Relevant for: data-pipeline, ml-pipeline, cli-tool (Phase 45)
         #               web-app, microservices, library (Phase 46)
         #               llm-app, mobile-app (Phase 47)
+      - script: docs/script/validators/verify_security.py
+        args: [--strict]
+        # Requires --src to be passed; skips gracefully if omitted.
 
   pipeline-stage:
     validators:
@@ -45,6 +57,9 @@ workflows:
         args: [--strict]
         # Requires --adapter / --spec / --src to be passed; skips gracefully if omitted.
         # Relevant for: data-pipeline, ml-pipeline (airflow, dagster, prefect adapters)
+      - script: docs/script/validators/verify_security.py
+        args: [--strict]
+        # Requires --src to be passed; skips gracefully if omitted.
 
   bug-fix:
     validators:
@@ -58,6 +73,9 @@ workflows:
         args: [--strict]
         # Catches spec–code drift introduced alongside a bug fix.
         # Skips gracefully if --adapter / --spec / --src are not configured.
+      - script: docs/script/validators/verify_security.py
+        args: [--strict]
+        # Requires --src to be passed; skips gracefully if omitted.
 
   sprint-end:
     validators:
@@ -81,6 +99,12 @@ workflows:
         # No --project-type: this checks business-objects.md / business-process.md /
         # prompt-library.md index tables against their per-item files — applicability
         # is gated by whether each index file exists, not by project type.
+      - script: docs/script/validators/verify_prose.py
+        args: [--strict]
+        # Requires --docs to be passed (orchestrator injects it from docs_path when
+        # prose_scan_enabled: true); skips gracefully if omitted. Placed at sprint-end,
+        # not every task type, since it's a prose-quality convergence check, not a
+        # per-commit gate the way pre-commit's own trigger (any .md staged) is.
 
   eval-run:
     validators:
@@ -97,6 +121,9 @@ workflows:
         # eval-run is llm-app's primary task type — without this entry, llm-app projects
         # never got the spec-code drift gate at all despite the "feature" workflow's own
         # comment listing llm-app as covered (Phase 47).
+      - script: docs/script/validators/verify_security.py
+        args: [--strict]
+        # Requires --src to be passed; skips gracefully if omitted.
 
   iac-change:
     validators:
@@ -111,6 +138,10 @@ workflows:
         # Catches topology drift when IaC code changes without updating topology.md.
         # Skips gracefully if --adapter / --spec / --src are not configured.
         # Relevant for: iac (terraform, pulumi adapters)
+      - script: docs/script/validators/verify_security.py
+        args: [--strict]
+        # Requires --src to be passed; skips gracefully if omitted.
+        # Relevant mainly for Pulumi (Python) / Ansible (YAML+Python) IaC code.
 
   default:
     validators:

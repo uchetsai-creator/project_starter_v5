@@ -55,11 +55,38 @@
 
 ---
 
-## `POST /[resource]`
+## Endpoints
+
+<!--
+  Heading format matters, not just style: ### METHOD /path (level 3, no backticks around
+  METHOD /path) is what WebAPIAdapter.extract_spec() in _spec_code_adapters/_capability_web_api.py
+  actually parses — the same parser verify_spec_code.py uses to compare this file against
+  code, and generate_openapi.py uses to generate openapi.yaml. A different heading level or
+  backtick-wrapped "### `METHOD /path`" silently yields zero parsed endpoints from both.
+-->
+
+### POST /[resource]
 
 **Description:** [description]
 
-**Request Body:**
+<!--
+  #### Request Body / #### Response Body (level-4, exact heading text) are what
+  _parse_field_table() in _spec_code_adapters/_utils.py actually reads — used by both
+  verify_spec_code.py's field-level drift comparison and generate_openapi.py. The JSON
+  block alongside each table is for human illustration only; it is never parsed. A
+  Response Body wrapped in a nested envelope (see GET /[resource] below, which returns
+  { data: [...], pagination: {...} }) cannot be expressed as this flat table at all — the
+  underlying NormalizedField model is name+type, not nested — so leave those as prose +
+  JSON illustration rather than forcing a misleading flat table onto a nested shape.
+-->
+
+#### Request Body
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `[field]` | string | ✅ | [description] |
+| `[field]` | integer | ✅ | [description] |
+| `[field]` | string | ❌ | [description] |
 
 ```json
 {
@@ -69,7 +96,10 @@
 }
 ```
 
-**Validation Rules:**
+#### Validation Rules
+
+<!-- #### heading (not just bold text) so _parse_field_table('Request Body') stops here
+     instead of reading this unrelated table's rows in as if they were request fields. -->
 
 | Field | Required | Rule | Error code |
 |---|---|---|---|
@@ -79,6 +109,14 @@
 
 **Success `201 Created`:**
 
+#### Response Body
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | string | [description] |
+| `[field]` | string | [description] |
+| `created_at` | string | [description] |
+
 ```json
 {
   "id": "uuid",
@@ -87,7 +125,7 @@
 }
 ```
 
-**Errors:**
+#### Errors
 
 | HTTP | Error code | Scenario |
 |---|---|---|
@@ -97,7 +135,7 @@
 
 ---
 
-## `GET /[resource]`
+### GET /[resource]
 
 **Description:** [description]
 
@@ -138,7 +176,7 @@
 
 ---
 
-## `GET /[resource]/:id`
+### GET /[resource]/:id
 
 **Description:** [description]
 
@@ -154,7 +192,7 @@
 
 ---
 
-## `PATCH /[resource]/:id`
+### PATCH /[resource]/:id
 
 **Description:** Partial update — only send fields to change
 
@@ -174,7 +212,7 @@
 
 ---
 
-## `DELETE /[resource]/:id`
+### DELETE /[resource]/:id
 
 **Description:** [Soft delete / Hard delete]
 
@@ -468,20 +506,28 @@ input [InputName] {
 
 ## Edge Cases
 
-Cross-cutting edge cases that apply across multiple endpoints.
+<!--
+  Cross-cutting edge cases that apply across multiple endpoints.
+  ID column: replace [EC-001] etc. with a real, un-bracketed EC-XXX id (e.g. EC-001) once you
+  reference it from test-plan.md's Test Scope -> In Scope -> Requirement column (alongside
+  FR-XXX, e.g. "FR-003, EC-002") — verify_acceptance.py then confirms every id you've adopted
+  has at least one test covering it, the same traceability mechanism already used for FR-XXX.
+  Fully optional: leaving the IDs bracketed (as shipped) means the check finds no real ids
+  and skips entirely — it never forces this on a project that hasn't opted in.
+-->
 
-| Scenario | Expected behaviour |
-|---|---|
-| Required field missing in request body | `400 VALIDATION_FIELD_REQUIRED` |
-| JWT token belongs to deleted / suspended user | `401 AUTH_TOKEN_INVALID` |
-| Accessing another user's resource | `403 AUTH_RESOURCE_NOT_OWNED` |
-| Request body exceeds size limit | `413 Payload Too Large` |
-| Concurrent PATCH on same resource | `409 [ENTITY]_CONCURRENT_UPDATE` (optimistic lock mismatch) |
-| Database write times out | `504 EXTERNAL_DB_TIMEOUT` |
-| Downstream service unreachable | `504 EXTERNAL_[SERVICE]_TIMEOUT` |
-| `page` or `per_page` value is negative or > max | `400 VALIDATION_FIELD_OUT_OF_RANGE` |
-| State-machine violation (e.g., cancel already-cancelled order) | `409 [ENTITY]_STATE_INVALID` |
-| Idempotency key reused with different payload | `409 IDEMPOTENCY_KEY_CONFLICT` |
+| ID | Scenario | Expected behaviour |
+|---|---|---|
+| [EC-001] | Required field missing in request body | `400 VALIDATION_FIELD_REQUIRED` |
+| [EC-002] | JWT token belongs to deleted / suspended user | `401 AUTH_TOKEN_INVALID` |
+| [EC-003] | Accessing another user's resource | `403 AUTH_RESOURCE_NOT_OWNED` |
+| [EC-004] | Request body exceeds size limit | `413 Payload Too Large` |
+| [EC-005] | Concurrent PATCH on same resource | `409 [ENTITY]_CONCURRENT_UPDATE` (optimistic lock mismatch) |
+| [EC-006] | Database write times out | `504 EXTERNAL_DB_TIMEOUT` |
+| [EC-007] | Downstream service unreachable | `504 EXTERNAL_[SERVICE]_TIMEOUT` |
+| [EC-008] | `page` or `per_page` value is negative or > max | `400 VALIDATION_FIELD_OUT_OF_RANGE` |
+| [EC-009] | State-machine violation (e.g., cancel already-cancelled order) | `409 [ENTITY]_STATE_INVALID` |
+| [EC-010] | Idempotency key reused with different payload | `409 IDEMPOTENCY_KEY_CONFLICT` |
 
 > *Add project-specific cases below — consider: rate-limit per user vs. global, soft-deleted resource behaviour, and any custom state machines.*
 
