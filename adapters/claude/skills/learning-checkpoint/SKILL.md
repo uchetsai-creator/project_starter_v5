@@ -1,0 +1,127 @@
+---
+name: learning-checkpoint
+description: Use before implementing any task, every task, no exceptions — Checkpoint 0 for unfamiliar technology, Checkpoint A before modifying existing code, Checkpoint B before a new feature with no existing code, and Checkpoint C always before closeout. This is live discussion during the task, not a file to write and defer. After reading this, also read guidance/learning-checkpoints/<the project's declared type>.md for the type-specific angle on the same checkpoints.
+---
+
+# Learning Checkpoints — Common
+
+Applies to every project type. Triggers happen every task, independent of doc/validator
+timing (see Sprint Documentation Sync) — this is about live discussion in the session,
+not a file that gets written and synced later.
+
+---
+
+## Checkpoint 0 — Unfamiliar Technology (only when it applies)
+
+Trigger: the current task touches a technology, library, or pattern you have never used
+before — not just "existing code in a language I know," but genuinely new ground.
+
+Run this *before* Checkpoint A or B, as a grounding pass:
+
+1. "用我熟悉的東西打比方，這個技術是在解決什麼問題？" — force an analogy to something already known, not a wall of jargon.
+2. "這個技術裡有哪 3-5 個核心概念是我一定要先懂的？" — a minimal glossary, not full documentation.
+3. "如果沒有這個技術，土法煉鋼要怎麼做同樣的事？" — anchor the new concept against a familiar baseline.
+4. Ask for a minimal toy example unrelated to today's real task. Run it yourself, change one
+   parameter, observe the result — before touching the real code.
+
+Skip this checkpoint when the technology is already familiar — do not run it every task.
+
+---
+
+## Checkpoint A — Working in Existing Code
+
+Trigger: the task modifies or extends code that already exists.
+
+**Before items 1-4 — ask, don't guess:** the first time this session touches a given
+module/file, if there is no `docs/modules/<module>/` entry or `changelog.md` /
+`task-log.md` row showing this project's own workflow already built or reviewed it, ask
+the user directly: "這段程式碼需要我先做完整的 code quality 檢查嗎？（像是接手交接、
+沒審過的程式碼）" Whose code it originally is (yours, a teammate's, another AI session's)
+is not something to infer — you have no memory of authorship across sessions, so a guess
+here is just a guess. If the user says yes, skip to the Escalation below instead of items
+1-4. If no, continue with items 1-4 as normal.
+
+**If there is no `docs/modules/<module>/` entry at all** (not even a stub), consider running
+`python3 templates/script/generators/draft_module_flow.py <module_src_dir> --project-type TYPE`
+first — it parses the module's actual source (Python/JS/TS) and pre-fills real class/function
+names instead of starting from a blank template. It does not invent the call sequence or
+business meaning — that part is still yours to answer in items 1-4 below.
+
+1. **Read the current state** — "這個功能/模組目前怎麼運作？資料怎麼流進來、處理、流出去？"
+2. **Locate the change** — "這個改動該放在哪個檔案/層？為什麼是這裡？有沒有現成 pattern 可以照抄？"
+3. **Assess blast radius** — "這個改動會不會影響到其他呼叫這裡的地方？有沒有隱藏的耦合？"
+4. **Match conventions** — "這裡的命名/錯誤處理/測試慣例是什麼？我這樣寫有沒有跟現有風格衝突？"
+
+See the matching `learning-checkpoints-<type>.md` for which nouns to substitute (endpoint,
+stage, screen, resource, etc.) at each step.
+
+**Escalation — user confirms this code needs a full review**: run `code-quality-check.md`
+in full instead of stopping at items 1-4 above. Report every finding with the two extra
+fields it defines for this case (Why It's Wrong / Correct Pattern) — the goal is to
+actually learn what's wrong and what the right shape looks like, not just get a silent
+fix. High-severity findings still block further work per that file's rules, including its
+independent-review gate — you cannot self-close a High finding in the same session that
+fixed it.
+
+---
+
+## Checkpoint B — Starting from a Requirement
+
+Trigger: the task is a new feature, or there is no existing code for it yet.
+
+1. **Clarify the requirement** — "有沒有隱含的邊界情況？什麼情況算做完（驗收標準）？"
+2. **Discuss the design before writing code** (use Plan Mode) — "打算怎麼實作？為什麼選這個做法，還有哪些替代方案、各自的取捨？"
+3. **Follow the implementation** — "這裡為什麼用這個寫法/套件，而不是自己刻？"
+
+---
+
+## Checkpoint C — Post-Implementation Review (always, before Closeout)
+
+1. "這段邏輯關鍵在哪一行？拿掉某個判斷式會發生什麼？"
+   **Escalation** — 如果這是關鍵路徑，而且答案是用猜的或講不清楚，不要只停在對話：真的把那個
+   判斷式暫時註解掉（或改成恆真/恆假），跑一次相關測試，確認測試會變紅。測試沒有紅，代表這段
+   邏輯根本沒被測到——這比事後回答「應該會壞掉吧」準確，也直接驗證了 code-quality-check.md
+   要求的測試覆蓋率是不是真的有效，不是照抄一個從不失敗的測試。改完記得把判斷式還原。
+2. "有沒有邊界情況目前沒處理到？"
+3. "這次改的關鍵路徑，有沒有照 `docs/specs/logging-spec.md` 定義的 log point 加上 log？"
+4. **Teach-back** — 換你用自己的話跟我解釋這段程式碼在幹嘛、為什麼這樣寫，不是我講給你聽。
+   講不出來、或講錯了，那才是真正該深入的地方——這比我單方面問「懂了嗎」準確很多。不用逐行講，
+   挑這次改動裡最關鍵的那一小段就好。
+   跟 Checkpoint 0 一樣可以跳過：如果這次的 task 真的夠瑣碎（改錯字、調設定值這類），而且你自己
+   判斷已經完全懂，可以跳過或簡化 teach-back，不用每個 task 都硬做——但拿不準的時候，做比不做安全。
+
+This checkpoint happens every task regardless of A/B/0 — it is what actually gets
+internalized, separate from whether the doc sync happens now or at sprint end.
+
+**Escalation for item 3** — if the answer is "not sure" or reveals a gap (a log point
+was skipped, or you can't tell without checking), don't just take the conversational
+answer at face value — actually run the code-level check:
+
+```bash
+# Runs every registered language detector at once (Python + JS/TS/React today) — use
+# this by default. Pass --adapter python_logging / javascript_logging instead only to
+# isolate one language's results.
+python3 docs/script/validators/verify_spec_code.py --project-type TYPE \
+    --adapter logging --spec docs/modules/ --src src/ --strict
+```
+
+If no detector exists yet for the current language, the command above now tells you so
+directly — a `[WARN] 0 code items extracted from --src, but real file(s) exist there` means
+nothing was actually checked, not that the code is compliant (before this warning existed,
+an empty spec + undetected code silently printed `[OK] No mismatches`, which looked like a
+pass). Don't take a plain `[OK]` at face value without glancing at the file count either;
+the warning is the reliable signal. (Also check `ADAPTER_REGISTRY` in `verify_spec_code.py` —
+`python_logging` and `javascript_logging` (covers JS/TS/React) exist so far.) When you get
+this warning, build a detector on the spot before closing out the task:
+1. Add a `NormalizedLogPoint`-based language detector under `_spec_code_adapters/`,
+   modeled on `python_logging.py` (walk the language's function/method definitions,
+   match logger calls against the `<operation> — <state>` convention in
+   `logging-spec.md → Log Output Format`, normalize the call's level name to the
+   canonical `info` / `warn` / `error` / `debug` vocabulary).
+2. Register it in `_capability_logging.py`'s `_DETECTORS` and in `verify_spec_code.py`'s
+   `ADAPTER_REGISTRY`.
+3. See `docs/contributing-adapters.md` for the full contributor steps.
+4. Then run the command above for real before marking the task's Verify step done.
+
+This is the only Learning Checkpoint item that can trigger writing framework code —
+the others (0, A, B, C.1, C.2, C.4) are conversation only.
