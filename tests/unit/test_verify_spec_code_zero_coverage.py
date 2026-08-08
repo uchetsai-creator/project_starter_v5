@@ -13,6 +13,7 @@ zero_coverage now fires whenever code_items is empty but --src contains real
 (non-placeholder) files, printing an explicit [WARN] instead of/alongside the
 normal report, and failing --strict rather than silently exiting 0.
 """
+import os
 import subprocess
 import sys
 import tempfile
@@ -27,9 +28,13 @@ SCRIPT = _VALIDATORS_DIR / "verify_spec_code.py"
 
 
 def _run(*args: str) -> subprocess.CompletedProcess:
+    # PYTHONUTF8 forces the child's own stdout/stderr encoding to UTF-8, matching the
+    # encoding="utf-8" this decodes with — see golden test helpers for the full rationale.
+    # errors="replace" stays as a last-resort safety net, not the primary fix.
     return subprocess.run(
         [sys.executable, str(SCRIPT), *args],
         capture_output=True, text=True, encoding="utf-8", errors="replace",
+        env={**os.environ, "PYTHONUTF8": "1"},
     )
 
 

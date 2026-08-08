@@ -7,6 +7,7 @@ structure is factual and complete, (2) the format chosen matches module type,
 (3) no call-sequence content is fabricated, and (4) skip/--force behavior
 matches scaffold_stubs()'s existing convention.
 """
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -18,9 +19,12 @@ SCRIPT = REPO_ROOT / "templates/script/generators/draft_module_flow.py"
 
 
 def _run(*args: str) -> subprocess.CompletedProcess:
+    # PYTHONUTF8 forces the child's own stdout/stderr encoding to UTF-8, matching the
+    # encoding="utf-8" this decodes with — see golden test helpers for the full rationale.
     return subprocess.run(
         [sys.executable, str(SCRIPT), *args],
-        capture_output=True, text=True,
+        capture_output=True, text=True, encoding="utf-8",
+        env={**os.environ, "PYTHONUTF8": "1"},
     )
 
 

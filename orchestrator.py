@@ -185,6 +185,16 @@ def _run_adapter(adapter: str, project_root: Path, workflow_content: str, dry_ru
 
 
 def main() -> None:
+    # Force UTF-8 stdout/stderr regardless of host console codepage. This script prints
+    # non-ASCII characters (e.g. "→" in WORKFLOW.md output); Python's default text-mode
+    # encoding for a redirected/piped stream on Windows is the OS codepage (cp1252, cp950,
+    # ...), not UTF-8 — printing "→" through that raises UnicodeEncodeError and crashes the
+    # whole script. Confirmed: this is exactly what broke `orchestrator.py --dry-run` on
+    # GitHub's windows-latest CI runner (cp1252) — see CHANGELOG.md.
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
+
     project_root = Path(__file__).resolve().parent
     valid_task_types = _load_valid_task_types(project_root)
 

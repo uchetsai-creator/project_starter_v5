@@ -1,4 +1,5 @@
 """Full pipeline E2E tests for representative project types."""
+import os
 import subprocess
 import sys
 
@@ -8,7 +9,10 @@ from tests.conftest import REPO_ROOT, setup_fixture
 
 
 def _run(args, tmp_path, **kwargs):
-    return subprocess.run(args, cwd=str(tmp_path), capture_output=True, text=True, **kwargs)
+    # PYTHONUTF8 forces the child's own stdout/stderr encoding to UTF-8, matching the
+    # encoding="utf-8" this decodes with — see golden test helpers for the full rationale.
+    env = {**os.environ, **kwargs.pop("env", {}), "PYTHONUTF8": "1"}
+    return subprocess.run(args, cwd=str(tmp_path), capture_output=True, text=True, encoding="utf-8", env=env, **kwargs)
 
 
 # ---------------------------------------------------------------------------

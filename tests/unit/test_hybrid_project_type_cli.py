@@ -4,6 +4,7 @@ scripts previously used argparse `choices=VALID_TYPES`, which rejected any '+'
 combination outright, unlike every other validator in this framework
 (verify_docs.py, verify_content.py, etc.), which all use `parse_types()`.
 """
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -14,9 +15,12 @@ SPEC_CODE_SCRIPT = REPO_ROOT / "templates/script/validators/verify_spec_code.py"
 
 
 def _run(script: Path, *args: str) -> subprocess.CompletedProcess:
+    # PYTHONUTF8 forces the child's own stdout/stderr encoding to UTF-8, matching the
+    # encoding="utf-8" this decodes with — see golden test helpers for the full rationale.
     return subprocess.run(
         [sys.executable, str(script), *args],
-        capture_output=True, text=True,
+        capture_output=True, text=True, encoding="utf-8",
+        env={**os.environ, "PYTHONUTF8": "1"},
     )
 
 

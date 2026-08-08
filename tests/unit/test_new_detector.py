@@ -1,3 +1,4 @@
+import os
 import shutil
 import subprocess
 import sys
@@ -33,9 +34,12 @@ def _setup_project(tmp_path: Path) -> Path:
 
 def _run(tmp_path: Path, *args: str) -> subprocess.CompletedProcess:
     script = tmp_path / "templates" / "script" / "generators" / "new_detector.py"
+    # PYTHONUTF8 forces the child's own stdout/stderr encoding to UTF-8, matching the
+    # encoding="utf-8" this decodes with — see golden test helpers for the full rationale.
     return subprocess.run(
         [sys.executable, str(script), *args],
-        capture_output=True, text=True, cwd=str(tmp_path),
+        capture_output=True, text=True, encoding="utf-8", cwd=str(tmp_path),
+        env={**os.environ, "PYTHONUTF8": "1"},
     )
 
 

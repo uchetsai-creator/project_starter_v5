@@ -1,10 +1,15 @@
 """Parametrized orchestrator --dry-run smoke test across all 9 project types."""
+import os
 import subprocess
 import sys
 
 import pytest
 
 from tests.conftest import VALID_TYPES, setup_fixture
+
+# PYTHONUTF8 forces the child's own stdout/stderr encoding to UTF-8, matching the
+# encoding="utf-8" this decodes with — see golden test helpers for the full rationale.
+_UTF8_ENV = {**os.environ, "PYTHONUTF8": "1"}
 
 _TASK_TYPE_FOR = {
     "web-app": "feature",
@@ -42,6 +47,8 @@ def test_e2e_all_types_orchestrator_dry_run(tmp_path, project_type):
         cwd=str(tmp_path),
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        env=_UTF8_ENV,
     )
     assert result.returncode == 0, (
         f"orchestrator --dry-run failed for {project_type}:\n{result.stderr}"
@@ -55,6 +62,8 @@ def test_e2e_all_types_orchestrator_dry_run(tmp_path, project_type):
         cwd=str(tmp_path),
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        env=_UTF8_ENV,
         check=True,
     )
     context = (tmp_path / ".ai/AI_CONTEXT.md").read_text(encoding="utf-8")

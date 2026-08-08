@@ -13,6 +13,7 @@ has doc coverage.
 _src_has_real_files() (now shared in _verify_common.py, used by both scripts and
 by verify_spec_code.py) distinguishes the two cases.
 """
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -23,9 +24,13 @@ MODULE_DOCS_SCRIPT = REPO_ROOT / "templates/script/validators/verify_module_docs
 
 
 def _run(script: Path, *args: str) -> subprocess.CompletedProcess:
+    # PYTHONUTF8 forces the child's own stdout/stderr encoding to UTF-8, matching the
+    # encoding="utf-8" this decodes with — see golden test helpers for the full rationale.
+    # errors="replace" stays as a last-resort safety net, not the primary fix.
     return subprocess.run(
         [sys.executable, str(script), *args],
         capture_output=True, text=True, encoding="utf-8", errors="replace",
+        env={**os.environ, "PYTHONUTF8": "1"},
     )
 
 
@@ -138,7 +143,8 @@ def test_module_docs_zero_coverage_is_recorded_in_telemetry(tmp_path):
     subprocess.run(
         [sys.executable, str(MODULE_DOCS_SCRIPT), "--project-type", "web-app",
          "--docs", str(docs), "--src", str(src), "--telemetry"],
-        capture_output=True, text=True, cwd=str(tmp_path),
+        capture_output=True, text=True, encoding="utf-8", cwd=str(tmp_path),
+        env={**os.environ, "PYTHONUTF8": "1"},
     )
     import json
     telemetry_file = tmp_path / ".ai" / "telemetry" / "validation-result.json"
