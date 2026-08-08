@@ -3,7 +3,14 @@ testpaths = ["tests"]
 
 [project]
 name = "project-starter-v5"
-version = "0.1.0"
+version = "0.2.0"
 
 [project.optional-dependencies]
-dev = ["pytest"]
+# Declarative record of the one dev dependency this repo needs — not installable via
+# `pip install .[dev]`: this is a template repo (loose top-level scripts, multiple
+# top-level dirs), not a distributable package, and setuptools' auto package-discovery
+# refuses to guess at that layout (confirmed: `pip install .[dev]` fails with "multiple
+# top-level packages/modules discovered"). .github/workflows/ci.yml and README.md's
+# `pip install pytest` both install this same version floor directly — keep the version
+# constraint below in sync with both if it changes.
+dev = ["pytest>=7"]

@@ -1,0 +1,43 @@
+name: CI
+
+# Runs the framework's own safety net on every push/PR instead of relying on
+# whoever is working locally to remember `pytest tests/` and
+# `verify_framework.py --strict` — both were previously enforced only via the
+# git pre-commit hook, which `--no-verify` bypasses.
+#
+# ubuntu + windows are both in the matrix on purpose: two real, previously-undetected
+# bugs (a hardcoded '/' path separator in verify_framework.py, and a missing
+# encoding="utf-8" in a detect_type.py test) only reproduced on Windows and would
+# have shipped silently on a Linux-only pipeline.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ["3.11", "3.12"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        # Version floor mirrors pyproject.toml's [project.optional-dependencies] dev entry —
+        # can't install directly from it (`pip install .[dev]`) since this repo isn't a
+        # distributable package; see the comment there for why.
+        run: pip install "pytest>=7"
+
+      - name: Run test suite
+        run: python -m pytest tests/ -q
+
+      - name: Framework internal consistency audit
+        run: python templates/script/framework/verify_framework.py --strict
