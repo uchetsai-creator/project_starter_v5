@@ -44,6 +44,14 @@ All notable changes to this framework are documented here. Format loosely follow
   type, and — combined with the Skills feature above — that copying `adapters/claude/skills/`
   into a freshly-initialized project produces a valid `.claude/skills/` layout.
 - This file.
+- `LICENSE` (MIT) — the repo had no license file, leaving reuse terms undefined for a project
+  meant to be cloned/adopted as a starter template.
+- `requirements.txt` / `requirements-dev.txt` as the single source of truth for install
+  instructions, replacing three independently-hardcoded `pip install ...` lines
+  (`.github/workflows/ci.yml`, `README.md`, `setup.sh`) and `pyproject.toml`'s non-functional
+  `[project.optional-dependencies] dev` extra (`pip install .[dev]` never worked — see Fixed
+  below for why). `pyproject.toml`'s `[project]` table now says explicitly that it exists for
+  dependency-metadata tooling only, not for `pip install .`.
 
 ### Removed
 - Codex and Cursor agent adapters (`adapters/codex/`, `adapters/cursor/`, the corresponding

@@ -965,7 +965,7 @@ python3 templates/script/framework/verify_framework.py --json     # machine-read
 ## Running the test suite
 
 ```bash
-pip install "pytest>=7" pyyaml
+pip install -r requirements-dev.txt
 pytest tests/
 ```
 

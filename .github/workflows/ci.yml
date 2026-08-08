@@ -37,14 +37,15 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
-        # Version floor mirrors pyproject.toml's [project.optional-dependencies] dev entry —
-        # can't install directly from it (`pip install .[dev]`) since this repo isn't a
-        # distributable package; see the comment there for why. PyYAML is a hard runtime
-        # dependency of _workflow_utils.py / verify_registry.py (never declared anywhere
-        # before this) — without it, importing verify_registry.py as a module triggers its
-        # module-level sys.exit(1), which pytest's collector turns into an INTERNALERROR
-        # that aborts the entire run, not just that one file.
-        run: pip install "pytest>=7" pyyaml
+        # requirements-dev.txt is the single source of truth for the pytest version floor
+        # and the pyyaml runtime dep — this repo isn't a distributable package (see
+        # pyproject.toml's [project] comment for why `pip install .[dev]` doesn't work), so
+        # this file is what README.md's "Running the test suite" section also points at.
+        # PyYAML is a hard runtime dependency of _workflow_utils.py / verify_registry.py —
+        # without it, importing verify_registry.py as a module triggers its module-level
+        # sys.exit(1), which pytest's collector turns into an INTERNALERROR that aborts the
+        # entire run, not just that one file.
+        run: pip install -r requirements-dev.txt
 
       - name: Run test suite
         run: python -m pytest tests/ -q

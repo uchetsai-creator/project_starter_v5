@@ -4,19 +4,20 @@ testpaths = ["tests"]
 [project]
 name = "project-starter-v5"
 version = "0.2.0"
+# This is a clone-and-run template repository, not a distributable package — its top-level
+# scripts (orchestrator.py, build-context.py, _workflow_utils.py, ...) are meant to be copied
+# verbatim into consumer projects by setup.sh --init and run in place with `python3 <script>.py`.
+# `pip install .` / `pip install .[dev]` are NOT supported (setuptools' auto package-discovery
+# refuses to guess at this layout — confirmed by testing it) and this [project] table exists only
+# so tooling (dependabot, pip-audit, IDEs) can read accurate dependency metadata.
+#
+# Actual install instructions live in requirements.txt / requirements-dev.txt — see README.md's
+# Quick Start / Running the test suite sections. Keep this `dependencies` list in sync with
+# requirements.txt if either changes.
+#
 # PyYAML is a hard runtime dependency of _workflow_utils.py's _load_yaml() (used by
 # orchestrator.py / build-context.py) and of verify_registry.py — every real user of this
 # framework needs it, not just contributors running the test suite. Never declared anywhere
 # before 0.2.0; discovered via CI run #1 failing on a fresh runner where it wasn't
 # pre-installed (worked locally only because dev machines happened to already have it).
 dependencies = ["pyyaml"]
-
-[project.optional-dependencies]
-# Declarative record of the one dev-only dependency this repo needs — not installable via
-# `pip install .[dev]`: this is a template repo (loose top-level scripts, multiple
-# top-level dirs), not a distributable package, and setuptools' auto package-discovery
-# refuses to guess at that layout (confirmed: `pip install .[dev]` fails with "multiple
-# top-level packages/modules discovered"). .github/workflows/ci.yml and README.md's
-# `pip install pytest pyyaml` both install this same version floor directly — keep the
-# version constraint below in sync with both if it changes.
-dev = ["pytest>=7"]
