@@ -81,6 +81,19 @@ All notable changes to this framework are documented here. Format loosely follow
   `document-purposes/common.md` entries and `test_agent_adapter_templates.py` coverage for the
   two Codex template files; `AGENTS.md`, README's Agent Adapters section, and the framework
   repo file-tree diagram updated to reflect two shipped adapters instead of one.
+- Golden clean+drift fixture coverage (same pattern as the fastapi/click/langchain tests
+  above) for the remaining 18 `verify_spec_code.py` framework detectors, closing out the gap
+  across every registered adapter, not just three: `flask`/`django`/`express` (web-api),
+  `typer` (cli), `airflow`/`dagster`/`prefect`/`luigi` (data-pipeline), `python_library`/
+  `tool_schema` (library/llm-app), `terraform`/`pulumi`/`ansible` (iac), `react_native`/
+  `flutter`/`swiftui` (mobile), `python_logging`/`javascript_logging` (logging). 59 new tests
+  across 7 files (`tests/unit/test_adapter_drift_detection_{web_api,cli,pipeline,library_llm,
+  iac,mobile,logging}.py`). Along the way, confirmed and documented several by-design detector
+  limitations that are easy to mistake for bugs: `ExpressDetector`/`ReactNativeDetector` never
+  resolve field/prop *types* (endpoint/prop presence only); `LuigiDetector` never resolves
+  `output_fields` (a Luigi stage's Output Contract always reports missing); `NormalizedResource`
+  (IaC) compares by name only, never by type, and its config-key fields always carry type=''
+  so type-level drift can never fire for terraform/pulumi/ansible.
 
 ### Removed
 - Codex and Cursor agent adapters (`adapters/codex/`, `adapters/cursor/`, the corresponding
