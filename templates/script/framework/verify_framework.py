@@ -81,6 +81,11 @@ SPRINT_SYNC_EXEMPT = {
     "llm-debug.md",
     "experiment-log.md",
     "eval-log.md",
+    # glossary.md and dependencies.md are always-optional utilities created on demand,
+    # same rationale as their TEMPLATE_MATRIX_EXEMPT entry above — not gated by sprint
+    # cadence either.
+    "glossary.md",
+    "dependencies.md",
 }
 
 
@@ -249,7 +254,7 @@ def check_matrix_templates(matrix: dict) -> list[dict]:
         for f in d.glob("*.md"):
             if f in covered:
                 continue
-            rel = str(f.relative_to(TEMPLATES_DIR))
+            rel = f.relative_to(TEMPLATES_DIR).as_posix()
             if rel in TEMPLATE_MATRIX_EXEMPT:
                 continue
             stem = f.stem

@@ -113,6 +113,7 @@ Run `python3 build-context.py --task-type sprint-end` to generate `.ai/AI_CONTEX
 
 Apply this filter first. Then run only the remaining items.
 
+- [ ] docs/project-requirements.md `[Types: All]` — did project scope, goals, edge cases, or acceptance criteria change this sprint? If yes, update.
 - [ ] docs/specs/research.md `[Types: All]` — did this sprint involve a new technology decision, or resolve a NEEDS CLARIFICATION? If yes, update. Note: research.md is excluded from the PDF by default (pdf_allowlist.py) — uncomment its entry once it has real content.
 - [ ] docs/specs/data-model.md `[Types: Web App, Data Pipeline, ML Pipeline, Microservices]` — did the schema, entities, relationships, or indexes change? If yes, update, then:
   - Regenerate ERD: `Edit the \`\`\`plantuml block in the file, then run build_pdf.py`
