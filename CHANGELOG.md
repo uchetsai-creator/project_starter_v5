@@ -12,7 +12,7 @@ All notable changes to this framework are documented here. Format loosely follow
 
 ---
 
-## [0.2.0] — Unreleased
+## [0.2.0] — 2026-08-09
 
 ### Added
 - Claude Skills (`SKILL.md`) for five procedural workflows previously only reachable by
