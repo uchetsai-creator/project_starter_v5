@@ -175,7 +175,7 @@ def test_append_telemetry_dict_style(tmp_path, monkeypatch):
     _append_telemetry(entry)
     telemetry_file = tmp_path / '.ai' / 'telemetry' / 'validation-result.json'
     assert telemetry_file.exists()
-    rows = json.loads(telemetry_file.read_text())
+    rows = json.loads(telemetry_file.read_text(encoding="utf-8"))
     assert isinstance(rows, list)
     assert len(rows) == 1
     assert rows[0] == entry
@@ -187,7 +187,7 @@ def test_append_telemetry_positional_style(tmp_path, monkeypatch):
     _append_telemetry('verify_acceptance', 'cli-tool', 'fail', '2026-06-01T12:00:00Z')
     telemetry_file = tmp_path / '.ai' / 'telemetry' / 'validation-result.json'
     assert telemetry_file.exists()
-    rows = json.loads(telemetry_file.read_text())
+    rows = json.loads(telemetry_file.read_text(encoding="utf-8"))
     assert isinstance(rows, list)
     assert len(rows) == 1
     assert rows[0] == {
@@ -204,7 +204,7 @@ def test_append_telemetry_accumulates_entries(tmp_path, monkeypatch):
     _append_telemetry({'script': 'verify_docs', 'status': 'pass'})
     _append_telemetry('verify_acceptance', 'web-app', 'pass', '2026-01-01T00:00:00Z')
     telemetry_file = tmp_path / '.ai' / 'telemetry' / 'validation-result.json'
-    rows = json.loads(telemetry_file.read_text())
+    rows = json.loads(telemetry_file.read_text(encoding="utf-8"))
     assert len(rows) == 2
     assert rows[0]['script'] == 'verify_docs'
     assert rows[1]['script'] == 'verify_acceptance'

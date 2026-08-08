@@ -1,3 +1,4 @@
+import os
 import subprocess
 import sys
 
@@ -20,10 +21,14 @@ COMBOS = [
 @pytest.mark.parametrize("project_type,task_type", COMBOS, ids=[f"{p}__{t}" for p, t in COMBOS])
 def test_build_context_snapshot(project_type, task_type, snapshot_update, tmp_path):
     proj = setup_snapshot_project(tmp_path, project_type, extra_files=_BUILD_CONTEXT_FILES)
+    # PYTHONUTF8 forces the child's own stdout/stderr encoding to UTF-8, matching the
+    # encoding="utf-8" this decodes with — see golden test helpers for the full rationale.
     result = subprocess.run(
         [sys.executable, "build-context.py", "--dry-run", "--task-type", task_type],
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        env={**os.environ, "PYTHONUTF8": "1"},
         cwd=str(proj),
     )
     assert result.returncode == 0, f"build-context.py failed:\n{result.stderr}"

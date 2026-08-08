@@ -1,4 +1,5 @@
 """Golden regression tests for data-pipeline example project."""
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -21,7 +22,12 @@ TASK_TYPE = "pipeline-stage"
 
 
 def _run(args, cwd, **kwargs):
-    return subprocess.run(args, cwd=str(cwd), capture_output=True, text=True, **kwargs)
+    # PYTHONUTF8 forces the child Python process's own stdout/stderr encoding to UTF-8,
+    # matching the encoding="utf-8" this helper decodes with below — without it, a child
+    # script printing a non-ASCII character (e.g. an em dash) encodes using the OS locale
+    # codepage (e.g. cp950 on Traditional Chinese Windows), which this decode then rejects.
+    env = {**os.environ, "PYTHONUTF8": "1"}
+    return subprocess.run(args, cwd=str(cwd), capture_output=True, text=True, encoding="utf-8", env=env, **kwargs)
 
 
 def test_orchestrator_dry_run(snapshot_update, tmp_path):

@@ -1,4 +1,5 @@
 """PDF generation smoke test — skipped when plantuml.jar is absent."""
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -24,11 +25,15 @@ _plantuml_missing = not any(
 def test_pdf_generation_web_app(tmp_path):
     setup_fixture(tmp_path, project_type="web-app", task_type="feature")
 
+    # PYTHONUTF8 forces the child's own stdout/stderr encoding to UTF-8, matching the
+    # encoding="utf-8" this decodes with — see golden test helpers for the full rationale.
     result = subprocess.run(
         [sys.executable, str(_BUILD_PDF), "--project-type", "web-app", "--docs", "docs"],
         cwd=str(tmp_path),
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        env={**os.environ, "PYTHONUTF8": "1"},
     )
     assert result.returncode == 0, f"build_pdf.py failed:\n{result.stderr}\n{result.stdout}"
 

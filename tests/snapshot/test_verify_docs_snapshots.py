@@ -1,3 +1,4 @@
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -23,6 +24,10 @@ def test_verify_docs_json_snapshot(project_type, snapshot_update):
         ],
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        # PYTHONUTF8 forces the child's own stdout/stderr encoding to UTF-8, matching the
+        # encoding="utf-8" above — see golden test helpers for the full rationale.
+        env={**os.environ, "PYTHONUTF8": "1"},
         cwd=str(REPO_ROOT),
     )
     assert result.returncode == 0, f"verify_docs.py failed:\n{result.stderr}"
