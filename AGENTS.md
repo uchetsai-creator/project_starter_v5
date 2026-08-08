@@ -145,7 +145,7 @@ Run `python3 orchestrator.py` → read `.ai/WORKFLOW.md` and `.ai/AI_CONTEXT.md`
 
 `orchestrator.py` calls `build-context.py` internally — both read the same `.project-starter.yml`.
 
-Optional: run with `--adapter claude` (or `codex` / `cursor`) to also render the tool-native instruction file (`.claude/commands/start-task.md` / `.codex/` / `.cursorrules`).
+Optional: run with `--adapter claude` to also render the tool-native instruction file (`.claude/commands/start-task.md`).
 
 ### Closing out a task
 

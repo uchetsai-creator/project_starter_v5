@@ -431,8 +431,10 @@ are set in `.project-starter.yml`): `verify_spec_code.py` runs whenever the spec
 or any file under `spec_code_src` is staged — catches code that changed without the spec being
 updated, not just the reverse. Skipped entirely (no check) when those three keys are unset.
 
-Blocks the commit and shows output on failure. Works with Claude Code, Codex, Cursor, or manual commits.
-Optional Claude Code Stop hook (`.claude/settings.json`) calls the same scripts for
+Blocks the commit and shows output on failure. The hook itself is a plain git hook — it fires
+on `git commit` regardless of which AI tool, if any, is being used; the adapter layer that
+renders tool-native instruction files (see Agent Adapters in README.md) ships for Claude Code
+only today. Optional Claude Code Stop hook (`.claude/settings.json`) calls the same scripts for
 mid-session fast feedback, writing results to `logs/verify-{timestamp}.json`.
 
 **Note:** Process rules declared in `AGENTS.md` are enforced by this pre-commit hook,
@@ -1015,34 +1017,6 @@ Optional flags: `--output TASK_RUN_FILE` (default: `logs/telemetry/task-run.json
 Not called directly by users — invoked by `stop-hook.sh` on every session end.
 
 Update when: the task-run.json row schema changes (fields added/removed) or the orchestrator-runs lookup logic changes.
-
-### adapters/codex/setup.md
-**Applies to: All project types (Codex users)**
-
-Purpose:
-Codex setup instructions. Explains how to run `orchestrator.py` before starting work and how to regenerate
-the adapter output. Written to `.codex/setup.md` in the target project by `orchestrator.py --adapter codex`.
-
-Update when: the orchestrator invocation pattern or setup steps change.
-
-### adapters/codex/task-instructions.md
-**Applies to: All project types (Codex users)**
-
-Purpose:
-Task instructions template for Codex. Contains a `{{WORKFLOW_CONTENT}}` placeholder that is replaced with the
-current WORKFLOW.md snapshot at render time. Written to `.codex/task-instructions.md` by `orchestrator.py --adapter codex`.
-
-Update when: the task instructions framing changes or the injection placeholder format changes.
-
-### adapters/cursor/.cursorrules
-**Applies to: All project types (Cursor users)**
-
-Purpose:
-Cursor rules template. Contains the workflow constraint (run orchestrator before starting work, run validators
-before committing) and a `{{WORKFLOW_CONTENT}}` placeholder injected at render time. Written to `.cursorrules`
-at the project root by `orchestrator.py --adapter cursor`.
-
-Update when: the workflow rules or the WORKFLOW.md injection format change.
 
 ---
 
