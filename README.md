@@ -1,5 +1,7 @@
 # Project Starter
 
+[![CI](https://github.com/uchetsai-creator/project_starter_v5/actions/workflows/ci.yml/badge.svg)](https://github.com/uchetsai-creator/project_starter_v5/actions/workflows/ci.yml)
+
 A documentation-first template for AI-assisted development. Define what you're building before
 an AI agent (Claude Code, etc.) starts writing code — then keep every doc in sync automatically
 as work progresses.
@@ -8,8 +10,8 @@ This repo is a **pure template repository**. It contains no real project content
 scaffolding under `templates/`. The validator scripts (`templates/script/`) go into your project's
 `docs/script/`; individual doc templates are filled in one at a time as you follow the init guide.
 
-**Who this is for:** developers using Claude Code, Codex, Cursor, or a similar AI coding tool who
-want the speed of AI-assisted development without the usual cost — code that nobody, including a
+**Who this is for:** developers using Claude Code who want the speed of AI-assisted development
+without the usual cost — code that nobody, including a
 future session of the same AI, can maintain because the docs never kept up. Works whether you're
 building solo or with a team.
 
@@ -54,19 +56,19 @@ Outputs a ranked recommendation — including hybrids like `web-app+llm-app`. Pa
    installs the pre-commit hook. Skip to step 2 once done.
 
    *Manual alternative:* copy `AGENTS.md`, `orchestrator.py`, `build-context.py`,
-   `_workflow_utils.py`, `workflow-registry.yaml`, `document-registry.yaml`, `.githooks/`,
+   `_workflow_utils.py`, `workflow-registry.yaml`, `document-registry.yaml`,
+   `debug-instrumentation-rules.md`, `code-quality-check.md`, `.githooks/`,
    `guidance/`, and `templates/script/` → `docs/script/` into your project root. Also create a
    `CLAUDE.md` containing just `@AGENTS.md` so Claude Code auto-loads AGENTS.md's rules every
-   session (Codex reads `AGENTS.md` directly and needs no such file). Then edit
+   session. Then edit
    `.project-starter.yml`: replace `[your-project-type]` with your actual type — **the
    pre-commit hook blocks every commit until this placeholder is removed.**
 2. Declare your project type at the top of `AGENTS.md` (see the type table in
    [Project Initialization](#project-initialization)), then open `templates/init/<type>.md`
    **from this framework repo** and follow its numbered steps. (The init files are not copied
    to your project — keep the framework repo around for reference.)
-3. Run `python3 orchestrator.py --adapter claude` (or `codex` / `cursor`) — writes
-   `.ai/WORKFLOW.md` + `.ai/AI_CONTEXT.md` and renders your tool's native instruction file
-   (e.g. `.claude/commands/start-task.md`).
+3. Run `python3 orchestrator.py --adapter claude` — writes
+   `.ai/WORKFLOW.md` + `.ai/AI_CONTEXT.md` and renders `.claude/commands/start-task.md`.
 4. Set the **Current Task** in `docs/current-state.md`, then start work: read
    `.ai/AI_CONTEXT.md` first, follow `AGENTS.md`'s rules as you go, and run the validators listed
    in `.ai/WORKFLOW.md` before closing out the task.
@@ -114,7 +116,9 @@ project_starter/                     ← this repo (template only)
 │   ├── pre-commit                   ← the hook itself (see Verification below); install via `cp` + `chmod +x`
 │   └── run-verify.sh                ← Claude Code Stop-hook script: writes validator --json output to logs/verify-{timestamp}.json
 ├── .claude/
-│   └── settings.json                ← (optional, copy to your project) wires run-verify.sh + adapters/claude/stop-hook.sh into the Stop hook
+│   ├── settings.json                ← (optional, copy to your project) wires run-verify.sh + adapters/claude/stop-hook.sh into the Stop hook
+│   └── skills/
+│       └── add-framework-adapter/SKILL.md  ← framework-repo-only Claude Skill; NOT copied to user projects (see docs/contributing-adapters.md)
 ├── .ai/                             ← generated context (gitignored); recreate with orchestrator.py
 │   ├── AI_CONTEXT.md               ← ordered read list for the current task
 │   ├── WORKFLOW.md                 ← deterministic workflow plan (pre-task, validators, closeout)
@@ -125,16 +129,18 @@ project_starter/                     ← this repo (template only)
 │   └── telemetry/
 │       ├── task-run.json           ← append-only: one entry per Claude Code session (stop-hook.sh)
 │       └── .orchestrator_runs.json ← orchestrator run counter per task (orchestrator.py)
-├── adapters/                        ← agent adapter layer (translate WORKFLOW.md to each tool's native format)
-│   ├── claude/
-│   │   ├── start-task.md           ← slash command template (copy to .claude/commands/ in your project)
-│   │   ├── stop-hook.sh            ← writes session boundary to logs/telemetry/task-run.json on Claude Code session end
-│   │   └── telemetry_writer.py     ← telemetry row writer invoked by stop-hook.sh
-│   ├── codex/
-│   │   ├── setup.md                ← Codex setup instructions with orchestrator quickstart
-│   │   └── task-instructions.md    ← task instructions template; WORKFLOW.md injected at render time
-│   └── cursor/
-│       └── .cursorrules            ← Cursor rules template; WORKFLOW.md injected at render time
+├── adapters/                        ← agent adapter layer (translate WORKFLOW.md to Claude Code's native format;
+│   │                                   Claude Code only today — see Agent Adapters below)
+│   └── claude/
+│       ├── start-task.md           ← slash command template (copy to .claude/commands/ in your project)
+│       ├── stop-hook.sh            ← writes session boundary to logs/telemetry/task-run.json on Claude Code session end
+│       ├── telemetry_writer.py     ← telemetry row writer invoked by stop-hook.sh
+│       └── skills/                 ← Claude Skills, static (copy to .claude/skills/ in your project — see Agent Adapters → Per-tool setup)
+│           ├── retrofit-existing-project/SKILL.md
+│           ├── code-quality-check/SKILL.md
+│           ├── module-completion-check/SKILL.md
+│           ├── sprint-doc-sync/SKILL.md
+│           └── learning-checkpoint/SKILL.md
 ├── examples/                        ← minimal complete reference projects (one per type; golden regression tests run against these)
 │   ├── web-app/
 │   ├── cli-tool/
@@ -356,8 +362,7 @@ new_project/
 ├── CLAUDE.md                        ← `@AGENTS.md` — written automatically by `setup.sh --init`;
 │                                        guarantees AGENTS.md's rules (incl. Learning Checkpoint) load
 │                                        every Claude Code session regardless of which task-specific
-│                                        docs current-state.md points to. Codex reads AGENTS.md directly
-│                                        (no import needed); see README → Agent Adapters.
+│                                        docs current-state.md points to; see README → Agent Adapters.
 ├── orchestrator.py                  ← workflow manager: writes .ai/WORKFLOW.md + context
 ├── build-context.py                 ← context builder (called internally by orchestrator.py)
 ├── workflow-registry.yaml           ← task_type → validator sequence mapping
@@ -392,10 +397,10 @@ new_project/
 > Without it, scripts exit with: `FileNotFoundError: document-registry.yaml not found.`
 
 > **Note:** `adapters/` stays in the framework repo — it is **not** copied to user projects.
-> The adapter templates are embedded directly in `orchestrator.py` (see `_ADAPTER_TEMPLATES`),
-> so the adapter output (`.claude/commands/start-task.md`, `.codex/`, `.cursorrules`) can be
-> generated into your project by running `orchestrator.py --adapter <tool>` from nothing more
-> than the files listed above — no `adapters/` directory needs to exist in your project.
+> The adapter template is embedded directly in `orchestrator.py` (see `_ADAPTER_TEMPLATES`),
+> so the adapter output (`.claude/commands/start-task.md`) can be generated into your project by
+> running `orchestrator.py --adapter claude` from nothing more than the files listed above — no
+> `adapters/` directory needs to exist in your project.
 
 The `docs/specs/`, `docs/architecture/`, and `docs/modules/` contents differ per project type:
 
@@ -648,18 +653,18 @@ when a new task type is introduced; update an existing entry when the validator 
 
 ## Agent Adapters
 
-The orchestrator produces a tool-agnostic `.ai/WORKFLOW.md`. Adapters translate that output into
-each AI tool's native instruction format so developers do not need to wire up the orchestrator manually.
+The orchestrator produces a tool-agnostic `.ai/WORKFLOW.md` that any AI tool (or a human) can
+read directly. Adapters are an optional extra layer on top of that: they translate the same
+output into a specific tool's native instruction format so developers do not need to wire up
+the orchestrator manually. Claude Code is the only adapter shipped today — `AGENTS.md` and
+`.ai/WORKFLOW.md` remain plain Markdown any tool can follow without one.
 
 ```
-orchestrator.py --adapter [claude|codex|cursor]
+orchestrator.py --adapter claude
         │
         ├── writes  .ai/WORKFLOW.md          (always)
         │
-        ├── claude  → .claude/commands/start-task.md   (slash command with WORKFLOW.md injected)
-        ├── codex   → .codex/setup.md
-        │             .codex/task-instructions.md       (WORKFLOW.md injected)
-        └── cursor  → .cursorrules                      (WORKFLOW.md injected)
+        └── claude  → .claude/commands/start-task.md   (slash command with WORKFLOW.md injected)
 ```
 
 **Constraint:** adapters contain only format translation. Document selection logic stays in
@@ -674,10 +679,6 @@ python3 orchestrator.py --adapter claude
 
 # Preview without writing any files:
 python3 orchestrator.py --adapter claude --dry-run
-
-# Codex or Cursor:
-python3 orchestrator.py --adapter codex
-python3 orchestrator.py --adapter cursor
 ```
 
 ### Per-tool setup
@@ -697,20 +698,42 @@ python3 orchestrator.py --adapter cursor
      `logs/telemetry/task-run.json` (see Validation Telemetry below).
      Note: this writes to telemetry only — not to `docs/task-log.md`. Task log rows are written
      during task closeout by the AI agent, not automatically on session end.
+4. (Optional) For the five procedural docs below to auto-trigger as Claude Skills instead of
+   requiring AGENTS.md to point at them by hand, copy `adapters/claude/skills/` into your
+   project's `.claude/skills/` folder. Each is a `SKILL.md` with a `description` Claude Code
+   matches against the current task — the framework still works without this (AGENTS.md's own
+   trigger text is the tool-agnostic fallback for any other tool or manual use), this just gives
+   Claude Code a second, more direct path to the same guidance and packages it inside the
+   project itself instead of requiring the framework repo to stay around for reference:
 
-**Codex**
+   | Skill | Fires on |
+   |---|---|
+   | `retrofit-existing-project` | documenting an existing codebase that has code but no docs |
+   | `code-quality-check` | a requested code/architecture review, or Learning Checkpoint A's escalation |
+   | `module-completion-check` | a module just reached 100% complete |
+   | `sprint-doc-sync` | `sprint-change-log.md` reaches 3 pending-sync entries |
+   | `learning-checkpoint` | before implementing any task (Checkpoints 0/A/B/C) |
 
-1. Run `python3 orchestrator.py --adapter codex` — this writes `.codex/setup.md` and
-   `.codex/task-instructions.md`.
-2. Codex reads `.codex/setup.md` on startup; `.codex/task-instructions.md` contains the current
-   workflow steps with the WORKFLOW.md snapshot injected.
-3. Re-run `--adapter codex` whenever the task or task type changes.
+   `docs/contributing-adapters.md` is intentionally not in this list — it is packaged as a
+   separate, framework-repo-only skill at `.claude/skills/add-framework-adapter/` (see
+   Contributing a Framework Adapter below), since it's for people extending project_starter_v5
+   itself, not for application code written in a project that merely uses the framework.
+   `tests/contract/test_skill_contracts.py` guards all six `SKILL.md` bodies against drifting
+   from their canonical source docs (`templates/init/retrofit.md`, `code-quality-check.md`,
+   `templates/module-completion.md`, `templates/sprint-sync.md`,
+   `guidance/learning-checkpoints/common.md`, `docs/contributing-adapters.md`), the same pattern
+   `test_agent_adapter_templates.py` already uses for the slash-command templates above.
 
-**Cursor**
-
-1. Run `python3 orchestrator.py --adapter cursor` — this writes `.cursorrules` at the project root.
-2. Cursor picks up `.cursorrules` automatically; the workflow snapshot is injected into the rules.
-3. Re-run `--adapter cursor` whenever the task changes.
+**Other AI tools:** no dedicated adapter ships today (usage of this framework has been
+Claude Code only in practice) — `AGENTS.md` and `.ai/WORKFLOW.md` are plain Markdown, so any
+tool can still be pointed at them manually: run `python3 orchestrator.py` (no `--adapter` flag)
+and have the tool read `.ai/AI_CONTEXT.md` + `.ai/WORKFLOW.md` at the start of a session. A
+dedicated adapter for another tool, if one is genuinely needed later, would follow the same
+shape as `adapters/claude/` — a template embedded in `orchestrator.py`'s `_ADAPTER_TEMPLATES`,
+kept in sync by a `test_agent_adapter_templates.py`-style contract test. (Note: this is a
+different "adapter" concept from the spec↔code capability adapters described in
+`docs/contributing-adapters.md` below — that doc is about `verify_spec_code.py` framework
+detectors, unrelated to agent-tool adapters.)
 
 ---
 
@@ -938,7 +961,7 @@ python3 templates/script/framework/verify_framework.py --json     # machine-read
 ## Running the test suite
 
 ```bash
-pip install pytest
+pip install "pytest>=7"
 pytest tests/
 ```
 
@@ -958,7 +981,7 @@ The PDF smoke test (`tests/e2e/test_pdf_generation.py`) is skipped unless `plant
 Quality checks run automatically at the git commit boundary — no AI tool dependency.
 
 ```
-Any AI tool (Claude / Codex / Cursor / manual)
+Any AI tool (Claude Code / other / manual)
         ↓
    git commit
         ↓
@@ -1029,8 +1052,7 @@ via the `sprint-end` entry in `workflow-registry.yaml` (see `templates/sprint-sy
 | AI tool | Pre-commit hook fires? | All checks fire? | Claude Code Stop hook? |
 |---|---|---|---|
 | Claude Code | ✅ on `git commit` | ✅ | ✅ optional |
-| Codex | ✅ on `git commit` | ✅ | ❌ not applicable |
-| Cursor | ✅ on `git commit` | ✅ | ❌ not applicable |
+| Any other AI tool | ✅ on `git commit` | ✅ | ❌ not applicable |
 | Manual (no AI) | ✅ on `git commit` | ✅ | ❌ not applicable |
 
 
@@ -1333,6 +1355,17 @@ spec_code_src: src/
 All three must be set together; leave them blank to skip the gate (the default — matches
 prior behavior with no config).
 
+**Lowering the activation cost:** filling these in by hand is the main reason this gate stays
+off in practice. `python3 detect_type.py <path>` now also guesses `spec_code_adapter` /
+`spec_code_spec` / `spec_code_src` for you — e.g. if it finds `fastapi` in `requirements.txt`
+and recommends `web-app`, it prints the matching adapter, the canonical spec path for that
+type, and a best-effort `src/` guess. `--apply` on a **fresh** project (no `.project-starter.yml`
+yet) writes all three pre-filled, clearly marked as an unverified guess to confirm before
+relying on it; an existing `.project-starter.yml` is never touched by this — only `project_type`
+is ever rewritten. Coverage is intentionally partial (dependency name or a telltale file per
+framework, see `_ADAPTER_SIGNALS` in `detect_type.py`) — no match just means fall back to
+setting the three keys by hand as before.
+
 Once configured:
 
 - `orchestrator.py` appends `--adapter --spec --src` automatically to every
@@ -1454,8 +1487,11 @@ default — with it unset, a project has **zero** spec↔code protection, silent
 (until recently) nothing told you that. The pre-commit hook now prints a non-blocking `[TIP]`
 listing available adapters whenever a spec contract file is committed without this configured
 (see [Wiring it into pre-commit](#wiring-it-into-pre-commit)), but it's still up to you to act on
-the tip — the gate does not turn itself on. `--strict` is also required for the check to actually
-fail a commit; without it, output is informational only.
+the tip — the gate does not turn itself on. `detect_type.py` also now suggests the three values
+directly when it recognizes a framework signal (see Wiring it into pre-commit), which lowers the
+effort to act on the tip but still stops short of turning the gate on for you — a fresh
+`--apply` writes the suggestion, but you still have to run it and confirm the guess. `--strict`
+is also required for the check to actually fail a commit; without it, output is informational only.
 
 **Coverage is limited to the frameworks/languages with a detector.** ~29 framework/language
 detectors exist across 8 capabilities today (see the Adapters table above). Any other language
