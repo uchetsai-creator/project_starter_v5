@@ -15,6 +15,11 @@ Load together with `document-purposes-common.md`.
 ### data-model.md
 **Applies to: Web App, Data Pipeline, ML Pipeline, Microservices (per-service)**
 
+Purpose:
+Field-by-field schema — entities, fields, types, indexes, and state machines (ENUM columns).
+Conceptual entity/relationship overview belongs in architecture/database.md; this file is the
+implementation-level detail underneath it.
+
 Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
 * Schema changes
 * New entities are added

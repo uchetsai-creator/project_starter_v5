@@ -64,6 +64,18 @@ Update when:
 * An OS version is officially dropped
 * A known OS-specific incompatibility is discovered
 
+### api-contract.md
+→ See `document-purposes-web-app.md § Specs — api-contract.md`. Optional — only if the app
+calls its own backend/BFF API, not just third-party SDKs.
+
+### permissions.md
+→ See `document-purposes-web-app.md § Specs — permissions.md`. Optional — only if the app has
+multiple user roles (not just device-level OS permissions, which belong in `mobile-contract.md`).
+
+### data-model.md
+→ See `document-purposes-web-app.md § Specs — data-model.md`. Optional — only if the app
+persists data in a local database (SQLite / Realm / Core Data / Room).
+
 ---
 
 ## Architecture (docs/architecture/)
@@ -96,3 +108,25 @@ crash reporting integration, and offline storage (if used). Do not draw individu
 → See `document-purposes-common.md § Specs — logging-spec.md`.
 Mobile-specific note: covers crash reporting integration (Sentry / Firebase Crashlytics),
 analytics event naming, and log tag naming convention for mobile modules.
+
+### backend.md
+→ See `document-purposes-web-app.md § Architecture — backend.md`. Optional — only if the app
+has its own BFF (Backend for Frontend) or backend service, not just third-party APIs.
+
+### database.md
+→ See `document-purposes-web-app.md § Architecture — database.md`. Optional — same condition
+as `data-model.md` above: only if a local database is used.
+
+---
+
+## Business (docs/business/)
+
+### business-process.md
+→ See `document-purposes-web-app.md § Business — business-process.md`. Optional — create only
+if the app has a multi-step user workflow worth documenting (e.g. onboarding, checkout);
+a single-screen action doesn't need one.
+
+### business-rules.md
+→ See `document-purposes-web-app.md § Business — business-rules.md`. Optional — only if the
+app enforces domain rules beyond simple form/input validation (which belongs in
+`mobile-contract.md`'s screen definitions).

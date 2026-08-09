@@ -9,6 +9,15 @@ Applies to every project type. Triggers happen every task, independent of doc/va
 timing (see Sprint Documentation Sync) — this is about live discussion in the session,
 not a file that gets written and synced later.
 
+**Claude Code note:** Checkpoint A's "ask, don't guess" step and Checkpoint B's item 1 are
+conversational — they depend on the agent choosing to follow this file. If
+`adapters/claude/pretooluse_scope_guard.py` is wired into `.claude/settings.json`'s
+`PreToolUse` hook, the same "ask before implementing" rule is also enforced mechanically:
+it blocks `Edit`/`Write`/`MultiEdit`/`NotebookEdit` on source files until `current-state.md`
+has a scoped `Current Task` and a filled `Clarifying Questions Asked` field. That hook is a
+backstop, not a replacement for actually running the checkpoints below — it can't tell
+whether real questions were asked, only whether the field was filled in.
+
 ---
 
 ## Checkpoint 0 — Unfamiliar Technology (only when it applies)

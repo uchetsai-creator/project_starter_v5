@@ -133,7 +133,50 @@ Update when (if listed in current-state.md → Doc Checklist, update at task lev
 * Tool-use policy is tuned (call limits, confirmation requirements)
 * A new failure mode is discovered and handled
 
+### api-contract.md
+→ See `document-purposes-web-app.md § Specs — api-contract.md`. Optional — only if the app
+exposes its own HTTP API (not just calling the LLM provider's API as a client).
+
+### cli-contract.md
+→ See `document-purposes-cli-tool.md § Specs — cli-contract.md`. Optional — only if the app
+is invoked as a CLI tool (e.g. a local eval runner or batch-processing script).
+
+### permissions.md
+→ See `document-purposes-web-app.md § Specs — permissions.md`. Optional — only if the app has
+multiple user roles (e.g. admin vs. end user access to different tools or data sources).
+
+### data-model.md
+→ See `document-purposes-web-app.md § Specs — data-model.md`. Optional — only if the app
+persists conversation/session history or other state; a stateless single-call app doesn't need it.
+
 ### logging-spec.md
 → See `document-purposes-common.md § Specs — logging-spec.md`.
 AI / LLM App addition: also covers structured log format for every LLM call (see also `llm-debug.md`).
 Update also when: LLM call log format changes.
+
+---
+
+## Architecture (docs/architecture/)
+
+### backend.md
+→ See `document-purposes-web-app.md § Architecture — backend.md`. Optional — only if the app
+is more than a single script (e.g. it has its own API layer, background workers, or queue
+consumers around the LLM calls).
+
+### database.md
+→ See `document-purposes-web-app.md § Architecture — database.md`. Optional — same condition
+as `data-model.md` above: only if conversation/session history or other state is persisted.
+
+### deployment.md
+→ See `document-purposes-web-app.md § Architecture — deployment.md`. Optional — only if the
+app is hosted as a running service; a notebook or one-off script doesn't need it.
+
+---
+
+## Business (docs/business/)
+
+### business-rules.md
+→ See `document-purposes-web-app.md § Business — business-rules.md`. Optional — only if the
+app enforces domain rules beyond the LLM's own behavior (e.g. a hardcoded eligibility check
+before a tool call is allowed to run). Prompt-level constraints belong in the prompt file
+itself (`docs/specs/prompts/[prompt-id]-prompt.md`), not here.

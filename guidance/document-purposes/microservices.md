@@ -100,18 +100,7 @@ access is a Hardcoded constraint or a Seeded default. Only Hardcoded constraints
 in business-rules.md as permanent rules.
 
 ### data-model.md
-**Applies to: Web App, Data Pipeline, ML Pipeline, Microservices (per-service)**
-
-Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
-* Schema changes
-* New entities are added
-* Relationships change
-* Indexes are added or removed
-* State transitions change in any `docs/business/*-object.md`
-
-After updating, regenerate both diagrams:
-* ERD: `Edit the ```plantuml block in the file, then run build_pdf.py`
-* State diagram: `Edit the ```plantuml block in the file, then run build_pdf.py`
+→ See `document-purposes-web-app.md § Specs — data-model.md`. One per service.
 
 ### logging-spec.md
 → See `document-purposes-common.md § Specs — logging-spec.md`
@@ -139,29 +128,12 @@ After updating, regenerate component diagram:
 `Edit the ```plantuml block in the file, then run build_pdf.py`
 
 ### database.md
-**Applies to: Web App, Data Pipeline, ML Pipeline, Microservices (per-service)**
-Not applicable to CLI Tool (unless it uses a persistent DB), Library / SDK.
-
-Purpose:
-Describe database structure at the conceptual level — main entities, main relationships,
-important constraints.
-
-Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
-* Main entities or relationships change
+→ See `document-purposes-web-app.md § Architecture — database.md`. One per service.
 
 ### deployment.md
-**Applies to: Web App, Data Pipeline, ML Pipeline, Microservices**
-
-Purpose:
-Describe runtime structure — services, environment variables, build/deploy flow,
-and deployment topology. For Microservices: covers cross-service deployment topology.
-
-Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
-* Services, env vars, or build/deploy flow changes
-* Deployment topology changes (new service, new hosting platform, new network path)
-
-After updating the Deployment Diagram block, regenerate the diagram:
-`Edit the \`\`\`plantuml block in the file, then run build_pdf.py`
+→ See `document-purposes-web-app.md § Architecture — deployment.md`.
+Microservices note: covers cross-service deployment topology (system-level), not just one
+service's own runtime structure.
 
 ---
 

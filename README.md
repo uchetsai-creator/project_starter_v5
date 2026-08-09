@@ -23,6 +23,46 @@ missing documentation automatically — instead of relying on anyone remembering
 
 ---
 
+<details>
+<summary><strong>Table of contents</strong> — this file covers a quickstart, the daily workflow, and a full reference/contributor manual; jump straight to what you need</summary>
+
+**Get started**
+- [Quick Start](#quick-start)
+- [How it works](#how-it-works)
+- [Project Initialization](#project-initialization)
+- [Working on an existing project](#working-on-an-existing-project)
+
+**Daily workflow**
+- [Context Builder](#context-builder)
+- [Orchestrator](#orchestrator)
+- [Agent Adapters](#agent-adapters)
+- [Verification](#verification) — what the pre-commit hook actually checks
+
+**Reference**
+- [Retrofitting an existing project](#retrofitting-an-existing-project)
+- [Module types](#module-types)
+- [Diagrams](#diagrams)
+- [Module inventory scan](#module-inventory-scan)
+- [Document completeness audit](#document-completeness-audit)
+- [Module Docs](#module-docs)
+- [Validation Telemetry](#validation-telemetry)
+- [Spec ↔ Code Validator](#spec--code-validator)
+- [Beyond static comparison: runtime contract testing](#beyond-static-comparison-runtime-contract-testing)
+- [Security Scan (SAST)](#security-scan-sast)
+- [Prose Quality (Vale)](#prose-quality-vale)
+- [Limitations](#limitations) — read this before assuming a passing commit means correct code
+- [Self-improving loop](docs/self-improving-loop.md)
+- [PDF generation](docs/pdf-generation.md)
+- [Key design decisions](#key-design-decisions)
+
+**Contributing to this framework**
+- [Framework maintenance](#framework-maintenance)
+- [Running the test suite](#running-the-test-suite)
+
+</details>
+
+---
+
 **Prerequisites:** Python 3.9+ and [PyYAML](https://pypi.org/project/PyYAML/)
 (`pip install pyyaml`) — `orchestrator.py`, `build-context.py`, and `verify_registry.py` all
 read `.yml`/`.yaml` config through it. `detect_type.py` and `setup.sh` need no extra packages.
@@ -182,11 +222,14 @@ project_starter/                     ← this repo (template only)
 │   ├── architecture-analysis.md    ← current coupling problems + responsibility boundaries
 │   ├── refactoring-plan.md         ← 3-phase migration plan (registry → context builder → orchestrator)
 │   ├── context-builder-design.md   ← build-context.py design: inputs, outputs, algorithm
-│   └── contributing-adapters.md    ← guide for writing new framework adapters
+│   ├── contributing-adapters.md    ← guide for writing new framework adapters
+│   ├── self-improving-loop.md      ← diagnose_spec.py / propose_framework_fix.py: architecture, iteration limit, usage
+│   └── pdf-generation.md           ← PlantUML setup + generating the merged spec PDF
 ├── guidance/
 │   ├── document-purposes/
 │   │   ├── index.md         ← index: type → per-type file lookup
 │   │   ├── common.md        ← applies to all project types
+│   │   ├── scripts-reference.md ← docs/script/ + adapters/ + diagram-tooling reference (split out of common.md; load only when needed)
 │   │   ├── web-app.md
 │   │   ├── cli-tool.md
 │   │   ├── library.md
@@ -338,7 +381,7 @@ project_starter/                     ← this repo (template only)
         │   ├── build_pdf.py         ← renders all ```plantuml blocks via PlantUML + merges docs/ into PDF
         │   ├── pdf_allowlist.py     ← single source of truth for which files appear in the PDF
         │   ├── plantuml.cfg         ← PlantUML renderer configuration
-        │   ├── plantuml.jar         ← download separately (see Setting up PlantUML)
+        │   ├── plantuml.jar         ← download separately (see docs/pdf-generation.md)
         │   ├── diagnose_spec.py     ← classifies spec fill gaps; triggers framework fix PRs
         │   ├── propose_framework_fix.py ← opens a PR on project_starter_v5 to add a missing template section
         │   ├── new_detector.py      ← scaffolds a new framework Detector for verify_spec_code.py
@@ -406,6 +449,7 @@ new_project/
 │   ├── document-purposes/
 │   │   ├── index.md         ← index: maps project type → per-type file
 │   │   ├── common.md        ← loaded by all types
+│   │   ├── scripts-reference.md ← docs/script/ + adapters/ + diagram-tooling reference (load only when needed)
 │   │   └── <type>.md        ← loaded for your declared type (e.g. web-app.md)
 │   └── learning-checkpoints/
 │       ├── common.md        ← question templates for Checkpoint 0/A/B/C (see AGENTS.md)
@@ -1103,13 +1147,10 @@ Optional fast-feedback (Claude Code only):
 Spec-facing documents (writing audience check): `business-rules.md`, `pipeline-contract.md`, `research.md`, `quickstart.md`, `architecture/*.md`, `modules/*/*-module-data-flow.md`
 
 **Prototyping/spike escape hatch:** `PROJECT_STARTER_SKIP_VERIFY=1 git commit -m "wip"` skips
-every check above for that one commit. Prefer this over `git commit --no-verify` — `--no-verify`
-skips the hook silently with no trace in the commit, while the env var always prints a loud
-`[SKIP]` line so a skipped commit is never mistaken for a verified one, and appends a row to
-`logs/telemetry/skip-verify.json` (`ts`, `staged_files`) so how often a project reaches for the
-hatch is auditable later, not just visible in the terminal at the moment it happened. This
-doesn't make the hatch any harder to use — a determined agent/developer can still ignore or
-delete the log, same as any local file — it exists for the human reviewing history afterward.
+every check above for that one commit — loudly (`[SKIP]` line) and audibly (a row appended to
+`logs/telemetry/skip-verify.json`), unlike `git commit --no-verify`, which skips silently with
+no trace at all. Prefer the env var for that reason. Full rationale and behavior:
+`.githooks/pre-commit`'s own header comment (canonical source — this paragraph is a summary).
 
 `verify_acceptance.py` (FR-XXX → test plan → test report traceability) is **not** part of
 `.githooks/pre-commit` — checking full requirement traceability on every commit would block
@@ -1864,155 +1905,13 @@ opt-in and unset by default, same shape as the other two gates above.
 
 ## Self-improving loop
 
-When a spec has fill-quality issues, the root cause is either:
-- **Project-level** — the template has the section, but the project didn't fill it in.
-- **Framework-level** — the template is missing guidance for that section entirely.
-
-`diagnose_spec.py` classifies each gap by inspecting the framework template. Framework gaps trigger a PR on `project_starter_v5` via `propose_framework_fix.py`. The loop runs at most **2 rounds** to avoid runaway PR creation.
-
-### Architecture
-
-```
-verify_content.py --json          (preferred)
-  — or —
-verify_docs.py --content --json
-        ↓
-diagnose_spec.py --round 1        (auto-detects input format)
-        ↓
-  classify each unfilled section
-  ├── project-level  → print for manual fix (no PR)
-  └── framework-level → propose_framework_fix.py → PR on project_starter_v5
-        ↓
-  [merge or skip PRs]
-        ↓
-diagnose_spec.py --round 2
-        ↓
-  framework gaps remaining → logs/framework-gaps.md
-  ⏹ stop (2-round limit)
-```
-
-### Iteration limit
-
-| Round | Action |
-|---|---|
-| 1 | Classify all gaps → open PRs for framework gaps |
-| 2 | Re-classify → open PRs for new gaps; log remaining to `logs/framework-gaps.md` |
-| 3+ | Not allowed — check `logs/framework-gaps.md` and fix manually |
-
-### Running the loop (sprint end, optional)
-
-```bash
-# Round 1 — diagnose and open PRs
-# Preferred — verify_content.py output (documents[].issues):
-python3 docs/script/validators/verify_content.py --project-type TYPE --json \
-  | python3 templates/script/generators/diagnose_spec.py --project-type TYPE
-
-# Alternative — verify_docs.py output (results[].content.unfilled_sections):
-python3 docs/script/validators/verify_docs.py --project-type TYPE --content --json \
-  | python3 templates/script/generators/diagnose_spec.py --project-type TYPE
-
-# After reviewing and merging/skipping round-1 PRs:
-
-# Round 2 — re-diagnose; remaining gaps go to logs/framework-gaps.md
-python3 docs/script/validators/verify_content.py --project-type TYPE --json \
-  | python3 templates/script/generators/diagnose_spec.py --project-type TYPE --round 2
-
-# Dry-run mode (no PRs, no files written):
-... | python3 templates/script/generators/diagnose_spec.py --project-type TYPE --dry-run
-```
-
-**Fork users:** set the `PROJECT_STARTER_FRAMEWORK_REPO` environment variable to override
-the default repo target before running `propose_framework_fix.py`:
-
-```bash
-export PROJECT_STARTER_FRAMEWORK_REPO=your-org/your-fork
-```
-
-### PR format (auto-generated by `propose_framework_fix.py`)
-
-```
-Title: [Auto-fix] {type} / {document}: add {gap description} section
-
-Body:
-Detected gap: {type} projects using {document} have no template
-guidance for: {gap description}.
-
-Fix: added a placeholder section with guidance comments to the template.
-Review and fill in concrete guidance before merging.
-
-Source: auto-generated by diagnose_spec.py. No project content included.
-```
+When a spec has fill-quality issues, `diagnose_spec.py` classifies whether the gap is project-level (fill it in) or framework-level (the template itself is missing guidance), and can open a PR on this repo for the latter. Moved to [`docs/self-improving-loop.md`](docs/self-improving-loop.md) — architecture, iteration limit, usage, and the auto-generated PR format.
 
 ---
 
-## Setting up PlantUML
+## PDF generation
 
-All UML diagrams use [PlantUML](https://plantuml.com) syntax (` ```plantuml ` blocks).
-`build_pdf.py` renders them automatically — no separate steps needed once PlantUML is installed.
-
-**Quick setup (recommended):**
-```bash
-bash setup.sh   # downloads plantuml.jar and checks Java
-```
-
-**Manual setup:**
-1. Java (JDK 11+): `java -version`
-2. PlantUML jar: download from https://plantuml.com/download and place at `docs/script/generators/plantuml.jar`
-   Or set the environment variable: `export PLANTUML_JAR=/path/to/plantuml.jar`
-
-> **If plantuml.jar is missing**, `build_pdf.py` will produce a PDF **without diagrams** and print
-> a warning — it does not abort. The warning message now points to `setup.sh` for a quick fix.
-
-**Diagram syntax:** write your diagram inside a ` ```plantuml ` block in any `.md` file:
-```
-```plantuml
-@startuml
-[*] --> active
-active --> done : completed
-done --> [*]
-@enduml
-```​
-```
-
-## Generating the merged PDF
-
-Combines every real document under `docs/` (per the allowlist in `pdf_allowlist.py`) into a
-single PDF — table of contents, page numbers, and diagrams embedded as images
-with a clickable link to the original interactive HTML.
-
-```bash
-pip install markdown weasyprint cairosvg --break-system-packages
-
-# System spec PDF (stakeholder handoff)
-python3 docs/script/generators/build_pdf.py docs --lang en --project-type data-pipeline --content spec
-
-# Full PDF — all six chapters including Plan and Test (for internal use)
-python3 docs/script/generators/build_pdf.py docs --lang en --project-type data-pipeline -o docs/project-documentation-en.pdf
-
-# Hybrid project — both comma (,) and plus (+) are accepted as separators
-python3 docs/script/generators/build_pdf.py docs --lang en --project-type data-pipeline,web-app -o docs/project-documentation-en.pdf
-python3 docs/script/generators/build_pdf.py docs --lang en --project-type data-pipeline+web-app -o docs/project-documentation-en.pdf
-
-# No type filter — include all files that exist (backward-compatible)
-python3 docs/script/generators/build_pdf.py docs --lang en -o docs/project-documentation-en.pdf
-```
-
-> **Hybrid type separator:** `build_pdf.py` accepts both `,` and `+` (e.g. `data-pipeline,web-app` or
-> `data-pipeline+web-app`). `verify_docs.py` uses `+` only. AGENTS.md declarations also use `+`.
-> Use whichever matches the tool you're calling.
-
-> **`--lang zh` scope:** `--lang zh` translates section headers, the table of contents, and the
-> "How to Use" page into Traditional Chinese. **Template file content** (placeholders and comments
-> inside each `.md` file) remains in English because all templates are English-only. If you need
-> fully localized template content, maintain a `docs-zh/` mirror and translate the template files
-> before running `build_pdf.py docs-zh --lang zh`.
-
-`--content spec` omits Plan (project-plan, changelog) and Test (test-plan, test-report) chapters — use this when handing off the spec to stakeholders or clients. Default (`full`) includes all six chapters.
-
-To add a new document to the PDF, add it to **`docs/script/generators/pdf_allowlist.py`** only —
-`build_pdf.py` imports from it automatically. Note that
-`business/*-process.md`, `business/*-object.md`, `modules/*/*-module-data-flow.md`,
-and `specs/prompts/*-prompt.md` are auto-scanned and do not need to be added manually.
+Setting up PlantUML (diagram rendering) and generating the merged spec PDF from `docs/`. Moved to [`docs/pdf-generation.md`](docs/pdf-generation.md).
 
 ---
 

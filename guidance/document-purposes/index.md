@@ -33,3 +33,7 @@ Example: `Project Type: Data Pipeline + Web App` → load `document-purposes-com
 | Mobile App | `document-purposes-mobile-app.md` |
 
 All files live in the `guidance/` directory alongside this file (referenced as `guidance/document-purposes-*.md` from AGENTS.md and templates).
+
+**Script/tooling reference:** `document-purposes-scripts-reference.md` covers every script under
+`docs/script/`, the `adapters/` files, and the diagram-tooling table. Not part of the two-file
+load above — load it only when you need a script's exact CLI flags or behavior.

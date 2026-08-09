@@ -57,7 +57,7 @@ in this project, run this early if the Pending count reaches 3 first — whichev
    c. For each Critical question: update the spec to answer it.
    d. Repeat until the round's Critical list is empty.
    e. Record final round count in `docs/specs/test-report.md → Spec Challenge` section.
-7. **(Optional) Self-improving loop** — run only if the Step 4 decision gate directed you here (unresolved WARN after triage). For full usage, PR format, and architecture diagram, see `README.md → Self-improving loop` (canonical reference).
+7. **(Optional) Self-improving loop** — run only if the Step 4 decision gate directed you here (unresolved WARN after triage). For full usage, PR format, and architecture diagram, see `docs/self-improving-loop.md` (canonical reference).
    a. **Round 1** — diagnose and open framework fix PRs:
       ```bash
       # Preferred — uses verify_content.py output (documents[].issues):

@@ -27,28 +27,11 @@ Update when (if listed in current-state.md → Doc Checklist, update at task lev
 * Config file schema changes
 
 ### release-guide.md
-**Applies to: Library / SDK, CLI Tool**
-
-Purpose:
-Documents the versioning policy (semver rules), release checklist, publish process,
-changelog format, and deprecation policy. This is the library/CLI equivalent of deployment.md.
-
-Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
-* The release process changes
-* A new registry or publish target is added
-* The versioning or deprecation policy changes
+→ See `document-purposes-library.md § Specs — release-guide.md`.
 
 ### compatibility-matrix.md
-**Applies to: Library / SDK, CLI Tool (optional)**
-
-Purpose:
-Documents which runtime versions and peer dependency version ranges are supported,
-which platform/OS combinations are tested, and any known incompatibilities.
-
-Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
-* Support for a runtime version is added or dropped
-* A peer dependency version range changes
-* A known incompatibility is discovered or resolved
+→ See `document-purposes-library.md § Specs — compatibility-matrix.md`. CLI Tool: optional
+(Library / SDK is required).
 
 ### logging-spec.md
 → See `document-purposes-common.md § Specs — logging-spec.md`
@@ -58,33 +41,12 @@ Update when (if listed in current-state.md → Doc Checklist, update at task lev
 ## Architecture (docs/architecture/)
 
 ### backend.md
-**Applies to: Web App, CLI Tool, Data Pipeline, ML Pipeline, Microservices (per-service)**
-Not applicable to Library / SDK (libraries have no runtime backend).
-
-Purpose:
-Describe backend structure — stack, layering, layer responsibilities, module pattern.
-Use the actual layer names from the codebase — do not assume Controller/Service/Repository.
-Includes a component block for the backend module structure diagram.
-
-Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
-* Backend layering, stack, or module pattern changes
-
-After updating, regenerate component diagram:
-`Edit the ```plantuml block in the file, then run build_pdf.py`
+→ See `document-purposes-web-app.md § Architecture — backend.md`.
+CLI Tool note: describe the command dispatch structure and layer responsibilities
+(e.g. CLI parsing → command handlers → core logic), not a request/response backend.
 
 ### distribution.md
-**Applies to: Library / SDK, CLI Tool**
-
-Purpose:
-Documents how the package is built, published to a registry, and installed by end users.
-This is the library/CLI equivalent of deployment.md — libraries and CLIs are not "deployed"
-to a server; they are distributed to callers.
-
-Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
-* Build process or output artifacts change
-* A registry or publish target is added, removed, or changed
-* Installation instructions change
-* CI/CD pipeline stages change
+→ See `document-purposes-library.md § Architecture — distribution.md`.
 
 ---
 
@@ -131,7 +93,9 @@ Not applicable to Library / SDK.
 Purpose:
 Describe business constraints and policies — validation rules, argument constraints, and output
 formatting rules enforced by the CLI. Each rule must declare its Enforcement Layer.
-Only Hardcoded constraints belong here — Seeded defaults (config file defaults) belong elsewhere.
+Only Hardcoded constraints belong here — a Seeded default (a config file's own default value,
+changeable by the user without a rebuild) belongs in `cli-contract.md`'s config file schema
+section instead, not here. CLI Tool has no permissions.md to route it to.
 
 Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
 * Business rules change

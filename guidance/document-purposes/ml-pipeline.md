@@ -39,17 +39,7 @@ Update when:
 * The orchestrator tool, validation tool, or lineage tool changes — update the relevant steps.
 
 ### data-model.md
-**Applies to: Web App, Data Pipeline, ML Pipeline, Microservices (per-service)**
-
-Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
-* Schema changes
-* New entities are added
-* Relationships change
-* Indexes are added or removed
-
-After updating, regenerate both diagrams:
-* ERD: `Edit the ```plantuml block in the file, then run build_pdf.py`
-* State diagram: `Edit the ```plantuml block in the file, then run build_pdf.py`
+→ See `document-purposes-web-app.md § Specs — data-model.md`.
 
 ### model-contract.md
 **Applies to: ML Pipeline**
@@ -86,44 +76,17 @@ Update when:
 ## Architecture (docs/architecture/)
 
 ### backend.md
-**Applies to: Web App, CLI Tool, Data Pipeline, ML Pipeline, Microservices (per-service)**
-Not applicable to Library / SDK (libraries have no runtime backend).
-
-Purpose:
-Describe pipeline stack and stage layering pattern.
-Use the actual layer names from the codebase.
-Includes a component block for the backend module structure diagram.
-
-Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
-* Pipeline stack, stage layering, or module pattern changes
-
-After updating, regenerate component diagram:
-`Edit the ```plantuml block in the file, then run build_pdf.py`
+→ See `document-purposes-web-app.md § Architecture — backend.md`.
+ML Pipeline note: describe the pipeline stack and stage layering pattern instead of a
+request/response backend — use the actual layer names from the codebase.
 
 ### database.md
-**Applies to: Web App, Data Pipeline, ML Pipeline, Microservices (per-service)**
-Not applicable to CLI Tool (unless it uses a persistent DB), Library / SDK.
-
-Purpose:
-Describe database structure at the conceptual level — main entities, main relationships,
-important constraints.
-
-Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
-* Main entities or relationships change
+→ See `document-purposes-web-app.md § Architecture — database.md`.
 
 ### deployment.md
-**Applies to: Web App, Data Pipeline, ML Pipeline, Microservices**
-
-Purpose:
-Describe runtime structure — services, environment variables, training/serving infrastructure,
-and deployment topology.
-
-Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
-* Services, env vars, or training/serving infrastructure changes
-* Deployment topology changes
-
-After updating the Deployment Diagram block, regenerate the diagram:
-`Edit the \`\`\`plantuml block in the file, then run build_pdf.py`
+→ See `document-purposes-web-app.md § Architecture — deployment.md`.
+ML Pipeline note: describe training/serving infrastructure (where training runs, how the
+model is served) in place of a request-serving deployment topology.
 
 ---
 
