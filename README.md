@@ -195,6 +195,7 @@ project_starter/                     ← this repo (template only)
 │   │   ├── start-task.md           ← slash command template (copy to .claude/commands/ in your project)
 │   │   ├── stop-hook.sh            ← writes session boundary to logs/telemetry/task-run.json on Claude Code session end
 │   │   ├── session-start-hook.sh   ← non-blocking nudge: re-checks current-state.md scoping state fresh every session
+│   │   ├── learning_log_nudge.py   ← non-blocking nudge: flags when docs/task-log.md was closed out more recently than learning-log.md was last touched (never checks entry content — see Learning Checkpoint enforcement below)
 │   │   ├── pretooluse_scope_guard.py ← BLOCKING: denies Edit/Write/MultiEdit/NotebookEdit on source files until current-state.md is scoped (see Learning Checkpoint enforcement below)
 │   │   ├── telemetry_writer.py     ← telemetry row writer invoked by stop-hook.sh
 │   │   └── skills/                 ← Claude Skills, static; copied to .claude/skills/ automatically by `--init` (see Agent Adapters → Per-tool setup)
@@ -788,7 +789,7 @@ python3 orchestrator.py --adapter claude --dry-run
 3. (Optional) For fast feedback without waiting for a manual validator run, copy this repo's
    `.claude/settings.json` **and** `adapters/claude/*.sh` + `adapters/claude/*.py` into your
    project's `.claude/` and `adapters/claude/` folders respectively — `settings.json` references
-   those scripts by relative path, so it does nothing on its own without them. This wires three
+   those scripts by relative path, so it does nothing on its own without them. This wires four
    hooks:
    - `.githooks/run-verify.sh` (Stop, non-blocking) — runs `verify_docs.py` / `verify_logs.py` /
      `verify_tests.py` / `verify_content.py` with `--json` and writes the combined output to
@@ -797,6 +798,15 @@ python3 orchestrator.py --adapter claude --dry-run
      `logs/telemetry/task-run.json` (see Validation Telemetry below).
      Note: this writes to telemetry only — not to `docs/task-log.md`. Task log rows are written
      during task closeout by the AI agent, not automatically on session end.
+   - `adapters/claude/learning_log_nudge.py` (SessionStart, non-blocking) — surfaces a reminder
+     when the last committed `docs/task-log.md` entry is newer than the last commit touching
+     `learning-log.md`. It only compares commit timestamps of the two files — it never reads
+     entry content, and never blocks. `learning-log.md`'s own header says it is "never checked
+     by any validator"; this hook does not change that. It exists because Learning Checkpoint
+     C.4's teach-back gap is, by design, the one Learning Checkpoint step with no mechanical
+     backstop at all (see Learning Checkpoint enforcement below) — unlike scoping, there is no
+     reliable way to verify a teach-back actually happened, only a way to make forgetting to
+     log it less silent.
    - `adapters/claude/pretooluse_scope_guard.py` (PreToolUse, **blocking**) — the only hook in
      this list that runs *before* a tool call instead of after. It denies `Edit` / `Write` /
      `MultiEdit` / `NotebookEdit` on any source-like path (not `docs/`, not a framework file)

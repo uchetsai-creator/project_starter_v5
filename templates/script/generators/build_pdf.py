@@ -392,7 +392,7 @@ def render_plantuml_block(puml_text, out_svg_path):
         if os.path.exists(cfg_path):
             cmd += ['-config', cfg_path]
         cmd.append(tmp_puml)
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30, encoding="utf-8", errors="replace")
         # PlantUML outputs SVG to out_svg_dir using the input filename's stem
         # e.g. /tmp/tmpXXXX.puml → out_svg_dir/tmpXXXX.svg
         tmp_svg = os.path.join(out_svg_dir, os.path.splitext(os.path.basename(tmp_puml))[0] + '.svg')

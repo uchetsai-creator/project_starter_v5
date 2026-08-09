@@ -285,7 +285,7 @@ def scan_modules_from_src(
             [sys.executable, scan_script, src,
              '--project-type', project_type, '--format', 'json',
              '--docs', docs_dir],
-            capture_output=True, text=True, timeout=30,
+            capture_output=True, text=True, timeout=30, encoding='utf-8', errors='replace',
         )
         if result.returncode != 0:
             print(

@@ -107,7 +107,7 @@ def _invoke_build_context(project_root: Path, task_type: str | None) -> None:
     cmd = [sys.executable, str(project_root / "build-context.py")]
     if task_type:
         cmd += ["--task-type", task_type]
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    result = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace")
     if result.returncode != 0:
         print(result.stderr, file=sys.stderr, end="")
         sys.exit(result.returncode)

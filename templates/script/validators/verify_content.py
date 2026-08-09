@@ -949,7 +949,7 @@ def run_module_docs(project_type: str, docs_dir: str, script_dir: str) -> list[d
         result = subprocess.run(
             [sys.executable, script, '--project-type', project_type,
              '--docs', docs_dir, '--json'],
-            capture_output=True, text=True, timeout=30,
+            capture_output=True, text=True, timeout=30, encoding='utf-8', errors='replace',
         )
         data = json.loads(result.stdout)
         return data.get('modules', [])
