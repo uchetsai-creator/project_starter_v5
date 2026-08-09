@@ -248,6 +248,38 @@ All notable changes to this framework are documented here. Format loosely follow
   level so it stays inside `verify_acceptance.py`'s existing traceability chain even though this
   framework can't run the tests itself.
 
+### Fixed
+- `subprocess.run(..., text=True)` without an explicit `encoding=` decodes a child process's
+  stdout/stderr using the platform's preferred locale — `cp950` on Traditional Chinese Windows,
+  for example. Any non-ASCII byte in that output (a box-drawing character, an arrow, a CJK
+  character) then crashes a reader thread with `UnicodeDecodeError`, surfaced to the user as a
+  raw traceback even though the underlying command usually still completed. `verify_prose.py`
+  and `verify_security.py` already guarded against this with `encoding='utf-8',
+  errors='replace'`; this applies the same fix to the six remaining call sites that never got
+  it: `orchestrator.py` (`_invoke_build_context`), `build_pdf.py` (PlantUML invocation),
+  `diagnose_spec.py` (calling `propose_framework_fix.py`), `propose_framework_fix.py`'s own
+  `run()` helper, `verify_content.py`, and `verify_module_docs.py`. CI never caught this because
+  `.github/workflows/ci.yml` sets `PYTHONUTF8: "1"` at the job level — that masks the gap at
+  every call site instead of fixing any of them, so a real user running these scripts outside
+  CI on a non-UTF-8-locale machine hits the crash CI never sees. Confirmed by reproducing the
+  crash on a `cp950` locale before the fix and confirming a clean run after.
+
+### Added
+- New Claude Code `SessionStart` hook (`adapters/claude/learning_log_nudge.py`, wired in
+  `.claude/settings.json` alongside `session-start-hook.sh`): reminds when the last committed
+  `docs/task-log.md` entry (a task closeout) is newer than the last commit touching
+  `learning-log.md`, by comparing `git log -1 --format=%ct` timestamps for both files.
+  Addresses the one Learning Checkpoint step with no mechanical backstop at all — Checkpoint
+  C.4's teach-back gap previously relied entirely on the agent remembering, unprompted, to
+  append an entry. Deliberately stops at timestamps and never reads entry content: unlike the
+  `Clarifying Questions Asked` field the `PreToolUse` scope guard checks, `learning-log.md`'s
+  own header states it is "never checked by any validator" by design — grading a personal
+  teach-back log would incentivize writing something just to pass rather than an honest gap
+  report, which defeats the point of the file. Non-blocking, fails silent on any git error or
+  missing file. `tests/unit/test_learning_log_nudge.py` covers all four decide() branches
+  (no learning-log.md, no committed task-log.md yet, task-log.md newer, learning-log.md newer)
+  plus the not-a-git-repo case.
+
 ---
 
 ## [0.2.0] — 2026-08-09
