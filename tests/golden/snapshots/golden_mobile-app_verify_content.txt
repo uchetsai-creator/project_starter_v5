@@ -1,0 +1,19 @@
+
+Document Content Quality — mobile-app
+────────────────────────────────────────────────────────────────────
+Document                       Required     Quality
+────────────────────────────────────────────────────────────────────
+project-requirements.md        Present      No checker available
+research.md                    Present      Fully filled
+quickstart.md                  Present      Fully filled
+test-plan.md                   Present      Fully filled
+test-report.md                 Present      No checker available
+architecture.md                Present      Fully filled
+frontend.md                    Present      Fully filled
+distribution.md                Present      Fully filled
+logging-spec.md                Present      No checker available
+mobile-contract.md             Present      Fully filled
+
+Documents  : 10 / 10 present
+Quality    : 7 / 10 existing documents fully filled
+

@@ -1,0 +1,24 @@
+
+Document Content Quality — microservices
+────────────────────────────────────────────────────────────────────
+Document                       Required     Quality
+────────────────────────────────────────────────────────────────────
+project-requirements.md        Present      No checker available
+research.md                    Present      Fully filled
+quickstart.md                  Present      Fully filled
+test-plan.md                   Present      Fully filled
+test-report.md                 Present      No checker available
+architecture.md                Present      Fully filled
+deployment.md                  Present      Fully filled
+api-contract.md                Present      Fully filled
+service-catalog.md             Present      Fully filled
+service-contract.md            Present      Fully filled
+permissions.md                 Present      Fully filled
+logging-spec.md                Present      No checker available
+business-process.md            Present      Fully filled
+business-objects.md            Present      Fully filled
+business-rules.md              Present      Fully filled
+
+Documents  : 15 / 15 present
+Quality    : 12 / 15 existing documents fully filled
+

@@ -1,0 +1,3 @@
+project_type: ml-pipeline
+task_type: pipeline-stage
+docs_path: docs/

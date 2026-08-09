@@ -1,0 +1,18 @@
+
+Document Content Quality — library
+────────────────────────────────────────────────────────────────────
+Document                       Required     Quality
+────────────────────────────────────────────────────────────────────
+project-requirements.md        Present      No checker available
+research.md                    Present      Fully filled
+quickstart.md                  Present      Fully filled
+test-plan.md                   Present      Fully filled
+test-report.md                 Present      No checker available
+distribution.md                Present      Fully filled
+public-api.md                  Present      Fully filled
+release-guide.md               Present      Fully filled
+compatibility-matrix.md        Present      Fully filled
+
+Documents  : 9 / 9 present
+Quality    : 7 / 9 existing documents fully filled
+

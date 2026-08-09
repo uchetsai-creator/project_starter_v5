@@ -1,0 +1,24 @@
+
+Document Content Quality — ml-pipeline
+────────────────────────────────────────────────────────────────────
+Document                       Required     Quality
+────────────────────────────────────────────────────────────────────
+project-requirements.md        Present      No checker available
+research.md                    Present      Fully filled
+quickstart.md                  Present      Fully filled
+test-plan.md                   Present      Fully filled
+test-report.md                 Present      No checker available
+architecture.md                Present      Fully filled
+backend.md                     Present      Fully filled
+database.md                    Present      Fully filled
+deployment.md                  Present      Fully filled
+pipeline-contract.md           Present      Fully filled
+pipeline-debug.md              Present      Fully filled
+model-contract.md              Present      Fully filled
+experiment-log.md              Present      Fully filled
+data-model.md                  Present      Fully filled
+logging-spec.md                Present      No checker available
+
+Documents  : 15 / 15 present
+Quality    : 12 / 15 existing documents fully filled
+
