@@ -89,6 +89,21 @@ def test_init_py_writes_valid_project_type(tmp_path):
     assert "[your-project-type]" not in yml_text
 
 
+def test_init_py_excludes_framework_internal_files(tmp_path):
+    """README documents templates/script/framework/ as "framework-internal only, NOT
+    copied to user projects" -- confirmed broken before this test existed: shutil.copytree
+    with no ignore= copied it anyway. Runs the real script end-to-end, not a mock."""
+    dest = tmp_path / "proj"
+    result = _run_init(dest)
+    assert result.returncode == 0, result.stderr
+
+    assert not (dest / "docs" / "script" / "framework").exists()
+    # sibling validator/generator/scanner dirs must still copy normally -- this isn't a
+    # case of the whole copy silently failing
+    assert (dest / "docs" / "script" / "validators" / "verify_docs.py").exists()
+    assert (dest / "docs" / "script" / "generators").is_dir()
+
+
 def test_init_py_rejects_unknown_type(tmp_path):
     dest = tmp_path / "proj"
     result = _run_init(dest, project_type="not-a-real-type")

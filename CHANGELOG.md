@@ -324,6 +324,29 @@ All notable changes to this framework are documented here. Format loosely follow
   worth a file lock for how rarely it would actually fire. See README.md → Validation
   Telemetry → OTel dual-emission for the local-Jaeger walkthrough to see the resulting
   waterfall.
+- `templates/script/framework/mcp_tools.py`: a prototype tool-schema layer for a future
+  MCP server — deliberately not a running server (no `mcp` package dependency, no
+  transport, no client wiring, per an explicit decision to spike the low-risk part first).
+  Wraps `verify_docs.run_audit()` and `verify_content.audit()` as `dict`-in/`dict`-out
+  handlers behind JSON-Schema tool definitions (`TOOLS`, `dispatch()`) — both underlying
+  functions already returned plain, JSON-serializable data with no CLI/printing entangled,
+  which was confirmed by reading them, not assumed. Applies to all 9 project types (and
+  hybrids), same as the functions it wraps — nothing web-app-specific. Tested against
+  `examples/web-app/docs` (a real, filled fixture, not an empty directory): schema shape,
+  successful dispatch for both tools, and every documented failure mode (unknown tool,
+  missing/invalid `project_type`, missing docs dir).
+
+### Fixed
+- `init.py --init` copied `templates/script/framework/` into every new project's
+  `docs/script/framework/`, contradicting README's own claim that this directory is
+  "framework-internal only, NOT copied to user projects" — `shutil.copytree()` had no
+  `ignore=` pattern excluding it. Confirmed broken by actually running `--init` into a
+  fresh directory and finding `docs/script/framework/verify_framework.py` there before
+  this fix (discovered while placing `mcp_tools.py` in that same directory and checking
+  whether the exclusion README already documented was real). Now passes
+  `ignore=shutil.ignore_patterns("framework")`; sibling `validators/` / `generators/` /
+  `scanners/` still copy normally, confirmed by the same test. README's manual-alternative
+  copy instructions gained the same exclusion note.
 
 ---
 

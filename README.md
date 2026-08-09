@@ -116,7 +116,9 @@ signal in machine-readable form.
    `_workflow_utils.py`, `workflow-registry.yaml`, `document-registry.yaml`,
    `debug-instrumentation-rules.md`, `code-quality-check.md`, `learning-log.md`, `.githooks/`,
    `guidance/`, `adapters/claude/skills/` → `.claude/skills/` (see Agent Adapters below), and
-   `templates/script/` → `docs/script/` into your project root. Also create a
+   `templates/script/` → `docs/script/` into your project root — **except**
+   `templates/script/framework/`, which is framework-repo-only (see the file tree above) and
+   must not be copied into a user project. Also create a
    `CLAUDE.md` containing just `@AGENTS.md` so Claude Code auto-loads AGENTS.md's rules every
    session. Then edit
    `.project-starter.yml`: replace `[your-project-type]` with your actual type — **the

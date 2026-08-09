@@ -138,10 +138,18 @@ def init_project(project_type: str, dest: Path) -> None:
             f.write(_GITIGNORE_BLOCK)
         print("[OK] appended generated/runtime paths to existing .gitignore")
 
+    # framework/ is excluded — README documents its contents (verify_framework.py,
+    # mcp_tools.py) as "framework-internal only, NOT copied to user projects", but nothing
+    # actually enforced that until now: shutil.copytree() with no ignore= copies everything
+    # under templates/script/ unconditionally. Confirmed by actually running --init into a
+    # fresh directory and checking for docs/script/framework/ before this fix — it was there.
     docs_script = dest / "docs" / "script"
     docs_script.mkdir(parents=True, exist_ok=True)
-    shutil.copytree(script_dir / "templates" / "script", docs_script, dirs_exist_ok=True)
-    print("[OK] copied templates/script/ -> docs/script/")
+    shutil.copytree(
+        script_dir / "templates" / "script", docs_script, dirs_exist_ok=True,
+        ignore=shutil.ignore_patterns("framework"),
+    )
+    print("[OK] copied templates/script/ -> docs/script/ (excluding framework-internal-only files)")
 
     (dest / ".project-starter.yml").write_text(
         _PROJECT_STARTER_YML.format(project_type=project_type), encoding="utf-8",
