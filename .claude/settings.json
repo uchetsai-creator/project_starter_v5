@@ -1,5 +1,16 @@
 {
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 adapters/claude/pretooluse_scope_guard.py"
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "matcher": "",

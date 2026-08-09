@@ -36,13 +36,19 @@ read `.yml`/`.yaml` config through it. `detect_type.py` and `setup.sh` need no e
 python3 detect_type.py /path/to/your-project
 
 # From a text description
-python3 detect_type.py --requirements "web API with LLM chatbot"
+python3 detect_type.py --requirements "a web app with user accounts and a dashboard, plus an LLM chatbot with RAG and a system prompt"
 
 # Or via setup.sh
 bash setup.sh --detect /path/to/your-project
 ```
 
-Outputs a ranked recommendation — including hybrids like `web-app+llm-app`. Pass `--apply` to write the result directly into `.project-starter.yml`.
+Outputs a ranked recommendation — including hybrids like `web-app+llm-app` (as in the example
+above). Pass `--apply` to write the result directly into `.project-starter.yml`. **If confidence
+is low** (including the zero-signal case, e.g. a description with no recognizable tech terms),
+`--apply` refuses to write and exits non-zero instead of silently locking in a guess — confirm
+the actual type with the user first (see AGENTS.md -> New requirement from the user), or pass
+`--force` to apply it anyway. `--json` output includes an `"authoritative"` boolean for the same
+signal in machine-readable form.
 
 ---
 
@@ -127,7 +133,7 @@ project_starter/                     ← this repo (template only)
 │   └── run-verify.sh                ← Claude Code Stop-hook script: writes validator --json output to logs/verify-{timestamp}.json
 ├── .pre-commit-config.yaml          ← optional alternative install path via the pre-commit framework (wraps .githooks/pre-commit, doesn't reimplement it)
 ├── .claude/
-│   ├── settings.json                ← (optional, copy to your project) wires run-verify.sh + stop-hook.sh into Stop, session-start-hook.sh into SessionStart
+│   ├── settings.json                ← (optional, copy to your project) wires run-verify.sh + stop-hook.sh into Stop, session-start-hook.sh into SessionStart, pretooluse_scope_guard.py into PreToolUse
 │   └── skills/
 │       └── add-framework-adapter/SKILL.md  ← framework-repo-only Claude Skill; NOT copied to user projects (see docs/contributing-adapters.md)
 ├── .ai/                             ← generated context (gitignored); recreate with orchestrator.py
@@ -147,6 +153,7 @@ project_starter/                     ← this repo (template only)
 │   │   ├── start-task.md           ← slash command template (copy to .claude/commands/ in your project)
 │   │   ├── stop-hook.sh            ← writes session boundary to logs/telemetry/task-run.json on Claude Code session end
 │   │   ├── session-start-hook.sh   ← non-blocking nudge: re-checks current-state.md scoping state fresh every session
+│   │   ├── pretooluse_scope_guard.py ← BLOCKING: denies Edit/Write/MultiEdit/NotebookEdit on source files until current-state.md is scoped (see Learning Checkpoint enforcement below)
 │   │   ├── telemetry_writer.py     ← telemetry row writer invoked by stop-hook.sh
 │   │   └── skills/                 ← Claude Skills, static (copy to .claude/skills/ in your project — see Agent Adapters → Per-tool setup)
 │   │       ├── retrofit-existing-project/SKILL.md
@@ -726,15 +733,27 @@ python3 orchestrator.py --adapter claude --dry-run
 2. In any future session, type `/start-task` to have Claude run the orchestrator and walk through
    the current workflow plan.
 3. (Optional) For fast feedback without waiting for a manual validator run, copy this repo's
-   `.claude/settings.json` into your project's `.claude/` folder. It wires two scripts into the
-   Stop hook, both non-blocking (always exit 0) and both run automatically on every session end:
-   - `.githooks/run-verify.sh` — runs `verify_docs.py` / `verify_logs.py` / `verify_tests.py` /
-     `verify_content.py` with `--json` and writes the combined output to
+   `.claude/settings.json` **and** `adapters/claude/*.sh` + `adapters/claude/*.py` into your
+   project's `.claude/` and `adapters/claude/` folders respectively — `settings.json` references
+   those scripts by relative path, so it does nothing on its own without them. This wires three
+   hooks:
+   - `.githooks/run-verify.sh` (Stop, non-blocking) — runs `verify_docs.py` / `verify_logs.py` /
+     `verify_tests.py` / `verify_content.py` with `--json` and writes the combined output to
      `logs/verify-{timestamp}.json`, so you can see validator results without running them by hand.
-   - `adapters/claude/stop-hook.sh` — records the session boundary to
+   - `adapters/claude/stop-hook.sh` (Stop, non-blocking) — records the session boundary to
      `logs/telemetry/task-run.json` (see Validation Telemetry below).
      Note: this writes to telemetry only — not to `docs/task-log.md`. Task log rows are written
      during task closeout by the AI agent, not automatically on session end.
+   - `adapters/claude/pretooluse_scope_guard.py` (PreToolUse, **blocking**) — the only hook in
+     this list that runs *before* a tool call instead of after. It denies `Edit` / `Write` /
+     `MultiEdit` / `NotebookEdit` on any source-like path (not `docs/`, not a framework file)
+     whenever `docs/current-state.md` has no scoped `Current Task` or an unfilled/invalid
+     `Clarifying Questions Asked` field. `.githooks/pre-commit`'s "Unscoped source-change guard"
+     enforces the same rule at commit time as a backstop — this is what actually stops the
+     write from happening in the first place instead of only catching it after the fact. Like
+     every other gate here, it's optional: without it, "ask before implementing" (AGENTS.md ->
+     New requirement from the user) is enforced by the agent choosing to follow AGENTS.md, not
+     by anything mechanical, until this hook (or the pre-commit backstop) is wired in.
 4. (Optional) For the five procedural docs below to auto-trigger as Claude Skills instead of
    requiring AGENTS.md to point at them by hand, copy `adapters/claude/skills/` into your
    project's `.claude/skills/` folder. Each is a `SKILL.md` with a `description` Claude Code

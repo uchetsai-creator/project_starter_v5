@@ -73,6 +73,17 @@ fi
 # Staged file list — collected once, used by multiple checks
 STAGED=$(git diff --cached --name-only 2>/dev/null || true)
 
+# Validates a "**Clarifying Questions Asked:**" line's value against the documented
+# vocabulary (Y or N/A — see current-state.md template). A presence-only check would
+# accept any text at all, including an honest "N" (never a valid value) or a one-word
+# throwaway — this at least forces the right vocabulary. It still cannot verify a real
+# Q&A actually happened; no text-presence check can settle that, only the agent/human
+# choosing to be truthful can (see README/AGENTS.md for the human-facing caveat).
+_cqa_value_is_valid() {
+    value=$(printf '%s' "$1" | sed 's/^\*\*Clarifying Questions Asked:\*\*[[:space:]]*//')
+    printf '%s' "$value" | grep -qiE '^(Y|N/A)([^A-Za-z]|$)'
+}
+
 # ── Registry schema ───────────────────────────────────────────────────────────
 # Trigger: always (registry is the shared dependency of all validators)
 # Catches: malformed project type (webapp vs web-app), missing required fields, bad values
@@ -155,6 +166,42 @@ fi
 
 echo "pre-commit: project-type=$PROJECT_TYPE  docs=$DOCS_PATH"
 PASS=true
+
+# ── Unscoped source-change guard ───────────────────────────────────────────────
+# Trigger: any staged file that isn't docs/, guidance/, .githooks/, .claude/, .codex/,
+# adapters/, logs/, .ai/, or one of the known framework root files — i.e. it looks like
+# application source/config actually being changed.
+# Catches: the "Clarifying Questions Asked guard" further below only runs at all when
+# docs/current-state.md is itself part of the staged set — an agent that implements a new,
+# unscoped requirement and simply never stages current-state.md sails through that check
+# untouched. This gate closes that gap: it looks at whatever version of current-state.md
+# would actually be in the repo after this commit (staged if staged, else the committed
+# HEAD version) regardless of whether that file is part of this commit, so "don't touch
+# current-state.md" stops being a way around scoping a task before writing code.
+NON_SOURCE_REGEX="^(${DOCS_PATH}/|guidance/|\.githooks/|\.claude/|\.codex/|adapters/|logs/|\.ai/|AGENTS\.md|CLAUDE\.md|orchestrator\.py|build-context\.py|_workflow_utils\.py|workflow-registry\.yaml|document-registry\.yaml|detect_type\.py|debug-instrumentation-rules\.md|code-quality-check\.md|\.project-starter\.yml|README\.md|LICENSE|\.gitignore|\.pre-commit-config\.yaml)"
+SOURCE_STAGED=$(printf '%s\n' "$STAGED" | grep -vE "$NON_SOURCE_REGEX" || true)
+if [ -n "$SOURCE_STAGED" ]; then
+    CS_PATH="${DOCS_PATH}/current-state.md"
+    if printf '%s\n' "$STAGED" | grep -qxF "$CS_PATH"; then
+        SCOPE_CS_CONTENT=$(git show ":$CS_PATH" 2>/dev/null || true)
+    else
+        SCOPE_CS_CONTENT=$(git show "HEAD:$CS_PATH" 2>/dev/null || true)
+    fi
+    SCOPE_TASK=$(printf '%s\n' "$SCOPE_CS_CONTENT" | grep -E '^\*\*Task:\*\*' | head -1 || true)
+    if [ -z "$SCOPE_CS_CONTENT" ] || [ -z "$SCOPE_TASK" ] || printf '%s\n' "$SCOPE_TASK" | grep -qE '\['; then
+        echo "  [FAIL] Source files staged (e.g. \"$(printf '%s\n' "$SOURCE_STAGED" | head -1)\") but $CS_PATH has no scoped Current Task."
+        echo "         Ask scope/edge-case/acceptance-criteria questions and set Current Task before implementing —"
+        echo "         see AGENTS.md -> New requirement from the user."
+        PASS=false
+    else
+        SCOPE_CQA=$(printf '%s\n' "$SCOPE_CS_CONTENT" | grep -E '^\*\*Clarifying Questions Asked:\*\*' | head -1 || true)
+        if [ -z "$SCOPE_CQA" ] || printf '%s\n' "$SCOPE_CQA" | grep -qE '\[' || ! _cqa_value_is_valid "$SCOPE_CQA"; then
+            echo "  [FAIL] Source files staged but Clarifying Questions Asked is unfilled or not Y/N/A in $CS_PATH."
+            echo "         Set it to Y or N/A before committing — see AGENTS.md -> New requirement from the user."
+            PASS=false
+        fi
+    fi
+fi
 
 # 1. Document completeness + content quality
 if command -v python3 &>/dev/null && [ -f "docs/script/validators/verify_docs.py" ]; then
@@ -250,8 +297,8 @@ if [ -n "$CS_FILE" ]; then
     CS_TASK=$(printf '%s\n' "$CS_CONTENT" | grep -E '^\*\*Task:\*\*' | head -1 || true)
     if [ -n "$CS_TASK" ] && ! printf '%s\n' "$CS_TASK" | grep -qE '\['; then
         CS_CQA=$(printf '%s\n' "$CS_CONTENT" | grep -E '^\*\*Clarifying Questions Asked:\*\*' | head -1 || true)
-        if [ -z "$CS_CQA" ] || printf '%s\n' "$CS_CQA" | grep -qE '\['; then
-            echo "  [FAIL] current-state.md has a real Current Task but Clarifying Questions Asked is missing or still a placeholder"
+        if [ -z "$CS_CQA" ] || printf '%s\n' "$CS_CQA" | grep -qE '\[' || ! _cqa_value_is_valid "$CS_CQA"; then
+            echo "  [FAIL] current-state.md has a real Current Task but Clarifying Questions Asked is missing, still a placeholder, or not Y/N/A"
             echo "         Set it to Y (asked before implementing) or N/A (pre-scoped task / Checkpoint A applied) — see AGENTS.md -> New requirement from the user."
             PASS=false
         fi

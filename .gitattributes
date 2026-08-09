@@ -1,0 +1,10 @@
+# Force LF on shell scripts regardless of the cloning machine's core.autocrlf setting.
+# .githooks/pre-commit and the adapters/*/*.sh scripts are invoked via their #!/usr/bin/env
+# bash shebang line — on Windows with core.autocrlf=true (git's own default suggestion
+# during install), a plain `git clone` silently rewrites their line endings to CRLF, which
+# corrupts the shebang ("bash\r": No such file or directory) and can cause the interpreter
+# lookup to fail. Observed during testing: an intermittent case where a pre-commit run that
+# should have blocked a commit did not. Forcing LF here removes that failure mode entirely
+# instead of depending on every clone's local git config.
+*.sh text eol=lf
+.githooks/* text eol=lf

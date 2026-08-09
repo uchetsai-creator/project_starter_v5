@@ -11,7 +11,10 @@ of them. When a task pressures you to bend one of these, stop and ask instead of
   - Custom code only for: business logic, domain rules, data mapping, system integration
 - **Glue Code** — keep integration code thin; logic belongs in packages, not connectors
 - **Incremental Changes** — make the smallest change that achieves the goal
-- **No Unrelated Refactor** — do not clean up code outside the current task scope
+- **No Unrelated Refactor** — do not clean up code outside the current task scope. Still
+  applies when the user bundles it into the same request ("順便重構一下" / "refactor while
+  you're at it") — that is a second requirement, not a blanket license; ask which files/
+  callers are actually in scope before touching anything beyond the original fix
 - **Unscoped New Requirement** — a new feature/requirement not yet in `docs/current-state.md`:
   ask scope, edge cases, and acceptance criteria before implementing; never guess (see
   "New requirement from the user" and Learning Checkpoint B below)

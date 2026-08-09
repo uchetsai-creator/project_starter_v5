@@ -97,14 +97,27 @@ def test_placeholder_task_skips_the_guard(tmp_path):
 def test_real_task_missing_cqa_field_blocks_commit(tmp_path):
     repo = _make_repo(tmp_path, _REAL_TASK_NO_CQA)
     result = _run_hook(repo)
-    assert "Clarifying Questions Asked is missing or still a placeholder" in result.stdout
+    assert "Clarifying Questions Asked is missing, still a placeholder, or not Y/N/A" in result.stdout
     assert result.returncode == 1
 
 
 def test_real_task_placeholder_cqa_blocks_commit(tmp_path):
     repo = _make_repo(tmp_path, _REAL_TASK_PLACEHOLDER_CQA)
     result = _run_hook(repo)
-    assert "Clarifying Questions Asked is missing or still a placeholder" in result.stdout
+    assert "Clarifying Questions Asked is missing, still a placeholder, or not Y/N/A" in result.stdout
+    assert result.returncode == 1
+
+
+def test_real_task_with_invalid_value_blocks_commit(tmp_path):
+    """A presence-only check would accept any text, including an honest "N" (never a
+    documented valid value) — the field must actually be Y or N/A, not just non-empty."""
+    repo = _make_repo(
+        tmp_path,
+        "## Current Task\n\n**Task:** Build the order API\n\n"
+        "**Clarifying Questions Asked:** N\n",
+    )
+    result = _run_hook(repo)
+    assert "Clarifying Questions Asked is missing, still a placeholder, or not Y/N/A" in result.stdout
     assert result.returncode == 1
 
 

@@ -332,6 +332,41 @@ def test_cli_apply_prefills_spec_code_on_fresh_yml(tmp_path):
     assert "spec_code_src: src/" in text
 
 
+def test_cli_apply_refuses_on_low_confidence(tmp_path):
+    result = _run(str(tmp_path), "--requirements", "I don't know, help me build something",
+                   "--no-scan", "--apply")
+    assert result.returncode == 1
+    assert "confidence is low" in (result.stdout + result.stderr)
+    assert not (tmp_path / ".project-starter.yml").exists()
+
+
+def test_cli_apply_force_overrides_low_confidence_refusal(tmp_path):
+    result = _run(str(tmp_path), "--requirements", "I don't know, help me build something",
+                   "--no-scan", "--apply", "--force")
+    assert result.returncode == 0
+    yml = tmp_path / ".project-starter.yml"
+    assert yml.exists()
+    assert "project_type: web-app" in yml.read_text(encoding="utf-8")
+
+
+def test_json_output_includes_authoritative_flag(tmp_path):
+    result = _run("--requirements", "I don't know, help me build something",
+                   "--no-scan", "--json")
+    data = json.loads(result.stdout)
+    assert data["authoritative"] is False
+
+    result_high = _run("--requirements", "terraform IaC provisioning", "--no-scan", "--json")
+    data_high = json.loads(result_high.stdout)
+    assert data_high["authoritative"] is True
+
+
+def test_cli_apply_still_works_on_high_confidence_without_force(tmp_path):
+    (tmp_path / "main.tf").touch()
+    result = _run(str(tmp_path), "--apply")
+    assert result.returncode == 0
+    assert "iac" in (tmp_path / ".project-starter.yml").read_text(encoding="utf-8")
+
+
 def test_cli_apply_does_not_overwrite_existing_spec_code_config(tmp_path):
     (tmp_path / "main.tf").touch()
     yml = tmp_path / ".project-starter.yml"

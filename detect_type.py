@@ -646,6 +646,13 @@ def main() -> None:
         metavar="N",
         help=f"Minimum score for a primary type (default: {PRIMARY_THRESHOLD})",
     )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Allow --apply to write a low-confidence/no-signal recommendation. Without "
+             "this, --apply refuses on low confidence — see AGENTS.md -> New requirement "
+             "from the user: confirm the type with the user instead of guessing.",
+    )
     args = parser.parse_args()
 
     root = Path(args.path).resolve()
@@ -673,12 +680,23 @@ def main() -> None:
 
     spec_code_suggestion = _suggest_spec_code(root, recommendation) if not skip_scan else None
 
+    # "low" means: not enough signal to trust this recommendation, including the
+    # zero-signal case where `recommendation` is just the hardcoded "web-app" fallback
+    # dressed up to look like a real answer. `authoritative=False` is the field a caller
+    # (script or agent) should actually branch on instead of string-matching "confidence" —
+    # see AGENTS.md -> New requirement from the user: this is a guess to confirm with the
+    # user, not a decision. --apply refuses to write a non-authoritative guess unless
+    # --force is passed (see below).
+    confidence = "high" if top_score >= 40 else "medium" if top_score >= PRIMARY_THRESHOLD else "low"
+    authoritative = confidence != "low"
+
     if args.json:
         output = {
             "recommendation": recommendation,
             "scores": {t: combined[t] for t in VALID_TYPES},
             "ranked": [{"type": t, "score": s} for t, s in ranked],
-            "confidence": "high" if top_score >= 40 else "medium" if top_score >= PRIMARY_THRESHOLD else "low",
+            "confidence": confidence,
+            "authoritative": authoritative,
             "spec_code_suggestion": spec_code_suggestion,
         }
         print(json.dumps(output, indent=2))
@@ -689,7 +707,6 @@ def main() -> None:
     if "+" in recommendation:
         print("  (hybrid — multiple strong signals detected)")
 
-    confidence = "high" if top_score >= 40 else "medium" if top_score >= PRIMARY_THRESHOLD else "low"
     print(f"Confidence: {confidence}")
     print()
 
@@ -700,8 +717,16 @@ def main() -> None:
             marker = " ←" if t in recommendation.split("+") else ""
             print(f"  {t:<16} {s:>4}  {bar}{marker}")
     else:
-        print("No signals detected — defaulting to web-app.")
+        print("[!] No signals detected — the type below is a placeholder default, NOT a")
+        print("    recommendation. Do not --apply this without confirming the actual type")
+        print("    with the user first (AGENTS.md -> New requirement from the user).")
         print("Tip: run with --requirements to provide a description of your project.")
+
+    if not authoritative:
+        print()
+        print("[!] Confidence is LOW — treat this as a starting point for a question to the")
+        print("    user, not as a decision. python3 detect_type.py --apply refuses to write")
+        print("    this recommendation; pass --force to override.")
 
     if spec_code_suggestion:
         print()
@@ -714,6 +739,11 @@ def main() -> None:
         print("see README.md -> Spec <-> Code Validator.")
 
     print()
+    if args.apply and not authoritative and not args.force:
+        print("[FAIL] --apply refused: confidence is low — this is not a real recommendation.")
+        print("       Confirm the actual project type with the user, or re-run with --force")
+        print("       to apply it anyway (see AGENTS.md -> New requirement from the user).")
+        sys.exit(1)
     if args.apply:
         yml = root / ".project-starter.yml"
         if yml.exists():
