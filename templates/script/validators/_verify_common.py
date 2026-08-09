@@ -144,6 +144,26 @@ def parse_types(raw: str) -> list[str]:
     return parts
 
 
+def read_doc_profile() -> str:
+    """Best-effort read of doc_profile from .project-starter.yml at cwd (project root).
+    Defaults to 'full' for a missing file, missing field, or any value other than exactly
+    'lite' -- lite mode is opt-in, never silently assumed. Deliberately a small hand-parsed
+    reader rather than a PyYAML-based one, matching every other validator/hook that reads a
+    single .project-starter.yml scalar (e.g. adapters/claude/pretooluse_scope_guard.py) --
+    the validators have no PyYAML dependency today and shouldn't gain one for one field.
+    Shared here (rather than duplicated per-script) since verify_docs.py and
+    verify_content.py both need it and are already siblings importing this module."""
+    try:
+        with open('.project-starter.yml', encoding='utf-8') as f:
+            for line in f:
+                if line.startswith('doc_profile:'):
+                    value = line.split(':', 1)[1].strip().strip('"\'')
+                    return 'lite' if value == 'lite' else 'full'
+    except OSError:
+        pass
+    return 'full'
+
+
 @overload
 def _section_body(text_or_lines: str, header_re: str) -> 'str | None': ...
 @overload

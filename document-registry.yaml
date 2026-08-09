@@ -10,6 +10,11 @@
 #   optional_for:     project types where this document is Optional (O)
 #   replaces_for:     optional — {type: replacement-doc-key} — for N/A types, the
 #                     replacement document that serves the same purpose for that type
+#   lite_downgrade:   optional — "optional" — when .project-starter.yml sets
+#                     doc_profile: lite, a doc that would otherwise be Required for the
+#                     declared type is treated as Optional instead (never touches types
+#                     where it's already Optional or N/A). See README.md -> Document
+#                     Profile (lite vs full) for which docs use this and why.
 #   context_priority: high | medium | low  (used by build-context.py)
 #   purpose:          one-line description for AI context headers
 #   used_by:          which tools consume this document
@@ -69,6 +74,7 @@ documents:
     path: architecture/backend.md
     required_for: [web-app, cli-tool, data-pipeline, ml-pipeline]
     optional_for: [microservices, llm-app, mobile-app]
+    lite_downgrade: optional
     context_priority: medium
     task_types: [feature]
     purpose: "Backend stack, layering, and module organisation"
@@ -100,6 +106,7 @@ documents:
     path: architecture/database.md
     required_for: [web-app, data-pipeline, ml-pipeline]
     optional_for: [cli-tool, microservices, llm-app, mobile-app]
+    lite_downgrade: optional
     context_priority: medium
     purpose: "Database engine, main entities, and relationships"
     used_by: [context-builder, validator, pdf]
@@ -116,6 +123,7 @@ documents:
     required_for: [web-app, data-pipeline, ml-pipeline, microservices]
     optional_for: [llm-app]
     replaces_for: {cli-tool: distribution, library: distribution, mobile-app: distribution}
+    lite_downgrade: optional
     context_priority: medium
     purpose: "Services, environment variables, and build/deploy flow"
     used_by: [context-builder, validator, pdf]
@@ -457,6 +465,7 @@ documents:
     path: specs/permissions.md
     required_for: [web-app, microservices]
     optional_for: [llm-app, mobile-app]
+    lite_downgrade: optional
     context_priority: high
     task_types: [feature]
     purpose: "Roles, permission matrix, and API endpoint access by role"
@@ -505,6 +514,7 @@ documents:
     path: specs/research.md
     required_for: [web-app, cli-tool, library, data-pipeline, ml-pipeline, microservices, llm-app, iac, mobile-app]
     optional_for: []
+    lite_downgrade: optional
     context_priority: low
     purpose: "Technology decisions and resolved NEEDS CLARIFICATION items"
     used_by: [context-builder, validator, pdf]
@@ -582,6 +592,7 @@ documents:
     path: specs/test-plan.md
     required_for: [web-app, cli-tool, library, data-pipeline, ml-pipeline, microservices, llm-app, iac, mobile-app]
     optional_for: []
+    lite_downgrade: optional
     context_priority: low
     purpose: "Testing strategy, tool choices, test levels, CI gate, and test environment"
     used_by: [context-builder, validator, pdf]
@@ -597,6 +608,7 @@ documents:
     path: specs/test-report.md
     required_for: [web-app, cli-tool, library, data-pipeline, ml-pipeline, microservices, llm-app, iac, mobile-app]
     optional_for: []
+    lite_downgrade: optional
     context_priority: low
     purpose: "Actual test results, coverage, bugs found, and known gaps"
     used_by: [context-builder, validator, pdf]
@@ -644,6 +656,7 @@ documents:
     path: business/business-process.md
     required_for: [web-app, microservices]
     optional_for: [cli-tool, data-pipeline, mobile-app]
+    lite_downgrade: optional
     context_priority: medium
     purpose: "Business workflow, decision points, responsible roles, and exceptions"
     used_by: [context-builder, validator, pdf]
@@ -659,6 +672,7 @@ documents:
     path: business/business-objects.md
     required_for: [web-app, microservices]
     optional_for: []
+    lite_downgrade: optional
     context_priority: medium
     purpose: "Index of business entity files and their relationships"
     used_by: [context-builder, validator, pdf]
@@ -674,6 +688,7 @@ documents:
     path: business/business-rules.md
     required_for: [web-app, data-pipeline, microservices]
     optional_for: [cli-tool, ml-pipeline, llm-app, mobile-app]
+    lite_downgrade: optional
     context_priority: medium
     purpose: "Business constraints and policies that code must enforce"
     used_by: [context-builder, validator, pdf]

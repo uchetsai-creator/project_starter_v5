@@ -126,15 +126,24 @@ def load_registry(path: Path | None = None) -> dict[str, Any]:
 # Derived structures (mirrors of the old hardcoded dicts)
 # ---------------------------------------------------------------------------
 
-def build_matrix(registry: dict[str, Any]) -> dict[str, tuple[str, ...]]:
-    """Return MATRIX equivalent: {doc.md: (R/O/N, ...) in VALID_TYPES order}."""
+_LITE_DOWNGRADE_TO_CODE = {'optional': 'O'}
+
+
+def build_matrix(registry: dict[str, Any], lite: bool = False) -> dict[str, tuple[str, ...]]:
+    """Return MATRIX equivalent: {doc.md: (R/O/N, ...) in VALID_TYPES order}.
+
+    lite=True: a doc with a `lite_downgrade` field has its Required rating replaced by
+    that downgrade for every type where it would otherwise be Required — types where it's
+    already Optional or N/A are untouched. See document-registry.yaml's header comment and
+    README.md -> Document Profile (lite vs full)."""
     matrix: dict[str, tuple[str, ...]] = {}
     for name, meta in registry.items():
         doc_name = name if name.endswith('.md') else f'{name}.md'
         required = set(meta.get('required_for', []))
         optional = set(meta.get('optional_for', []))
+        downgrade_code = _LITE_DOWNGRADE_TO_CODE.get(meta.get('lite_downgrade')) if lite else None
         row = tuple(
-            'R' if t in required else ('O' if t in optional else 'N')
+            (downgrade_code or 'R') if t in required else ('O' if t in optional else 'N')
             for t in VALID_TYPES
         )
         matrix[doc_name] = row
@@ -151,11 +160,17 @@ def build_file_locations(registry: dict[str, Any]) -> dict[str, str]:
     return result
 
 
-def build_type_docs(registry: dict[str, Any]) -> dict[str, list[str]]:
-    """Return TYPE_DOCS equivalent: {type: [required doc.md, ...]}."""
+def build_type_docs(registry: dict[str, Any], lite: bool = False) -> dict[str, list[str]]:
+    """Return TYPE_DOCS equivalent: {type: [required doc.md, ...]}.
+
+    lite=True excludes any doc with a `lite_downgrade` field — same rule build_matrix()
+    applies, kept in sync by hand since this returns a plain required-only list rather than
+    matrix's full R/O/N row."""
     result: dict[str, list[str]] = {t: [] for t in VALID_TYPES}
     for name, meta in registry.items():
         doc_name = name if name.endswith('.md') else f'{name}.md'
+        if lite and meta.get('lite_downgrade'):
+            continue
         for t in meta.get('required_for', []):
             if t in result:
                 result[t].append(doc_name)
@@ -171,11 +186,18 @@ def build_doc_paths(registry: dict[str, Any]) -> dict[str, str]:
     }
 
 
-def get_universal_docs(registry: dict[str, Any]) -> list[str]:
-    """Return doc.md names where all 9 types appear in required_for."""
+def get_universal_docs(registry: dict[str, Any], lite: bool = False) -> list[str]:
+    """Return doc.md names where all 9 types appear in required_for.
+
+    lite=True excludes any doc with a `lite_downgrade` field, same rule build_matrix() and
+    build_type_docs() apply -- without this, a universally-required-but-downgradable doc
+    (e.g. research.md, test-plan.md) would still get forced in as "universal" regardless
+    of doc_profile, since this function doesn't otherwise know about per-type downgrades."""
     all_types = set(VALID_TYPES)
     result = []
     for name, meta in registry.items():
+        if lite and meta.get('lite_downgrade'):
+            continue
         if all_types <= set(meta.get('required_for', [])):
             result.append(name if name.endswith('.md') else f'{name}.md')
     return result

@@ -63,6 +63,13 @@ project_type: {project_type}
 
 docs_path: docs/
 
+doc_profile: full
+# Optional. `lite` downgrades permissions.md, business-*.md, backend/database/deployment.md,
+# research.md, and test-plan/test-report.md from Required to Optional -- for a solo/small
+# project that doesn't need the full stakeholder-facing document set yet. Core contracts
+# (project-requirements.md, quickstart.md, data-model.md, api-contract.md, architecture.md,
+# logging-spec.md) stay Required either way. See guidance/doc-profile.md for when to switch.
+
 task_type:
 # Optional. Filters .ai/AI_CONTEXT.md to task-relevant documents.
 # Valid values: feature | pipeline-stage | bug-fix | sprint-end | eval-run | iac-change

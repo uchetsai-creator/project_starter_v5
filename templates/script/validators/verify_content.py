@@ -45,12 +45,15 @@ from _verify_common import (
     _section_body,
     _telemetry_ts,
     parse_types,
+    read_doc_profile,
 )
 
 _reg = load_registry()
 TYPE_DOCS: dict[str, list[str]] = build_type_docs(_reg)
+LITE_TYPE_DOCS: dict[str, list[str]] = build_type_docs(_reg, lite=True)
 DOC_PATHS: dict[str, str] = build_doc_paths(_reg)
 UNIVERSAL_DOCS: list[str] = get_universal_docs(_reg)
+LITE_UNIVERSAL_DOCS: list[str] = get_universal_docs(_reg, lite=True)
 REQUIRED_SECTIONS: dict[str, list[str]] = build_required_sections(_reg)
 
 
@@ -961,15 +964,17 @@ def run_module_docs(project_type: str, docs_dir: str, script_dir: str) -> list[d
 # Core audit
 # ---------------------------------------------------------------------------
 
-def get_docs_for_types(project_types: list[str]) -> list[str]:
+def get_docs_for_types(project_types: list[str], lite: bool = False) -> list[str]:
+    universal = LITE_UNIVERSAL_DOCS if lite else UNIVERSAL_DOCS
+    type_docs = LITE_TYPE_DOCS if lite else TYPE_DOCS
     seen: set[str] = set()
     docs: list[str] = []
-    for d in UNIVERSAL_DOCS:
+    for d in universal:
         if d not in seen:
             docs.append(d)
             seen.add(d)
     for t in project_types:
-        for d in TYPE_DOCS.get(t, []):
+        for d in type_docs.get(t, []):
             if d not in seen:
                 docs.append(d)
                 seen.add(d)
@@ -977,9 +982,12 @@ def get_docs_for_types(project_types: list[str]) -> list[str]:
 
 
 def audit(
-    project_types: list[str], docs_dir: str, script_dir: str,
+    project_types: list[str], docs_dir: str, script_dir: str, lite: bool = False,
 ) -> tuple[list[dict], list[dict]]:
     """Audit all Required documents and module flow files.
+
+    lite=True audits against the reduced doc_profile: lite set (see
+    document-registry.yaml -> lite_downgrade) instead of every Required document.
 
     Returns (doc_results, module_results).
     doc_results: [{name, path, present, quality, issues}]
@@ -987,7 +995,7 @@ def audit(
     """
     doc_results: list[dict] = []
 
-    for doc_name in get_docs_for_types(project_types):
+    for doc_name in get_docs_for_types(project_types, lite=lite):
         rel = DOC_PATHS.get(doc_name, f'specs/{doc_name}')
         abs_path = os.path.join(docs_dir, rel)
         present = os.path.isfile(abs_path)
@@ -1054,10 +1062,11 @@ def audit(
 # ---------------------------------------------------------------------------
 
 def print_results(
-    doc_results: list[dict], module_results: list[dict], project_type: str,
+    doc_results: list[dict], module_results: list[dict], project_type: str, lite: bool = False,
 ) -> None:
     SEP = '─' * 68
-    print(f"\nDocument Content Quality — {project_type}")
+    profile_suffix = '  [doc_profile: lite]' if lite else ''
+    print(f"\nDocument Content Quality — {project_type}{profile_suffix}")
     print(SEP)
     print(f"{'Document':<30} {'Required':<12} Quality")
     print(SEP)
@@ -1132,7 +1141,7 @@ def print_results(
 
 def print_results_json(
     doc_results: list[dict], module_results: list[dict],
-    project_type: str, docs_dir: str,
+    project_type: str, docs_dir: str, lite: bool = False,
 ) -> None:
     present_docs = sum(1 for r in doc_results if r['present'])
     filled_docs = sum(1 for r in doc_results if r['present'] and r['quality'] == 'pass')
@@ -1143,6 +1152,7 @@ def print_results_json(
 
     payload = {
         'project_type': project_type,
+        'doc_profile': 'lite' if lite else 'full',
         'docs_dir': docs_dir,
         'documents': [
             {
@@ -1231,7 +1241,19 @@ def main() -> None:
         '--telemetry', action='store_true',
         help='Append run result to .ai/telemetry/validation-result.json',
     )
+    parser.add_argument(
+        '--lite', action='store_true',
+        help='Force lite doc profile, overriding .project-starter.yml -> doc_profile',
+    )
+    parser.add_argument(
+        '--full', action='store_true',
+        help='Force full doc profile, overriding .project-starter.yml -> doc_profile',
+    )
     args = parser.parse_args()
+
+    if args.lite and args.full:
+        print('error: --lite and --full are mutually exclusive', file=sys.stderr)
+        sys.exit(2)
 
     project_types = parse_types(args.project_type)
     docs_dir = args.docs
@@ -1240,13 +1262,14 @@ def main() -> None:
         print(f"error: docs directory not found: {docs_dir}", file=sys.stderr)
         sys.exit(2)
 
+    lite = args.lite or (not args.full and read_doc_profile() == 'lite')
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    doc_results, module_results = audit(project_types, docs_dir, script_dir)
+    doc_results, module_results = audit(project_types, docs_dir, script_dir, lite=lite)
 
     if args.json_output:
-        print_results_json(doc_results, module_results, args.project_type, docs_dir)
+        print_results_json(doc_results, module_results, args.project_type, docs_dir, lite=lite)
     else:
-        print_results(doc_results, module_results, args.project_type)
+        print_results(doc_results, module_results, args.project_type, lite=lite)
 
     if args.telemetry:
         _write_telemetry(args.project_type, doc_results)

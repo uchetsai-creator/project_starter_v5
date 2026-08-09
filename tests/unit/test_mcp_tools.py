@@ -84,3 +84,35 @@ def test_dispatch_check_content_flag_adds_content_field():
         r for r in result["results"] if r["status"] == "present" and "content" in r
     ]
     assert present_required, "check_content=True should attach a content quality field"
+
+
+# ---------------------------------------------------------------------------
+# doc_profile (lite/full) -- explicit argument, since in-process dispatch() calls don't
+# change cwd the way a subprocess-based CLI test would to exercise auto-detection
+# ---------------------------------------------------------------------------
+
+def test_dispatch_verify_docs_explicit_lite_profile():
+    result = mcp_tools.dispatch(
+        "verify_docs",
+        {"project_type": "web-app", "docs_dir": _WEB_APP_DOCS, "doc_profile": "lite"},
+    )
+    assert result["doc_profile"] == "lite"
+    json.dumps(result)
+
+
+def test_dispatch_verify_docs_explicit_full_profile():
+    result = mcp_tools.dispatch(
+        "verify_docs",
+        {"project_type": "web-app", "docs_dir": _WEB_APP_DOCS, "doc_profile": "full"},
+    )
+    assert result["doc_profile"] == "full"
+
+
+def test_dispatch_verify_content_explicit_lite_profile_excludes_downgraded_docs():
+    result = mcp_tools.dispatch(
+        "verify_content",
+        {"project_type": "web-app", "docs_dir": _WEB_APP_DOCS, "doc_profile": "lite"},
+    )
+    assert result["doc_profile"] == "lite"
+    audited_names = {d["name"] for d in result["documents"]}
+    assert "permissions.md" not in audited_names

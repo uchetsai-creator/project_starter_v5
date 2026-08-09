@@ -1,5 +1,6 @@
 {
   "project_type": "ml-pipeline",
+  "doc_profile": "full",
   "results": [
     {
       "doc": "project-requirements.md",

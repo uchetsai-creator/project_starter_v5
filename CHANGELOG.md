@@ -348,6 +348,52 @@ All notable changes to this framework are documented here. Format loosely follow
   `scanners/` still copy normally, confirmed by the same test. README's manual-alternative
   copy instructions gained the same exclusion note.
 
+### Added
+- `doc_profile: lite | full` in `.project-starter.yml` (default `full`, so nothing changes
+  for existing projects). `lite` downgrades a fixed set of documents — `permissions.md`,
+  the three `business/*.md` files, `backend.md`/`database.md`/`deployment.md`, `research.md`,
+  `test-plan.md`/`test-report.md` — from Required to Optional, for a solo/small project
+  without real stakeholders, roles, or a deploy target yet. Deliberately *not* a separate
+  document set: `document-registry.yaml` gained a `lite_downgrade` field on those 10 entries
+  only; `lite` and `full` read the exact same registry, so switching back to `full`
+  re-requires exactly what `lite` deferred — no migration, no second template tree. Core
+  contracts (`project-requirements.md`, `quickstart.md`, `data-model.md`, `api-contract.md`,
+  `architecture.md`, `logging-spec.md`) stay Required in both profiles; these are the
+  documents the spec↔code drift gate and context builder actually depend on.
+  - `_registry.py`: `build_matrix()`, `build_type_docs()`, and `get_universal_docs()` all
+    gained a `lite: bool = False` parameter implementing the downgrade rule.
+  - `verify_docs.py` / `verify_content.py`: both auto-detect `doc_profile` from
+    `.project-starter.yml` with zero flag needed — confirmed this means
+    `.githooks/pre-commit`'s existing (unmodified) invocations of both scripts already
+    respect it correctly, no pre-commit change required. `--lite` / `--full` CLI flags
+    override the config file explicitly (e.g. to preview a switch without editing the yml);
+    passing both is a `sys.exit(2)` error. JSON output on both scripts now includes a
+    `doc_profile` field.
+  - `read_doc_profile()` lives in `_verify_common.py`, shared between the two scripts
+    rather than duplicated per-script (unlike `pretooluse_scope_guard.py` and `_otel.py`'s
+    independent tiny YAML-scalar readers, which stayed separate — different situation:
+    those two aren't siblings in the same directory already importing a common module).
+  - `mcp_tools.py`'s prototype tools gained the same `doc_profile` input (explicit argument
+    wins; otherwise auto-detects the same way the CLI does).
+  - New `guidance/doc-profile.md`: what `lite` actually changes, why it's a starting point
+    and not a permanent fork, and a concrete "when to switch to full" checklist (second
+    contributor joins, a real permission model appears, a real approval/audit requirement
+    appears, about to deploy somewhere reachable by more than localhost, need to explain a
+    tech decision to someone else) — replacing what would otherwise be a vague "switch when
+    it feels right." `AGENTS.md` gained a two-line pointer to it (195/200 lines — the
+    existing token budget check left exactly enough room without needing to cut anything
+    else).
+  - Golden/snapshot fixtures for `verify_docs.py --json` regenerated (`--snapshot-update`)
+    to include the new field; diff confirmed to be exactly one added line per fixture,
+    nothing else changed.
+  - Tests: `tests/unit/test_registry.py` (new — `_registry.py`'s lite-mode functions
+    against a small synthetic registry), `tests/unit/test_doc_profile_cli.py` (new — both
+    scripts' real CLI behavior: config-file auto-detection, flag overrides, `--strict`
+    actually not blocking on downgraded docs in `lite` while still blocking on the same
+    missing docs in `full`, using the same fixture for both to prove the `lite` pass wasn't
+    just a bug that stopped blocking on everything), `tests/unit/test_mcp_tools.py` gained
+    explicit `doc_profile` coverage.
+
 ---
 
 ## [0.2.0] — 2026-08-09

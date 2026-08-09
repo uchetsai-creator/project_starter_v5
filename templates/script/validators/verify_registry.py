@@ -43,7 +43,9 @@ REQUIRED_FIELDS: frozenset[str] = frozenset([
 ])
 KNOWN_FIELDS: frozenset[str] = REQUIRED_FIELDS | frozenset([
     'required_for', 'optional_for', 'replaces_for', 'task_types', 'purpose', 'used_by', 'related',
+    'lite_downgrade',
 ])
+VALID_LITE_DOWNGRADES: frozenset[str] = frozenset(['optional'])
 
 
 def _validate_entry(key: str, meta: dict) -> list[str]:
@@ -126,6 +128,10 @@ def _validate_entry(key: str, meta: dict) -> list[str]:
             for pt in rf:
                 if pt not in VALID_TYPES:
                     errors.append(f"'replaces_for' has unknown project type key '{pt}'")
+
+    ld = meta.get('lite_downgrade')
+    if ld is not None and ld not in VALID_LITE_DOWNGRADES:
+        errors.append(f"'lite_downgrade' must be one of {sorted(VALID_LITE_DOWNGRADES)} (got {ld!r})")
 
     unknown = set(meta.keys()) - KNOWN_FIELDS
     if unknown:

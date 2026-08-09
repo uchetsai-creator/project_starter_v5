@@ -32,6 +32,11 @@
       "propertyNames": { "$ref": "#/$defs/ProjectType" },
       "additionalProperties": { "type": "string" }
     },
+    "lite_downgrade": {
+      "type": "string",
+      "enum": ["optional"],
+      "description": "When doc_profile: lite is set, downgrade this doc from Required to this status for the declared type(s). Never touches types where it's already Optional or N/A."
+    },
     "context_priority": {
       "type": "string",
       "enum": ["high", "medium", "low"]

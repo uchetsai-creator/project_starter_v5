@@ -1003,6 +1003,35 @@ Valid `--project-type` values: `web-app`, `cli-tool`, `library`, `data-pipeline`
 
 ---
 
+## Document Profile (lite vs full)
+
+`.project-starter.yml`'s `doc_profile` (`full` by default) controls how much of the
+Required-document set actually gates a commit — see `guidance/doc-profile.md` for the full
+explanation, including exactly when to switch back to `full`. In short: `lite` downgrades
+`permissions.md`, the three `business/*.md` files, `backend.md`/`database.md`/`deployment.md`,
+`research.md`, and `test-plan.md`/`test-report.md` from Required to Optional, for a
+solo/small project that doesn't have real stakeholders, roles, or a deploy target yet. Core
+contracts (`project-requirements.md`, `quickstart.md`, `data-model.md`, `api-contract.md`,
+`architecture.md`, `logging-spec.md`) stay Required in both profiles — `lite` reduces
+paperwork, not the documents the spec↔code drift gate and context builder actually depend on.
+
+```bash
+# Reads doc_profile automatically from .project-starter.yml — no flag needed, and this is
+# exactly how .githooks/pre-commit invokes both scripts today:
+python3 docs/script/validators/verify_docs.py --project-type web-app --strict
+python3 docs/script/validators/verify_content.py --project-type web-app --strict
+
+# Override explicitly (e.g. to preview what switching would change, without editing the yml):
+python3 docs/script/validators/verify_docs.py --project-type web-app --lite
+python3 docs/script/validators/verify_docs.py --project-type web-app --full
+```
+
+Switching `doc_profile` never creates a different document set — it only changes which
+documents in the *same* registry currently gate a commit. Going from `lite` to `full`
+re-requires exactly the documents `lite` deferred; there is no migration step.
+
+---
+
 ## Module Docs
 
 `verify_module_docs.py` audits module flow file coverage and quality — checking that every module in `docs/modules/` has a complete `*-module-flow.md` and, for pipeline stages, a `*-module-data-flow.md`.

@@ -47,6 +47,8 @@ The type gates which documents are required and which are N/A — do not create 
 
 > **Not sure which type fits?** Run `python3 detect_type.py` (or `bash setup.sh --detect`) to infer the type from your codebase or a plain-text description. It supports hybrid output (e.g. `web-app+llm-app`).
 
+**Document profile:** ask the user solo/small vs. multi-stakeholder before initializing, then set `doc_profile: lite` or `full` (default) in `.project-starter.yml` — see `guidance/doc-profile.md` for what lite changes and when to graduate back to full.
+
 **Supported types:** Web App, CLI Tool, Library/SDK, Data Pipeline, ML Pipeline,
 Microservices, AI/LLM Application, IaC/DevOps, Mobile App — see `guidance/project-types.md`
 for the full description table.

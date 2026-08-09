@@ -16,6 +16,17 @@ project_type: [your-project-type]
 docs_path: docs/
 # Path to your docs/ directory relative to the project root.
 
+doc_profile: full
+# Optional. `lite` downgrades a fixed set of documents (permissions.md, business-*.md,
+# backend/database/deployment.md, research.md, test-plan/test-report.md — see
+# document-registry.yaml's `lite_downgrade` field) from Required to Optional, for a
+# solo/small project that doesn't need the full stakeholder-facing document set yet.
+# Core contracts (project-requirements.md, quickstart.md, data-model.md, api-contract.md,
+# architecture.md, logging-spec.md) stay Required in both profiles. Switching this back to
+# `full` (the default) re-requires exactly the same documents — lite never creates a
+# different document set, it only defers part of the same one. See guidance/doc-profile.md
+# for when to switch. Any value other than exactly `lite` is treated as `full`.
+
 task_type:
 # Optional. Filters .ai/AI_CONTEXT.md to task-relevant documents.
 # Valid values: feature | pipeline-stage | bug-fix | sprint-end | eval-run | iac-change

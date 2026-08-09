@@ -6,10 +6,9 @@ the thin layer a real MCP server would need on top of the validators' already-cl
 functions (verify_docs.run_audit(), verify_content.audit()) — a JSON-Schema tool definition
 plus a dict-in/dict-out handler per tool, both directly unit-testable with no protocol
 involved. Lives in templates/script/framework/ deliberately — the one subdirectory init.py's
---init already excludes from what gets copied into a user project's docs/script/ (see
-_exclude_framework_internal() in init.py) — same treatment as verify_framework.py, this is
-framework-repo-only until a full server is actually built (deliberately deferred — see
-CHANGELOG.md for why).
+--init already excludes via shutil.ignore_patterns("framework") from what gets copied into a
+user project's docs/script/ — same treatment as verify_framework.py, this is framework-repo-only
+until a full server is actually built (deliberately deferred — see CHANGELOG.md for why).
 
 Why this exists as a separate, tested-but-inert layer instead of just noting "MCP would be
 easy here" in a comment: `run_audit()` and `audit()` already returning plain, JSON-serializable
@@ -34,6 +33,7 @@ if str(_VALIDATORS_DIR) not in sys.path:
 from _registry import VALID_TYPES  # noqa: E402
 from verify_docs import run_audit  # noqa: E402
 from verify_content import audit as verify_content_audit  # noqa: E402
+from _verify_common import read_doc_profile  # noqa: E402
 
 
 class ToolError(Exception):
@@ -68,6 +68,15 @@ TOOLS: list[dict] = [
                     "description": "Also check fill quality (placeholders, required sections).",
                     "default": False,
                 },
+                "doc_profile": {
+                    "type": "string",
+                    "enum": ["lite", "full"],
+                    "description": (
+                        "Which required-doc set to audit against. Omit to auto-detect "
+                        "from .project-starter.yml -> doc_profile (defaults to 'full' if "
+                        "unset there too) — same default every CLI invocation uses."
+                    ),
+                },
             },
             "required": ["project_type"],
         },
@@ -83,6 +92,11 @@ TOOLS: list[dict] = [
             "properties": {
                 "project_type": {"type": "string"},
                 "docs_dir": {"type": "string", "default": "docs"},
+                "doc_profile": {
+                    "type": "string",
+                    "enum": ["lite", "full"],
+                    "description": "Same auto-detect-if-omitted behavior as verify_docs's doc_profile.",
+                },
             },
             "required": ["project_type"],
         },
@@ -100,6 +114,15 @@ def _parse_types(project_type: str) -> list[str]:
     return types
 
 
+def _resolve_lite(arguments: dict) -> bool:
+    """Explicit doc_profile argument wins; otherwise auto-detect from
+    .project-starter.yml, same default every CLI invocation of these scripts uses."""
+    requested = arguments.get("doc_profile")
+    if requested in ("lite", "full"):
+        return requested == "lite"
+    return read_doc_profile() == "lite"
+
+
 def _handle_verify_docs(arguments: dict) -> dict:
     project_type = arguments.get("project_type")
     if not project_type:
@@ -109,8 +132,15 @@ def _handle_verify_docs(arguments: dict) -> dict:
         raise ToolError(f"docs directory not found: {docs_dir}")
 
     types = _parse_types(project_type)
-    results = run_audit(types, docs_dir, check_content=bool(arguments.get("check_content", False)))
-    return {"project_type": project_type, "results": results}
+    lite = _resolve_lite(arguments)
+    results = run_audit(
+        types, docs_dir, check_content=bool(arguments.get("check_content", False)), lite=lite,
+    )
+    return {
+        "project_type": project_type,
+        "doc_profile": "lite" if lite else "full",
+        "results": results,
+    }
 
 
 def _handle_verify_content(arguments: dict) -> dict:
@@ -122,8 +152,14 @@ def _handle_verify_content(arguments: dict) -> dict:
         raise ToolError(f"docs directory not found: {docs_dir}")
 
     types = _parse_types(project_type)
-    doc_results, module_results = verify_content_audit(types, docs_dir, str(_VALIDATORS_DIR))
-    return {"project_type": project_type, "documents": doc_results, "modules": module_results}
+    lite = _resolve_lite(arguments)
+    doc_results, module_results = verify_content_audit(types, docs_dir, str(_VALIDATORS_DIR), lite=lite)
+    return {
+        "project_type": project_type,
+        "doc_profile": "lite" if lite else "full",
+        "documents": doc_results,
+        "modules": module_results,
+    }
 
 
 _HANDLERS = {
