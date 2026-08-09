@@ -47,6 +47,7 @@ def _write_current_state(repo: Path, body: str) -> None:
 
 
 def _run_hook(repo: Path) -> subprocess.CompletedProcess:
+    assert _BASH is not None  # module-level skipif guarantees this by the time we get here
     return subprocess.run(
         [_BASH, str(HOOK)], cwd=repo, capture_output=True, text=True,
         encoding="utf-8", errors="replace",

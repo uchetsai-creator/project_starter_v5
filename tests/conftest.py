@@ -1,9 +1,7 @@
 import os
-import sys
 import shutil
+import sys
 from pathlib import Path
-
-import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -43,7 +41,7 @@ def pytest_addoption(parser):
     )
 
 sys.path.insert(0, str(REPO_ROOT / "templates/script/validators"))
-from _registry import VALID_TYPES  # noqa: E402
+from _registry import VALID_TYPES  # noqa: E402,F401 -- re-exported for `from tests.conftest import VALID_TYPES`
 
 # Framework files that must be copied into an E2E project root
 _PROJECT_FILES = [

@@ -16,7 +16,7 @@ from __future__ import annotations
 import os
 import re
 
-from _base import Detector, FrameworkAdapter, NormalizedEndpoint, NormalizedField
+from _base import Detector, FrameworkAdapter, NormalizedEndpoint
 from _utils import _parse_field_table
 
 _JS_EXTENSIONS = ('.js', '.ts', '.mjs', '.cjs')

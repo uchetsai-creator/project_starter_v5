@@ -16,7 +16,6 @@ normal report, and failing --strict rather than silently exiting 0.
 import os
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
 
 _VALIDATORS_DIR = Path(__file__).resolve().parent.parent.parent / "templates/script/validators"

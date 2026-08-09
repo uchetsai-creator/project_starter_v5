@@ -1,24 +1,21 @@
 """Unit tests for detect_type.py."""
-import os
-import sys
 import json
+import os
 import subprocess
+import sys
 from pathlib import Path
-
-import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 DETECT_SCRIPT = REPO_ROOT / "detect_type.py"
 
 sys.path.insert(0, str(REPO_ROOT))
 from detect_type import (
+    VALID_TYPES,
+    _recommend,
     _score_directory,
     _score_requirements,
-    _merge,
-    _recommend,
     _suggest_adapter,
     _suggest_spec_code,
-    VALID_TYPES,
 )
 
 

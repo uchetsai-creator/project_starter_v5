@@ -4,16 +4,15 @@ previously exercised only by hand (no automated test invoked setup.sh at all).
 Also closes the loop on two prior gaps fixed this session:
 - setup.sh's copy list used to omit code-quality-check.md / debug-instrumentation-rules.md
   despite README's own documented new_project/ file tree listing both as root files.
-- adapters/claude/skills/ (Claude Skills) is documented as an optional post-init copy step in
-  README → Agent Adapters → Claude Code, but nothing proved that copy actually produces a
-  usable .claude/skills/ layout once combined with a real setup.sh --init project.
+- adapters/claude/skills/ (Claude Skills) used to be an optional, easy-to-miss manual copy
+  step (README → Agent Adapters → Claude Code); init.py now copies it automatically as part
+  of --init, so a fresh project gets working Skill-based enforcement (e.g.
+  learning-checkpoint) without a second setup step.
 """
-import shutil
 import subprocess
+from pathlib import Path
 
 import pytest
-
-from pathlib import Path
 
 from tests.conftest import find_posix_bash
 
@@ -33,6 +32,7 @@ _REQUIRED_ROOT_FILES = [
     "detect_type.py",
     "debug-instrumentation-rules.md",
     "code-quality-check.md",
+    "learning-log.md",
     "CLAUDE.md",
     ".project-starter.yml",
 ]
@@ -47,6 +47,7 @@ _SKILL_DIRS = [
 
 
 def _run_init(dest: Path, project_type: str = "web-app") -> subprocess.CompletedProcess:
+    assert _BASH is not None  # module-level skipif guarantees this by the time we get here
     return subprocess.run(
         [_BASH, str(SETUP_SH), "--init", project_type, str(dest)],
         cwd=str(REPO_ROOT),
@@ -85,20 +86,21 @@ def test_setup_sh_init_rejects_unknown_type(tmp_path):
     assert result.returncode != 0
 
 
-def test_setup_sh_init_then_claude_skills_copy_produces_usable_layout(tmp_path):
-    """Simulates README → Agent Adapters → Claude Code step 4: copying
-    adapters/claude/skills/ into a project that already went through --init."""
+def test_setup_sh_init_copies_claude_skills(tmp_path):
+    """adapters/claude/skills/ -> .claude/skills/ now happens automatically as part of
+    --init (see init.py) — no separate manual copy step required."""
     dest = tmp_path / "proj"
     result = _run_init(dest)
     assert result.returncode == 0, result.stderr
 
     skills_dest = dest / ".claude" / "skills"
-    shutil.copytree(REPO_ROOT / "adapters" / "claude" / "skills", skills_dest)
-
     for skill_name in _SKILL_DIRS:
         skill_md = skills_dest / skill_name / "SKILL.md"
-        assert skill_md.exists(), f"missing {skill_md} after copying adapters/claude/skills/"
+        assert skill_md.exists(), f"missing {skill_md} after setup.sh --init"
         text = skill_md.read_text(encoding="utf-8")
         assert text.startswith("---\n"), f"{skill_md} missing frontmatter"
         assert f"name: {skill_name}" in text
         assert "description:" in text
+
+    # add-framework-adapter is framework-repo-only — must NOT be copied into user projects
+    assert not (skills_dest / "add-framework-adapter").exists()

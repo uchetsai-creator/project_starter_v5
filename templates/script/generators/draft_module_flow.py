@@ -34,7 +34,6 @@ from __future__ import annotations
 
 import argparse
 import ast
-import os
 import re
 import sys
 from dataclasses import dataclass, field
@@ -42,9 +41,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scanners"))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "validators"))
-from scan_codebase import guess_type, base_type  # noqa: E402
 from _registry import VALID_TYPES  # noqa: E402
 from _verify_common import parse_types  # noqa: E402
+from scan_codebase import base_type, guess_type  # noqa: E402
 
 _JS_EXTENSIONS = (".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs")
 
@@ -391,7 +390,7 @@ def main() -> None:
     # (confirmed in CI on windows-latest; see orchestrator.py's main() and CHANGELOG.md).
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
-        sys.stderr.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")  # type: ignore[union-attr]  # guard above only narrows sys.stdout
 
     parser = argparse.ArgumentParser(
         description=(

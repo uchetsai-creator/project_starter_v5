@@ -81,7 +81,7 @@ from typing import Callable
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _registry import VALID_TYPES
-from _verify_common import parse_types, _src_has_real_files
+from _verify_common import _src_has_real_files, parse_types
 
 # adapter_name → (module_filename, class_name, framework_hint | None)
 # Phase 52.5: 3-tuple. framework_hint is passed to the capability adapter's
@@ -130,9 +130,15 @@ _ADAPTER_DIR = Path(__file__).resolve().parent / '_spec_code_adapters'
 sys.path.insert(0, str(_ADAPTER_DIR))
 
 from _base import (  # noqa: E402
-    NormalizedField, NormalizedStageContract, NormalizedEndpoint,
-    NormalizedCommand, NormalizedFunction, NormalizedTool,
-    NormalizedResource, NormalizedScreen, NormalizedLogPoint,
+    NormalizedCommand,
+    NormalizedEndpoint,
+    NormalizedField,
+    NormalizedFunction,
+    NormalizedLogPoint,
+    NormalizedResource,
+    NormalizedScreen,
+    NormalizedStageContract,
+    NormalizedTool,
 )
 
 
@@ -501,7 +507,7 @@ def main() -> None:
     # (confirmed in CI on windows-latest; see orchestrator.py's main() and CHANGELOG.md).
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
-        sys.stderr.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")  # type: ignore[union-attr]  # guard above only narrows sys.stdout
 
     parser = argparse.ArgumentParser(
         description='Validate that source code matches what the spec declares.',

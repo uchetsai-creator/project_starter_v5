@@ -38,6 +38,7 @@ _ROOT_FILES = [
     "detect_type.py",
     "debug-instrumentation-rules.md",
     "code-quality-check.md",
+    "learning-log.md",
 ]
 
 _PROJECT_STARTER_YML = """\
@@ -87,6 +88,20 @@ def init_project(project_type: str, dest: Path) -> None:
     shutil.copytree(script_dir / "guidance", dest / "guidance", dirs_exist_ok=True)
     print("[OK] copied guidance/")
 
+    # Claude Skills (static — SKILL.md per procedural doc) so they auto-trigger by
+    # description match instead of requiring AGENTS.md to be read and followed by hand.
+    # Previously an optional manual copy step (README -> Agent Adapters -> Claude Code);
+    # copying it here means a fresh --init project gets working Skill-based enforcement
+    # (e.g. learning-checkpoint) without a second, easy-to-miss setup step. Deliberately
+    # NOT copying the framework repo's own .claude/skills/add-framework-adapter/ — that
+    # one is for people extending project_starter_v5 itself, not for application code.
+    shutil.copytree(
+        script_dir / "adapters" / "claude" / "skills",
+        dest / ".claude" / "skills",
+        dirs_exist_ok=True,
+    )
+    print("[OK] copied adapters/claude/skills/ -> .claude/skills/")
+
     # CLAUDE.md is Claude Code's auto-loaded context file — importing AGENTS.md here
     # guarantees its rules (including Learning Checkpoint) load at the start of every
     # session, with no dependency on which task-specific docs current-state.md points to.
@@ -131,7 +146,7 @@ def init_project(project_type: str, dest: Path) -> None:
 def main() -> None:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
-        sys.stderr.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")  # type: ignore[union-attr]  # guard above only narrows sys.stdout
 
     if len(sys.argv) != 3:
         print("Usage: python3 init.py <type> <dest>", file=sys.stderr)

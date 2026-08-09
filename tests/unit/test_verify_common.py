@@ -10,7 +10,6 @@ sys.path.insert(
 )
 from _verify_common import _append_telemetry, _is_placeholder, _section_body
 
-
 # ---------------------------------------------------------------------------
 # _is_placeholder — positive cases
 # ---------------------------------------------------------------------------

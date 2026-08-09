@@ -21,6 +21,7 @@ _ADAPTERS_DIR = (
 sys.path.insert(0, str(_ADAPTERS_DIR))
 
 _spec = importlib.util.spec_from_file_location("gin", _ADAPTERS_DIR / "gin.py")
+assert _spec is not None and _spec.loader is not None
 gin = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(gin)
 

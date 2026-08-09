@@ -29,6 +29,7 @@ _EXAMPLE_SPEC = (
 )
 
 _spec = importlib.util.spec_from_file_location("generate_openapi", _SCRIPT_PATH)
+assert _spec is not None and _spec.loader is not None
 go = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(go)
 
@@ -36,7 +37,6 @@ _spec.loader.exec_module(go)
 # (needed for its `from _capability_web_api import WebAPIAdapter`), so _base is
 # importable here too, cleanly, instead of reaching into WebAPIAdapter's module.
 from _base import NormalizedEndpoint, NormalizedField  # noqa: E402
-
 
 # ---------------------------------------------------------------------------
 # _to_openapi_path

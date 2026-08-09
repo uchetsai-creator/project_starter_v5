@@ -51,9 +51,11 @@ import subprocess
 import sys
 import tempfile
 import xml.etree.ElementTree as ET
-import markdown
-from weasyprint import HTML, CSS
+
 import cairosvg
+import markdown
+from weasyprint import CSS, HTML
+
 try:
     from PIL import Image
 except ImportError:
@@ -506,12 +508,12 @@ def svg_to_png(svg_path, out_path, max_width=1400, max_height=900):
 
 def inject_plantuml_blocks(md_text, rel, docs_dir, html_svg_pairs, png_cache_dir):
     """Replace ```plantuml blocks in markdown with embedded PNG images."""
-    base = os.path.splitext(os.path.basename(rel))[0]
+    os.path.splitext(os.path.basename(rel))[0]
 
     def replace_block(m):
-        puml_text = m.group(1).strip()
+        m.group(1).strip()
         # Find matching pre-rendered SVG
-        svg_cache_dir = os.path.join(png_cache_dir, 'plantuml_svg')
+        os.path.join(png_cache_dir, 'plantuml_svg')
         # Try to find the svg by scanning rendered pairs
         for key, pair in html_svg_pairs.items():
             if pair.get('md') and os.path.basename(pair['md']) == os.path.basename(rel):

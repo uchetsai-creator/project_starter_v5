@@ -14,10 +14,9 @@ Follows the same real-bash-subprocess pattern as test_pre_commit_test_command.py
 import json
 import os
 import subprocess
+from pathlib import Path
 
 import pytest
-
-from pathlib import Path
 
 from tests.conftest import find_posix_bash
 
@@ -48,6 +47,7 @@ def _make_repo_with_blocking_config(tmp_path: Path) -> Path:
 
 
 def _run_hook(repo: Path, extra_env: dict | None = None) -> subprocess.CompletedProcess:
+    assert _BASH is not None  # module-level skipif guarantees this by the time we get here
     env = {**os.environ, **(extra_env or {})}
     return subprocess.run(
         [_BASH, str(HOOK)], cwd=repo, capture_output=True, text=True,

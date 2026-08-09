@@ -1,14 +1,11 @@
 import sys
 from pathlib import Path
 
-import pytest
-
 sys.path.insert(
     0,
     str(Path(__file__).resolve().parent.parent.parent / "templates/script/validators"),
 )
 from verify_logs import check_logging_spec, check_module_log_file
-
 
 # ---------------------------------------------------------------------------
 # check_logging_spec — N/A types return empty

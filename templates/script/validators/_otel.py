@@ -51,12 +51,12 @@ def _get_tracer():
         import logging
         logging.getLogger('opentelemetry').setLevel(logging.CRITICAL)
 
-        from opentelemetry.sdk.resources import Resource  # noqa: PLC0415
-        from opentelemetry.sdk.trace import TracerProvider  # noqa: PLC0415
-        from opentelemetry.sdk.trace.export import BatchSpanProcessor  # noqa: PLC0415
         from opentelemetry.exporter.otlp.proto.http.trace_exporter import (  # noqa: PLC0415
             OTLPSpanExporter,
         )
+        from opentelemetry.sdk.resources import Resource  # noqa: PLC0415
+        from opentelemetry.sdk.trace import TracerProvider  # noqa: PLC0415
+        from opentelemetry.sdk.trace.export import BatchSpanProcessor  # noqa: PLC0415
     except ImportError:
         return None
 

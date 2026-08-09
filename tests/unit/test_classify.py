@@ -5,6 +5,7 @@ import pytest
 
 _bc_path = Path(__file__).resolve().parent.parent.parent / "build-context.py"
 _spec = importlib.util.spec_from_file_location("build_context", _bc_path)
+assert _spec is not None and _spec.loader is not None
 _mod = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_mod)
 _classify = _mod._classify

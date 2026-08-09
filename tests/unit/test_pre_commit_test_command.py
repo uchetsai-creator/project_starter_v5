@@ -11,10 +11,9 @@ writing this file) — these run the real bash script via subprocess against a m
 isolated git repo, skipped if bash isn't on PATH.
 """
 import subprocess
+from pathlib import Path
 
 import pytest
-
-from pathlib import Path
 
 from tests.conftest import find_posix_bash
 
@@ -44,6 +43,7 @@ def _make_repo(tmp_path: Path, test_command: str | None) -> Path:
 
 
 def _run_hook(repo: Path) -> subprocess.CompletedProcess:
+    assert _BASH is not None  # module-level skipif guarantees this by the time we get here
     # encoding must be explicit: the hook's own output uses UTF-8 punctuation (—, etc.)
     # that the default locale codec on a non-UTF-8 Windows machine cannot decode.
     return subprocess.run(

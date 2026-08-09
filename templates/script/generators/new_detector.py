@@ -201,7 +201,7 @@ def main() -> None:
     # (confirmed in CI on windows-latest; see orchestrator.py's main() and CHANGELOG.md).
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
-        sys.stderr.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")  # type: ignore[union-attr]  # guard above only narrows sys.stdout
 
     parser = argparse.ArgumentParser(
         description="Scaffold a new framework Detector for an existing capability adapter "

@@ -8,7 +8,11 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
 sys.path.insert(0, str(REPO_ROOT))
-from detect_type import _ADAPTER_SIGNALS, _CANONICAL_SPEC_FILE, VALID_TYPES  # noqa: E402
+from detect_type import (  # noqa: E402
+    _ADAPTER_SIGNALS,
+    _CANONICAL_SPEC_FILE,
+    VALID_TYPES,
+)
 
 sys.path.insert(0, str(REPO_ROOT / "templates/script/validators"))
 import verify_spec_code as vsc  # noqa: E402

@@ -14,7 +14,6 @@ from verify_module_docs import (
     detect_module_type,
 )
 
-
 # ---------------------------------------------------------------------------
 # detect_module_type
 # ---------------------------------------------------------------------------
@@ -154,7 +153,7 @@ def test_check_background_job_valid_no_issues():
 
 
 def test_check_background_job_missing_trigger():
-    lines = [l for l in _VALID_BG_JOB if not l.startswith("Trigger")]
+    lines = [line for line in _VALID_BG_JOB if not line.startswith("Trigger")]
     issues = check_background_job(lines)
     assert any("Trigger" in i for i in issues)
 
@@ -192,7 +191,7 @@ def test_check_shared_utility_valid_no_issues():
 
 
 def test_check_shared_utility_missing_plantuml_block():
-    lines = [l for l in _VALID_SHARED_UTIL if "@" not in l and "class" not in l and "{" not in l and "}" not in l and "+" not in l]
+    lines = [line for line in _VALID_SHARED_UTIL if "@" not in line and "class" not in line and "{" not in line and "}" not in line and "+" not in line]
     issues = check_shared_utility(lines)
     assert any("plantuml" in i for i in issues)
 

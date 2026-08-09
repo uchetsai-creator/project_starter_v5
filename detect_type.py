@@ -50,7 +50,7 @@ HYBRID_RATIO = 0.40
 #   project_type: one of VALID_TYPES
 #   weight     : integer points added to that type's score
 
-_FILE_EXISTS_RULES: list[tuple[str, int]] = [
+_FILE_EXISTS_RULES: list[tuple[str, str, int]] = [
     # IaC
     ("main.tf",            "iac",           25),
     ("terraform.tfvars",   "iac",           20),
@@ -90,7 +90,7 @@ _FILE_EXISTS_RULES: list[tuple[str, int]] = [
     ("__main__.py",        "cli-tool",      15),
 ]
 
-_DIR_EXISTS_RULES: list[tuple[str, int]] = [
+_DIR_EXISTS_RULES: list[tuple[str, str, int]] = [
     # IaC
     ("modules",            "iac",           12),
     (".terraform",         "iac",           25),
@@ -136,7 +136,7 @@ _DIR_EXISTS_RULES: list[tuple[str, int]] = [
 ]
 
 # Python dependencies (requirements.txt / pyproject.toml / setup.py)
-_PYTHON_DEP_RULES: list[tuple[str, int]] = [
+_PYTHON_DEP_RULES: list[tuple[str, str, int]] = [
     # Web
     ("fastapi",            "web-app",       25),
     ("flask",              "web-app",       22),
@@ -203,7 +203,7 @@ _PYTHON_DEP_RULES: list[tuple[str, int]] = [
 ]
 
 # Node.js dependencies (package.json)
-_NODE_DEP_RULES: list[tuple[str, int]] = [
+_NODE_DEP_RULES: list[tuple[str, str, int]] = [
     # Web frameworks
     ("express",            "web-app",       25),
     ("fastify",            "web-app",       25),
@@ -249,7 +249,7 @@ _NODE_DEP_RULES: list[tuple[str, int]] = [
 ]
 
 # File-glob patterns (match by extension or name pattern in the tree)
-_GLOB_RULES: list[tuple[str, int]] = [
+_GLOB_RULES: list[tuple[str, str, int]] = [
     # IaC
     ("**/*.tf",            "iac",           25),
     ("**/*.tfvars",        "iac",           18),
@@ -272,7 +272,7 @@ _GLOB_RULES: list[tuple[str, int]] = [
 ]
 
 # Keyword rules for requirements text (lowercased match)
-_KEYWORD_RULES: list[tuple[str, int]] = [
+_KEYWORD_RULES: list[tuple[str, str, int]] = [
     # web-app
     (r"\bweb\s*app\b",             "web-app",       20),
     (r"\brest\s*api\b",            "web-app",       20),
@@ -606,7 +606,7 @@ def main() -> None:
     # (confirmed in CI on windows-latest; see orchestrator.py's main() and CHANGELOG.md).
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
-        sys.stderr.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")  # type: ignore[union-attr]  # guard above only narrows sys.stdout
 
     parser = argparse.ArgumentParser(
         description="Infer project type from code structure and/or requirements text.",

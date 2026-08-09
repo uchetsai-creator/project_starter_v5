@@ -178,7 +178,7 @@ PASS=true
 # would actually be in the repo after this commit (staged if staged, else the committed
 # HEAD version) regardless of whether that file is part of this commit, so "don't touch
 # current-state.md" stops being a way around scoping a task before writing code.
-NON_SOURCE_REGEX="^(${DOCS_PATH}/|guidance/|\.githooks/|\.claude/|\.codex/|adapters/|logs/|\.ai/|AGENTS\.md|CLAUDE\.md|orchestrator\.py|build-context\.py|_workflow_utils\.py|workflow-registry\.yaml|document-registry\.yaml|detect_type\.py|debug-instrumentation-rules\.md|code-quality-check\.md|\.project-starter\.yml|README\.md|LICENSE|\.gitignore|\.pre-commit-config\.yaml)"
+NON_SOURCE_REGEX="^(${DOCS_PATH}/|guidance/|\.githooks/|\.claude/|\.codex/|adapters/|logs/|\.ai/|AGENTS\.md|CLAUDE\.md|orchestrator\.py|build-context\.py|_workflow_utils\.py|workflow-registry\.yaml|document-registry\.yaml|detect_type\.py|debug-instrumentation-rules\.md|code-quality-check\.md|learning-log\.md|\.project-starter\.yml|README\.md|LICENSE|\.gitignore|\.pre-commit-config\.yaml)"
 SOURCE_STAGED=$(printf '%s\n' "$STAGED" | grep -vE "$NON_SOURCE_REGEX" || true)
 if [ -n "$SOURCE_STAGED" ]; then
     CS_PATH="${DOCS_PATH}/current-state.md"

@@ -44,17 +44,17 @@ Examples:
   python3 docs/script/scanners/scan_codebase.py src --format json
 """
 
-import sys
-import os
 import argparse
 import glob
 import json
+import os
 import re
+import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / 'validators'))
 from _registry import VALID_TYPES
-from _verify_common import parse_types, _src_has_real_files
+from _verify_common import _src_has_real_files, parse_types
 
 # ---------------------------------------------------------------------------
 # Folders that are almost never feature modules — skip or mark as "—"
@@ -458,7 +458,7 @@ def print_coverage(
     folders: list[dict], project_type: str | None = None, unscanned: list[str] | None = None,
     src_dir: str | None = None,
 ) -> str:
-    _, plural_label = MODULE_VOCAB.get(project_type, ("Feature", "feature modules"))
+    _, plural_label = MODULE_VOCAB.get(project_type or "", ("Feature", "feature modules"))
 
     lines = []
     lines.append(f"=== {plural_label.title()} Coverage Report ===\n")

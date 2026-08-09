@@ -18,7 +18,12 @@ import os
 import re
 
 from _base import Detector, FrameworkAdapter, NormalizedEndpoint, NormalizedField
-from _utils import _annotation_str, _HTTP_METHODS, _parse_field_table, _resolve_output_fields
+from _utils import (
+    _HTTP_METHODS,
+    _annotation_str,
+    _parse_field_table,
+    _resolve_output_fields,
+)
 
 _SKIP_PARAMS = frozenset({'self', 'request', 'kwargs'})
 
@@ -71,7 +76,7 @@ class FlaskDetector(Detector):
                         methods = [
                             elt.value.upper()
                             for elt in kw.value.elts
-                            if isinstance(elt, ast.Constant)
+                            if isinstance(elt, ast.Constant) and isinstance(elt.value, str)
                         ]
 
                 request_fields = [

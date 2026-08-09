@@ -26,15 +26,25 @@ import os
 import re
 import subprocess
 import sys
+from typing import Callable
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from _verify_common import (
-    _append_telemetry, _is_placeholder, _non_blank, _read_file,
-    _section_body, _telemetry_ts, parse_types,
-)
 from _registry import (
-    load_registry, VALID_TYPES,
-    build_type_docs, build_doc_paths, get_universal_docs, build_required_sections,
+    VALID_TYPES,
+    build_doc_paths,
+    build_required_sections,
+    build_type_docs,
+    get_universal_docs,
+    load_registry,
+)
+from _verify_common import (
+    _append_telemetry,
+    _is_placeholder,
+    _non_blank,
+    _read_file,
+    _section_body,
+    _telemetry_ts,
+    parse_types,
 )
 
 _reg = load_registry()
@@ -880,7 +890,7 @@ def _check_required_sections(doc_name: str, lines: list[str]) -> list[str]:
 # Checker registry
 # ---------------------------------------------------------------------------
 
-CHECKERS: dict[str, object] = {
+CHECKERS: dict[str, Callable[..., list[str]]] = {
     'architecture.md':          check_architecture,
     'quickstart.md':            check_quickstart,
     'research.md':              check_research,
@@ -1196,7 +1206,7 @@ def main() -> None:
     # (confirmed in CI on windows-latest; see orchestrator.py's main() and CHANGELOG.md).
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
-        sys.stderr.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")  # type: ignore[union-attr]  # guard above only narrows sys.stdout
 
     parser = argparse.ArgumentParser(
         description="Audit document content quality for project_starter_v5 projects.",

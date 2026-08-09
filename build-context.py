@@ -16,7 +16,12 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from _workflow_utils import _coerce_project_type, _load_valid_task_types, _load_yaml, _resolve_task_type
+from _workflow_utils import (
+    _coerce_project_type,
+    _load_valid_task_types,
+    _load_yaml,
+    _resolve_task_type,
+)
 
 PRIORITY_ORDER = {"high": 0, "medium": 1, "low": 2}
 
@@ -141,7 +146,7 @@ def main() -> None:
     # (confirmed in CI on windows-latest; see orchestrator.py's main() and CHANGELOG.md).
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
-        sys.stderr.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")  # type: ignore[union-attr]  # guard above only narrows sys.stdout
 
     project_root = Path(__file__).resolve().parent
     valid_task_types = _load_valid_task_types(project_root)

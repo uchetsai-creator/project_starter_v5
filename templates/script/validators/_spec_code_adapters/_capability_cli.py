@@ -23,7 +23,7 @@ import os
 import re
 
 from _base import FrameworkAdapter, NormalizedCommand, NormalizedField
-from _utils import _clean_flag_name, _PLACEHOLDER_CMD_NAMES
+from _utils import _PLACEHOLDER_CMD_NAMES, _clean_flag_name
 
 _DETECTORS: dict[str, tuple[str, str, tuple[str, ...]]] = {
     'click': ('click', 'ClickDetector', ('.py',)),

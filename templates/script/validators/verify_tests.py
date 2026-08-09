@@ -22,9 +22,10 @@ import json
 import os
 import re
 import sys
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from _verify_common import _append_telemetry, _read_file, _section_body, _telemetry_ts
 from _registry import VALID_TYPES
+from _verify_common import _append_telemetry, _read_file, _section_body, _telemetry_ts
 
 PIPELINE_TYPES = {'data-pipeline', 'ml-pipeline'}
 
@@ -92,8 +93,8 @@ def check_test_report(docs_dir, types):
 
     # ── Check 1: Summary table has real test counts ───────────────────────────
     summary_body = _section_body(full_text, r'^##\s+Summary')
-    number_rows = [l for l in (summary_body.splitlines() if summary_body else [])
-                   if _NUMBER_IN_ROW.search(l) and not _PLACEHOLDER_ROW.search(l)]
+    number_rows = [line for line in (summary_body.splitlines() if summary_body else [])
+                   if _NUMBER_IN_ROW.search(line) and not _PLACEHOLDER_ROW.search(line)]
     has_counts = len(number_rows) > 0
 
     # Verify at least one Total > 0
@@ -181,10 +182,10 @@ def check_test_report(docs_dir, types):
             real_rows = _real_table_rows(_contract_lines)
             # Also check for Result: line with actual data (not a template placeholder)
             result_lines = [
-                l for l in _contract_lines
-                if re.search(r'\*\*Result:\*\*.*success=', l, re.IGNORECASE)
-                and not _PLACEHOLDER_ROW.search(l)
-                and not re.search(r'=\[|\[True|\[False', l)
+                line for line in _contract_lines
+                if re.search(r'\*\*Result:\*\*.*success=', line, re.IGNORECASE)
+                and not _PLACEHOLDER_ROW.search(line)
+                and not re.search(r'=\[|\[True|\[False', line)
             ]
             filled = len(real_rows) > 0 or len(result_lines) > 0
             results.append({

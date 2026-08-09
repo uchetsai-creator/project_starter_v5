@@ -19,7 +19,13 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from _registry import load_registry, build_matrix, build_doc_paths, build_replaces_for, VALID_TYPES
+from _registry import (
+    VALID_TYPES,
+    build_doc_paths,
+    build_matrix,
+    build_replaces_for,
+    load_registry,
+)
 
 _reg = load_registry()
 MATRIX = build_matrix(_reg)
@@ -84,8 +90,8 @@ def scan_content(filepath, doc_name):
     except OSError:
         return None
 
-    content_lines = [l for l in lines if _is_content_line(l)]
-    placeholder_lines = [l for l in content_lines if _is_placeholder(l)]
+    content_lines = [line for line in lines if _is_content_line(line)]
+    placeholder_lines = [line for line in content_lines if _is_placeholder(line)]
 
     total = len(content_lines)
     n_placeholders = len(placeholder_lines)
@@ -108,7 +114,7 @@ def scan_content(filepath, doc_name):
 
         for sec in required_sections:
             body = section_bodies.get(sec, [])
-            filled = [l for l in body if _is_content_line(l) and not _is_placeholder(l)]
+            filled = [line for line in body if _is_content_line(line) and not _is_placeholder(line)]
             if len(filled) < MIN_SECTION_LINES:
                 unfilled_sections.append(sec)
 

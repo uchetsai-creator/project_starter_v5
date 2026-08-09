@@ -25,8 +25,14 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from _verify_common import _append_telemetry, _is_placeholder, _read_file, _section_body, _telemetry_ts
 from _registry import VALID_TYPES
+from _verify_common import (
+    _append_telemetry,
+    _is_placeholder,
+    _read_file,
+    _section_body,
+    _telemetry_ts,
+)
 
 # Types where logging-spec.md is Required or Optional
 LOGGING_REQUIRED = {'web-app', 'cli-tool', 'data-pipeline', 'ml-pipeline', 'microservices', 'mobile-app'}
@@ -58,12 +64,12 @@ _LLM_FIELDS_RE = re.compile(r'\bmodel\b|\btoken\b|\bprompt\b|\bcompletion\b|\bll
 
 def _filled_lines(body):
     return [
-        l for l in body
-        if l.strip()
-        and not l.strip().startswith('#')
-        and l.strip() != '---'
-        and not (l.strip().startswith('<!--') and l.strip().endswith('-->'))
-        and not _is_placeholder(l)
+        line for line in body
+        if line.strip()
+        and not line.strip().startswith('#')
+        and line.strip() != '---'
+        and not (line.strip().startswith('<!--') and line.strip().endswith('-->'))
+        and not _is_placeholder(line)
     ]
 
 

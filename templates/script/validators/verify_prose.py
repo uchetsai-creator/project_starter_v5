@@ -45,7 +45,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from _verify_common import _append_telemetry, _telemetry_ts, _SKIP_DIRNAMES
+from _verify_common import _SKIP_DIRNAMES, _append_telemetry, _telemetry_ts
 
 _STYLE_DIR = Path(__file__).resolve().parent / '_prose_style'
 _VALE_CONFIG = _STYLE_DIR / '.vale.ini'
@@ -199,7 +199,7 @@ def print_report(result: dict, min_severity: str) -> None:
 def main() -> None:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
-        sys.stderr.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")  # type: ignore[union-attr]  # guard above only narrows sys.stdout
 
     parser = argparse.ArgumentParser(
         description='verify_prose.py — prose-quality wrapper (Vale)',

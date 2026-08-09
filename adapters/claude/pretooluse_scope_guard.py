@@ -40,6 +40,7 @@ NON_SOURCE_NAMES = {
     "AGENTS.md", "CLAUDE.md", "orchestrator.py", "build-context.py",
     "_workflow_utils.py", "workflow-registry.yaml", "document-registry.yaml",
     "detect_type.py", "debug-instrumentation-rules.md", "code-quality-check.md",
+    "learning-log.md",
     ".project-starter.yml", "README.md", "LICENSE", ".gitignore",
     ".pre-commit-config.yaml",
 }

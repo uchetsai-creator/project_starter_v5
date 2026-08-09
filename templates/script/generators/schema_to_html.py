@@ -12,6 +12,7 @@ import os
 import re
 import sys
 
+
 def detect_and_parse(content, ext):
     if ext == ".prisma" or re.search(r'\bmodel\s+\w+\s*\{', content):
         return parse_prisma(content)
@@ -28,21 +29,26 @@ def parse_prisma(content):
         cols = []
         for line in block.splitlines():
             line = line.strip()
-            if not line or line.startswith('//') or line.startswith('@@'): continue
+            if not line or line.startswith('//') or line.startswith('@@'):
+                continue
             m = re.match(r'(\w+)\s+(\w+)(\?|\[\])?\s*(.*)', line)
-            if not m: continue
+            if not m:
+                continue
             fname, ftype, mod, rest = m.group(1), m.group(2), m.group(3) or "", m.group(4)
             if ftype not in PRISMA_SCALARS and ftype[0].isupper():
                 relation_fields.setdefault(model_name, []).append((fname, ftype, mod, rest))
                 continue
             constraint = "PK" if "@id" in rest else ("UK" if "@unique" in rest else "")
             ann = PRISMA_ANN_MAP.get(ftype, "")
-            if mod == "?": ann = (ann + " nullable").strip() if ann else "nullable"
-            elif mod == "[]": ann = (ann + " array").strip() if ann else "array"
+            if mod == "?":
+                ann = (ann + " nullable").strip() if ann else "nullable"
+            elif mod == "[]":
+                ann = (ann + " array").strip() if ann else "array"
             cols.append({"name":fname,"type":PRISMA_TYPE_MAP.get(ftype,ftype.lower()),"constraint":constraint,"annotation":ann})
         tables[model_name] = cols
     for model_name, ref_list in relation_fields.items():
-        if model_name not in tables: continue
+        if model_name not in tables:
+            continue
         for (fname, ftype, mod, rest) in ref_list:
             fk_m = re.search(r'@relation\s*\(.*?fields:\s*\[([^\]]+)\]', rest)
             if fk_m:
@@ -53,9 +59,11 @@ def parse_prisma(content):
     relations, seen = [], set()
     for model_name, ref_list in relation_fields.items():
         for (fname, ftype, mod, rest) in ref_list:
-            if ftype not in tables: continue
+            if ftype not in tables:
+                continue
             key = tuple(sorted([model_name, ftype]))
-            if key in seen: continue
+            if key in seen:
+                continue
             seen.add(key)
             is_array = mod == "[]"
             is_opt = mod == "?"
@@ -76,7 +84,8 @@ def parse_sql(content):
         cols, pk_cols, fk_map = [], set(), {}
         pk_m = re.search(r'PRIMARY\s+KEY\s*\(([^)]+)\)', block, re.IGNORECASE)
         if pk_m:
-            for c in pk_m.group(1).split(','): pk_cols.add(c.strip().strip('"`'))
+            for c in pk_m.group(1).split(','):
+                pk_cols.add(c.strip().strip('"`'))
         for m in re.finditer(r'FOREIGN\s+KEY\s*\(["`]?(\w+)["`]?\)\s+REFERENCES\s+["`]?(\w+)["`]?', block, re.IGNORECASE):
             fk_map[m.group(1)] = m.group(2)
             key = tuple(sorted([table_name, m.group(2)]))
@@ -85,15 +94,20 @@ def parse_sql(content):
                 relations.append({"from":m.group(2),"to":table_name,"from_card":"one","to_card":"many","from_opt":False,"to_opt":True})
         for line in block.splitlines():
             line = line.strip().rstrip(',')
-            if not line or re.match(r'(PRIMARY|FOREIGN|UNIQUE|KEY|INDEX|CONSTRAINT|CHECK)', line, re.IGNORECASE): continue
+            if not line or re.match(r'(PRIMARY|FOREIGN|UNIQUE|KEY|INDEX|CONSTRAINT|CHECK)', line, re.IGNORECASE):
+                continue
             m = re.match(r'["`]?(\w+)["`]?\s+(\w+(?:\s*\(\s*\d+\s*(?:,\s*\d+)?\s*\))?)(.*)', line)
-            if not m: continue
+            if not m:
+                continue
             col_name, raw_type, rest = m.group(1), m.group(2).upper(), m.group(3)
             base = re.sub(r'\(.*\)','',raw_type).strip()
             constraint = ""
-            if col_name in pk_cols or "PRIMARY KEY" in rest.upper(): constraint = "PK"
-            if col_name in fk_map: constraint = "PK,FK" if constraint=="PK" else "FK"
-            if "UNIQUE" in rest.upper() and not constraint: constraint = "UK"
+            if col_name in pk_cols or "PRIMARY KEY" in rest.upper():
+                constraint = "PK"
+            if col_name in fk_map:
+                constraint = "PK,FK" if constraint=="PK" else "FK"
+            if "UNIQUE" in rest.upper() and not constraint:
+                constraint = "UK"
             cols.append({"name":col_name,"type":SQL_TYPE_MAP.get(base,raw_type.lower()),"constraint":constraint,"annotation":SQL_ANN_MAP.get(base,"")})
         tables[table_name] = cols
     return tables, relations

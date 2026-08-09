@@ -14,7 +14,71 @@ All notable changes to this framework are documented here. Format loosely follow
 
 ## [Unreleased]
 
+### Changed
+- `init.py` (and `setup.sh --init`, which delegates to it) now copies `adapters/claude/skills/`
+  into the new project's `.claude/skills/` automatically, instead of leaving it as a separate,
+  easy-to-miss manual step (README → Agent Adapters → Claude Code, step 4). Confirmed by
+  actually bootstrapping a fresh project: previously `.claude/skills/` did not exist at all
+  after `--init`, meaning Learning Checkpoint and the other four procedural Skills only
+  triggered if the agent happened to read AGENTS.md's text reference — no mechanical trigger,
+  unlike the PreToolUse scope guard. `add-framework-adapter` (framework-repo-only) is
+  deliberately excluded, same as before. `tests/unit/test_init_py.py` and
+  `tests/unit/test_setup_sh_init.py` updated to assert the copy happens as part of `--init`
+  rather than simulating it as a separate manual step.
+
 ### Added
+- ruff + mypy wired into CI (`.github/workflows/ci.yml`) and `requirements-dev.txt`, with
+  config in `pyproject.toml`. `select = ["E4","E7","E9","F","I"]` (ruff's own recommended
+  default plus import sorting); `E402` ignored repo-wide since this codebase is flat scripts,
+  not an installed package, and `sys.path.insert(0, ...)` immediately before a local import
+  is the correct pattern here, not a style slip. mypy runs with `ignore_missing_imports` and
+  the stdlib default of not checking untyped function bodies — gradual typing, not `--strict`,
+  since most of the ~150 files had no prior type-hint coverage.
+  Bringing the codebase to a clean baseline surfaced real, previously-undetected bugs, not
+  just style noise:
+  - `detect_type.py`: six rule-list constants (`_FILE_EXISTS_RULES`, `_DIR_EXISTS_RULES`,
+    `_PYTHON_DEP_RULES`, `_NODE_DEP_RULES`, `_GLOB_RULES`, `_KEYWORD_RULES`) were annotated
+    `list[tuple[str, int]]` but every entry is actually a 3-tuple
+    `(pattern, project_type, weight)` — the annotation just never matched the data. Fixed to
+    `list[tuple[str, str, int]]`.
+  - `_spec_code_adapters/semantic.py`: the file's own `if __name__ == '__main__':` self-test
+    called `adapter.semantic_compare(report, [], [])`, but the real method only takes
+    `structural_report` — running `python3 semantic.py` directly crashed with `TypeError`
+    before reaching the assertion it was meant to check. Confirmed fixed by actually running
+    the self-test, not just satisfying mypy.
+  - `_spec_code_adapters/flask.py`: `methods=[...]` parsing in a `@app.route(...)` decorator
+    called `.upper()` on every AST constant in the list without checking it was a string
+    first — a route decorator with a non-string literal in `methods=` (e.g. a stray number)
+    would crash the scanner instead of skipping it gracefully. Added an `isinstance(..., str)`
+    guard.
+  - `_spec_code_adapters/luigi.py`: a `with open(...) as f:` file handle and an unrelated
+    walrus-assigned loop variable both named `f` in the same function reused the name across
+    two different types — harmless at runtime (the scopes never actually overlapped in
+    practice) but a real footgun for the next edit. Renamed the loop variable to `field`.
+  - `_verify_common.py`'s `_section_body()` deliberately returns `str` or `list[str]`
+    depending on whether it's given `str` or `list[str]` input; every caller previously
+    saw the full `str | list[str] | None` union regardless of which type it actually passed
+    in, so callers that always pass `str` had to satisfy a `list[str]` branch that could
+    never happen for them. Added `@overload` signatures so each call site gets the precise
+    return type back.
+- `learning-log.md`: personal, append-only root file for Learning Checkpoint C.4 (teach-back).
+  Previously, teach-back gaps ("couldn't explain it, or explained it wrong" — the framework's
+  own stated signal for what needs deeper study) lived only in that session's conversation and
+  were never written down anywhere, so nothing accumulated across tasks and there was no review
+  cadence. Copied by `init.py` / `setup.sh --init` like `debug-instrumentation-rules.md` and
+  `code-quality-check.md`; not part of `document-registry.yaml` or any type's document matrix
+  — never Required/Optional, never PDF-exported, never checked by a validator. Also tracks a
+  personal design-pattern roster (every pattern named or considered-and-rejected at Checkpoint
+  A/B/C) and prompts a re-check of an older entry every 3rd entry, mirroring the count-based
+  trigger `sprint-change-log.md` already uses for Sprint Documentation Sync. Added to
+  `pretooluse_scope_guard.py`'s `NON_SOURCE_NAMES` and `.githooks/pre-commit`'s
+  `NON_SOURCE_REGEX` so appending an entry doesn't require a scoped `Current Task`, same as the
+  other two root guidance files. `guidance/learning-checkpoints/common.md` (and its
+  contract-synced `adapters/claude/skills/learning-checkpoint/SKILL.md`) also gained: a wider
+  Checkpoint 0 trigger ("when unsure, run it anyway"), a default-on note for Checkpoint C.1's
+  comment-out-and-test escalation while still building confidence in a codebase, and a
+  simpler-analogy retry loop (max 2 retries) for Checkpoint C.4 teach-back before recording the
+  gap as unresolved.
 - `verify_security.py`: SAST wrapper running bandit (Python) and eslint-plugin-security (JS/TS)
   against `--src`, reported in the same style as the other validators. Independent of
   `verify_spec_code.py` — no spec input, just known-unsafe-pattern detection. Opt-in via

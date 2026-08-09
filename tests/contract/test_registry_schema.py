@@ -7,7 +7,6 @@ sys.path.insert(0, str(_REPO_ROOT / "templates/script/validators"))
 from _registry import VALID_TYPES, load_registry
 from verify_registry import _validate_entry, validate
 
-
 # ---------------------------------------------------------------------------
 # Contract 2 — registry schema invariants (legacy field checks)
 # ---------------------------------------------------------------------------

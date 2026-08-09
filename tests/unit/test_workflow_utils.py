@@ -1,11 +1,8 @@
 import sys
 from pathlib import Path
 
-import pytest
-
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 from _workflow_utils import _read_task_type_from_current_state, _resolve_task_type
-
 
 # ---------------------------------------------------------------------------
 # _read_task_type_from_current_state

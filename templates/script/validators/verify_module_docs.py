@@ -29,8 +29,13 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _registry import VALID_TYPES
 from _verify_common import (
-    _append_telemetry, _is_placeholder, _non_blank, _read_file, _src_has_real_files,
-    _telemetry_ts, parse_types,
+    _append_telemetry,
+    _is_placeholder,
+    _non_blank,
+    _read_file,
+    _src_has_real_files,
+    _telemetry_ts,
+    parse_types,
 )
 
 MODULE_TYPES = ['Pipeline Stage', 'Feature', 'Background Job', 'Shared Utility', 'Resource Group']
@@ -530,7 +535,7 @@ def main() -> None:
     # (confirmed in CI on windows-latest; see orchestrator.py's main() and CHANGELOG.md).
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
-        sys.stderr.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")  # type: ignore[union-attr]  # guard above only narrows sys.stdout
 
     parser = argparse.ArgumentParser(
         description="Audit module flow file coverage and quality for project_starter_v5 projects.",

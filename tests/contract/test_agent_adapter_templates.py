@@ -7,6 +7,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
 spec = importlib.util.spec_from_file_location("orchestrator", REPO_ROOT / "orchestrator.py")
+assert spec is not None and spec.loader is not None
 orchestrator = importlib.util.module_from_spec(spec)
 sys.modules.setdefault("orchestrator", orchestrator)
 spec.loader.exec_module(orchestrator)

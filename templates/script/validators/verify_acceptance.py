@@ -40,8 +40,14 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from _verify_common import _append_telemetry, _is_placeholder, _read_file, _section_body, _telemetry_ts
 from _registry import VALID_TYPES
+from _verify_common import (
+    _append_telemetry,
+    _is_placeholder,
+    _read_file,
+    _section_body,
+    _telemetry_ts,
+)
 
 # ---------------------------------------------------------------------------
 # Per-type required test levels (all 9 types — no web bias)
@@ -142,7 +148,7 @@ def check_requirements(docs_path: str) -> tuple[list[str], list[str]]:
     if not ac_body:
         issues.append('project-requirements.md: ## Acceptance Criteria section missing')
     else:
-        ac_lines = [l for l in ac_body if _AC_LINE.search(l) and not _is_placeholder(l)]
+        ac_lines = [line for line in ac_body if _AC_LINE.search(line) and not _is_placeholder(line)]
         if not ac_lines:
             issues.append(
                 'project-requirements.md: ## Acceptance Criteria has no filled AC-XXX entries'
@@ -258,7 +264,7 @@ def check_pipeline_contracts(docs_path: str) -> list[str]:
     if not lines:
         return issues  # already caught by check_test_report
 
-    contract_body: list[str] = []
+    contract_body: list[str] | None = []
     for heading in ('## [Data Pipeline / ML Pipeline] Contract Tests', '## Contract Tests'):
         contract_body = _section_body(lines, heading)
         if contract_body:
@@ -434,7 +440,7 @@ def main() -> None:
     # (confirmed in CI on windows-latest; see orchestrator.py's main() and CHANGELOG.md).
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
-        sys.stderr.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")  # type: ignore[union-attr]  # guard above only narrows sys.stdout
 
     parser = argparse.ArgumentParser(
         description='verify_acceptance.py — functional acceptance gate'

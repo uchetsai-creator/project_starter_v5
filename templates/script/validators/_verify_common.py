@@ -12,6 +12,7 @@ import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import overload
 
 # Lazy import — _registry.py is co-located; importing VALID_TYPES triggers no file I/O.
 from _registry import VALID_TYPES
@@ -143,14 +144,25 @@ def parse_types(raw: str) -> list[str]:
     return parts
 
 
+@overload
+def _section_body(text_or_lines: str, header_re: str) -> 'str | None': ...
+@overload
+def _section_body(text_or_lines: 'list[str]', header_re: str) -> 'list[str] | None': ...
 def _section_body(text_or_lines: 'str | list[str]', header_re: str) -> 'str | list[str] | None':
     """Return section body from matching header until next same-or-higher heading.
 
     Accepts either a string or a list of lines.
-    Returns the same type as the input (str → str, list → list[str]).
+    Returns the same type as the input (str → str, list → list[str]) — the two
+    @overload signatures above exist purely so callers that always pass one type
+    don't have to narrow a `str | list[str]` union back down themselves (e.g.
+    `.splitlines()` on a known-str result); the implementation below is unchanged.
     """
-    is_list = isinstance(text_or_lines, list)
-    text = '\n'.join(text_or_lines) if is_list else text_or_lines
+    if isinstance(text_or_lines, list):
+        is_list = True
+        text = '\n'.join(text_or_lines)
+    else:
+        is_list = False
+        text = text_or_lines
     m = re.search(header_re, text, re.IGNORECASE | re.MULTILINE)
     if not m:
         return None

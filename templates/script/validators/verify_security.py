@@ -52,7 +52,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from _verify_common import _append_telemetry, _telemetry_ts, _SKIP_DIRNAMES
+from _verify_common import _SKIP_DIRNAMES, _append_telemetry, _telemetry_ts
 
 _PY_EXT = {'.py'}
 _JS_EXT = {'.js', '.jsx', '.ts', '.tsx'}
@@ -414,7 +414,7 @@ def main() -> None:
     # Windows-console rationale (non-ASCII "—" otherwise crashes print()).
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
-        sys.stderr.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")  # type: ignore[union-attr]  # guard above only narrows sys.stdout
 
     parser = argparse.ArgumentParser(
         description='verify_security.py — SAST wrapper (bandit / eslint-plugin-security)',

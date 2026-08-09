@@ -158,7 +158,7 @@ def build_openapi(
 def main() -> None:
     if hasattr(sys.stdout, 'reconfigure'):
         sys.stdout.reconfigure(encoding='utf-8')
-        sys.stderr.reconfigure(encoding='utf-8')
+        sys.stderr.reconfigure(encoding='utf-8')  # type: ignore[union-attr]  # guard above only narrows sys.stdout
 
     parser = argparse.ArgumentParser(
         description='Generate an OpenAPI 3.0 document from api-contract.md (derived artifact — regenerate, do not hand-edit).',

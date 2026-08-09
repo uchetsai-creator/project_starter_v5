@@ -21,7 +21,13 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from _workflow_utils import _coerce_project_type, _load_valid_task_types, _load_yaml, _read_task_name_from_current_state, _resolve_task_type
+from _workflow_utils import (
+    _coerce_project_type,
+    _load_valid_task_types,
+    _load_yaml,
+    _read_task_name_from_current_state,
+    _resolve_task_type,
+)
 
 VALID_ADAPTERS = ["claude", "codex"]
 
@@ -278,7 +284,7 @@ def main() -> None:
     # GitHub's windows-latest CI runner (cp1252) — see CHANGELOG.md.
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
-        sys.stderr.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")  # type: ignore[union-attr]  # guard above only narrows sys.stdout
 
     project_root = Path(__file__).resolve().parent
     valid_task_types = _load_valid_task_types(project_root)

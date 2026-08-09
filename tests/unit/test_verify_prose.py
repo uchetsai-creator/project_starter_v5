@@ -19,6 +19,7 @@ _VP_PATH = (
     / "templates" / "script" / "validators" / "verify_prose.py"
 )
 _spec = importlib.util.spec_from_file_location("verify_prose", _VP_PATH)
+assert _spec is not None and _spec.loader is not None
 vp = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(vp)
 

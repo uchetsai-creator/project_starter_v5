@@ -6,6 +6,7 @@ _VSC_PATH = (
     / "templates" / "script" / "validators" / "verify_spec_code.py"
 )
 _spec = importlib.util.spec_from_file_location("verify_spec_code", _VSC_PATH)
+assert _spec is not None and _spec.loader is not None
 vsc = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(vsc)
 

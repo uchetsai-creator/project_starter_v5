@@ -92,6 +92,12 @@ jobs:
           Expand-Archive -Path vale.zip -DestinationPath vale-bin -Force
           Add-Content -Path $env:GITHUB_PATH -Value "$pwd\vale-bin"
 
+      - name: Lint (ruff)
+        run: python -m ruff check .
+
+      - name: Type check (mypy)
+        run: python -m mypy .
+
       - name: Run test suite
         run: python -m pytest tests/ -q
 

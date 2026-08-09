@@ -2,9 +2,6 @@
 import os
 import subprocess
 import sys
-from pathlib import Path
-
-import pytest
 
 from tests.golden.conftest import (
     REPO_ROOT,

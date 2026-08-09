@@ -14,6 +14,7 @@ _VA_PATH = (
     / "templates" / "script" / "validators" / "verify_acceptance.py"
 )
 _spec = importlib.util.spec_from_file_location("verify_acceptance", _VA_PATH)
+assert _spec is not None and _spec.loader is not None
 va = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(va)
 

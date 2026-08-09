@@ -112,8 +112,9 @@ signal in machine-readable form.
 
    *Manual alternative:* copy `AGENTS.md`, `orchestrator.py`, `build-context.py`,
    `_workflow_utils.py`, `workflow-registry.yaml`, `document-registry.yaml`,
-   `debug-instrumentation-rules.md`, `code-quality-check.md`, `.githooks/`,
-   `guidance/`, and `templates/script/` → `docs/script/` into your project root. Also create a
+   `debug-instrumentation-rules.md`, `code-quality-check.md`, `learning-log.md`, `.githooks/`,
+   `guidance/`, `adapters/claude/skills/` → `.claude/skills/` (see Agent Adapters below), and
+   `templates/script/` → `docs/script/` into your project root. Also create a
    `CLAUDE.md` containing just `@AGENTS.md` so Claude Code auto-loads AGENTS.md's rules every
    session. Then edit
    `.project-starter.yml`: replace `[your-project-type]` with your actual type — **the
@@ -168,6 +169,7 @@ project_starter/                     ← this repo (template only)
 ├── detect_type.py                   ← infer project type from code structure or requirements text; supports hybrid types
 ├── debug-instrumentation-rules.md
 ├── code-quality-check.md            ← code review checklist for retrofitting existing projects
+├── learning-log.md                  ← personal append-only log for Learning Checkpoint C.4 (teach-back gaps + pattern roster); not part of the document matrix
 ├── .githooks/
 │   ├── pre-commit                   ← the hook itself (see Verification below); install via `cp` + `chmod +x`
 │   └── run-verify.sh                ← Claude Code Stop-hook script: writes validator --json output to logs/verify-{timestamp}.json
@@ -195,7 +197,7 @@ project_starter/                     ← this repo (template only)
 │   │   ├── session-start-hook.sh   ← non-blocking nudge: re-checks current-state.md scoping state fresh every session
 │   │   ├── pretooluse_scope_guard.py ← BLOCKING: denies Edit/Write/MultiEdit/NotebookEdit on source files until current-state.md is scoped (see Learning Checkpoint enforcement below)
 │   │   ├── telemetry_writer.py     ← telemetry row writer invoked by stop-hook.sh
-│   │   └── skills/                 ← Claude Skills, static (copy to .claude/skills/ in your project — see Agent Adapters → Per-tool setup)
+│   │   └── skills/                 ← Claude Skills, static; copied to .claude/skills/ automatically by `--init` (see Agent Adapters → Per-tool setup)
 │   │       ├── retrofit-existing-project/SKILL.md
 │   │       ├── code-quality-check/SKILL.md
 │   │       ├── module-completion-check/SKILL.md
@@ -210,6 +212,10 @@ project_starter/                     ← this repo (template only)
 │   ├── data-pipeline/
 │   ├── llm-app/
 │   ├── iac/
+│   ├── library/
+│   ├── ml-pipeline/
+│   ├── mobile-app/
+│   ├── microservices/
 │   └── microservices-web-app/              ← hybrid example (Microservices + Web App)
 ├── tests/                           ← framework test suite
 │   ├── unit/                        ← unit tests for individual scripts
@@ -445,6 +451,9 @@ new_project/
 ├── document-registry.yaml           ← required by all verify scripts and build_pdf.py; copy from framework root
 ├── debug-instrumentation-rules.md
 ├── code-quality-check.md
+├── learning-log.md                  ← personal, not part of the doc matrix below (see Learning Checkpoint C.4)
+├── .claude/
+│   └── skills/                      ← copied automatically by `--init` (adapters/claude/skills/ → .claude/skills/)
 ├── guidance/
 │   ├── document-purposes/
 │   │   ├── index.md         ← index: maps project type → per-type file
@@ -798,13 +807,15 @@ python3 orchestrator.py --adapter claude --dry-run
      every other gate here, it's optional: without it, "ask before implementing" (AGENTS.md ->
      New requirement from the user) is enforced by the agent choosing to follow AGENTS.md, not
      by anything mechanical, until this hook (or the pre-commit backstop) is wired in.
-4. (Optional) For the five procedural docs below to auto-trigger as Claude Skills instead of
-   requiring AGENTS.md to point at them by hand, copy `adapters/claude/skills/` into your
-   project's `.claude/skills/` folder. Each is a `SKILL.md` with a `description` Claude Code
-   matches against the current task — the framework still works without this (AGENTS.md's own
-   trigger text is the tool-agnostic fallback for any other tool or manual use), this just gives
-   Claude Code a second, more direct path to the same guidance and packages it inside the
-   project itself instead of requiring the framework repo to stay around for reference:
+4. The five procedural docs below auto-trigger as Claude Skills — `--init` / `setup.sh --init`
+   already copied `adapters/claude/skills/` into your project's `.claude/skills/` folder (see
+   `init.py`), so this step needs no action for a project bootstrapped that way. Only relevant
+   if you used the Manual alternative in Quick Start instead: copy `adapters/claude/skills/` →
+   `.claude/skills/` by hand. Each is a `SKILL.md` with a `description` Claude Code matches
+   against the current task — the framework still works without this (AGENTS.md's own trigger
+   text is the tool-agnostic fallback for any other tool or manual use), this just gives Claude
+   Code a second, more direct path to the same guidance and packages it inside the project
+   itself instead of requiring the framework repo to stay around for reference:
 
    | Skill | Fires on |
    |---|---|
@@ -1073,7 +1084,15 @@ python3 templates/script/framework/verify_framework.py --json     # machine-read
 ```bash
 pip install -r requirements-dev.txt
 pytest tests/
+ruff check .    # lint — config in pyproject.toml [tool.ruff]
+mypy .          # type check — config in pyproject.toml [tool.mypy]
 ```
+
+Both run in CI on every push/PR (`.github/workflows/ci.yml`), before the test suite. mypy
+uses gradual typing (untyped function bodies aren't checked by default) rather than
+`--strict`, since most of this codebase had no prior type-hint coverage — the goal is
+catching real inconsistencies in code that already declares types, not forcing annotations
+everywhere at once.
 
 Re-generate snapshot golden files after intentional output changes:
 

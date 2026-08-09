@@ -1,6 +1,39 @@
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 
+[tool.ruff]
+line-length = 120
+target-version = "py39"
+
+[tool.ruff.lint]
+# E4/E7/E9/F is ruff's own recommended default set; I001 (import sorting) added on top —
+# both catch real bugs (unused imports, undefined names) or genuine readability issues,
+# with low false-positive rates on a codebase this size.
+select = ["E4", "E7", "E9", "F", "I"]
+ignore = [
+    # E402 (module import not at top of file): this repo's scripts are flat files, not an
+    # installed package — validators/adapters/tests routinely do
+    # `sys.path.insert(0, ...)` immediately before a local `from _foo import bar`, which is
+    # the correct fix for that layout, not a style slip. See any file under
+    # tests/contract/ or docs/script/validators/ for the pattern.
+    "E402",
+]
+
+[tool.mypy]
+# README's documented minimum is Python 3.9, but mypy 2.x's own `python_version` setting
+# no longer accepts targets below 3.10 (it errors, not warns) — 3.10 is the closest
+# supported floor. CI itself only runs 3.11/3.12 (see .github/workflows/ci.yml), so this
+# doesn't relax what's actually verified; it just means mypy can't flag 3.10-only syntax
+# as a runtime-compat problem for a hypothetical 3.9 user. Revisit if that gap matters.
+python_version = "3.10"
+ignore_missing_imports = true
+# Gradual typing on a ~150-file codebase with little prior type-hint coverage: bodies of
+# untyped functions are intentionally left unchecked (mypy's default) rather than forced
+# under --check-untyped-defs, which would produce a wall of noise on day one. The value
+# here is catching real inconsistencies in code that already declares types (see the
+# tuple-annotation bug in detect_type.py this config caught on first run) — tightening
+# further is a separate, deliberate decision, not a default to flip blindly.
+
 [project]
 name = "project-starter-v5"
 version = "0.2.0"

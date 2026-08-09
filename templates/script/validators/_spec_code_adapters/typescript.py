@@ -74,7 +74,8 @@ def _bracket_delta(ch: str, prev: str) -> int:
 
 def _split_top_level(s: str, sep: str = ',') -> list[str]:
     """Split on `sep` only at bracket depth 0, so nested (), [], {}, <> survive intact."""
-    parts, current, depth, prev = [], [], 0, ''
+    current: list[str] = []
+    parts, depth, prev = [], 0, ''
     for ch in s:
         depth += _bracket_delta(ch, prev)
         if ch == sep and depth <= 0:

@@ -21,8 +21,17 @@ _REQUIRED_ROOT_FILES = [
     "detect_type.py",
     "debug-instrumentation-rules.md",
     "code-quality-check.md",
+    "learning-log.md",
     "CLAUDE.md",
     ".project-starter.yml",
+]
+
+_SKILL_DIRS = [
+    "retrofit-existing-project",
+    "code-quality-check",
+    "module-completion-check",
+    "sprint-doc-sync",
+    "learning-checkpoint",
 ]
 
 
@@ -47,6 +56,26 @@ def test_init_py_copies_all_required_root_files(tmp_path):
     assert (dest / ".githooks" / "pre-commit").exists()
     assert (dest / "guidance").is_dir()
     assert (dest / "docs" / "script" / "validators").is_dir()
+
+
+def test_init_py_copies_claude_skills(tmp_path):
+    """adapters/claude/skills/ -> .claude/skills/ so Skills auto-trigger by description
+    match out of the box, instead of requiring a separate manual copy step per README."""
+    dest = tmp_path / "proj"
+    result = _run_init(dest)
+    assert result.returncode == 0, result.stderr
+
+    skills_dest = dest / ".claude" / "skills"
+    for skill_name in _SKILL_DIRS:
+        skill_md = skills_dest / skill_name / "SKILL.md"
+        assert skill_md.exists(), f"missing {skill_md} after init.py"
+        text = skill_md.read_text(encoding="utf-8")
+        assert text.startswith("---\n"), f"{skill_md} missing frontmatter"
+        assert f"name: {skill_name}" in text
+        assert "description:" in text
+
+    # add-framework-adapter is framework-repo-only — must NOT be copied into user projects
+    assert not (skills_dest / "add-framework-adapter").exists()
 
 
 def test_init_py_writes_valid_project_type(tmp_path):

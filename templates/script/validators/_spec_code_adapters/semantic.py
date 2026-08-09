@@ -252,7 +252,7 @@ if __name__ == '__main__':
         'missing_in_code': [],
         'extra_in_code': [],
     }
-    result = adapter.semantic_compare(report, [], [])
+    result = adapter.semantic_compare(report)
     assert result == []
     if saved_key:
         os.environ['ANTHROPIC_API_KEY'] = saved_key

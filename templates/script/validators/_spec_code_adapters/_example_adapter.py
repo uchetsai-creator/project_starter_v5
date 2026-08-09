@@ -37,7 +37,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _base import FrameworkAdapter, NormalizedField, NormalizedFunction  # noqa: E402
 from _utils import _annotation_str  # noqa: E402
 
-
 # ---------------------------------------------------------------------------
 # ExampleAdapter
 # ---------------------------------------------------------------------------

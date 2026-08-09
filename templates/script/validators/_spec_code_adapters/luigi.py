@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import ast
 
-from _base import Detector, NormalizedStageContract, NormalizedField
+from _base import Detector, NormalizedField, NormalizedStageContract
 
 _PARAM_TYPES = {
     'Parameter': 'str',
@@ -68,8 +68,8 @@ class LuigiDetector(Detector):
                 continue
 
             input_fields = [
-                f for stmt in node.body
-                if (f := self._param_field(stmt)) is not None
+                field for stmt in node.body
+                if (field := self._param_field(stmt)) is not None
             ]
 
             contracts.append(NormalizedStageContract(

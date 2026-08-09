@@ -18,7 +18,12 @@ import os
 import re
 
 from _base import Detector, FrameworkAdapter, NormalizedField, NormalizedStageContract
-from _utils import _annotation_str, _PLACEHOLDER_NAMES, _parse_schema_value, _resolve_output_fields
+from _utils import (
+    _PLACEHOLDER_NAMES,
+    _annotation_str,
+    _parse_schema_value,
+    _resolve_output_fields,
+)
 
 _PREFECT_DECORATORS = frozenset({'task', 'flow'})
 

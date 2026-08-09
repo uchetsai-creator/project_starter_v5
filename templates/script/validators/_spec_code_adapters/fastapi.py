@@ -18,7 +18,12 @@ import os
 import re
 
 from _base import Detector, FrameworkAdapter, NormalizedEndpoint, NormalizedField
-from _utils import _annotation_str, _HTTP_METHODS, _parse_field_table, _resolve_output_fields
+from _utils import (
+    _HTTP_METHODS,
+    _annotation_str,
+    _parse_field_table,
+    _resolve_output_fields,
+)
 
 _SKIP_PARAMS = frozenset({'self', 'request', 'response', 'db', 'session', 'background_tasks'})
 

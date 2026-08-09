@@ -3,9 +3,7 @@ import os
 import subprocess
 import sys
 
-import pytest
-
-from tests.conftest import REPO_ROOT, setup_fixture
+from tests.conftest import setup_fixture
 
 
 def _run(args, tmp_path, **kwargs):

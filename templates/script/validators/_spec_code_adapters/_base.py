@@ -38,7 +38,6 @@ import importlib
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 
-
 # ---------------------------------------------------------------------------
 # NormalizedField — shared across all NormalizedForm types
 # ---------------------------------------------------------------------------

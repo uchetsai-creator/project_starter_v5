@@ -29,6 +29,7 @@ pytestmark = pytest.mark.skipif(_BASH is None, reason="bash not found on PATH")
 
 
 def _run(cwd: Path) -> subprocess.CompletedProcess:
+    assert _BASH is not None  # module-level skipif guarantees this by the time we get here
     return subprocess.run(
         [_BASH, str(HOOK)], cwd=cwd, capture_output=True, text=True,
         encoding="utf-8", errors="replace", input="{}",

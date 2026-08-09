@@ -162,7 +162,7 @@ def main() -> int:
     # (confirmed in CI on windows-latest; see orchestrator.py's main() and CHANGELOG.md).
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
-        sys.stderr.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")  # type: ignore[union-attr]  # guard above only narrows sys.stdout
 
     parser = argparse.ArgumentParser(
         description="Classify spec quality gaps and open framework fix PRs (max 2 rounds)."
@@ -311,8 +311,8 @@ def main() -> int:
             output = propose_fix(project_type, g["doc"], gap_desc, args.framework_repo, args.dry_run)
             print(f"    {output}")
         print(
-            f"\nRound 1 complete. Merge or skip the PRs above, "
-            f"then re-run with --round 2."
+            "\nRound 1 complete. Merge or skip the PRs above, "
+            "then re-run with --round 2."
         )
 
     return 0

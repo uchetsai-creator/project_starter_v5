@@ -18,7 +18,9 @@ whether real questions were asked, only whether the field was filled in.
 ## Checkpoint 0 — Unfamiliar Technology (only when it applies)
 
 Trigger: the current task touches a technology, library, or pattern you have never used
-before — not just "existing code in a language I know," but genuinely new ground.
+before — not just "existing code in a language I know," but genuinely new ground. When
+unsure whether this counts, run it anyway — a false-positive Checkpoint 0 costs one short
+grounding pass; skipping a real gap means building on an assumption that was never checked.
 
 Run this *before* Checkpoint A or B, as a grounding pass:
 
@@ -94,15 +96,28 @@ Trigger: the task is a new feature, or there is no existing code for it yet.
    判斷式暫時註解掉（或改成恆真/恆假），跑一次相關測試，確認測試會變紅。測試沒有紅，代表這段
    邏輯根本沒被測到——這比事後回答「應該會壞掉吧」準確，也直接驗證了 code-quality-check.md
    要求的測試覆蓋率是不是真的有效，不是照抄一個從不失敗的測試。改完記得把判斷式還原。
+   還在建立對這個 codebase／語言的信心時，把這個 escalation 當成預設動作，不要只在「聽起來
+   不確定」才做——口頭上講得順不代表真的懂，這階段的口頭自信本來就還不是可靠訊號。
 2. "有沒有邊界情況目前沒處理到？"
 3. "這次改的關鍵路徑，有沒有照 `docs/specs/logging-spec.md` 定義的 log point 加上 log？"
 4. **Teach-back** — 換你用自己的話跟我解釋這段程式碼在幹嘛、為什麼這樣寫，不是我講給你聽。
    講不出來、或講錯了，那才是真正該深入的地方——這比我單方面問「懂了嗎」準確很多。不用逐行講，
-   挑這次改動裡最關鍵的那一小段就好。順便講一句：這段有沒有用到（或者本來可以用、但沒用）某個
-   design pattern？講不出名字就算了，不用為了湊答案硬套一個——這題純粹是為了累積辨認 pattern
-   的直覺，跟其他 teach-back 一樣，答不出來才是該深入的訊號，不是每次都要有名詞可以講。
+   挑這次改動裡最關鍵的那一小段就好。講不出來時不要就此打住：換一個更貼近生活的比喻再試一次
+   （跟 Checkpoint 0 第 1 題的技巧一樣），最多重試兩次；還是講不出來，具體寫下「卡在哪一點」，
+   那個點才是真正要深入的地方，不是含糊帶過。順便講一句：這段有沒有用到（或者本來可以用、但
+   沒用）某個 design pattern？講不出名字就算了，不用為了湊答案硬套一個——這題純粹是為了累積
+   辨認 pattern 的直覺，跟其他 teach-back 一樣，答不出來才是該深入的訊號，不是每次都要有名詞
+   可以講。
    跟 Checkpoint 0 一樣可以跳過：如果這次的 task 真的夠瑣碎（改錯字、調設定值這類），而且你自己
    判斷已經完全懂，可以跳過或簡化 teach-back，不用每個 task 都硬做——但拿不準的時候，做比不做安全。
+
+   **Persisting the gap** — teach-back only lives in this session's conversation; nothing
+   else in this framework writes it down. If `learning-log.md` exists at the project root
+   (see its own header for the format), append one entry now covering: what you couldn't
+   explain or got wrong this task, and any pattern named above (used, or considered and
+   rejected) — even on a task with no gap, the pattern line is still worth recording. Every
+   3rd entry, `learning-log.md` itself prompts a re-check of an older one — that's the
+   actual review step, not this checkpoint.
 
 This checkpoint happens every task regardless of A/B/0 — it is what actually gets
 internalized, separate from whether the doc sync happens now or at sprint end.
