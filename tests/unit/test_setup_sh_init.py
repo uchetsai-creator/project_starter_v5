@@ -43,6 +43,7 @@ _SKILL_DIRS = [
     "module-completion-check",
     "sprint-doc-sync",
     "learning-checkpoint",
+    "task-closeout",
 ]
 
 

@@ -117,7 +117,7 @@ def propose_fix(
     ]
     if dry_run:
         cmd.append("--dry-run")
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    result = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace")
     out = result.stdout.strip()
     if result.returncode != 0:
         err = result.stderr.strip()

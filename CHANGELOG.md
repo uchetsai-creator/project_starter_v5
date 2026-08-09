@@ -27,6 +27,19 @@ All notable changes to this framework are documented here. Format loosely follow
   rather than simulating it as a separate manual step.
 
 ### Added
+- New `task-closeout` Claude Skill (`adapters/claude/skills/task-closeout/SKILL.md`,
+  canonical source `templates/task-completion.md`) — the sixth procedural doc packaged as
+  a Skill, closing a real gap rather than a hypothetical one: `module-completion-check`'s
+  own `SKILL.md` description already said "see task-closeout instead" for ordinary
+  per-task closeout, but no `task-closeout` Skill existed anywhere — not in
+  `.claude/skills/`, not in `tests/contract/test_skill_contracts.py`'s canonical source
+  list. `templates/task-completion.md` matches the exact "Load X only if you need the full
+  detail" trigger pattern every other Skill-converted doc uses (both references in
+  `AGENTS.md` phrase it that way), so this brings it in line with its siblings instead of
+  being the one on-demand procedural doc left as plain-text-only. `test_skill_contracts.py`,
+  `test_init_py.py`, and `test_setup_sh_init.py` all updated; confirmed by actually running
+  `init.py` into a fresh directory and checking `.claude/skills/task-closeout/` exists
+  after, not just by reading the copy logic.
 - ruff + mypy wired into CI (`.github/workflows/ci.yml`) and `requirements-dev.txt`, with
   config in `pyproject.toml`. `select = ["E4","E7","E9","F","I"]` (ruff's own recommended
   default plus import sorting); `E402` ignored repo-wide since this codebase is flat scripts,
@@ -247,6 +260,152 @@ All notable changes to this framework are documented here. Format loosely follow
   and how to reference the resulting contract-test suite from `test-plan.md`'s `Contract` test
   level so it stays inside `verify_acceptance.py`'s existing traceability chain even though this
   framework can't run the tests itself.
+
+### Fixed
+- `subprocess.run(..., text=True)` without an explicit `encoding=` decodes a child process's
+  stdout/stderr using the platform's preferred locale — `cp950` on Traditional Chinese Windows,
+  for example. Any non-ASCII byte in that output (a box-drawing character, an arrow, a CJK
+  character) then crashes a reader thread with `UnicodeDecodeError`, surfaced to the user as a
+  raw traceback even though the underlying command usually still completed. `verify_prose.py`
+  and `verify_security.py` already guarded against this with `encoding='utf-8',
+  errors='replace'`; this applies the same fix to the six remaining call sites that never got
+  it: `orchestrator.py` (`_invoke_build_context`), `build_pdf.py` (PlantUML invocation),
+  `diagnose_spec.py` (calling `propose_framework_fix.py`), `propose_framework_fix.py`'s own
+  `run()` helper, `verify_content.py`, and `verify_module_docs.py`. CI never caught this because
+  `.github/workflows/ci.yml` sets `PYTHONUTF8: "1"` at the job level — that masks the gap at
+  every call site instead of fixing any of them, so a real user running these scripts outside
+  CI on a non-UTF-8-locale machine hits the crash CI never sees. Confirmed by reproducing the
+  crash on a `cp950` locale before the fix and confirming a clean run after.
+
+### Added
+- New Claude Code `SessionStart` hook (`adapters/claude/learning_log_nudge.py`, wired in
+  `.claude/settings.json` alongside `session-start-hook.sh`): reminds when the last committed
+  `docs/task-log.md` entry (a task closeout) is newer than the last commit touching
+  `learning-log.md`, by comparing `git log -1 --format=%ct` timestamps for both files.
+  Addresses the one Learning Checkpoint step with no mechanical backstop at all — Checkpoint
+  C.4's teach-back gap previously relied entirely on the agent remembering, unprompted, to
+  append an entry. Deliberately stops at timestamps and never reads entry content: unlike the
+  `Clarifying Questions Asked` field the `PreToolUse` scope guard checks, `learning-log.md`'s
+  own header states it is "never checked by any validator" by design — grading a personal
+  teach-back log would incentivize writing something just to pass rather than an honest gap
+  report, which defeats the point of the file. Non-blocking, fails silent on any git error or
+  missing file. `tests/unit/test_learning_log_nudge.py` covers all four decide() branches
+  (no learning-log.md, no committed task-log.md yet, task-log.md newer, learning-log.md newer)
+  plus the not-a-git-repo case.
+
+### Fixed
+- `init.py --init` now writes (or, if one already exists, appends to) a `.gitignore`
+  covering `.ai/`, `__pycache__/`, `*.pyc`, `.pytest_cache/`, and `logs/`. Previously
+  `--init` never touched `.gitignore` at all — confirmed by actually running `--init` into
+  a fresh git repo and checking `git status`: `.ai/AI_CONTEXT.md`, `__pycache__/`, and
+  `logs/verify-*.json` all showed as untracked-and-stageable, despite README already
+  documenting all three as "generated, not committed." An existing `.gitignore` is never
+  overwritten — appended to once, guarded by a marker comment so re-running `--init` on
+  the same project doesn't duplicate the block. `tests/unit/test_init_py.py` gained three
+  tests for this (fresh write, append-without-clobbering, no duplicate on second run).
+- `templates/current-state.md` → Closeout and `templates/task-completion.md` → step 1c now
+  warn explicitly: promoting Next Task → Current Task in the same commit as the finished
+  task's source files trips `.githooks/pre-commit`'s Unscoped source-change guard, because
+  that guard reads `current-state.md`'s Current Task against whatever is staged at commit
+  time — once Current Task is the unscoped placeholder, staged source files (even ones that
+  belonged to a properly-scoped task) get blocked. Discovered by actually running a task's
+  full closeout end-to-end through real `git commit`, not just reading the instructions.
+  Fix documented: commit source + docs first (Current Task still showing the just-finished
+  task, `Status: Complete — Pending Sprint Doc Sync`), then promote in a second, docs-only
+  commit. A docs-only task can still do the whole closeout, including the promotion, in one
+  commit — the gap only bites when source files outside `docs/` are staged alongside it.
+
+### Added
+- `_otel.py`'s optional OpenTelemetry dual-emission now correlates spans into real traces
+  instead of emitting unrelated single spans per event. While `docs/current-state.md` has a
+  scoped Current Task, every span shares that task's `trace_id` as a direct child of one
+  synthetic `task: <name>` root span, created on the task's first emission and persisted to
+  `logs/telemetry/.otel_trace_context.json` (gitignored) so later emissions — each its own
+  OS process (a `verify_*.py` run, an `orchestrator.py` run) — can reconstruct it as a
+  parent context by hand; OTel's normal in-process parent/child tracking has no way to see
+  across separate processes on its own. A task change starts a fresh trace automatically.
+  Confirmed with `InMemorySpanExporter` (real span objects, no live collector needed), not
+  just asserted to work: spans for the same task share one `trace_id` and have the root as
+  their parent; a second, independently-loaded module instance (simulating a second process)
+  reuses the same root via the persisted state file instead of creating a second one;
+  different tasks get different `trace_id`s; no scoped task still emits an uncorrelated span
+  exactly as before this change (backward compatible — `emit()`'s new `cwd` parameter
+  defaults to `.`, so every existing call site needed zero changes). Known accepted gap: two
+  processes for the same task starting near-simultaneously could each observe "no root yet"
+  and create one, splitting that task into two traces — same race class
+  `.orchestrator_runs.json` already has, not newly introduced, just exercised more now; not
+  worth a file lock for how rarely it would actually fire. See README.md → Validation
+  Telemetry → OTel dual-emission for the local-Jaeger walkthrough to see the resulting
+  waterfall.
+- `templates/script/framework/mcp_tools.py`: a prototype tool-schema layer for a future
+  MCP server — deliberately not a running server (no `mcp` package dependency, no
+  transport, no client wiring, per an explicit decision to spike the low-risk part first).
+  Wraps `verify_docs.run_audit()` and `verify_content.audit()` as `dict`-in/`dict`-out
+  handlers behind JSON-Schema tool definitions (`TOOLS`, `dispatch()`) — both underlying
+  functions already returned plain, JSON-serializable data with no CLI/printing entangled,
+  which was confirmed by reading them, not assumed. Applies to all 9 project types (and
+  hybrids), same as the functions it wraps — nothing web-app-specific. Tested against
+  `examples/web-app/docs` (a real, filled fixture, not an empty directory): schema shape,
+  successful dispatch for both tools, and every documented failure mode (unknown tool,
+  missing/invalid `project_type`, missing docs dir).
+
+### Fixed
+- `init.py --init` copied `templates/script/framework/` into every new project's
+  `docs/script/framework/`, contradicting README's own claim that this directory is
+  "framework-internal only, NOT copied to user projects" — `shutil.copytree()` had no
+  `ignore=` pattern excluding it. Confirmed broken by actually running `--init` into a
+  fresh directory and finding `docs/script/framework/verify_framework.py` there before
+  this fix (discovered while placing `mcp_tools.py` in that same directory and checking
+  whether the exclusion README already documented was real). Now passes
+  `ignore=shutil.ignore_patterns("framework")`; sibling `validators/` / `generators/` /
+  `scanners/` still copy normally, confirmed by the same test. README's manual-alternative
+  copy instructions gained the same exclusion note.
+
+### Added
+- `doc_profile: lite | full` in `.project-starter.yml` (default `full`, so nothing changes
+  for existing projects). `lite` downgrades a fixed set of documents — `permissions.md`,
+  the three `business/*.md` files, `backend.md`/`database.md`/`deployment.md`, `research.md`,
+  `test-plan.md`/`test-report.md` — from Required to Optional, for a solo/small project
+  without real stakeholders, roles, or a deploy target yet. Deliberately *not* a separate
+  document set: `document-registry.yaml` gained a `lite_downgrade` field on those 10 entries
+  only; `lite` and `full` read the exact same registry, so switching back to `full`
+  re-requires exactly what `lite` deferred — no migration, no second template tree. Core
+  contracts (`project-requirements.md`, `quickstart.md`, `data-model.md`, `api-contract.md`,
+  `architecture.md`, `logging-spec.md`) stay Required in both profiles; these are the
+  documents the spec↔code drift gate and context builder actually depend on.
+  - `_registry.py`: `build_matrix()`, `build_type_docs()`, and `get_universal_docs()` all
+    gained a `lite: bool = False` parameter implementing the downgrade rule.
+  - `verify_docs.py` / `verify_content.py`: both auto-detect `doc_profile` from
+    `.project-starter.yml` with zero flag needed — confirmed this means
+    `.githooks/pre-commit`'s existing (unmodified) invocations of both scripts already
+    respect it correctly, no pre-commit change required. `--lite` / `--full` CLI flags
+    override the config file explicitly (e.g. to preview a switch without editing the yml);
+    passing both is a `sys.exit(2)` error. JSON output on both scripts now includes a
+    `doc_profile` field.
+  - `read_doc_profile()` lives in `_verify_common.py`, shared between the two scripts
+    rather than duplicated per-script (unlike `pretooluse_scope_guard.py` and `_otel.py`'s
+    independent tiny YAML-scalar readers, which stayed separate — different situation:
+    those two aren't siblings in the same directory already importing a common module).
+  - `mcp_tools.py`'s prototype tools gained the same `doc_profile` input (explicit argument
+    wins; otherwise auto-detects the same way the CLI does).
+  - New `guidance/doc-profile.md`: what `lite` actually changes, why it's a starting point
+    and not a permanent fork, and a concrete "when to switch to full" checklist (second
+    contributor joins, a real permission model appears, a real approval/audit requirement
+    appears, about to deploy somewhere reachable by more than localhost, need to explain a
+    tech decision to someone else) — replacing what would otherwise be a vague "switch when
+    it feels right." `AGENTS.md` gained a two-line pointer to it (195/200 lines — the
+    existing token budget check left exactly enough room without needing to cut anything
+    else).
+  - Golden/snapshot fixtures for `verify_docs.py --json` regenerated (`--snapshot-update`)
+    to include the new field; diff confirmed to be exactly one added line per fixture,
+    nothing else changed.
+  - Tests: `tests/unit/test_registry.py` (new — `_registry.py`'s lite-mode functions
+    against a small synthetic registry), `tests/unit/test_doc_profile_cli.py` (new — both
+    scripts' real CLI behavior: config-file auto-detection, flag overrides, `--strict`
+    actually not blocking on downgraded docs in `lite` while still blocking on the same
+    missing docs in `full`, using the same fixture for both to prove the `lite` pass wasn't
+    just a bug that stopped blocking on everything), `tests/unit/test_mcp_tools.py` gained
+    explicit `doc_profile` coverage.
 
 ---
 

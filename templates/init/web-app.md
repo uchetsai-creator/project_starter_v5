@@ -4,6 +4,7 @@
     ```yaml
     project_type: web-app
     docs_path: docs/
+    # Optional: doc_profile: lite — downgrades permissions/business-*/backend/database/deployment/research/test-plan/test-report from Required to Optional (a solo/small project). See guidance/doc-profile.md.
     # Optional: spec_code_adapter / spec_code_spec / spec_code_src — enables the spec↔code
     # drift gate in pre-commit + orchestrator. See README.md → Spec ↔ Code Validator →
     # Wiring it into pre-commit.
@@ -36,11 +37,11 @@
 13. Create docs/specs/api-contract.md from templates/specs/api-contract.md.
 14. Create docs/specs/permissions.md from templates/specs/permissions.md.
 15. Create docs/specs/logging-spec.md from templates/specs/logging-spec.md.
-16. Create docs/business/business-process.md from templates/business/business-process-v2.md.
-17. Create docs/business/business-objects.md from templates/business/business-objects-v2.md.
+16. Create docs/business/business-process.md from templates/business/business-process.md.
+17. Create docs/business/business-objects.md from templates/business/business-objects.md.
 18. Create docs/business/business-rules.md from templates/business/business-rules.md.
-19. Create docs/modules/module-data-flow.md from templates/flows/module-data-flow-v2.md.
-20. Create docs/modules/module-flow.md from templates/flows/module-flow-v2.md.
+19. Create docs/modules/module-data-flow.md from templates/flows/module-data-flow.md.
+20. Create docs/modules/module-flow.md from templates/flows/module-flow.md.
 21. Create docs/codebase-map.md from templates/codebase-map.md.
 22. Create docs/specs/test-plan.md from templates/specs/test-plan.md.
 23. Create docs/specs/test-report.md from templates/specs/test-report.md.

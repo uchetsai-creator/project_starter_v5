@@ -112,6 +112,122 @@ def test_emit_against_unreachable_collector_does_not_raise_or_hang(monkeypatch):
     otel.emit("test-event", {"status": "pass", "project_type": "web-app"})
 
 
+def _write_scoped_task(root: Path, task_name: str) -> None:
+    (root / ".project-starter.yml").write_text(
+        "project_type: web-app\ndocs_path: docs/\n", encoding="utf-8",
+    )
+    docs = root / "docs"
+    docs.mkdir(exist_ok=True)
+    (docs / "current-state.md").write_text(f"**Task:** {task_name}\n", encoding="utf-8")
+
+
+def _memory_exporter_for(otel):
+    """Force real (but unreachable) OTLP init, then bolt on an in-memory exporter so
+    finished spans can be inspected directly — no real collector needed."""
+    from opentelemetry.sdk.trace.export import SimpleSpanProcessor
+    from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
+
+    otel._get_tracer()
+    exporter = InMemorySpanExporter()
+    otel._provider.add_span_processor(SimpleSpanProcessor(exporter))
+    return exporter
+
+
+# ---------------------------------------------------------------------------
+# Trace correlation — spans for the same scoped task must share one trace_id
+# ---------------------------------------------------------------------------
+
+@pytest.mark.skipif(not _HAS_OTEL, reason="opentelemetry packages not installed")
+def test_spans_for_same_task_share_trace_id(tmp_path, monkeypatch):
+    monkeypatch.setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://127.0.0.1:1")
+    otel = _fresh_module()
+    _write_scoped_task(tmp_path, "Build the order API")
+    exporter = _memory_exporter_for(otel)
+
+    otel.emit("validator-a", {"status": "pass"}, cwd=str(tmp_path))
+    otel.emit("validator-b", {"status": "fail"}, cwd=str(tmp_path))
+
+    spans = exporter.get_finished_spans()
+    names = {s.name for s in spans}
+    assert "validator-a" in names
+    assert "validator-b" in names
+    assert "task: Build the order API" in names, "synthetic root span must be exported too"
+
+    trace_ids = {s.context.trace_id for s in spans}
+    assert len(trace_ids) == 1, f"expected one shared trace_id, got {len(trace_ids)}"
+
+
+@pytest.mark.skipif(not _HAS_OTEL, reason="opentelemetry packages not installed")
+def test_child_spans_have_root_as_parent(tmp_path, monkeypatch):
+    monkeypatch.setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://127.0.0.1:1")
+    otel = _fresh_module()
+    _write_scoped_task(tmp_path, "Build the order API")
+    exporter = _memory_exporter_for(otel)
+
+    otel.emit("validator-a", {"status": "pass"}, cwd=str(tmp_path))
+
+    spans = {s.name: s for s in exporter.get_finished_spans()}
+    root = spans["task: Build the order API"]
+    child = spans["validator-a"]
+    assert child.parent is not None
+    assert child.parent.span_id == root.context.span_id
+
+
+@pytest.mark.skipif(not _HAS_OTEL, reason="opentelemetry packages not installed")
+def test_second_process_reuses_same_root_via_persisted_state(tmp_path, monkeypatch):
+    """The whole point: emit() calls from *separate* Python processes for the same task
+    must still land in one trace. Simulated here by resetting the module (fresh globals,
+    like a new process) between calls, while the persisted state file survives."""
+    monkeypatch.setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://127.0.0.1:1")
+    _write_scoped_task(tmp_path, "Build the order API")
+
+    otel1 = _fresh_module()
+    exporter1 = _memory_exporter_for(otel1)
+    otel1.emit("validator-a", {"status": "pass"}, cwd=str(tmp_path))
+    trace_id_1 = exporter1.get_finished_spans()[0].context.trace_id
+
+    otel2 = _fresh_module()  # fresh module globals == simulating a new process
+    exporter2 = _memory_exporter_for(otel2)
+    otel2.emit("validator-b", {"status": "pass"}, cwd=str(tmp_path))
+    spans2 = exporter2.get_finished_spans()
+    # only the event span is expected here — the root was already created by otel1 and
+    # the persisted state should be reused, not recreated
+    assert [s.name for s in spans2] == ["validator-b"]
+    assert spans2[0].context.trace_id == trace_id_1
+
+
+@pytest.mark.skipif(not _HAS_OTEL, reason="opentelemetry packages not installed")
+def test_different_tasks_get_different_trace_ids(tmp_path, monkeypatch):
+    monkeypatch.setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://127.0.0.1:1")
+    otel = _fresh_module()
+
+    _write_scoped_task(tmp_path, "Task A")
+    exporter = _memory_exporter_for(otel)
+    otel.emit("validator-a", {"status": "pass"}, cwd=str(tmp_path))
+    trace_id_a = exporter.get_finished_spans()[-1].context.trace_id
+
+    _write_scoped_task(tmp_path, "Task B")
+    otel.emit("validator-b", {"status": "pass"}, cwd=str(tmp_path))
+    trace_id_b = exporter.get_finished_spans()[-1].context.trace_id
+
+    assert trace_id_a != trace_id_b
+
+
+@pytest.mark.skipif(not _HAS_OTEL, reason="opentelemetry packages not installed")
+def test_no_scoped_task_still_emits_uncorrelated_span(tmp_path, monkeypatch):
+    """No current-state.md / no scoped task -- must degrade to the pre-existing
+    uncorrelated-span behavior, not raise or silently drop the event."""
+    monkeypatch.setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://127.0.0.1:1")
+    otel = _fresh_module()
+    exporter = _memory_exporter_for(otel)
+
+    otel.emit("validator-a", {"status": "pass"}, cwd=str(tmp_path))
+
+    spans = exporter.get_finished_spans()
+    assert [s.name for s in spans] == ["validator-a"]
+    assert spans[0].parent is None
+
+
 @pytest.mark.skipif(not _HAS_OTEL, reason="opentelemetry packages not installed")
 def test_emit_against_unreachable_collector_prints_no_traceback(monkeypatch):
     """Regression: without suppressing opentelemetry's internal logger, a failed

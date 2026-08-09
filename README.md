@@ -107,14 +107,18 @@ signal in machine-readable form.
    `microservices` | `llm-app` | `iac` | `mobile-app`
 
    This copies all required framework files, writes a pre-filled `.project-starter.yml`, writes
-   `CLAUDE.md` (`@AGENTS.md` — see Agent Adapters below) if it doesn't already exist, and
-   installs the pre-commit hook. Skip to step 2 once done.
+   `CLAUDE.md` (`@AGENTS.md` — see Agent Adapters below) if it doesn't already exist, writes or
+   appends to `.gitignore` so `.ai/`, `__pycache__/`, and `logs/` aren't committed by default (an
+   existing `.gitignore` is appended to, never overwritten), and installs the pre-commit hook.
+   Skip to step 2 once done.
 
    *Manual alternative:* copy `AGENTS.md`, `orchestrator.py`, `build-context.py`,
    `_workflow_utils.py`, `workflow-registry.yaml`, `document-registry.yaml`,
    `debug-instrumentation-rules.md`, `code-quality-check.md`, `learning-log.md`, `.githooks/`,
    `guidance/`, `adapters/claude/skills/` → `.claude/skills/` (see Agent Adapters below), and
-   `templates/script/` → `docs/script/` into your project root. Also create a
+   `templates/script/` → `docs/script/` into your project root — **except**
+   `templates/script/framework/`, which is framework-repo-only (see the file tree above) and
+   must not be copied into a user project. Also create a
    `CLAUDE.md` containing just `@AGENTS.md` so Claude Code auto-loads AGENTS.md's rules every
    session. Then edit
    `.project-starter.yml`: replace `[your-project-type]` with your actual type — **the
@@ -195,6 +199,7 @@ project_starter/                     ← this repo (template only)
 │   │   ├── start-task.md           ← slash command template (copy to .claude/commands/ in your project)
 │   │   ├── stop-hook.sh            ← writes session boundary to logs/telemetry/task-run.json on Claude Code session end
 │   │   ├── session-start-hook.sh   ← non-blocking nudge: re-checks current-state.md scoping state fresh every session
+│   │   ├── learning_log_nudge.py   ← non-blocking nudge: flags when docs/task-log.md was closed out more recently than learning-log.md was last touched (never checks entry content — see Learning Checkpoint enforcement below)
 │   │   ├── pretooluse_scope_guard.py ← BLOCKING: denies Edit/Write/MultiEdit/NotebookEdit on source files until current-state.md is scoped (see Learning Checkpoint enforcement below)
 │   │   ├── telemetry_writer.py     ← telemetry row writer invoked by stop-hook.sh
 │   │   └── skills/                 ← Claude Skills, static; copied to .claude/skills/ automatically by `--init` (see Agent Adapters → Per-tool setup)
@@ -202,7 +207,8 @@ project_starter/                     ← this repo (template only)
 │   │       ├── code-quality-check/SKILL.md
 │   │       ├── module-completion-check/SKILL.md
 │   │       ├── sprint-doc-sync/SKILL.md
-│   │       └── learning-checkpoint/SKILL.md
+│   │       ├── learning-checkpoint/SKILL.md
+│   │       └── task-closeout/SKILL.md
 │   └── codex/
 │       ├── setup.md                ← one-time setup instructions (written to .codex/setup.md by orchestrator.py --adapter codex)
 │       └── task-instructions.md    ← current workflow snapshot template (written to .codex/task-instructions.md)
@@ -334,8 +340,8 @@ project_starter/                     ← this repo (template only)
     │   └── business-rules.md        ← approval/validation/notification/audit rules
     │
     ├── flows/
-    │   ├── module-data-flow-v2.md   ← index + rules for module flow files (Feature / Background Job / Pipeline Stage / Shared Utility)
-    │   └── module-flow-v2.md        ← index + rules for cross-module sequence files (per module)
+    │   ├── module-data-flow.md      ← index + rules for module flow files (Feature / Background Job / Pipeline Stage / Shared Utility)
+    │   └── module-flow.md           ← index + rules for cross-module sequence files (per module)
     │
     └── script/
         ├── validators/              ← shipped to user projects (docs/script/validators/)
@@ -400,21 +406,11 @@ project_starter/                     ← this repo (template only)
 ```
 
 When a new project starts, `templates/` is copied in and becomes `docs/` — see
-[Project Initialization](#project-initialization) below.
-
-> **Note on file naming:** Some templates carry a `-v2` version suffix for internal framework versioning:
-> `templates/flows/module-data-flow-v2.md`, `templates/flows/module-flow-v2.md`,
-> `templates/business/business-process-v2.md`, and `templates/business/business-objects-v2.md`.
-> When copying any of these into a new project's `docs/`, **drop the version suffix** — the init files
-> already use the correct destination names (e.g. `docs/business/business-process.md`).
->
-> Quick rename reference:
-> | Template | Copy to |
-> |---|---|
-> | `templates/flows/module-data-flow-v2.md` | `docs/modules/module-data-flow.md` |
-> | `templates/flows/module-flow-v2.md` | `docs/modules/module-flow.md` |
-> | `templates/business/business-process-v2.md` | `docs/business/business-process.md` |
-> | `templates/business/business-objects-v2.md` | `docs/business/business-objects.md` |
+[Project Initialization](#project-initialization) below. Template filenames under
+`templates/flows/` and `templates/business/` now match their `docs/modules/` and
+`docs/business/` destination names exactly (no rename needed when copying) — they used to
+carry a `-v2` version suffix for internal framework versioning, which required a separate
+rename-reference table here; both were removed once nothing depended on the suffix anymore.
 
 ---
 
@@ -788,7 +784,7 @@ python3 orchestrator.py --adapter claude --dry-run
 3. (Optional) For fast feedback without waiting for a manual validator run, copy this repo's
    `.claude/settings.json` **and** `adapters/claude/*.sh` + `adapters/claude/*.py` into your
    project's `.claude/` and `adapters/claude/` folders respectively — `settings.json` references
-   those scripts by relative path, so it does nothing on its own without them. This wires three
+   those scripts by relative path, so it does nothing on its own without them. This wires four
    hooks:
    - `.githooks/run-verify.sh` (Stop, non-blocking) — runs `verify_docs.py` / `verify_logs.py` /
      `verify_tests.py` / `verify_content.py` with `--json` and writes the combined output to
@@ -797,6 +793,15 @@ python3 orchestrator.py --adapter claude --dry-run
      `logs/telemetry/task-run.json` (see Validation Telemetry below).
      Note: this writes to telemetry only — not to `docs/task-log.md`. Task log rows are written
      during task closeout by the AI agent, not automatically on session end.
+   - `adapters/claude/learning_log_nudge.py` (SessionStart, non-blocking) — surfaces a reminder
+     when the last committed `docs/task-log.md` entry is newer than the last commit touching
+     `learning-log.md`. It only compares commit timestamps of the two files — it never reads
+     entry content, and never blocks. `learning-log.md`'s own header says it is "never checked
+     by any validator"; this hook does not change that. It exists because Learning Checkpoint
+     C.4's teach-back gap is, by design, the one Learning Checkpoint step with no mechanical
+     backstop at all (see Learning Checkpoint enforcement below) — unlike scoping, there is no
+     reliable way to verify a teach-back actually happened, only a way to make forgetting to
+     log it less silent.
    - `adapters/claude/pretooluse_scope_guard.py` (PreToolUse, **blocking**) — the only hook in
      this list that runs *before* a tool call instead of after. It denies `Edit` / `Write` /
      `MultiEdit` / `NotebookEdit` on any source-like path (not `docs/`, not a framework file)
@@ -807,7 +812,7 @@ python3 orchestrator.py --adapter claude --dry-run
      every other gate here, it's optional: without it, "ask before implementing" (AGENTS.md ->
      New requirement from the user) is enforced by the agent choosing to follow AGENTS.md, not
      by anything mechanical, until this hook (or the pre-commit backstop) is wired in.
-4. The five procedural docs below auto-trigger as Claude Skills — `--init` / `setup.sh --init`
+4. The six procedural docs below auto-trigger as Claude Skills — `--init` / `setup.sh --init`
    already copied `adapters/claude/skills/` into your project's `.claude/skills/` folder (see
    `init.py`), so this step needs no action for a project bootstrapped that way. Only relevant
    if you used the Manual alternative in Quick Start instead: copy `adapters/claude/skills/` →
@@ -824,16 +829,18 @@ python3 orchestrator.py --adapter claude --dry-run
    | `module-completion-check` | a module just reached 100% complete |
    | `sprint-doc-sync` | `sprint-change-log.md` reaches 3 pending-sync entries |
    | `learning-checkpoint` | before implementing any task (Checkpoints 0/A/B/C) |
+   | `task-closeout` | end of every task, when current-state.md's inline Closeout section isn't enough detail on its own (full verification table, or the commit-sequencing note for promoting Next Task → Current Task) |
 
    `docs/contributing-adapters.md` is intentionally not in this list — it is packaged as a
    separate, framework-repo-only skill at `.claude/skills/add-framework-adapter/` (see
    Contributing a Framework Adapter below), since it's for people extending project_starter_v5
    itself, not for application code written in a project that merely uses the framework.
-   `tests/contract/test_skill_contracts.py` guards all six `SKILL.md` bodies against drifting
+   `tests/contract/test_skill_contracts.py` guards all seven `SKILL.md` bodies against drifting
    from their canonical source docs (`templates/init/retrofit.md`, `code-quality-check.md`,
    `templates/module-completion.md`, `templates/sprint-sync.md`,
-   `guidance/learning-checkpoints/common.md`, `docs/contributing-adapters.md`), the same pattern
-   `test_agent_adapter_templates.py` already uses for the slash-command templates above.
+   `guidance/learning-checkpoints/common.md`, `templates/task-completion.md`,
+   `docs/contributing-adapters.md`), the same pattern `test_agent_adapter_templates.py`
+   already uses for the slash-command templates above.
 
 **Codex**
 
@@ -886,7 +893,7 @@ The flow follows Steps 1, 1b, 1c, 2, 3, 4, and 5:
 
 `module-data-flow.md` supports four flow-file formats: **Feature**, **Background Job**, **Pipeline Stage**, and **Shared Utility**.
 
-See `templates/flows/module-data-flow-v2.md → Module Types` for the full description, entry-point rules, and Background Job vs Pipeline Stage disambiguation.
+See `templates/flows/module-data-flow.md → Module Types` for the full description, entry-point rules, and Background Job vs Pipeline Stage disambiguation.
 
 `scan_codebase.py --project-type` uses type-specific scan labels (Command for CLI Tool, Namespace for Library / SDK, Service for Microservices) as vocabulary — these are classification labels, not separate flow formats. All three use the Feature or Shared Utility flow format in their module flow files.
 
@@ -996,6 +1003,35 @@ python3 docs/script/validators/verify_docs.py --project-type web-app --docs path
 | Orphan | File exists but is N/A for this type, or is not in the document matrix |
 
 Valid `--project-type` values: `web-app`, `cli-tool`, `library`, `data-pipeline`, `ml-pipeline`, `microservices`, `llm-app`, `iac`, `mobile-app`
+
+---
+
+## Document Profile (lite vs full)
+
+`.project-starter.yml`'s `doc_profile` (`full` by default) controls how much of the
+Required-document set actually gates a commit — see `guidance/doc-profile.md` for the full
+explanation, including exactly when to switch back to `full`. In short: `lite` downgrades
+`permissions.md`, the three `business/*.md` files, `backend.md`/`database.md`/`deployment.md`,
+`research.md`, and `test-plan.md`/`test-report.md` from Required to Optional, for a
+solo/small project that doesn't have real stakeholders, roles, or a deploy target yet. Core
+contracts (`project-requirements.md`, `quickstart.md`, `data-model.md`, `api-contract.md`,
+`architecture.md`, `logging-spec.md`) stay Required in both profiles — `lite` reduces
+paperwork, not the documents the spec↔code drift gate and context builder actually depend on.
+
+```bash
+# Reads doc_profile automatically from .project-starter.yml — no flag needed, and this is
+# exactly how .githooks/pre-commit invokes both scripts today:
+python3 docs/script/validators/verify_docs.py --project-type web-app --strict
+python3 docs/script/validators/verify_content.py --project-type web-app --strict
+
+# Override explicitly (e.g. to preview what switching would change, without editing the yml):
+python3 docs/script/validators/verify_docs.py --project-type web-app --lite
+python3 docs/script/validators/verify_docs.py --project-type web-app --full
+```
+
+Switching `doc_profile` never creates a different document set — it only changes which
+documents in the *same* registry currently gate a commit. Going from `lite` to `full`
+re-requires exactly the documents `lite` deferred; there is no migration step.
 
 ---
 
@@ -1316,6 +1352,37 @@ nothing and does not raise, even though the underlying OTel SDK's own internal e
 verbose enough on its own (a multi-frame traceback per failed export) that this framework
 explicitly suppresses it (`_otel.py` sets the `opentelemetry` logger to `CRITICAL`) rather than
 let that noise appear on every commit whenever the collector is briefly down.
+
+**Trace correlation.** Every span emitted while `docs/current-state.md` has a scoped Current
+Task shares that task's `trace_id`, as a direct child of one synthetic `task: <name>` root span
+created on the task's first emission. Each `verify_*.py` run and each `orchestrator.py` run is
+its own OS process, so this is cross-process trace-context propagation done by hand: the root's
+`trace_id`/`span_id` are persisted to `logs/telemetry/.otel_trace_context.json` (gitignored, like
+the rest of `logs/`) and reconstructed as a parent context on every later emission for the same
+task. The practical effect: point a collector at this and a single task's worth of validator runs
+render as one connected trace/waterfall — not a pile of unrelated points — without needing to
+thread a trace ID through every script's argument list by hand. A task change (the persisted task
+name no longer matches the current one) starts a fresh trace automatically.
+
+Known edge case: two processes for the same task starting at almost the same instant could both
+observe "no root yet" and each create one, producing two traces instead of one for that task —
+the same class of race `.orchestrator_runs.json`'s read-compare-write already has, just exercised
+more often now. Not fixed with a file lock in this pass; acceptable given how rarely two telemetry
+emissions for the same task actually race in practice, but worth knowing if a trace ever looks
+unexpectedly split in two.
+
+**Seeing it locally:** any OTLP-compatible backend works; the fastest to try is a local Jaeger:
+
+```bash
+docker run -d --name jaeger -p 16686:16686 -p 4318:4318 jaegertracing/all-in-one:latest
+export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
+```
+
+Then run a task's normal workflow (`orchestrator.py`, the validators in `.ai/WORKFLOW.md`) and
+open `http://localhost:16686` — the task's trace groups every validator run for it under one
+waterfall. Entirely optional: skip this and nothing about the framework changes: no new
+dependency is installed, no local service is required, and none of this is on the path of running
+`.githooks/pre-commit`, `orchestrator.py`, or any validator in their normal, unconfigured mode.
 
 ---
 

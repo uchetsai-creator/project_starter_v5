@@ -4,6 +4,7 @@
     ```yaml
     project_type: llm-app
     docs_path: docs/
+    # Optional: doc_profile: lite — downgrades permissions/business-*/backend/database/deployment/research/test-plan/test-report from Required to Optional (a solo/small project). See guidance/doc-profile.md.
     # Optional: spec_code_adapter / spec_code_spec / spec_code_src — enables the spec↔code
     # drift gate in pre-commit + orchestrator. See README.md → Spec ↔ Code Validator →
     # Wiring it into pre-commit.
@@ -41,8 +42,8 @@
 20. If this app exposes an external API: Create docs/specs/api-contract.md from templates/specs/api-contract.md.
 21. If this app has multiple users with different roles: Create docs/specs/permissions.md from templates/specs/permissions.md.
 22. If this app enforces domain-specific rules (e.g. content policy, output constraints): Create docs/business/business-rules.md from templates/business/business-rules.md.
-23. Create docs/modules/module-data-flow.md from templates/flows/module-data-flow-v2.md.
-24. Create docs/modules/module-flow.md from templates/flows/module-flow-v2.md.
+23. Create docs/modules/module-data-flow.md from templates/flows/module-data-flow.md.
+24. Create docs/modules/module-flow.md from templates/flows/module-flow.md.
 25. Create docs/codebase-map.md from templates/codebase-map.md.
 26. Create docs/specs/test-plan.md from templates/specs/test-plan.md.
 27. Create docs/specs/test-report.md from templates/specs/test-report.md.

@@ -29,6 +29,7 @@ from _registry import (
 
 _reg = load_registry()
 MATRIX = build_matrix(_reg)
+LITE_MATRIX = build_matrix(_reg, lite=True)
 DOC_PATHS = build_doc_paths(_reg)
 REPLACES_FOR = build_replaces_for(_reg)
 TYPE_INDEX = {t: i for i, t in enumerate(VALID_TYPES)}
@@ -37,7 +38,7 @@ SCANNED_DIRS = ('specs', 'architecture', 'business')
 
 # ── Content quality constants (used by --content) ────────────────────────────
 
-from _verify_common import _append_telemetry, _is_placeholder, _telemetry_ts
+from _verify_common import _append_telemetry, _is_placeholder, _telemetry_ts, read_doc_profile
 
 # A section must have at least this many non-empty, non-placeholder lines to
 # be considered "filled".
@@ -135,11 +136,12 @@ def scan_content(filepath, doc_name):
 
 # ── Core audit ────────────────────────────────────────────────────────────────
 
-def effective_status(doc_name, types):
+def effective_status(doc_name, types, lite=False):
     """Return R/O/N for the given doc across all declared types (union rule)."""
-    if doc_name not in MATRIX:
+    matrix = LITE_MATRIX if lite else MATRIX
+    if doc_name not in matrix:
         return None
-    row = MATRIX[doc_name]
+    row = matrix[doc_name]
     ratings = [row[TYPE_INDEX[t]] for t in types]
     if 'R' in ratings:
         return 'R'
@@ -166,15 +168,16 @@ def collect_existing(docs_dir):
     return found
 
 
-def run_audit(types, docs_dir, check_content=False):
+def run_audit(types, docs_dir, check_content=False, lite=False):
     existing = collect_existing(docs_dir)
-    matrix_names = set(MATRIX.keys())
+    matrix = LITE_MATRIX if lite else MATRIX
+    matrix_names = set(matrix.keys())
     results = []
 
-    for doc_name in MATRIX:
+    for doc_name in matrix:
         path = DOC_PATHS.get(doc_name, f'specs/{doc_name}')
         location, _, _ = path.rpartition('/')
-        status = effective_status(doc_name, types)
+        status = effective_status(doc_name, types, lite=lite)
         file_exists = (location, doc_name) in existing
 
         if status == 'N':
@@ -237,9 +240,10 @@ def _content_suffix(c):
     return f"  {c['fill_pct']}% filled {symbol} {'; '.join(issues)}"
 
 
-def print_results(results, types):
+def print_results(results, types, lite=False):
     type_str = '+'.join(types)
-    print(f'\nDocument audit — project type: {type_str}\n')
+    profile_suffix = '  [doc_profile: lite]' if lite else ''
+    print(f'\nDocument audit — project type: {type_str}{profile_suffix}\n')
 
     counts = {s: 0 for s in ('present', 'missing_required', 'missing_optional', 'na', 'orphan')}
     order = ['missing_required', 'missing_optional', 'orphan', 'present', 'na']
@@ -329,6 +333,14 @@ def main():
         '--telemetry', action='store_true',
         help='Append run result to .ai/telemetry/validation-result.json',
     )
+    parser.add_argument(
+        '--lite', action='store_true',
+        help='Force lite doc profile, overriding .project-starter.yml -> doc_profile',
+    )
+    parser.add_argument(
+        '--full', action='store_true',
+        help='Force full doc profile, overriding .project-starter.yml -> doc_profile',
+    )
     args = parser.parse_args()
 
     types = [t.strip() for t in args.project_type.split('+')]
@@ -338,19 +350,24 @@ def main():
         print(f'valid types: {", ".join(VALID_TYPES)}', file=sys.stderr)
         sys.exit(2)
 
+    if args.lite and args.full:
+        print('error: --lite and --full are mutually exclusive', file=sys.stderr)
+        sys.exit(2)
+
     if not os.path.isdir(args.docs):
         print(f'error: docs directory not found: {args.docs}', file=sys.stderr)
         sys.exit(2)
 
-    results = run_audit(types, args.docs, check_content=args.content)
+    lite = args.lite or (not args.full and read_doc_profile() == 'lite')
+    results = run_audit(types, args.docs, check_content=args.content, lite=lite)
 
     if args.json_output:
         print(json.dumps(
-            {'project_type': args.project_type, 'results': results},
+            {'project_type': args.project_type, 'doc_profile': 'lite' if lite else 'full', 'results': results},
             ensure_ascii=False, indent=2,
         ))
     else:
-        print_results(results, types)
+        print_results(results, types, lite=lite)
 
     if args.telemetry:
         _write_telemetry(args.project_type, results)

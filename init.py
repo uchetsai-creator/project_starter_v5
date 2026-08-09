@@ -41,6 +41,18 @@ _ROOT_FILES = [
     "learning-log.md",
 ]
 
+# Marks the appended block below so re-running --init (or a project that already has this
+# block from a prior --init) doesn't duplicate it.
+_GITIGNORE_MARKER = "# --- project_starter_v5: generated/runtime paths ---"
+_GITIGNORE_BLOCK = f"""
+{_GITIGNORE_MARKER}
+.ai/
+__pycache__/
+*.pyc
+.pytest_cache/
+logs/
+"""
+
 _PROJECT_STARTER_YML = """\
 # project_starter — project configuration
 # Do not rename this file.
@@ -50,6 +62,13 @@ project_type: {project_type}
 #               microservices | llm-app | iac | mobile-app
 
 docs_path: docs/
+
+doc_profile: full
+# Optional. `lite` downgrades permissions.md, business-*.md, backend/database/deployment.md,
+# research.md, and test-plan/test-report.md from Required to Optional -- for a solo/small
+# project that doesn't need the full stakeholder-facing document set yet. Core contracts
+# (project-requirements.md, quickstart.md, data-model.md, api-contract.md, architecture.md,
+# logging-spec.md) stay Required either way. See guidance/doc-profile.md for when to switch.
 
 task_type:
 # Optional. Filters .ai/AI_CONTEXT.md to task-relevant documents.
@@ -110,10 +129,34 @@ def init_project(project_type: str, dest: Path) -> None:
         claude_md.write_text("@AGENTS.md\n", encoding="utf-8")
         print("[OK] wrote CLAUDE.md (@AGENTS.md)")
 
+    # .gitignore: without this, a fresh project commits .ai/ (generated, meant to be
+    # gitignored per README), __pycache__/, and logs/ by default — confirmed by actually
+    # running --init into an empty directory and checking `git status` before this fix.
+    # Never overwrite an existing .gitignore (unlike the _ROOT_FILES loop above, this file
+    # commonly already exists — e.g. from `git init` with a language template); append the
+    # generated/runtime block instead, and only once (guarded by _GITIGNORE_MARKER) so
+    # re-running --init on the same project doesn't duplicate it.
+    gitignore = dest / ".gitignore"
+    if not gitignore.exists():
+        gitignore.write_text(_GITIGNORE_BLOCK.lstrip("\n"), encoding="utf-8")
+        print("[OK] wrote .gitignore")
+    elif _GITIGNORE_MARKER not in gitignore.read_text(encoding="utf-8"):
+        with gitignore.open("a", encoding="utf-8") as f:
+            f.write(_GITIGNORE_BLOCK)
+        print("[OK] appended generated/runtime paths to existing .gitignore")
+
+    # framework/ is excluded — README documents its contents (verify_framework.py,
+    # mcp_tools.py) as "framework-internal only, NOT copied to user projects", but nothing
+    # actually enforced that until now: shutil.copytree() with no ignore= copies everything
+    # under templates/script/ unconditionally. Confirmed by actually running --init into a
+    # fresh directory and checking for docs/script/framework/ before this fix — it was there.
     docs_script = dest / "docs" / "script"
     docs_script.mkdir(parents=True, exist_ok=True)
-    shutil.copytree(script_dir / "templates" / "script", docs_script, dirs_exist_ok=True)
-    print("[OK] copied templates/script/ -> docs/script/")
+    shutil.copytree(
+        script_dir / "templates" / "script", docs_script, dirs_exist_ok=True,
+        ignore=shutil.ignore_patterns("framework"),
+    )
+    print("[OK] copied templates/script/ -> docs/script/ (excluding framework-internal-only files)")
 
     (dest / ".project-starter.yml").write_text(
         _PROJECT_STARTER_YML.format(project_type=project_type), encoding="utf-8",

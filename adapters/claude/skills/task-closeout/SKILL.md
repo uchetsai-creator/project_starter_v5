@@ -1,3 +1,8 @@
+---
+name: task-closeout
+description: Use at the end of every task, once all Steps and Verify in docs/current-state.md pass, when the inline Closeout section in current-state.md isn't enough on its own — e.g. you need the full verification table, the exact per-artifact-type verification method, or the commit-sequencing note for step 1c (promoting Next Task -> Current Task). For the common case, current-state.md's own Closeout section already has enough detail and this Skill isn't needed. Do NOT use for module completion (all tasks in a module done — see module-completion-check) or sprint documentation sync (3 pending sprint-change-log.md entries — see sprint-doc-sync).
+---
+
 # Task Completion
 
 **Workflow: Task completed → minimal writes only. Sprint completed → synchronize all documentation.**

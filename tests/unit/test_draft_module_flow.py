@@ -180,13 +180,13 @@ def test_ml_pipeline_type_also_uses_format_d(tmp_path):
 
 
 def test_unmapped_module_type_falls_back_honestly_instead_of_guessing(tmp_path):
-    """Resource Group (IaC) has no matching format in module-data-flow-v2.md — the
+    """Resource Group (IaC) has no matching format in module-data-flow.md — the
     draft must say so explicitly rather than silently forcing it into Format A."""
     module_dir = tmp_path / "src2" / "modules" / "networking"
     _write(module_dir / "main.tf", 'resource "aws_vpc" "main" {}\n')
     _run(str(module_dir), "--project-type", "iac", "--docs", str(tmp_path / "docs"))
     draft = _draft_path(tmp_path, "networking").read_text(encoding="utf-8")
-    assert "No module-data-flow-v2.md format matches" in draft
+    assert "No module-data-flow.md format matches" in draft
 
 
 # ---------------------------------------------------------------------------

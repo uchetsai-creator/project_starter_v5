@@ -33,6 +33,7 @@ At the system (repo root) level, additionally create:
     ```yaml
     project_type: microservices
     docs_path: docs/
+    # Optional: doc_profile: lite — downgrades permissions/business-*/backend/database/deployment/research/test-plan/test-report from Required to Optional (a solo/small project). See guidance/doc-profile.md.
     # Optional: spec_code_adapter / spec_code_spec / spec_code_src — enables the spec↔code
     # drift gate in pre-commit + orchestrator. See README.md → Spec ↔ Code Validator →
     # Wiring it into pre-commit.

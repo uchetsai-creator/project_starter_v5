@@ -33,6 +33,10 @@
           {
             "type": "command",
             "command": "bash adapters/claude/session-start-hook.sh 2>/dev/null || true"
+          },
+          {
+            "type": "command",
+            "command": "python3 adapters/claude/learning_log_nudge.py 2>/dev/null || true"
           }
         ]
       }

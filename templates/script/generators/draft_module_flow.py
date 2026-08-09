@@ -238,7 +238,7 @@ def entry_candidates(structures: list[FileStructure]) -> list[str]:
 
 
 # ---------------------------------------------------------------------------
-# Format mapping — module-data-flow-v2.md defines 4 canonical formats;
+# Format mapping — module-data-flow.md defines 4 canonical formats;
 # scan_codebase.py's per-project-type vocabulary (Command, Namespace, Service,
 # Screen, Resource Group, ...) maps down onto them.
 # ---------------------------------------------------------------------------
@@ -259,7 +259,7 @@ def resolve_format(module_type_label: str) -> str:
         return "B"
     if label in _FORMAT_C_LABELS:
         return "C"
-    return "UNKNOWN"  # e.g. Resource Group — module-data-flow-v2.md has no matching format
+    return "UNKNOWN"  # e.g. Resource Group — module-data-flow.md has no matching format
 
 
 # ---------------------------------------------------------------------------
@@ -353,8 +353,8 @@ def render_draft(
         )
     elif fmt == "UNKNOWN":
         body = (
-            f"<!-- No module-data-flow-v2.md format matches classification "
-            f"'{module_type_label}' — module-data-flow-v2.md's 4 formats are "
+            f"<!-- No module-data-flow.md format matches classification "
+            f"'{module_type_label}' — module-data-flow.md's 4 formats are "
             f"Feature / Background Job / Pipeline Stage / Shared Utility. Confirm "
             f"with the user which one actually applies, or whether this module type "
             f"needs its own documentation approach (e.g. IaC resource groups are "
@@ -369,7 +369,7 @@ def render_draft(
             f"```\n"
             f"{_render_entry_hint(candidates)}\n"
             f"↓\n"
-            f"[Next step — see templates/flows/module-data-flow-v2.md Format {fmt} for the full step list]\n"
+            f"[Next step — see templates/flows/module-data-flow.md Format {fmt} for the full step list]\n"
             f"↓\n"
             f"[Result — response / return value / emitted event / side effect]\n"
             f"```\n\n"
