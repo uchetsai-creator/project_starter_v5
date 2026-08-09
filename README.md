@@ -1329,6 +1329,37 @@ verbose enough on its own (a multi-frame traceback per failed export) that this 
 explicitly suppresses it (`_otel.py` sets the `opentelemetry` logger to `CRITICAL`) rather than
 let that noise appear on every commit whenever the collector is briefly down.
 
+**Trace correlation.** Every span emitted while `docs/current-state.md` has a scoped Current
+Task shares that task's `trace_id`, as a direct child of one synthetic `task: <name>` root span
+created on the task's first emission. Each `verify_*.py` run and each `orchestrator.py` run is
+its own OS process, so this is cross-process trace-context propagation done by hand: the root's
+`trace_id`/`span_id` are persisted to `logs/telemetry/.otel_trace_context.json` (gitignored, like
+the rest of `logs/`) and reconstructed as a parent context on every later emission for the same
+task. The practical effect: point a collector at this and a single task's worth of validator runs
+render as one connected trace/waterfall — not a pile of unrelated points — without needing to
+thread a trace ID through every script's argument list by hand. A task change (the persisted task
+name no longer matches the current one) starts a fresh trace automatically.
+
+Known edge case: two processes for the same task starting at almost the same instant could both
+observe "no root yet" and each create one, producing two traces instead of one for that task —
+the same class of race `.orchestrator_runs.json`'s read-compare-write already has, just exercised
+more often now. Not fixed with a file lock in this pass; acceptable given how rarely two telemetry
+emissions for the same task actually race in practice, but worth knowing if a trace ever looks
+unexpectedly split in two.
+
+**Seeing it locally:** any OTLP-compatible backend works; the fastest to try is a local Jaeger:
+
+```bash
+docker run -d --name jaeger -p 16686:16686 -p 4318:4318 jaegertracing/all-in-one:latest
+export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
+```
+
+Then run a task's normal workflow (`orchestrator.py`, the validators in `.ai/WORKFLOW.md`) and
+open `http://localhost:16686` — the task's trace groups every validator run for it under one
+waterfall. Entirely optional: skip this and nothing about the framework changes: no new
+dependency is installed, no local service is required, and none of this is on the path of running
+`.githooks/pre-commit`, `orchestrator.py`, or any validator in their normal, unconfigured mode.
+
 ---
 
 ## Spec ↔ Code Validator

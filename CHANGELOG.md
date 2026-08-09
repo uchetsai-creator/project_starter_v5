@@ -302,6 +302,29 @@ All notable changes to this framework are documented here. Format loosely follow
   commit. A docs-only task can still do the whole closeout, including the promotion, in one
   commit — the gap only bites when source files outside `docs/` are staged alongside it.
 
+### Added
+- `_otel.py`'s optional OpenTelemetry dual-emission now correlates spans into real traces
+  instead of emitting unrelated single spans per event. While `docs/current-state.md` has a
+  scoped Current Task, every span shares that task's `trace_id` as a direct child of one
+  synthetic `task: <name>` root span, created on the task's first emission and persisted to
+  `logs/telemetry/.otel_trace_context.json` (gitignored) so later emissions — each its own
+  OS process (a `verify_*.py` run, an `orchestrator.py` run) — can reconstruct it as a
+  parent context by hand; OTel's normal in-process parent/child tracking has no way to see
+  across separate processes on its own. A task change starts a fresh trace automatically.
+  Confirmed with `InMemorySpanExporter` (real span objects, no live collector needed), not
+  just asserted to work: spans for the same task share one `trace_id` and have the root as
+  their parent; a second, independently-loaded module instance (simulating a second process)
+  reuses the same root via the persisted state file instead of creating a second one;
+  different tasks get different `trace_id`s; no scoped task still emits an uncorrelated span
+  exactly as before this change (backward compatible — `emit()`'s new `cwd` parameter
+  defaults to `.`, so every existing call site needed zero changes). Known accepted gap: two
+  processes for the same task starting near-simultaneously could each observe "no root yet"
+  and create one, splitting that task into two traces — same race class
+  `.orchestrator_runs.json` already has, not newly introduced, just exercised more now; not
+  worth a file lock for how rarely it would actually fire. See README.md → Validation
+  Telemetry → OTel dual-emission for the local-Jaeger walkthrough to see the resulting
+  waterfall.
+
 ---
 
 ## [0.2.0] — 2026-08-09
