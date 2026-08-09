@@ -18,6 +18,8 @@ _SKILL_SOURCES = {
         REPO_ROOT / "templates/sprint-sync.md",
     REPO_ROOT / "adapters/claude/skills/learning-checkpoint/SKILL.md":
         REPO_ROOT / "guidance/learning-checkpoints/common.md",
+    REPO_ROOT / "adapters/claude/skills/task-closeout/SKILL.md":
+        REPO_ROOT / "templates/task-completion.md",
     REPO_ROOT / ".claude/skills/add-framework-adapter/SKILL.md":
         REPO_ROOT / "docs/contributing-adapters.md",
 }

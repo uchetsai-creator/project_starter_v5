@@ -27,6 +27,19 @@ All notable changes to this framework are documented here. Format loosely follow
   rather than simulating it as a separate manual step.
 
 ### Added
+- New `task-closeout` Claude Skill (`adapters/claude/skills/task-closeout/SKILL.md`,
+  canonical source `templates/task-completion.md`) — the sixth procedural doc packaged as
+  a Skill, closing a real gap rather than a hypothetical one: `module-completion-check`'s
+  own `SKILL.md` description already said "see task-closeout instead" for ordinary
+  per-task closeout, but no `task-closeout` Skill existed anywhere — not in
+  `.claude/skills/`, not in `tests/contract/test_skill_contracts.py`'s canonical source
+  list. `templates/task-completion.md` matches the exact "Load X only if you need the full
+  detail" trigger pattern every other Skill-converted doc uses (both references in
+  `AGENTS.md` phrase it that way), so this brings it in line with its siblings instead of
+  being the one on-demand procedural doc left as plain-text-only. `test_skill_contracts.py`,
+  `test_init_py.py`, and `test_setup_sh_init.py` all updated; confirmed by actually running
+  `init.py` into a fresh directory and checking `.claude/skills/task-closeout/` exists
+  after, not just by reading the copy logic.
 - ruff + mypy wired into CI (`.github/workflows/ci.yml`) and `requirements-dev.txt`, with
   config in `pyproject.toml`. `select = ["E4","E7","E9","F","I"]` (ruff's own recommended
   default plus import sorting); `E402` ignored repo-wide since this codebase is flat scripts,

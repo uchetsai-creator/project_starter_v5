@@ -207,7 +207,8 @@ project_starter/                     ← this repo (template only)
 │   │       ├── code-quality-check/SKILL.md
 │   │       ├── module-completion-check/SKILL.md
 │   │       ├── sprint-doc-sync/SKILL.md
-│   │       └── learning-checkpoint/SKILL.md
+│   │       ├── learning-checkpoint/SKILL.md
+│   │       └── task-closeout/SKILL.md
 │   └── codex/
 │       ├── setup.md                ← one-time setup instructions (written to .codex/setup.md by orchestrator.py --adapter codex)
 │       └── task-instructions.md    ← current workflow snapshot template (written to .codex/task-instructions.md)
@@ -811,7 +812,7 @@ python3 orchestrator.py --adapter claude --dry-run
      every other gate here, it's optional: without it, "ask before implementing" (AGENTS.md ->
      New requirement from the user) is enforced by the agent choosing to follow AGENTS.md, not
      by anything mechanical, until this hook (or the pre-commit backstop) is wired in.
-4. The five procedural docs below auto-trigger as Claude Skills — `--init` / `setup.sh --init`
+4. The six procedural docs below auto-trigger as Claude Skills — `--init` / `setup.sh --init`
    already copied `adapters/claude/skills/` into your project's `.claude/skills/` folder (see
    `init.py`), so this step needs no action for a project bootstrapped that way. Only relevant
    if you used the Manual alternative in Quick Start instead: copy `adapters/claude/skills/` →
@@ -828,16 +829,18 @@ python3 orchestrator.py --adapter claude --dry-run
    | `module-completion-check` | a module just reached 100% complete |
    | `sprint-doc-sync` | `sprint-change-log.md` reaches 3 pending-sync entries |
    | `learning-checkpoint` | before implementing any task (Checkpoints 0/A/B/C) |
+   | `task-closeout` | end of every task, when current-state.md's inline Closeout section isn't enough detail on its own (full verification table, or the commit-sequencing note for promoting Next Task → Current Task) |
 
    `docs/contributing-adapters.md` is intentionally not in this list — it is packaged as a
    separate, framework-repo-only skill at `.claude/skills/add-framework-adapter/` (see
    Contributing a Framework Adapter below), since it's for people extending project_starter_v5
    itself, not for application code written in a project that merely uses the framework.
-   `tests/contract/test_skill_contracts.py` guards all six `SKILL.md` bodies against drifting
+   `tests/contract/test_skill_contracts.py` guards all seven `SKILL.md` bodies against drifting
    from their canonical source docs (`templates/init/retrofit.md`, `code-quality-check.md`,
    `templates/module-completion.md`, `templates/sprint-sync.md`,
-   `guidance/learning-checkpoints/common.md`, `docs/contributing-adapters.md`), the same pattern
-   `test_agent_adapter_templates.py` already uses for the slash-command templates above.
+   `guidance/learning-checkpoints/common.md`, `templates/task-completion.md`,
+   `docs/contributing-adapters.md`), the same pattern `test_agent_adapter_templates.py`
+   already uses for the slash-command templates above.
 
 **Codex**
 
