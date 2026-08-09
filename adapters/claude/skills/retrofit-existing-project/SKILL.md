@@ -71,7 +71,7 @@ Read and follow `code-quality-check.md`. Do not proceed to Step 2 until the chec
 
 Follow the confirmed inventory from Step 1b. For each module:
 
-0. Verify `docs/modules/module-data-flow.md` contains a "## Module Types" section. If missing, copy from `templates/flows/module-data-flow-v2.md` before proceeding.
+0. Verify `docs/modules/module-data-flow.md` contains a "## Module Types" section. If missing, copy from `templates/flows/module-data-flow.md` before proceeding.
 1. Determine the module type: Feature / Background Job / Pipeline Stage / Shared Utility.
 2. Run `python3 docs/script/generators/draft_module_flow.py <module_src_dir> --project-type <type> --docs docs`
    to generate a starting draft at `docs/modules/[module]/[module]-module-data-flow.md` with real

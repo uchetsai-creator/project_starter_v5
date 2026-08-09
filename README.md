@@ -339,8 +339,8 @@ project_starter/                     ← this repo (template only)
     │   └── business-rules.md        ← approval/validation/notification/audit rules
     │
     ├── flows/
-    │   ├── module-data-flow-v2.md   ← index + rules for module flow files (Feature / Background Job / Pipeline Stage / Shared Utility)
-    │   └── module-flow-v2.md        ← index + rules for cross-module sequence files (per module)
+    │   ├── module-data-flow.md      ← index + rules for module flow files (Feature / Background Job / Pipeline Stage / Shared Utility)
+    │   └── module-flow.md           ← index + rules for cross-module sequence files (per module)
     │
     └── script/
         ├── validators/              ← shipped to user projects (docs/script/validators/)
@@ -405,21 +405,11 @@ project_starter/                     ← this repo (template only)
 ```
 
 When a new project starts, `templates/` is copied in and becomes `docs/` — see
-[Project Initialization](#project-initialization) below.
-
-> **Note on file naming:** Some templates carry a `-v2` version suffix for internal framework versioning:
-> `templates/flows/module-data-flow-v2.md`, `templates/flows/module-flow-v2.md`,
-> `templates/business/business-process-v2.md`, and `templates/business/business-objects-v2.md`.
-> When copying any of these into a new project's `docs/`, **drop the version suffix** — the init files
-> already use the correct destination names (e.g. `docs/business/business-process.md`).
->
-> Quick rename reference:
-> | Template | Copy to |
-> |---|---|
-> | `templates/flows/module-data-flow-v2.md` | `docs/modules/module-data-flow.md` |
-> | `templates/flows/module-flow-v2.md` | `docs/modules/module-flow.md` |
-> | `templates/business/business-process-v2.md` | `docs/business/business-process.md` |
-> | `templates/business/business-objects-v2.md` | `docs/business/business-objects.md` |
+[Project Initialization](#project-initialization) below. Template filenames under
+`templates/flows/` and `templates/business/` now match their `docs/modules/` and
+`docs/business/` destination names exactly (no rename needed when copying) — they used to
+carry a `-v2` version suffix for internal framework versioning, which required a separate
+rename-reference table here; both were removed once nothing depended on the suffix anymore.
 
 ---
 
@@ -900,7 +890,7 @@ The flow follows Steps 1, 1b, 1c, 2, 3, 4, and 5:
 
 `module-data-flow.md` supports four flow-file formats: **Feature**, **Background Job**, **Pipeline Stage**, and **Shared Utility**.
 
-See `templates/flows/module-data-flow-v2.md → Module Types` for the full description, entry-point rules, and Background Job vs Pipeline Stage disambiguation.
+See `templates/flows/module-data-flow.md → Module Types` for the full description, entry-point rules, and Background Job vs Pipeline Stage disambiguation.
 
 `scan_codebase.py --project-type` uses type-specific scan labels (Command for CLI Tool, Namespace for Library / SDK, Service for Microservices) as vocabulary — these are classification labels, not separate flow formats. All three use the Feature or Shared Utility flow format in their module flow files.
 

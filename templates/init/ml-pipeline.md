@@ -36,8 +36,8 @@
 15. Create docs/specs/experiment-log.md from templates/specs/experiment-log.md.
 16. Create docs/specs/logging-spec.md from templates/specs/logging-spec.md.
 17. Create docs/business/business-rules.md from templates/business/business-rules.md.
-18. Create docs/modules/module-data-flow.md from templates/flows/module-data-flow-v2.md.
-19. Create docs/modules/module-flow.md from templates/flows/module-flow-v2.md.
+18. Create docs/modules/module-data-flow.md from templates/flows/module-data-flow.md.
+19. Create docs/modules/module-flow.md from templates/flows/module-flow.md.
 20. Create docs/codebase-map.md from templates/codebase-map.md.
 21. Create docs/specs/test-plan.md from templates/specs/test-plan.md (use Contract/Integration/E2E/Fault Injection levels).
 22. Create docs/specs/test-report.md from templates/specs/test-report.md (fill in after first test run).

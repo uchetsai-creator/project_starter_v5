@@ -30,8 +30,8 @@
 9. Create docs/specs/public-api.md from templates/specs/public-api.md.
 10. Create docs/specs/release-guide.md from templates/specs/release-guide.md.
 11. Create docs/specs/compatibility-matrix.md from templates/specs/compatibility-matrix.md.
-12. Create docs/modules/module-data-flow.md from templates/flows/module-data-flow-v2.md.
-13. Create docs/modules/module-flow.md from templates/flows/module-flow-v2.md.
+12. Create docs/modules/module-data-flow.md from templates/flows/module-data-flow.md.
+13. Create docs/modules/module-flow.md from templates/flows/module-flow.md.
 14. Create docs/codebase-map.md from templates/codebase-map.md.
 15. Create docs/specs/test-plan.md from templates/specs/test-plan.md.
 16. Create docs/specs/test-report.md from templates/specs/test-report.md.
