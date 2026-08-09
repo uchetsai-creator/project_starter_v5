@@ -24,6 +24,7 @@ _REQUIRED_ROOT_FILES = [
     "learning-log.md",
     "CLAUDE.md",
     ".project-starter.yml",
+    ".gitignore",
 ]
 
 _SKILL_DIRS = [
@@ -103,6 +104,45 @@ def test_init_py_installs_pre_commit_hook_when_dest_is_a_git_repo(tmp_path):
     result = _run_init(dest)
     assert result.returncode == 0, result.stderr
     assert (dest / ".git" / "hooks" / "pre-commit").exists()
+
+
+def test_init_py_writes_gitignore_covering_generated_paths(tmp_path):
+    """Without this, a fresh project commits .ai/, __pycache__/, and logs/ by default —
+    confirmed by actually running --init into an empty dir and checking git status."""
+    dest = tmp_path / "proj"
+    result = _run_init(dest)
+    assert result.returncode == 0, result.stderr
+
+    text = (dest / ".gitignore").read_text(encoding="utf-8")
+    for entry in (".ai/", "__pycache__/", "*.pyc", "logs/"):
+        assert entry in text, f"{entry!r} missing from generated .gitignore"
+
+
+def test_init_py_appends_to_existing_gitignore_without_overwriting(tmp_path):
+    """.gitignore commonly already exists (e.g. from `git init` with a language template)
+    — unlike the other root files, it must never be silently overwritten."""
+    dest = tmp_path / "proj"
+    dest.mkdir()
+    (dest / ".gitignore").write_text("node_modules/\n.env\n", encoding="utf-8")
+
+    result = _run_init(dest)
+    assert result.returncode == 0, result.stderr
+
+    text = (dest / ".gitignore").read_text(encoding="utf-8")
+    assert "node_modules/" in text
+    assert ".env" in text
+    assert ".ai/" in text
+
+
+def test_init_py_does_not_duplicate_gitignore_block_on_second_run(tmp_path):
+    dest = tmp_path / "proj"
+    first = _run_init(dest)
+    assert first.returncode == 0, first.stderr
+    second = _run_init(dest)
+    assert second.returncode == 0, second.stderr
+
+    text = (dest / ".gitignore").read_text(encoding="utf-8")
+    assert text.count(".ai/") == 1
 
 
 def test_init_py_missing_args_exits_nonzero():

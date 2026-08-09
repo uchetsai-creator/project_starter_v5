@@ -100,6 +100,9 @@
 ## Closeout (when all Steps and Verify are done)
 
 - **Doc Checklist + current-state.md** (1 edit): apply Doc Checklist items above; set Status → `Complete — Pending Sprint Doc Sync`; mark steps `[x]`; promote Next Task → Current Task; update Required Context + Doc Checklist for new task; set Status → `In Progress`
+  If this task touched any file outside `docs/`, commit *before* promoting Next Task →
+  Current Task, then promote in its own docs-only commit — see `templates/task-completion.md`
+  step 1 for why (the pre-commit source-change guard reads this file's state at commit time).
 - **Verify**: run the command in the Verify step and confirm expected output — "no errors" is not sufficient
 *(Replace `TYPE` in each command below with the value from `.project-starter.yml → project_type`.)*
 - **Doc verification**: run pre-commit hook (`git commit`) or manually: `python3 docs/script/validators/verify_docs.py --project-type TYPE --content` — Required: __ / __ present

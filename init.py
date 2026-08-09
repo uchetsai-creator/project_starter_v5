@@ -41,6 +41,18 @@ _ROOT_FILES = [
     "learning-log.md",
 ]
 
+# Marks the appended block below so re-running --init (or a project that already has this
+# block from a prior --init) doesn't duplicate it.
+_GITIGNORE_MARKER = "# --- project_starter_v5: generated/runtime paths ---"
+_GITIGNORE_BLOCK = f"""
+{_GITIGNORE_MARKER}
+.ai/
+__pycache__/
+*.pyc
+.pytest_cache/
+logs/
+"""
+
 _PROJECT_STARTER_YML = """\
 # project_starter — project configuration
 # Do not rename this file.
@@ -109,6 +121,22 @@ def init_project(project_type: str, dest: Path) -> None:
     if not claude_md.exists():
         claude_md.write_text("@AGENTS.md\n", encoding="utf-8")
         print("[OK] wrote CLAUDE.md (@AGENTS.md)")
+
+    # .gitignore: without this, a fresh project commits .ai/ (generated, meant to be
+    # gitignored per README), __pycache__/, and logs/ by default — confirmed by actually
+    # running --init into an empty directory and checking `git status` before this fix.
+    # Never overwrite an existing .gitignore (unlike the _ROOT_FILES loop above, this file
+    # commonly already exists — e.g. from `git init` with a language template); append the
+    # generated/runtime block instead, and only once (guarded by _GITIGNORE_MARKER) so
+    # re-running --init on the same project doesn't duplicate it.
+    gitignore = dest / ".gitignore"
+    if not gitignore.exists():
+        gitignore.write_text(_GITIGNORE_BLOCK.lstrip("\n"), encoding="utf-8")
+        print("[OK] wrote .gitignore")
+    elif _GITIGNORE_MARKER not in gitignore.read_text(encoding="utf-8"):
+        with gitignore.open("a", encoding="utf-8") as f:
+            f.write(_GITIGNORE_BLOCK)
+        print("[OK] appended generated/runtime paths to existing .gitignore")
 
     docs_script = dest / "docs" / "script"
     docs_script.mkdir(parents=True, exist_ok=True)

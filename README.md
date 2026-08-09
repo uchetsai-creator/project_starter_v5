@@ -107,8 +107,10 @@ signal in machine-readable form.
    `microservices` | `llm-app` | `iac` | `mobile-app`
 
    This copies all required framework files, writes a pre-filled `.project-starter.yml`, writes
-   `CLAUDE.md` (`@AGENTS.md` — see Agent Adapters below) if it doesn't already exist, and
-   installs the pre-commit hook. Skip to step 2 once done.
+   `CLAUDE.md` (`@AGENTS.md` — see Agent Adapters below) if it doesn't already exist, writes or
+   appends to `.gitignore` so `.ai/`, `__pycache__/`, and `logs/` aren't committed by default (an
+   existing `.gitignore` is appended to, never overwritten), and installs the pre-commit hook.
+   Skip to step 2 once done.
 
    *Manual alternative:* copy `AGENTS.md`, `orchestrator.py`, `build-context.py`,
    `_workflow_utils.py`, `workflow-registry.yaml`, `document-registry.yaml`,

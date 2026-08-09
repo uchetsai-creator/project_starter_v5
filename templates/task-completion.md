@@ -22,6 +22,17 @@ Do NOT update changelog.md, project-plan.md, codebase-map.md, or any spec/archit
 
       > Note: `current-state.md → Closeout` omits Step 1c for brevity — the authoritative procedure is here.
 
+   > **Commit before 1c if this task touched source files.** `.githooks/pre-commit`'s
+   > Unscoped source-change guard reads `current-state.md`'s Current Task at commit time
+   > against whatever is staged — once 1c promotes Current Task to the next (unscoped)
+   > task, staging source files from the task that just finished will be blocked, even
+   > though they belonged to a properly-scoped task. If the task touched any file outside
+   > `docs/`, commit everything through 1b first (source + doc changes, with Current Task
+   > still showing the just-finished task and `Status: Complete — Pending Sprint Doc
+   > Sync`), *then* apply 1c as its own follow-up commit that only touches
+   > `docs/current-state.md`. A docs-only task (no source files touched) can still do the
+   > whole block — including 1c — in one commit.
+
 2. **Run verification** for what was changed:
 
 | Changed artifact | Required verification |

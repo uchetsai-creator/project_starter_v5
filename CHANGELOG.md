@@ -280,6 +280,28 @@ All notable changes to this framework are documented here. Format loosely follow
   (no learning-log.md, no committed task-log.md yet, task-log.md newer, learning-log.md newer)
   plus the not-a-git-repo case.
 
+### Fixed
+- `init.py --init` now writes (or, if one already exists, appends to) a `.gitignore`
+  covering `.ai/`, `__pycache__/`, `*.pyc`, `.pytest_cache/`, and `logs/`. Previously
+  `--init` never touched `.gitignore` at all — confirmed by actually running `--init` into
+  a fresh git repo and checking `git status`: `.ai/AI_CONTEXT.md`, `__pycache__/`, and
+  `logs/verify-*.json` all showed as untracked-and-stageable, despite README already
+  documenting all three as "generated, not committed." An existing `.gitignore` is never
+  overwritten — appended to once, guarded by a marker comment so re-running `--init` on
+  the same project doesn't duplicate the block. `tests/unit/test_init_py.py` gained three
+  tests for this (fresh write, append-without-clobbering, no duplicate on second run).
+- `templates/current-state.md` → Closeout and `templates/task-completion.md` → step 1c now
+  warn explicitly: promoting Next Task → Current Task in the same commit as the finished
+  task's source files trips `.githooks/pre-commit`'s Unscoped source-change guard, because
+  that guard reads `current-state.md`'s Current Task against whatever is staged at commit
+  time — once Current Task is the unscoped placeholder, staged source files (even ones that
+  belonged to a properly-scoped task) get blocked. Discovered by actually running a task's
+  full closeout end-to-end through real `git commit`, not just reading the instructions.
+  Fix documented: commit source + docs first (Current Task still showing the just-finished
+  task, `Status: Complete — Pending Sprint Doc Sync`), then promote in a second, docs-only
+  commit. A docs-only task can still do the whole closeout, including the promotion, in one
+  commit — the gap only bites when source files outside `docs/` are staged alongside it.
+
 ---
 
 ## [0.2.0] — 2026-08-09
