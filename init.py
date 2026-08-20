@@ -158,6 +158,22 @@ def init_project(project_type: str, dest: Path) -> None:
     )
     print("[OK] copied templates/script/ -> docs/script/ (excluding framework-internal-only files)")
 
+    # templates/ (everything except templates/script/, already placed under docs/script/
+    # above) holds the init guides (templates/init/<type>.md) and skeleton docs
+    # (templates/specs/*.md, templates/architecture/*.md, etc.) that AGENTS.md's own
+    # "Project Initialization" step and each templates/init/<type>.md instruct the agent
+    # to read/copy from during setup (e.g. "Create docs/specs/quickstart.md from
+    # templates/specs/quickstart.md"). Without this, a freshly scaffolded project's first
+    # required step — reading templates/init/<type>.md — fails immediately: confirmed by
+    # actually running --init into a fresh directory and checking for
+    # templates/init/cli-tool.md (and the files it in turn references) before this fix —
+    # none of them were there.
+    shutil.copytree(
+        script_dir / "templates", dest / "templates", dirs_exist_ok=True,
+        ignore=shutil.ignore_patterns("script"),
+    )
+    print("[OK] copied templates/ -> templates/ (excluding templates/script/, handled separately above)")
+
     (dest / ".project-starter.yml").write_text(
         _PROJECT_STARTER_YML.format(project_type=project_type), encoding="utf-8",
     )

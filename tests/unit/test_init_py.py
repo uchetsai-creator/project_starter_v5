@@ -105,6 +105,37 @@ def test_init_py_excludes_framework_internal_files(tmp_path):
     assert (dest / "docs" / "script" / "generators").is_dir()
 
 
+def test_init_py_copies_templates_dir_referenced_by_agents_md(tmp_path):
+    """AGENTS.md's own "Project Initialization" step ("Read templates/init/<type>.md")
+    and each templates/init/<type>.md in turn ("Create docs/specs/quickstart.md from
+    templates/specs/quickstart.md") assume templates/ exists in the scaffolded project --
+    confirmed broken before this test existed: templates/script/ was copied to
+    docs/script/, but the rest of templates/ (init/, specs/, architecture/, business/,
+    flows/, schema/, and the loose top-level template docs) was never copied at all, so
+    a fresh project's very first init step pointed at files that didn't exist."""
+    dest = tmp_path / "proj"
+    result = _run_init(dest, project_type="cli-tool")
+    assert result.returncode == 0, result.stderr
+
+    for rel in (
+        "templates/init/cli-tool.md",
+        "templates/init/document-matrix.md",
+        "templates/specs/quickstart.md",
+        "templates/architecture/architecture.md",
+        "templates/business/business-rules.md",
+        "templates/flows/module-data-flow.md",
+        "templates/codebase-map.md",
+        "templates/task-completion.md",
+        "templates/module-completion.md",
+        "templates/sprint-sync.md",
+    ):
+        assert (dest / rel).exists(), f"missing {rel} after init.py"
+
+    # templates/script/ is handled separately (copied into docs/script/ above) -- must not
+    # be duplicated under templates/script/ too
+    assert not (dest / "templates" / "script").exists()
+
+
 def test_init_py_rejects_unknown_type(tmp_path):
     dest = tmp_path / "proj"
     result = _run_init(dest, project_type="not-a-real-type")
