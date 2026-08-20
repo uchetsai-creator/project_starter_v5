@@ -645,20 +645,29 @@ def update_codebase_map(map_path: str, src_dir: str, folders: list[dict], docs_d
     coverage_table = build_coverage_table(folders)
 
     # Replace Project Structure section
-    content = re.sub(
-        r"(## Project Structure\n<!--.*?-->\n\n)```[\s\S]*?```",
+    new_content, n1 = re.subn(
+        r"(## Project Structure\n\n<!--.*?-->\n\n)```[\s\S]*?```",
         r"\g<1>" + tree_block,
         content,
         flags=re.DOTALL,
     )
+    content = new_content
 
     # Replace Coverage Summary table
-    content = re.sub(
-        r"(## Coverage Summary\n<!--.*?-->\n\n)\|[\s\S]*?\n\n",
+    content, n2 = re.subn(
+        r"(## Coverage Summary\n\n<!--.*?-->\n\n)\|[\s\S]*?\n\n",
         r"\g<1>" + coverage_table + "\n\n",
         content,
         flags=re.DOTALL,
     )
+
+    if n1 == 0 or n2 == 0:
+        print(
+            f"Error: {map_path} did not match the expected section format "
+            f"(Project Structure matches: {n1}, Coverage Summary matches: {n2}). "
+            "No changes written."
+        )
+        sys.exit(1)
 
     with open(map_path, "w", encoding="utf-8") as f:
         f.write(content)
