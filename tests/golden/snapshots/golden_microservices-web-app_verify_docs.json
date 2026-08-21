@@ -1,0 +1,264 @@
+{
+  "project_type": "microservices+web-app",
+  "doc_profile": "full",
+  "results": [
+    {
+      "doc": "project-requirements.md",
+      "status": "missing_required",
+      "label": "Missing Required",
+      "note": ""
+    },
+    {
+      "doc": "architecture/architecture.md",
+      "status": "present",
+      "label": "Present",
+      "note": ""
+    },
+    {
+      "doc": "architecture/backend.md",
+      "status": "missing_required",
+      "label": "Missing Required",
+      "note": ""
+    },
+    {
+      "doc": "architecture/frontend.md",
+      "status": "missing_optional",
+      "label": "Missing Optional",
+      "note": ""
+    },
+    {
+      "doc": "architecture/database.md",
+      "status": "missing_required",
+      "label": "Missing Required",
+      "note": ""
+    },
+    {
+      "doc": "architecture/deployment.md",
+      "status": "missing_required",
+      "label": "Missing Required",
+      "note": ""
+    },
+    {
+      "doc": "architecture/distribution.md",
+      "status": "na",
+      "label": "—  N/A",
+      "note": ""
+    },
+    {
+      "doc": "architecture/topology.md",
+      "status": "na",
+      "label": "—  N/A",
+      "note": ""
+    },
+    {
+      "doc": "specs/api-contract.md",
+      "status": "present",
+      "label": "Present",
+      "note": ""
+    },
+    {
+      "doc": "specs/cli-contract.md",
+      "status": "na",
+      "label": "—  N/A",
+      "note": ""
+    },
+    {
+      "doc": "specs/public-api.md",
+      "status": "na",
+      "label": "—  N/A",
+      "note": ""
+    },
+    {
+      "doc": "specs/pipeline-contract.md",
+      "status": "na",
+      "label": "—  N/A",
+      "note": ""
+    },
+    {
+      "doc": "specs/pipeline-debug.md",
+      "status": "na",
+      "label": "—  N/A",
+      "note": ""
+    },
+    {
+      "doc": "specs/llm-contract.md",
+      "status": "na",
+      "label": "—  N/A",
+      "note": ""
+    },
+    {
+      "doc": "specs/prompt-library.md",
+      "status": "na",
+      "label": "—  N/A",
+      "note": ""
+    },
+    {
+      "doc": "specs/eval-spec.md",
+      "status": "na",
+      "label": "—  N/A",
+      "note": ""
+    },
+    {
+      "doc": "specs/eval-log.md",
+      "status": "na",
+      "label": "—  N/A",
+      "note": ""
+    },
+    {
+      "doc": "specs/llm-debug.md",
+      "status": "na",
+      "label": "—  N/A",
+      "note": ""
+    },
+    {
+      "doc": "specs/rag-contract.md",
+      "status": "na",
+      "label": "—  N/A",
+      "note": ""
+    },
+    {
+      "doc": "specs/mcp-contract.md",
+      "status": "na",
+      "label": "—  N/A",
+      "note": ""
+    },
+    {
+      "doc": "specs/service-catalog.md",
+      "status": "present",
+      "label": "Present",
+      "note": ""
+    },
+    {
+      "doc": "specs/service-contract.md",
+      "status": "present",
+      "label": "Present",
+      "note": ""
+    },
+    {
+      "doc": "specs/event-catalog.md",
+      "status": "missing_optional",
+      "label": "Missing Optional",
+      "note": ""
+    },
+    {
+      "doc": "specs/model-contract.md",
+      "status": "na",
+      "label": "—  N/A",
+      "note": ""
+    },
+    {
+      "doc": "specs/experiment-log.md",
+      "status": "na",
+      "label": "—  N/A",
+      "note": ""
+    },
+    {
+      "doc": "specs/release-guide.md",
+      "status": "na",
+      "label": "—  N/A",
+      "note": ""
+    },
+    {
+      "doc": "specs/compatibility-matrix.md",
+      "status": "na",
+      "label": "—  N/A",
+      "note": ""
+    },
+    {
+      "doc": "specs/permissions.md",
+      "status": "present",
+      "label": "Present",
+      "note": ""
+    },
+    {
+      "doc": "specs/data-model.md",
+      "status": "missing_required",
+      "label": "Missing Required",
+      "note": ""
+    },
+    {
+      "doc": "specs/logging-spec.md",
+      "status": "missing_required",
+      "label": "Missing Required",
+      "note": ""
+    },
+    {
+      "doc": "specs/research.md",
+      "status": "missing_required",
+      "label": "Missing Required",
+      "note": ""
+    },
+    {
+      "doc": "specs/quickstart.md",
+      "status": "missing_required",
+      "label": "Missing Required",
+      "note": ""
+    },
+    {
+      "doc": "specs/runbook.md",
+      "status": "na",
+      "label": "—  N/A",
+      "note": ""
+    },
+    {
+      "doc": "specs/drift-policy.md",
+      "status": "na",
+      "label": "—  N/A",
+      "note": ""
+    },
+    {
+      "doc": "specs/mobile-contract.md",
+      "status": "na",
+      "label": "—  N/A",
+      "note": ""
+    },
+    {
+      "doc": "specs/test-plan.md",
+      "status": "missing_required",
+      "label": "Missing Required",
+      "note": ""
+    },
+    {
+      "doc": "specs/test-report.md",
+      "status": "missing_required",
+      "label": "Missing Required",
+      "note": ""
+    },
+    {
+      "doc": "specs/glossary.md",
+      "status": "missing_optional",
+      "label": "Missing Optional",
+      "note": ""
+    },
+    {
+      "doc": "specs/dependencies.md",
+      "status": "missing_optional",
+      "label": "Missing Optional",
+      "note": ""
+    },
+    {
+      "doc": "business/business-process.md",
+      "status": "present",
+      "label": "Present",
+      "note": ""
+    },
+    {
+      "doc": "business/business-objects.md",
+      "status": "missing_required",
+      "label": "Missing Required",
+      "note": ""
+    },
+    {
+      "doc": "business/business-rules.md",
+      "status": "missing_required",
+      "label": "Missing Required",
+      "note": ""
+    },
+    {
+      "doc": "current-state.md",
+      "status": "orphan",
+      "label": "Orphan",
+      "note": "not in document matrix"
+    }
+  ]
+}
