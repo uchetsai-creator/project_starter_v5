@@ -274,6 +274,7 @@ def _estimate_cost(model: str, input_tokens: int, output_tokens: int) -> float |
     price isn't known and no override env vars are set."""
     override_in = os.environ.get('SPEC_CODE_PRICE_INPUT_PER_M')
     override_out = os.environ.get('SPEC_CODE_PRICE_OUTPUT_PER_M')
+    price: dict[str, float] | None
     if override_in and override_out:
         price = {'input': float(override_in), 'output': float(override_out)}
     else:
@@ -440,11 +441,11 @@ if __name__ == '__main__':
         try:
             mock_client = _MockClient(in_tok=100, out_tok=50)
             adapter2 = SemanticAdapter(wraps=_MockInner())
-            sys.modules[__name__]._get_client = lambda: mock_client
+            sys.modules[__name__]._get_client = lambda: mock_client  # type: ignore[attr-defined]
             try:
                 verdicts2 = adapter2.semantic_compare(two_item_report)
             finally:
-                sys.modules[__name__]._get_client = _real_get_client
+                sys.modules[__name__]._get_client = _real_get_client  # type: ignore[attr-defined]
 
             assert len(verdicts2) == 2  # one verdict per item, 2 items
             assert adapter2.token_usage['calls'] == 2
@@ -463,11 +464,11 @@ if __name__ == '__main__':
             os.environ['SPEC_CODE_TOKEN_BUDGET'] = '150'
             mock_client2 = _MockClient(in_tok=100, out_tok=50)
             adapter3 = SemanticAdapter(wraps=_MockInner())
-            sys.modules[__name__]._get_client = lambda: mock_client2
+            sys.modules[__name__]._get_client = lambda: mock_client2  # type: ignore[attr-defined]
             try:
                 verdicts3 = adapter3.semantic_compare(two_item_report)
             finally:
-                sys.modules[__name__]._get_client = _real_get_client
+                sys.modules[__name__]._get_client = _real_get_client  # type: ignore[attr-defined]
                 del os.environ['SPEC_CODE_TOKEN_BUDGET']
 
             assert adapter3.token_usage['calls'] == 1  # second item skipped by budget
