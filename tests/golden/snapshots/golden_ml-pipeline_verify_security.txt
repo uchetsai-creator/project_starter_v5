@@ -1,0 +1,5 @@
+[WARN] verify_security: --src not configured — skipping.
+    This project has no SAST scanning until this is set. Set security_scan_src
+    in .project-starter.yml (the pre-commit hook and orchestrator.py both read
+    it automatically — no need to pass --src by hand), or pass --src directly.
+    See README.md -> Security Scan (SAST).

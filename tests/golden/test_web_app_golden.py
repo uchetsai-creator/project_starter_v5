@@ -13,6 +13,8 @@ from tests.golden.conftest import (
 _VERIFY_REGISTRY = REPO_ROOT / "templates/script/validators/verify_registry.py"
 _VERIFY_DOCS = REPO_ROOT / "templates/script/validators/verify_docs.py"
 _VERIFY_CONTENT = REPO_ROOT / "templates/script/validators/verify_content.py"
+_VERIFY_SECURITY = REPO_ROOT / "templates/script/validators/verify_security.py"
+_VERIFY_PROSE = REPO_ROOT / "templates/script/validators/verify_prose.py"
 
 PROJECT_TYPE = "web-app"
 TASK_TYPE = "feature"
@@ -74,3 +76,23 @@ def test_verify_content_snapshot(snapshot_update, tmp_path):
     )
     assert result.returncode == 0, f"verify_content failed:\n{result.stdout}"
     assert_golden(f"golden_{PROJECT_TYPE}_verify_content.txt", normalize(result.stdout), snapshot_update)
+
+
+def test_verify_security_unconfigured_skips_gracefully(snapshot_update, tmp_path):
+    proj = setup_golden_project(tmp_path, PROJECT_TYPE)
+    result = _run(
+        [sys.executable, str(_VERIFY_SECURITY), "--project-type", PROJECT_TYPE, "--strict"],
+        proj,
+    )
+    assert result.returncode == 0, f"verify_security failed:\n{result.stdout}"
+    assert_golden(f"golden_{PROJECT_TYPE}_verify_security.txt", normalize(result.stdout), snapshot_update)
+
+
+def test_verify_prose_unconfigured_skips_gracefully(snapshot_update, tmp_path):
+    proj = setup_golden_project(tmp_path, PROJECT_TYPE)
+    result = _run(
+        [sys.executable, str(_VERIFY_PROSE), "--project-type", PROJECT_TYPE, "--strict"],
+        proj,
+    )
+    assert result.returncode == 0, f"verify_prose failed:\n{result.stdout}"
+    assert_golden(f"golden_{PROJECT_TYPE}_verify_prose.txt", normalize(result.stdout), snapshot_update)

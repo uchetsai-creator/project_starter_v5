@@ -1,0 +1,5 @@
+[WARN] verify_prose: --docs not configured — skipping.
+    This project has no prose-quality scanning until this is set. Set
+    prose_scan_enabled: true in .project-starter.yml (the pre-commit hook reads
+    it automatically and passes docs_path — no need to pass --docs by hand), or
+    pass --docs directly. See README.md -> Prose Quality (Vale).
