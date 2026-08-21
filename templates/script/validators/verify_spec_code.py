@@ -497,6 +497,22 @@ def print_semantic_report(verdicts: list[dict]) -> None:
     print()
 
 
+def print_token_usage(usage: dict) -> None:
+    cost = usage['estimated_cost_usd']
+    cost_str = f"${cost:.4f}" if cost is not None else "unknown (set SPEC_CODE_PRICE_INPUT_PER_M / _OUTPUT_PER_M)"
+    budget = usage['budget_tokens']
+    budget_str = f" (budget: {budget})" if budget is not None else ""
+    if usage['budget_exceeded']:
+        budget_str += " — BUDGET EXCEEDED, remaining items skipped"
+    print(
+        f"  Token usage ({usage['model']}): {usage['calls']} call(s), "
+        f"{usage['input_tokens']} in / {usage['output_tokens']} out — "
+        f"est. cost {cost_str}{budget_str}",
+    )
+    print("  Logged to logs/telemetry/token-usage.json")
+    print()
+
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -620,8 +636,10 @@ def main() -> None:
     zero_coverage = not code_items and _src_has_real_files(args.src)
 
     semantic_verdicts: list[dict] = []
+    token_usage: dict | None = None
     if args.semantic and hasattr(adapter_obj, 'semantic_compare'):
         semantic_verdicts = adapter_obj.semantic_compare(report)
+        token_usage = getattr(adapter_obj, 'token_usage', None)
 
     if args.json_output:
         print(json.dumps({
@@ -632,11 +650,14 @@ def main() -> None:
             **report,
             'zero_coverage': zero_coverage,
             'semantic_verdicts': semantic_verdicts,
+            'token_usage': token_usage,
         }, indent=2))
     else:
         print_report(report, args.spec, args.src, args.adapter, zero_coverage)
         if semantic_verdicts:
             print_semantic_report(semantic_verdicts)
+        if token_usage and token_usage['calls']:
+            print_token_usage(token_usage)
 
     if args.strict and args.dry_run:
         print(
