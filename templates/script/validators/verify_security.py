@@ -35,11 +35,19 @@ Usage:
   python3 verify_security.py --src src/ --project-type web-app --strict
   python3 verify_security.py --src src/ --json
   python3 verify_security.py --src src/ --min-severity high --strict
+  python3 verify_security.py --src src/ --llm-review
   python3 verify_security.py --list-tools
 
 If --src is not supplied (e.g. called from the pre-commit hook on a project
 that hasn't set security_scan_src), the validator prints a warning and exits
 0 — it never blocks an unconfigured project.
+
+--llm-review adds an opt-in, developer-invoked LLM pass on top of the SAST scan above,
+via llm_security_review.py (Claude Code's /security-review Skill, run headless). Never
+add --llm-review to workflow-registry.yaml or the pre-commit hook — same rule as
+verify_spec_code.py's --semantic: its output is non-deterministic, so it must stay a
+manual, developer-invoked pass. Its findings are printed but never affect --strict's
+exit code, and it never runs unless --llm-review is passed explicitly.
 """
 from __future__ import annotations
 
@@ -440,6 +448,14 @@ def main() -> None:
         '--list-tools', action='store_true',
         help='Print which SAST tools are installed and exit',
     )
+    parser.add_argument(
+        '--llm-review', action='store_true',
+        help=(
+            'Also run Claude Code\'s /security-review Skill headlessly (see '
+            'llm_security_review.py). Opt-in, developer-invoked only — never wire this '
+            'into workflow-registry.yaml or pre-commit. Findings never affect --strict.'
+        ),
+    )
     args = parser.parse_args()
 
     if args.list_tools:
@@ -480,6 +496,17 @@ def main() -> None:
     ts = _telemetry_ts()
     status = 'pass' if result['passed'] else 'fail'
     _append_telemetry('verify_security', args.project_type or '', status, ts)
+
+    if args.llm_review:
+        from llm_security_review import (  # noqa: PLC0415 — optional, only loaded when passed
+            print_review,
+            run_llm_security_review,
+        )
+        from llm_security_review import _write_review_telemetry  # noqa: PLC0415
+
+        review = run_llm_security_review()
+        print_review(review)
+        _write_review_telemetry(review)
 
     if args.strict and not result['passed']:
         sys.exit(1)

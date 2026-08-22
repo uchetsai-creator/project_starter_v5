@@ -1859,6 +1859,31 @@ sets catch, in Python, JS/TS/React, Go, Ruby, Java, PHP, Kotlin, and Vue code �
 security audit, and not a substitute for a real SAST/DAST pipeline or manual review on anything
 security-critical. See Limitations below.
 
+**`--llm-review` (optional, opt-in): Claude Code's `/security-review` Skill, run headless.**
+The tools above only catch fixed, known-unsafe patterns. `--llm-review` adds an LLM-driven pass
+on top, via `llm_security_review.py`, for the class of issue a pattern-matcher structurally
+cannot see — business-logic auth bypass, an unsafe trust boundary, prompt injection in an
+LLM-app project. Same relationship as `verify_spec_code.py`'s structural pass vs. its `--semantic`
+flag.
+
+```bash
+python3 docs/script/validators/verify_security.py --src src/ --llm-review
+```
+
+Requires the `claude` CLI installed and authenticated on whatever machine runs this (`claude auth
+login`, or `ANTHROPIC_API_KEY` set) — missing or unauthenticated prints a `[WARN]` and skips, the
+same graceful-degradation pattern as `--semantic`'s `ANTHROPIC_API_KEY` check. That's a portability
+property, not a per-machine dependency: clone this repo anywhere, log into Claude Code once, and
+it works there too.
+
+**Never wire `--llm-review` into `workflow-registry.yaml` or the pre-commit hook** — same
+constraint as `--semantic`: it shells out to a live Claude Code session and its output is
+non-deterministic, so it stays a manual, developer-invoked pass. Its findings are printed but
+never affect `--strict`'s exit code. Usage (cost, duration, turn count — whatever the installed
+Claude Code version's `--output-format json` reports) is appended to
+`logs/telemetry/security-review-usage.json`, mirroring the Spec ↔ Code Validator's
+`token-usage.json`, and dual-emitted as an OTel span the same way (see Validation Telemetry below).
+
 ---
 
 ## Prose Quality (Vale)

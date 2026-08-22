@@ -17,6 +17,10 @@
 #   .project-starter.yml); skips gracefully if omitted. Independent of verify_spec_code.py —
 #   no spec input, just known-unsafe-pattern detection in whatever code is under --src.
 #
+#   --llm-review (verify_security.py -> llm_security_review.py) is opt-in only, same rule
+#   as --semantic above. Do NOT add it to any sequence below — it shells out to a live
+#   Claude Code session, so it is not a gate.
+#
 # verify_prose.py (prose-quality wrapper — Vale):
 #   Requires --docs to be passed (orchestrator injects it from docs_path when
 #   prose_scan_enabled: true in .project-starter.yml); skips gracefully if omitted.
