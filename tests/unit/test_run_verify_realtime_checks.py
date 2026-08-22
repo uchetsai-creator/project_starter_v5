@@ -1,16 +1,19 @@
 """Tests for the real-time gate checks in adapters/claude/run-verify.sh.
 
 project_type_confirmed / Clarifying Questions Asked / Doc Checklist completeness /
-Sprint Documentation Sync are also enforced by .githooks/pre-commit, but only at
-`git commit`. A workflow that pulls once, does a long stretch of local work, then
-pushes/merges once at the end may go a very long time without committing -- those
-gates would barely ever run. This ports the same checks (see .githooks/pre-commit for
-the original, staged-file/working-tree-state versions) to read the working tree
-directly, so they surface on every Stop event instead of only at commit time. An
-earlier version of this nudge counted uncommitted files against a threshold instead --
-replaced because that models commit *frequency*, which this workflow deliberately
-doesn't have (one commit/push at the end, not many small ones), so a file-count proxy
-never fired at a meaningful moment.
+Sprint Documentation Sync / verify_docs+logs+tests+content --strict failures are also
+enforced by .githooks/pre-commit, but only at `git commit`. A workflow that pulls
+once, does a long stretch of local work, then pushes/merges once at the end may go a
+very long time without committing -- those gates would barely ever run. This surfaces
+the same checks (see .githooks/pre-commit for the original, staged-file/working-tree-
+state versions) on every Stop event instead: the first four read the working tree
+directly; the validator failures are parsed out of the --json output run-verify.sh
+already captures for logs/verify-*.json -- --strict only changes the exit code, never
+the JSON content, so no extra validator invocation is needed. An earlier version of
+this nudge counted uncommitted files against a threshold instead -- replaced because
+that models commit *frequency*, which this workflow deliberately doesn't have (one
+commit/push at the end, not many small ones), so a file-count proxy never fired at a
+meaningful moment.
 
 Runs the real script via subprocess against a minimal isolated git repo, matching
 test_pre_commit_doc_checklist.py's fixture style and test_session_start_hook.py's
@@ -32,6 +35,37 @@ pytestmark = pytest.mark.skipif(_BASH is None, reason="bash not found on PATH")
 
 _CLOSEOUT_FOOTER = "\n## Closeout (when all Steps and Verify are done)\n\n- Everything done: yes\n"
 
+# Fake validators -- argparse-compatible stand-ins for the real scripts, returning a
+# fixed --json payload shaped like a single --strict failure of that validator.
+_FAKE_DOCS_MISSING_REQUIRED = (
+    "import argparse, json\n"
+    "p = argparse.ArgumentParser()\n"
+    "p.add_argument('--project-type', required=True)\n"
+    "p.add_argument('--content', action='store_true')\n"
+    "p.add_argument('--json', action='store_true', dest='json_output')\n"
+    "args = p.parse_args()\n"
+    "if args.json_output:\n"
+    "    print(json.dumps({'results': [{'doc': 'docs/specs/quickstart.md', 'status': 'missing_required'}]}))\n"
+)
+_FAKE_CHECK_FAIL = (
+    "import argparse, json\n"
+    "p = argparse.ArgumentParser()\n"
+    "p.add_argument('--project-type', required=True)\n"
+    "p.add_argument('--json', action='store_true', dest='json_output')\n"
+    "args = p.parse_args()\n"
+    "if args.json_output:\n"
+    "    print(json.dumps({'results': [{'check': 'file exists', 'status': 'fail'}]}))\n"
+)
+_FAKE_CONTENT_FAIL = (
+    "import argparse, json\n"
+    "p = argparse.ArgumentParser()\n"
+    "p.add_argument('--project-type', required=True)\n"
+    "p.add_argument('--json', action='store_true', dest='json_output')\n"
+    "args = p.parse_args()\n"
+    "if args.json_output:\n"
+    "    print(json.dumps({'documents': [{'name': 'quickstart', 'present': False, 'quality': 'fail'}], 'modules': []}))\n"
+)
+
 
 def _make_repo(
     tmp_path: Path,
@@ -39,6 +73,7 @@ def _make_repo(
     project_type_confirmed_false: bool = False,
     current_state_body: str | None = None,
     sprint_log_body: str | None = None,
+    validator_scripts: dict[str, str] | None = None,
 ) -> Path:
     """Minimal repo satisfying run-verify.sh's own early-exit preconditions
     (.project-starter.yml + docs/script/validators/verify_docs.py must both exist,
@@ -55,8 +90,10 @@ def _make_repo(
         yml += "project_type_confirmed: false\n"
     (repo / ".project-starter.yml").write_text(yml, encoding="utf-8")
 
+    validator_scripts = validator_scripts or {}
     for name in ("verify_docs", "verify_logs", "verify_tests", "verify_content"):
-        (validators / f"{name}.py").write_text("print('{}')\n", encoding="utf-8")
+        content = validator_scripts.get(name, "print('{}')\n")
+        (validators / f"{name}.py").write_text(content, encoding="utf-8")
 
     if current_state_body is not None:
         (repo / "docs" / "current-state.md").write_text(current_state_body, encoding="utf-8")
@@ -214,6 +251,50 @@ def test_two_pending_sprint_entries_does_not_trigger_nudge(tmp_path):
 
 def test_no_sprint_change_log_does_not_crash(tmp_path):
     repo = _make_repo(tmp_path, sprint_log_body=None)
+    result = _run(repo)
+    assert result.returncode == 0
+    assert result.stdout.strip() == ""
+
+
+def test_verify_docs_missing_required_produces_nudge(tmp_path):
+    repo = _make_repo(tmp_path, validator_scripts={"verify_docs": _FAKE_DOCS_MISSING_REQUIRED})
+    result = _run(repo)
+    assert result.returncode == 0
+    ctx = _nudge_context(result)
+    assert "verify_docs.py would fail --strict" in ctx
+    assert "docs/specs/quickstart.md" in ctx
+
+
+def test_verify_logs_fail_produces_nudge(tmp_path):
+    repo = _make_repo(tmp_path, validator_scripts={"verify_logs": _FAKE_CHECK_FAIL})
+    result = _run(repo)
+    assert result.returncode == 0
+    ctx = _nudge_context(result)
+    assert "verify_logs.py would fail --strict" in ctx
+    assert "file exists" in ctx
+
+
+def test_verify_tests_fail_produces_nudge(tmp_path):
+    repo = _make_repo(tmp_path, validator_scripts={"verify_tests": _FAKE_CHECK_FAIL})
+    result = _run(repo)
+    assert result.returncode == 0
+    ctx = _nudge_context(result)
+    assert "verify_tests.py would fail --strict" in ctx
+
+
+def test_verify_content_fail_produces_nudge(tmp_path):
+    repo = _make_repo(tmp_path, validator_scripts={"verify_content": _FAKE_CONTENT_FAIL})
+    result = _run(repo)
+    assert result.returncode == 0
+    ctx = _nudge_context(result)
+    assert "verify_content.py would fail --strict" in ctx
+    assert "quickstart" in ctx
+
+
+def test_all_validators_passing_produces_no_validator_nudge(tmp_path):
+    """Default fixture validators print '{}' (no results/documents keys at all) --
+    the JSON parser must treat a missing key as zero failures, not crash."""
+    repo = _make_repo(tmp_path)
     result = _run(repo)
     assert result.returncode == 0
     assert result.stdout.strip() == ""

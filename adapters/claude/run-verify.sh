@@ -41,15 +41,17 @@ run_validator() {
 
 # ── Real-time gate checks (no git commit dependency) ───────────────────────
 # project_type_confirmed / Clarifying Questions Asked / Doc Checklist completeness /
-# Sprint Documentation Sync are also enforced by .githooks/pre-commit, but ONLY at
-# `git commit` — a workflow that pulls once, does a long stretch of local work, then
-# pushes/merges once at the end may go a very long time without committing, so those
-# gates would barely ever run. This ports the same checks to read the working tree
-# directly (no staged-file concept needed, since there's no commit to inspect) so they
-# surface on every Stop event instead. Non-blocking by design (Stop hooks can't
-# block), using the same hookSpecificOutput.additionalContext mechanism
-# session-start-hook.sh already uses (Stop hooks support the identical schema — see
-# https://code.claude.com/docs/en/hooks).
+# Sprint Documentation Sync / verify_docs+logs+tests+content --strict failures are
+# also enforced by .githooks/pre-commit, but ONLY at `git commit` — a workflow that
+# pulls once, does a long stretch of local work, then pushes/merges once at the end
+# may go a very long time without committing, so those gates would barely ever run.
+# This surfaces the same checks on every Stop event instead: the first four read the
+# working tree directly (no staged-file concept needed, since there's no commit to
+# inspect); the validator failures reuse the --json output already captured above for
+# logs/verify-*.json, since --strict only changes the exit code, never the JSON
+# content. Non-blocking by design (Stop hooks can't block), using the same
+# hookSpecificOutput.additionalContext mechanism session-start-hook.sh already uses
+# (Stop hooks support the identical schema — see https://code.claude.com/docs/en/hooks).
 CONFIG=".project-starter.yml"
 ISSUES=()
 
@@ -95,6 +97,64 @@ if [ -f "$CONFIG" ]; then
         if [ "$PENDING_COUNT" -ge 3 ]; then
             ISSUES+=("$SPRINT_LOG has $PENDING_COUNT entries at 'Pending documentation synchronization' (threshold: 3). Run Sprint Documentation Sync (templates/sprint-sync.md) -- see AGENTS.md -> Sprint Documentation Sync.")
         fi
+    fi
+fi
+
+# ── Validator failures (--strict, without re-running anything) ─────────────
+# verify_docs/logs/tests/content already ran with --json above to build
+# logs/verify-*.json -- --strict only ever changes the exit code, never the JSON
+# content (confirmed by reading each validator's main()), so the JSON already
+# captured is enough to compute the same pass/fail --strict would. Previously this
+# JSON was written to a log file nobody reads proactively; parsing the failures out
+# here and adding them to the same nudge as the four checks above costs nothing extra
+# to run, only the parsing itself.
+if command -v python3 &>/dev/null; then
+    VALIDATOR_ISSUES=$(python3 -c "
+import json, sys
+
+def docs_failures(raw):
+    try:
+        data = json.loads(raw)
+    except (json.JSONDecodeError, TypeError):
+        return []
+    return [r['doc'] for r in data.get('results', []) if r.get('status') == 'missing_required']
+
+def check_failures(raw):
+    try:
+        data = json.loads(raw)
+    except (json.JSONDecodeError, TypeError):
+        return []
+    return [r['check'] for r in data.get('results', []) if r.get('status') == 'fail']
+
+def content_failures(raw):
+    try:
+        data = json.loads(raw)
+    except (json.JSONDecodeError, TypeError):
+        return []
+    failed = [d['name'] for d in data.get('documents', [])
+              if not d.get('present') or d.get('quality') == 'fail']
+    failed += [m['name'] for m in data.get('modules', [])
+               if not m.get('flow_file_present') or m.get('quality') == 'fail']
+    return failed
+
+for label, extractor, raw in (
+    ('verify_docs.py', docs_failures, sys.argv[1]),
+    ('verify_logs.py', check_failures, sys.argv[2]),
+    ('verify_tests.py', check_failures, sys.argv[3]),
+    ('verify_content.py', content_failures, sys.argv[4]),
+):
+    failed = extractor(raw)
+    if not failed:
+        continue
+    shown = ', '.join(failed[:5])
+    if len(failed) > 5:
+        shown += f' (+{len(failed) - 5} more)'
+    print(f'{label} would fail --strict: {shown}')
+" "$DOCS_OUT" "$LOGS_OUT" "$TESTS_OUT" "$CONT_OUT" 2>/dev/null)
+    if [ -n "$VALIDATOR_ISSUES" ]; then
+        while IFS= read -r line; do
+            [ -n "$line" ] && ISSUES+=("$line")
+        done <<< "$VALIDATOR_ISSUES"
     fi
 fi
 

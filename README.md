@@ -118,8 +118,14 @@ a human's own decision.
    This copies all required framework files, writes a pre-filled `.project-starter.yml`, writes
    `CLAUDE.md` (`@AGENTS.md` — see Agent Adapters below) if it doesn't already exist, writes or
    appends to `.gitignore` so `.ai/`, `__pycache__/`, and `logs/` aren't committed by default (an
-   existing `.gitignore` is appended to, never overwritten), and installs the pre-commit hook.
-   Skip to step 2 once done.
+   existing `.gitignore` is appended to, never overwritten), and installs the pre-commit hook if
+   the destination is already a git repository. It also copies `templates/ci/github-actions-
+   verify.yml` in like any other reference template — but, unlike the pre-commit hook, does
+   **not** install it into `.github/workflows/`: that hook only ever affects the person who
+   installed it, while a GitHub Actions workflow runs on every contributor's PR the moment it's
+   merged, whether or not they use this framework. Deciding to impose that on a shared repo is
+   left to whoever owns it — see Verification below for how to opt in deliberately. Skip to step 2
+   once done.
 
    *Manual alternative:* copy `AGENTS.md`, `orchestrator.py`, `build-context.py`,
    `_workflow_utils.py`, `workflow-registry.yaml`, `document-registry.yaml`,
@@ -178,6 +184,20 @@ then re-run the same `--init` command again, pointed at the same existing projec
 copies use `dirs_exist_ok=True`, so re-running it is safe and just overwrites the framework files
 with the newer versions. This never touches the target project's own `.git/` either.
 
+**If other people also work in the target project and you don't want to affect them:** the
+pre-commit hook installed above only ever checks *your own* commits from *this* machine — nothing
+else to do, no one else needs to know it's there. Leave `templates/ci/github-actions-verify.yml`
+alone (do not copy it to `.github/workflows/`) and skip branch protection entirely — see
+Verification → "Running the same checks in CI" for why those two specifically are repo-wide,
+opt-in-only, and not something this framework enables by default.
+
+**If the full document set feels heavier than you need** for a personal/analysis-only use of an
+existing project, set `doc_profile: lite` in `.project-starter.yml` — downgrades
+`permissions.md`, `business-*.md`, `backend/database/deployment.md`, `research.md`, and
+`test-plan.md`/`test-report.md` from Required to Optional. Core contracts
+(`project-requirements.md`, `quickstart.md`, `data-model.md`, `api-contract.md`,
+`architecture.md`, `logging-spec.md`) stay Required either way. See `guidance/doc-profile.md`.
+
 From here: **Project Initialization** below has the full per-type document list, **Verification**
 covers exactly what the pre-commit hook checks, and **Spec ↔ Code Validator** covers wiring up
 automatic spec↔code drift detection. Read **[Limitations](#limitations)** before assuming that
@@ -233,7 +253,7 @@ project_starter/                     ← this repo (template only)
 │   │                                   Claude Code + Codex today — see Agent Adapters below)
 │   ├── claude/
 │   │   ├── start-task.md           ← slash command template (copy to .claude/commands/ in your project)
-│   │   ├── run-verify.sh           ← Claude Code Stop-hook script: writes validator --json output to logs/verify-{timestamp}.json, plus real-time project_type_confirmed / Clarifying Questions Asked / Doc Checklist / Sprint Documentation Sync checks
+│   │   ├── run-verify.sh           ← Claude Code Stop-hook script: writes validator --json output to logs/verify-{timestamp}.json, plus real-time project_type_confirmed / Clarifying Questions Asked / Doc Checklist / Sprint Documentation Sync checks and the same --json output's --strict pass/fail for verify_docs/logs/tests/content
 │   │   ├── stop-hook.sh            ← writes session boundary to logs/telemetry/task-run.json on Claude Code session end
 │   │   ├── session-start-hook.sh   ← non-blocking nudge: re-checks current-state.md scoping state fresh every session, plus a brand-new-project nudge toward research.md when both Task and research.md are still unscoped
 │   │   ├── learning_log_nudge.py   ← non-blocking nudge: flags when docs/task-log.md was closed out more recently than learning-log.md was last touched (never checks entry content — see Learning Checkpoint enforcement below)
@@ -832,17 +852,19 @@ python3 orchestrator.py --adapter claude --dry-run
      `verify_tests.py` / `verify_content.py` with `--json` and writes the combined output to
      `logs/verify-{timestamp}.json`, so you can see validator results without running them by hand.
      Also re-checks `project_type_confirmed`, `Clarifying Questions Asked`, Doc Checklist
-     completeness, and Sprint Documentation Sync's Pending-count threshold directly against the
-     working tree on every Stop event — the same four checks `.githooks/pre-commit` enforces, but
-     that script only ever sees them at `git commit`. For a
-     workflow that pulls once, does a long stretch of local work, then pushes/merges once at the
-     end, commits may be too infrequent for those gates to ever fire mid-task; reading the working
-     tree directly (no staged-file concept needed) surfaces the same four issues every session
-     instead. Surfaced via `hookSpecificOutput.additionalContext`, the same mechanism
-     `session-start-hook.sh` uses for `SessionStart` — Stop hooks support the identical schema.
-     Non-blocking on purpose, matching this hook's existing design: `pretooluse_scope_guard.py`
+     completeness, Sprint Documentation Sync's Pending-count threshold, and now the same
+     `--strict` pass/fail those four validators would compute — parsed out of the `--json` output
+     already captured above, since `--strict` only changes the exit code, never the JSON content,
+     so nothing extra needs to run. All of this is the same set of checks `.githooks/pre-commit`
+     enforces, but that script only ever sees them at `git commit`. For a workflow that pulls
+     once, does a long stretch of local work, then pushes/merges once at the end, commits may be
+     too infrequent for those gates to ever fire mid-task; reading the working tree directly (no
+     staged-file concept needed) and reusing the already-captured validator JSON surfaces the same
+     issues every session instead. Surfaced via `hookSpecificOutput.additionalContext`, the same
+     mechanism `session-start-hook.sh` uses for `SessionStart` — Stop hooks support the identical
+     schema. Non-blocking on purpose, matching this hook's existing design: `pretooluse_scope_guard.py`
      below is the one gate that doesn't depend on commit frequency at all (fires per-edit); this
-     is a second, informational layer for the other four, not a third blocking gate.
+     is a second, informational layer for the rest, not a third blocking gate.
    - `adapters/claude/stop-hook.sh` (Stop, non-blocking) — records the session boundary to
      `logs/telemetry/task-run.json` (see Validation Telemetry below).
      Note: this writes to telemetry only — not to `docs/task-log.md`. Task log rows are written
@@ -1254,6 +1276,9 @@ Any AI tool (Claude Code / other / manual)
    actually runs the configured test command  ← real test execution (block on failure)
    — unlike verify_tests.py above, which only checks that test-report.md is filled in
         ↓
+ [project_type_confirmed: false in .project-starter.yml]  confirmed yet? ← detect_type.py guess audit (block)
+ [sprint-change-log.md: >= 3 entries Pending documentation synchronization]
+   Sprint Documentation Sync run yet? ← Pending-count threshold (block)
  [AGENTS.md staged]      line count ≤ 200            ← token budget (block)
  [specs/*.md staged]     changelog.md also staged?   ← audit trail (warn)
  [current-state.md + Status:Complete]  Closeout filled? ← closeout (block)
@@ -1269,8 +1294,13 @@ Any AI tool (Claude Code / other / manual)
  PASS → commit proceeds
  FAIL → commit blocked, output shown to developer
 
-Optional fast-feedback (Claude Code only):
- .claude/settings.json Stop hook → same scripts → logs/verify-{timestamp}.json
+Optional fast-feedback (Claude Code only, Stop hook — adapters/claude/run-verify.sh):
+ same four validators → logs/verify-{timestamp}.json (visibility only, non-blocking)
+ + re-checks project_type_confirmed / Clarifying Questions Asked / Doc Checklist /
+   Sprint Documentation Sync / the four validators' --strict pass-fail against the
+   working tree — same checks as above, surfaced every session instead of only at
+   git commit (see Verification → "Running the same checks in CI" for the CI-side
+   version of this same idea)
 ```
 
 Spec-facing documents (writing audience check): `business-rules.md`, `pipeline-contract.md`, `research.md`, `quickstart.md`, `architecture/*.md`, `modules/*/*-module-data-flow.md`
@@ -1280,6 +1310,41 @@ every check above for that one commit — loudly (`[SKIP]` line) and audibly (a 
 `logs/telemetry/skip-verify.json`), unlike `git commit --no-verify`, which skips silently with
 no trace at all. Prefer the env var for that reason. Full rationale and behavior:
 `.githooks/pre-commit`'s own header comment (canonical source — this paragraph is a summary).
+
+**Running the same checks in CI (opt-in, repo-owner decision):** a local `.git/hooks/pre-commit`
+only protects commits made on that one machine — anyone who hasn't installed it (a teammate, a
+fresh clone, CI itself) gets none of this. Set `PROJECT_STARTER_DIFF_RANGE` (e.g.
+`origin/main...HEAD`) before invoking `.githooks/pre-commit` to switch its diff source from the git
+index (staged files — meaningless in a CI checkout, which has no staging step) to a git ref range,
+and every file-content read from the staged version to the current working-tree version — the
+checkout already *is* the state under test. Same script, same checks, no second implementation to
+keep in sync. `templates/ci/github-actions-verify.yml` is a ready-to-use workflow built on this —
+copy it to `.github/workflows/verify.yml` yourself if you want it:
+```yaml
+# templates/ci/github-actions-verify.yml -- copy to .github/workflows/verify.yml to activate
+on:
+  pull_request:
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+      - env:
+          PROJECT_STARTER_DIFF_RANGE: origin/${{ github.base_ref }}...HEAD
+        run: bash .githooks/pre-commit
+```
+**Deliberately not auto-installed by `--init`, unlike the pre-commit hook.** A local hook only ever
+affects the person who installed it; a GitHub Actions workflow runs on *every* contributor's PR the
+moment it's merged, whether or not they use this framework or agreed to it — a decision for
+whoever owns the repo to make on purpose, not a default this framework should impose on a shared
+project. If you do want it, pair it with a GitHub branch protection rule requiring the check to
+pass before merge — without that, a failing run only shows a red X anyone can ignore, the same
+"convention, not enforcement" gap a missing local hook has. Branch protection is a repository
+setting, not something any script here can turn on for you — set it once, on GitHub, under the
+target repo's Settings → Branches → Branch protection rules.
 
 `verify_acceptance.py` (FR-XXX → test plan → test report traceability) is **not** part of
 `.githooks/pre-commit` — checking full requirement traceability on every commit would block

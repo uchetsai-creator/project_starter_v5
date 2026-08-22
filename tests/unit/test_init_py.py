@@ -154,6 +154,38 @@ def test_init_py_installs_pre_commit_hook_when_dest_is_a_git_repo(tmp_path):
     assert (dest / ".git" / "hooks" / "pre-commit").exists()
 
 
+def test_init_py_never_auto_installs_ci_into_github_workflows(tmp_path):
+    """Unlike the pre-commit hook (local-only, affects only whoever installed it),
+    a GitHub Actions workflow is repo-wide -- it runs on every contributor's PR the
+    moment it's merged, whether or not they use this framework. That's a deliberate,
+    repo-owner decision, not something --init should default to making for them.
+    Confirmed even when the destination is a git repo, where the pre-commit hook IS
+    auto-installed -- the two must not be treated the same way."""
+    dest = tmp_path / "proj"
+    dest.mkdir()
+    (dest / ".git").mkdir()
+    (dest / ".git" / "HEAD").write_text("ref: refs/heads/main\n", encoding="utf-8")
+
+    result = _run_init(dest)
+    assert result.returncode == 0, result.stderr
+    assert not (dest / ".github" / "workflows" / "verify.yml").exists()
+
+
+def test_init_py_copies_the_optional_ci_template_for_manual_use(tmp_path):
+    """The workflow is still available -- just not self-installing -- at
+    templates/ci/github-actions-verify.yml, copied like any other reference template,
+    for whoever owns the target repo to deliberately opt into."""
+    dest = tmp_path / "proj"
+    result = _run_init(dest)
+    assert result.returncode == 0, result.stderr
+
+    template = dest / "templates" / "ci" / "github-actions-verify.yml"
+    assert template.exists()
+    text = template.read_text(encoding="utf-8")
+    assert "PROJECT_STARTER_DIFF_RANGE" in text
+    assert ".githooks/pre-commit" in text
+
+
 def test_init_py_writes_gitignore_covering_generated_paths(tmp_path):
     """Without this, a fresh project commits .ai/, __pycache__/, and logs/ by default —
     confirmed by actually running --init into an empty dir and checking git status."""

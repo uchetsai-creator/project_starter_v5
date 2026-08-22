@@ -341,6 +341,63 @@ note bottom of vreg : Added after this diagram's\nprior revision -- catches malf
   reason. Surfaced during the same conversation that produced the file-count-threshold-to-direct-
   check redesign above — asking "what else here is convention-only, not actually enforced"
   surfaced this gap too, once the discussion moved from "commit" to "sprint" as the relevant unit.
+- **The four working-tree Stop-hook checks above still missed the heaviest gates: `verify_docs
+  --content`, `verify_logs`, `verify_tests`, `verify_content` `--strict` failures** — these only
+  ever surfaced at `git commit` too. The fix cost nothing extra to run: `run-verify.sh` already
+  invokes all four validators with `--json` on every Stop event to build `logs/verify-*.json` (a
+  log nobody reads proactively), and reading each validator's own `main()` confirmed `--strict`
+  only ever changes the exit code, never the JSON content — so the JSON already captured is
+  sufficient to compute the identical pass/fail `--strict` would, just by parsing it (`status ==
+  'missing_required'` for `verify_docs.py`, `status == 'fail'` for `verify_logs.py`/
+  `verify_tests.py`, `not present or quality == 'fail'` for `verify_content.py`'s documents and
+  modules — confirmed against each script's own `--strict` branch, not guessed). Deliberately
+  excluded from this Stop-hook layer: `test_command` (would mean re-running the full test suite
+  on every session end), spec↔code drift, security scan, and prose scan — these stay commit-time-
+  only since they're either slow or need dependencies (Vale, bandit) not guaranteed to be present
+  outside the commit path.
+- **A local `.githooks/pre-commit` only ever protects the machine it's installed on — a teammate
+  who never ran the manual install step, a fresh clone, or CI itself gets none of it.** The
+  underlying block was structural, not a missing feature: every guard read `git diff --cached`
+  (the staged index) and `git show ":$file"` (the staged version of a file's content) — concepts
+  that only exist mid-`git commit`, not in a CI checkout, where the working tree already *is* the
+  full state under test and there's no staging step at all. Rewriting the checks into a second,
+  CI-native script was rejected — same rationale as the `spec_code_bindings` YAML-parsing decision
+  earlier in this document: two implementations of the same rules drift, and only one of them is
+  exercised by this project's own test suite. Instead, both the diff source (`STAGED`) and the
+  content-read helper (a new `_content_at()` function, replacing five separate `git show ":$file"`
+  call sites) branch on whether `PROJECT_STARTER_DIFF_RANGE` is set: unset, behavior is byte-for-
+  byte what it was before (`git diff --cached` / staged content); set to a git ref range (e.g.
+  `origin/main...HEAD`), `STAGED` becomes `git diff --name-only "$RANGE"` and content reads become
+  a plain `cat` of the working-tree file. One script, one set of rules, runnable from a CI step by
+  setting a single environment variable — confirmed against a real two-commit repo in both modes:
+  local mode sees nothing once a change is fully committed with nothing staged; the same repo with
+  `PROJECT_STARTER_DIFF_RANGE` set catches the violation the commit introduced, and picks up
+  further *uncommitted* working-tree edits too (proving it reads the tree, not a git object).
+  Branch protection — actually blocking merge on this check, not just showing a red X anyone can
+  ignore — is a GitHub repository setting, out of reach of any script here; README documents it as
+  a manual pairing step, the same "convention vs. enforcement" distinction this whole document
+  keeps returning to.
+- **Auto-installing the CI workflow the same way the pre-commit hook is auto-installed was tried,
+  then deliberately reverted — the two are not the same kind of change.** First pass: `init.py
+  --init`'s `if git_head.exists()` branch (already auto-installing the local pre-commit hook) also
+  wrote `.github/workflows/verify.yml`, following the same never-overwrite discipline as `CLAUDE.md`
+  and `.gitignore`. This was wrong the moment it was checked against the actual use case driving
+  this whole CI thread: the user's team situation is "other people also connect to this project,
+  and I don't want to impose anything on them" — not "other people should be blocked from merging
+  bad code." A local `.git/hooks/pre-commit` only ever affects the person who installed it; a file
+  at `.github/workflows/*.yml` is picked up by GitHub Actions the moment it's merged and runs on
+  *every* contributor's PR from then on, whether or not they use this framework or agreed to it —
+  visible to them even without a branch-protection rule making it block anything. Auto-writing it
+  is a fundamentally different blast radius than auto-installing a local hook, and doesn't belong
+  behind the same unconditional `if git_head.exists()` check. Reverted to: the workflow content
+  lives at `templates/ci/github-actions-verify.yml`, copied into a target project by `--init` like
+  any other reference template (inert there — GitHub Actions only reads `.github/workflows/`, and
+  this repo's own CI lives at `.github/workflows/ci.yml`, unaffected), but never installed into
+  `.github/workflows/` automatically. Copying it there — the one action that actually activates
+  it — is left as a deliberate, repo-owner decision, documented in README rather than defaulted
+  into. Branch protection remains what it always was: a manual, one-time GitHub Settings step for
+  whoever owns the target repo, for if and when they decide repo-wide enforcement is what they
+  actually want.
 - **Validator sequencing (`workflow-registry.yaml`) had no equivalent schema gate** —
   `verify_registry.py` validated `document-registry.yaml`'s shape, but nothing validated
   `workflow-registry.yaml`'s shape the same way (a validator script path that doesn't exist, a

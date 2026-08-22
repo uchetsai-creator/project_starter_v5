@@ -1,0 +1,40 @@
+# Optional. Copy this file to .github/workflows/verify.yml in your OWN project (not this
+# framework repo) if you want CI-level enforcement of .githooks/pre-commit's checks.
+#
+# init.py / setup.sh --init copies this file to <your-project>/templates/ci/ along with
+# every other reference template, but deliberately does NOT install it into
+# .github/workflows/ the way it auto-installs the pre-commit hook. A local
+# .git/hooks/pre-commit only ever affects the person who installed it -- putting this
+# file where GitHub Actions actually reads from would affect everyone who opens a PR on
+# that repo the moment it's merged, whether or not they use this framework, or even know
+# it's there. That's a call for whoever owns the repo to make deliberately, not a
+# default this framework should impose.
+#
+# Also NOT self-active in this repo (project_starter_v5) even though it lives under
+# templates/ -- only files actually placed under a project's own .github/workflows/ are
+# picked up by GitHub Actions, so keeping this here (instead of in this repo's own
+# .github/workflows/) avoids it accidentally running against project_starter_v5 itself.
+#
+# See README.md -> Verification -> "Running the same checks in CI" for the full
+# rationale, and for how to pair this with a GitHub branch protection rule so a failing
+# check actually blocks merge instead of only showing a red X anyone can ignore.
+
+name: project_starter_v5 verification
+
+on:
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run pre-commit verification
+        env:
+          PROJECT_STARTER_DIFF_RANGE: origin/${{ github.base_ref }}...HEAD
+        run: bash .githooks/pre-commit

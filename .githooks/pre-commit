@@ -70,8 +70,28 @@ except ImportError:
     exit 0
 fi
 
-# Staged file list — collected once, used by multiple checks
-STAGED=$(git diff --cached --name-only 2>/dev/null || true)
+# ── Diff source (staged files locally, or a git ref range for CI reuse) ──────────
+# Local git commit (default): compares against the index (staged files), unchanged
+# from before. CI: set PROJECT_STARTER_DIFF_RANGE (e.g. "origin/main...HEAD") to
+# compare against a git ref range instead -- a CI checkout has no staging concept,
+# the working tree already reflects the full state under test. Lets this exact
+# script run in both places instead of a second, separately-maintained CI script.
+if [ -n "${PROJECT_STARTER_DIFF_RANGE:-}" ]; then
+    STAGED=$(git diff --name-only "$PROJECT_STARTER_DIFF_RANGE" 2>/dev/null || true)
+else
+    STAGED=$(git diff --cached --name-only 2>/dev/null || true)
+fi
+
+# Reads a file's content as it will be after this change: the staged (index) version
+# locally, or the current working-tree version in CI mode -- there's nothing "staged"
+# in a CI checkout, the tree already IS the state under test.
+_content_at() {
+    if [ -n "${PROJECT_STARTER_DIFF_RANGE:-}" ]; then
+        cat "$1" 2>/dev/null || true
+    else
+        git show ":$1" 2>/dev/null || true
+    fi
+}
 
 # Validates a "**Clarifying Questions Asked:**" line's value against the documented
 # vocabulary (Y or N/A — see current-state.md template). A presence-only check would
@@ -288,8 +308,8 @@ NON_SOURCE_REGEX="^(${DOCS_PATH}/|guidance/|\.githooks/|\.claude/|\.codex/|adapt
 SOURCE_STAGED=$(printf '%s\n' "$STAGED" | grep -vE "$NON_SOURCE_REGEX" || true)
 if [ -n "$SOURCE_STAGED" ]; then
     CS_PATH="${DOCS_PATH}/current-state.md"
-    if printf '%s\n' "$STAGED" | grep -qxF "$CS_PATH"; then
-        SCOPE_CS_CONTENT=$(git show ":$CS_PATH" 2>/dev/null || true)
+    if [ -n "${PROJECT_STARTER_DIFF_RANGE:-}" ] || printf '%s\n' "$STAGED" | grep -qxF "$CS_PATH"; then
+        SCOPE_CS_CONTENT=$(_content_at "$CS_PATH")
     else
         SCOPE_CS_CONTENT=$(git show "HEAD:$CS_PATH" 2>/dev/null || true)
     fi
@@ -360,7 +380,7 @@ fi
 # Catches: AGENTS.md growing past the 200-line limit
 AGENTS_FILE=$(printf '%s\n' "$STAGED" | grep -E '(^|/)AGENTS\.md$' | head -1 || true)
 if [ -n "$AGENTS_FILE" ]; then
-    AGENTS_LINES=$(git show ":$AGENTS_FILE" 2>/dev/null | wc -l || echo 0)
+    AGENTS_LINES=$(_content_at "$AGENTS_FILE" | wc -l || echo 0)
     if [ "$AGENTS_LINES" -gt 200 ]; then
         echo "  [FAIL] AGENTS.md is $AGENTS_LINES lines — token budget exceeded (limit: 200)"
         PASS=false
@@ -386,7 +406,7 @@ fi
 # Catches: task marked done but Closeout section left with unfilled placeholders
 CS_FILE=$(printf '%s\n' "$STAGED" | grep -E '(^|/)current-state\.md$' | head -1 || true)
 if [ -n "$CS_FILE" ]; then
-    CS_CONTENT=$(git show ":$CS_FILE" 2>/dev/null || true)
+    CS_CONTENT=$(_content_at "$CS_FILE")
     CS_STATUS=$(printf '%s\n' "$CS_CONTENT" | grep -iE '^\*\*Status:\*\*' | head -1 || true)
     if printf '%s\n' "$CS_STATUS" | grep -qi 'Complete'; then
         CLOSEOUT_SECTION=$(printf '%s\n' "$CS_CONTENT" | awk '/^## Closeout/{p=1} p{print}')
@@ -443,7 +463,7 @@ if [ -n "$SPEC_FACING_STAGED" ]; then
     FOUND_VIOLATIONS=false
     while IFS= read -r file; do
         [ -z "$file" ] && continue
-        VIOLATIONS=$(git show ":$file" 2>/dev/null \
+        VIOLATIONS=$(_content_at "$file" \
             | grep -nE 'Sprint [0-9]+|Task [0-9]+|\(S[0-9]+\)' || true)
         if [ -n "$VIOLATIONS" ]; then
             if [ "$FOUND_VIOLATIONS" = false ]; then
