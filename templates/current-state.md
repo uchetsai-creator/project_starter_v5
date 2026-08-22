@@ -89,6 +89,11 @@
 
   WHEN TO RUN: at task completion (Task Completion step 1a).
   Apply each item listed here — do NOT re-open AGENTS.md at closeout.
+
+  ENFORCED: .githooks/pre-commit blocks a commit that sets Status to Complete while this
+  section still has an unchecked `- [ ]` item or the raw, never-customized placeholder
+  (`[relevant spec]`) below. Check items off (`- [x]`) as you actually apply them, not all
+  at once at the end from memory.
 -->
 
 - [ ] `docs/[relevant spec]` — [what to check / update]

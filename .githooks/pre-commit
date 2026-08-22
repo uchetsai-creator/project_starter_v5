@@ -371,6 +371,26 @@ if [ -n "$CS_FILE" ]; then
             echo "  [FAIL] current-state.md Status is Complete but Closeout section has unfilled placeholders (___) or comments (<!--)"
             PASS=false
         fi
+
+        # ── Doc Checklist completeness ──────────────────────────────────────
+        # Trigger: same as above (Status contains "Complete").
+        # Catches: a task marked Complete while its own Doc Checklist still has an
+        # unchecked item (- [ ]) or the raw, never-customized template placeholder
+        # (`[relevant spec]`) — i.e. the per-task doc-update list AGENTS.md -> "Closing
+        # out a task" says to apply at closeout was never actually gone through.
+        # Reuses the checklist's own - [ ] / - [x] state directly rather than adding a
+        # separate summary field (e.g. a "Doc Checklist Applied: Y/N/A" flag) — a second,
+        # independently-settable field would just be one more thing that could say "done"
+        # without the underlying items actually being checked off; the checkboxes already
+        # ARE the record of what happened, so trust that instead of a field a duplicate of it.
+        DOC_CHECKLIST_SECTION=$(printf '%s\n' "$CS_CONTENT" | awk '/^## Doc Checklist/{p=1} /^## Closeout/{p=0} p{print}')
+        if printf '%s\n' "$DOC_CHECKLIST_SECTION" | grep -qE '^- \[ \]|\[relevant spec\]'; then
+            echo "  [FAIL] current-state.md Status is Complete but Doc Checklist has an unchecked item"
+            echo "         (- [ ]) or the unfilled template placeholder (\`[relevant spec]\`)."
+            echo "         Apply each Doc Checklist item and check it off (- [x]) before marking the"
+            echo "         task Complete — see AGENTS.md -> Closing out a task."
+            PASS=false
+        fi
     fi
 
     # ── Clarifying Questions Asked guard ────────────────────────────────────

@@ -92,3 +92,76 @@ def test_real_task_with_na_cqa_is_silent(tmp_path):
     result = _run(tmp_path)
     assert result.returncode == 0
     assert result.stdout.strip() == ""
+
+
+# ---------------------------------------------------------------------------
+# Brand-new-project nudge: placeholder Task + research.md with no real Decision —
+# both signals together, not either alone, mark a project as brand-new and undiscussed.
+# ---------------------------------------------------------------------------
+
+def _write_placeholder_task(tmp_path: Path) -> Path:
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    (docs / "current-state.md").write_text(
+        "**Task:** [Task name, e.g., BE Order API]\n", encoding="utf-8",
+    )
+    return docs
+
+
+def test_placeholder_task_no_research_file_omits_research_nudge(tmp_path):
+    _write_placeholder_task(tmp_path)
+    result = _run(tmp_path)
+    payload = json.loads(result.stdout)
+    ctx = payload["hookSpecificOutput"]["additionalContext"]
+    assert "research-decision-log" not in ctx
+
+
+def test_placeholder_task_placeholder_research_adds_research_nudge(tmp_path):
+    docs = _write_placeholder_task(tmp_path)
+    specs = docs / "specs"
+    specs.mkdir()
+    (specs / "research.md").write_text(
+        "## [Decision Name, e.g., Message Queue]\n"
+        "**Decision:** [Final choice, e.g., AWS SQS]\n",
+        encoding="utf-8",
+    )
+    result = _run(tmp_path)
+    payload = json.loads(result.stdout)
+    ctx = payload["hookSpecificOutput"]["additionalContext"]
+    assert "brand-new project" in ctx
+    assert "research-decision-log" in ctx
+
+
+def test_placeholder_task_real_research_omits_research_nudge(tmp_path):
+    docs = _write_placeholder_task(tmp_path)
+    specs = docs / "specs"
+    specs.mkdir()
+    (specs / "research.md").write_text(
+        "## Message Queue\n**Decision:** AWS SQS\n", encoding="utf-8",
+    )
+    result = _run(tmp_path)
+    payload = json.loads(result.stdout)
+    ctx = payload["hookSpecificOutput"]["additionalContext"]
+    assert "brand-new project" not in ctx
+    assert "research-decision-log" not in ctx
+
+
+def test_real_task_never_gets_research_nudge_regardless_of_research_state(tmp_path):
+    """A task-in-progress project with an empty research.md doesn't need this nudge every
+    session -- only the very first, unscoped-task session does."""
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    (docs / "current-state.md").write_text(
+        "**Task:** Build the order API\n\n**Clarifying Questions Asked:** Y\n",
+        encoding="utf-8",
+    )
+    specs = docs / "specs"
+    specs.mkdir()
+    (specs / "research.md").write_text(
+        "## [Decision Name, e.g., Message Queue]\n"
+        "**Decision:** [Final choice, e.g., AWS SQS]\n",
+        encoding="utf-8",
+    )
+    result = _run(tmp_path)
+    assert result.returncode == 0
+    assert result.stdout.strip() == ""

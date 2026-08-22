@@ -34,6 +34,7 @@ _SKILL_DIRS = [
     "sprint-doc-sync",
     "learning-checkpoint",
     "task-closeout",
+    "research-decision-log",
 ]
 
 

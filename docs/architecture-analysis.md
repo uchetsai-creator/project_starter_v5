@@ -16,7 +16,7 @@ The framework is four layers: **entry points** (how a project starts using it), 
 recorded). 13 `verify_*.py` gates (9 always-on, 3 opt-in, 1 framework self-check), 3 LLM-wrapper
 scripts (`semantic.py` and `llm_security_review.py`, each invoked from an opt-in gate;
 `framework_fix_agents.py`, invoked from a framework support tool — see Multi-Agent Pipeline
-below), 4 further framework support tools, 6 root-level orchestration/detection scripts, 6
+below), 4 further framework support tools, 6 root-level orchestration/detection scripts, 7
 Claude-facing Skills, and 2 agent adapters (Claude, Codex) as of this revision.
 
 **Entry points** — run once per project, or on demand to re-classify:
@@ -271,6 +271,43 @@ note bottom of vreg : Added after this diagram's\nprior revision -- catches malf
   runs inside `--apply`'s own write path, so a human decision is never retroactively made to look
   unconfirmed. Confirmed working end-to-end against a real git repo (field `false` blocks with the
   right message, `true` and field-absent both pass silently), not just unit-tested in isolation.
+- **A technology decision made mid-conversation had no path into `research.md` except a human
+  or the agent remembering, or the periodic `sprint-doc-sync` checklist item catching it later**
+  — closed with two different mechanisms for two different moments, not one mechanism forced to
+  cover both:
+  - **The brand-new-project moment is deterministic** — `session-start-hook.sh` already checked
+    `docs/current-state.md`'s Task field for the template placeholder; it now also checks whether
+    `docs/specs/research.md` has any non-placeholder `**Decision:**` line. Both signals true
+    together (not either alone — a task-in-progress project with an empty `research.md` doesn't
+    need this every session) nudges toward discussing and recording key technology decisions
+    before writing code. Deliberately looser than `verify_content.py`'s `check_research()` (skips
+    the Rationale-entry check) — this is a non-blocking nudge, not the commit-time gate, so exact
+    parity with the authoritative check isn't required.
+  - **Every other moment is a judgment call, not a structural check** — no YAML shape or file-state
+    signal can tell whether a given exchange in conversation was a technology decision. Confirmed
+    by researching how other tools solve the same problem: the closest published equivalent
+    (ECC's `architecture-decision-records` Skill) states outright that it "doesn't truly auto-detect
+    in the autonomous sense" — it also relies on keyword/tone signals in conversation, not code.
+    The `research-decision-log` Skill adopts the same shape (explicit triggers like "let's go with
+    X", implicit ones like comparing libraries and landing on one) but keeps this framework's own
+    fail-closed convention: draft the entry, ask before writing, never write without approval — same
+    principle as `framework_fix_agents.py`'s review-agent gate and `--ai-draft`'s fallback-on-
+    rejection behavior elsewhere in this document.
+- **`current-state.md`'s Doc Checklist had the same "convention until something checks it" gap
+  `Clarifying Questions Asked` used to have** — AGENTS.md's "Closing out a task" says apply each
+  Doc Checklist item and check it off at closeout, but nothing verified that happened before a
+  task was marked `Status: Complete`; a task could reach Complete with the checklist entirely
+  unchecked, or still showing the raw, never-customized template placeholder
+  (`` `docs/[relevant spec]` ``), and nothing would block the commit. A new guard in
+  `.githooks/pre-commit`, triggered the same way as the pre-existing (previously untested)
+  Closeout-completeness guard right above it in the script (`current-state.md` staged with Status
+  containing "Complete"), checks the Doc Checklist section for a remaining `- [ ]` or the raw
+  placeholder. Deliberately reuses the checklist's own checkbox state instead of adding a second
+  summary field (e.g. `Doc Checklist Applied: Y/N/A`) — a separate field would just be one more
+  thing that could say "done" without the underlying items being checked off; the checkboxes
+  already are that record. Confirmed against a real git repo across all four states (unchecked
+  item blocks, raw placeholder blocks, all-checked passes, `Status: In Progress` never triggers
+  the check regardless of checklist state).
 - **Validator sequencing (`workflow-registry.yaml`) had no equivalent schema gate** —
   `verify_registry.py` validated `document-registry.yaml`'s shape, but nothing validated
   `workflow-registry.yaml`'s shape the same way (a validator script path that doesn't exist, a
@@ -320,7 +357,7 @@ Two adapters exist, both consumed by `orchestrator.py --adapter <name>`:
 
 | Adapter | Output | Mechanism |
 |---|---|---|
-| `claude` | `adapters/claude/start-task.md` template, rendered with the current workflow snapshot | `.claude/skills/` (6 Skills: code-quality-check, learning-checkpoint, module-completion-check, retrofit-existing-project, sprint-doc-sync, task-closeout — copied into new projects by `init.py`); `pretooluse_scope_guard.py` (blocks edits outside the scoped Current Task); `session-start-hook.sh` / `stop-hook.sh` (session boundary hooks); `learning_log_nudge.py` |
+| `claude` | `adapters/claude/start-task.md` template, rendered with the current workflow snapshot | `.claude/skills/` (7 Skills: code-quality-check, learning-checkpoint, module-completion-check, research-decision-log, retrofit-existing-project, sprint-doc-sync, task-closeout — copied into new projects by `init.py`); `pretooluse_scope_guard.py` (blocks edits outside the scoped Current Task); `session-start-hook.sh` / `stop-hook.sh` (session boundary hooks); `learning_log_nudge.py` |
 | `codex` | `adapters/codex/task-instructions.md` | `setup.md` for one-time environment setup |
 
 `orchestrator.py` embeds both adapters' templates directly (`_ADAPTER_TEMPLATES`) so `--adapter`
