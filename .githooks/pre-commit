@@ -250,6 +250,29 @@ if [ -f "$CONFIG" ] && grep -qE '^project_type_confirmed:[[:space:]]*false' "$CO
     PASS=false
 fi
 
+# ── Sprint Documentation Sync guard ─────────────────────────────────────────────
+# Trigger: docs/sprint-change-log.md has >= 3 entries at
+# "Status: Pending documentation synchronization" (see templates/sprint-sync.md).
+# Catches: the count threshold being crossed without Sprint Documentation Sync actually
+# running — previously pure convention (AGENTS.md -> Sprint Documentation Sync +
+# sprint-doc-sync Skill nudge), nothing verified it happened. Reads the working-tree
+# file directly, like the project_type_confirmed guard above, not staged content —
+# what matters is whether the fix (running the sync, which marks entries "Documentation
+# synchronized") has actually landed on disk, not whether this particular commit is the
+# one that did it. Blocks every commit while the count stays at or above 3, same as
+# project_type_confirmed — a state-of-the-world check, not scoped to what's staged.
+SPRINT_LOG="${DOCS_PATH}/sprint-change-log.md"
+if [ -f "$SPRINT_LOG" ]; then
+    PENDING_COUNT=$(grep -cE '^\*\*Status:\*\* Pending documentation synchronization' "$SPRINT_LOG" || true)
+    PENDING_COUNT=${PENDING_COUNT:-0}
+    if [ "$PENDING_COUNT" -ge 3 ]; then
+        echo "  [FAIL] $SPRINT_LOG has $PENDING_COUNT entries at 'Pending documentation synchronization' (threshold: 3)."
+        echo "         Run Sprint Documentation Sync (templates/sprint-sync.md) before committing further work —"
+        echo "         see AGENTS.md -> Sprint Documentation Sync."
+        PASS=false
+    fi
+fi
+
 # ── Unscoped source-change guard ───────────────────────────────────────────────
 # Trigger: any staged file that isn't docs/, guidance/, .githooks/, .claude/, .codex/,
 # adapters/, logs/, .ai/, or one of the known framework root files — i.e. it looks like

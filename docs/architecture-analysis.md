@@ -308,6 +308,39 @@ note bottom of vreg : Added after this diagram's\nprior revision -- catches malf
   already are that record. Confirmed against a real git repo across all four states (unchecked
   item blocks, raw placeholder blocks, all-checked passes, `Status: In Progress` never triggers
   the check regardless of checklist state).
+- **Every `.githooks/pre-commit` gate only fires at `git commit` — a workflow with infrequent
+  commits means most of them rarely run** — `project_type_confirmed`, `Clarifying Questions
+  Asked`, Doc Checklist completeness, the always-on `verify_*.py` checks: all of it is invisible
+  until whenever a commit finally happens. `pretooluse_scope_guard.py` is the one gate that
+  doesn't depend on commit frequency (fires per-edit); nothing covered the other three. A first
+  attempt counted uncommitted files (`git status --porcelain`) against a 10-entry threshold and
+  suggested committing in smaller increments — this models commit *frequency*, which breaks down
+  for a workflow that pulls once, does a long stretch of local work, then pushes/merges once at
+  the end: no threshold fires at a meaningful moment, and "commit smaller" isn't advice that fits
+  a shared-branch pull-then-push-once habit. Replaced with the actual approach: `run-verify.sh`
+  (Stop hook, already ran the four always-on validators and wrote `logs/verify-*.json` on every
+  turn) now re-reads `.project-starter.yml` and `current-state.md` directly on every Stop event
+  and re-runs the same checks `.githooks/pre-commit` performs on staged files — but against
+  the working tree, since there's no staged-file concept outside a commit. Surfaced via
+  `hookSpecificOutput.additionalContext` — confirmed Stop hooks support the identical schema
+  `session-start-hook.sh` already uses for `SessionStart` before relying on it (not assumed; see
+  https://code.claude.com/docs/en/hooks). Deliberately kept non-blocking, matching this hook's
+  existing design — a second informational layer for what the one blocking, commit-independent
+  gate (`pretooluse_scope_guard.py`) doesn't cover, not a new hard gate.
+- **`sprint-change-log.md`'s 3-entry Sprint Documentation Sync trigger was pure convention — no
+  hook or CI verified it actually happened.** The count trigger itself (AGENTS.md -> Sprint
+  Documentation Sync: 3 entries at `Status: Pending documentation synchronization` → run
+  `templates/sprint-sync.md`) was already documented, and the `sprint-doc-sync` Skill nudges
+  Claude toward it by description match — but nothing blocked the Pending backlog from growing
+  past 3, 4, 10 indefinitely if the nudge was ignored or the Skill never triggered. A new
+  `.githooks/pre-commit` guard reads `sprint-change-log.md` directly (working-tree state, not
+  staged — same approach as the `project_type_confirmed` guard, since what matters is whether the
+  fix landed on disk, not which commit did it) and blocks every commit once the Pending count is
+  `>= 3`, until sync marks entries `Documentation synchronized`. Mirrored into `run-verify.sh` as
+  a fourth non-blocking Stop-hook check alongside the three above, for the same infrequent-commit
+  reason. Surfaced during the same conversation that produced the file-count-threshold-to-direct-
+  check redesign above — asking "what else here is convention-only, not actually enforced"
+  surfaced this gap too, once the discussion moved from "commit" to "sprint" as the relevant unit.
 - **Validator sequencing (`workflow-registry.yaml`) had no equivalent schema gate** —
   `verify_registry.py` validated `document-registry.yaml`'s shape, but nothing validated
   `workflow-registry.yaml`'s shape the same way (a validator script path that doesn't exist, a

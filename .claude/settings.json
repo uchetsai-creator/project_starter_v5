@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .githooks/run-verify.sh"
+            "command": "bash adapters/claude/run-verify.sh"
           },
           {
             "type": "command",

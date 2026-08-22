@@ -193,3 +193,5 @@ current-state.md is a state machine with two fields:
 > Closeout, check how many entries are `Status: Pending documentation synchronization`.
 > At 3, load `templates/sprint-sync.md` and run it now, before starting the next task —
 > do not wait for a "sprint end" that may never arrive in a solo/small project.
+> pre-commit blocks every commit once the Pending count reaches 3, until sync marks
+> entries `Documentation synchronized`.
