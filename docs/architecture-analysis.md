@@ -4,18 +4,20 @@
 > the framework and had drifted from the actual codebase — the orchestrator, adapter, skill, and
 > telemetry layers below existed in code but not in this document. Rewritten from the current
 > source tree, not from memory of the previous revision. Updated same day to add
-> `llm_security_review.py` (`verify_security.py --llm-review`) and `verify_workflow_registry.py`,
-> both added after the initial rewrite.
+> `llm_security_review.py` (`verify_security.py --llm-review`), `verify_workflow_registry.py`,
+> the `_registry.py` per-type behavioural flag centralisation, and `framework_fix_agents.py`
+> (`propose_framework_fix.py --ai-draft`) — all added after the initial rewrite.
 
 ## Current Architecture
 
 The framework is four layers: **entry points** (how a project starts using it), **orchestration**
 (how a task's validator sequence is decided), **verification** (the gates that actually run), and
 **agent adapters + telemetry** (how the plan and its results reach an AI coding tool and get
-recorded). 13 `verify_*.py` gates (9 always-on, 3 opt-in, 1 framework self-check), 2 LLM-wrapper
-scripts invoked from two of those opt-in gates (`semantic.py`, `llm_security_review.py`), 4
-further framework support tools, 6 root-level orchestration/detection scripts, 6 Claude-facing
-Skills, and 2 agent adapters (Claude, Codex) as of this revision.
+recorded). 13 `verify_*.py` gates (9 always-on, 3 opt-in, 1 framework self-check), 3 LLM-wrapper
+scripts (`semantic.py` and `llm_security_review.py`, each invoked from an opt-in gate;
+`framework_fix_agents.py`, invoked from a framework support tool — see Multi-Agent Pipeline
+below), 4 further framework support tools, 6 root-level orchestration/detection scripts, 6
+Claude-facing Skills, and 2 agent adapters (Claude, Codex) as of this revision.
 
 **Entry points** — run once per project, or on demand to re-classify:
 - `detect_type.py` — infers project type from file layout / dependency manifests / free-text
@@ -68,7 +70,12 @@ to the sequence by `orchestrator.py` only when configured:
 **Framework self-check / support tools** — run at sprint end or on demand:
 - `verify_framework.py` — internal consistency of the framework itself
 - `diagnose_spec.py` — classifies verify output → project-level vs framework-level gaps
-- `propose_framework_fix.py` — opens PRs on project_starter_v5 for framework-level gaps
+  (rule-based: does the template already have the section — deliberately not an LLM call,
+  see Multi-Agent Pipeline below for why)
+- `propose_framework_fix.py` — opens PRs on project_starter_v5 for framework-level gaps;
+  `--ai-draft` swaps the default placeholder for `framework_fix_agents.py`'s draft+review
+  output — opt-in only, same exclusion from automated sequences as `--semantic` /
+  `--llm-review`
 - `build_pdf.py` — renders `docs/` to PDF via PlantUML
 - `scan_codebase.py` — source tree → `codebase-map.md`
 
@@ -181,18 +188,18 @@ of that knowledge independently.
 @startuml coupling-graph
 !theme plain
 
-rectangle "_registry.py\nVALID_TYPES\nbuild_matrix()\nbuild_file_locations()" as reg #LightGreen
+rectangle "_registry.py\nVALID_TYPES, LOGGING_REQUIRED,\nLOGGING_OPTIONAL, TRACE_ID_TYPES,\nPIPELINE_TYPES, LLM_TYPES\nbuild_matrix()\nbuild_file_locations()" as reg #LightGreen
 rectangle "document-registry.yaml\n42 docs x 9 types\n(single source of truth)" as yaml #LightGreen
 rectangle "verify_registry.py\n(schema-validates the\nregistry against itself)" as vreg #LightGreen
 
 rectangle "verify_docs.py\n(MATRIX derived from registry)" as vd #LightYellow
-rectangle "verify_content.py\n(TYPE_DOCS, DOC_PATHS\nderived from registry)" as vc #LightYellow
+rectangle "verify_content.py\n(TYPE_DOCS, DOC_PATHS,\nUNIVERSAL_DOCS derived from registry)" as vc #LightYellow
 rectangle "document-matrix.md\n42 docs x 9 types\n(human-readable view)" as dm #LightYellow
 
-rectangle "verify_logs.py\nVALID_TYPES (from _registry)\nLOGGING_REQUIRED\nTRACE_ID_TYPES" as vl #LightYellow
-rectangle "verify_tests.py\nVALID_TYPES (from _registry)\nPIPELINE_TYPES" as vt #LightYellow
+rectangle "verify_logs.py\n(VALID_TYPES, LOGGING_REQUIRED,\nLOGGING_OPTIONAL, TRACE_ID_TYPES,\nPIPELINE_TYPES, LLM_TYPES --\nall from _registry)" as vl #LightYellow
+rectangle "verify_tests.py\n(VALID_TYPES, PIPELINE_TYPES --\nboth from _registry)" as vt #LightYellow
 rectangle "build_pdf.py\nVALID_PROJECT_TYPES\nAUTO_SCAN_TYPES" as bp #LightYellow
-rectangle "scan_codebase.py\nMODULE_VOCAB (9 entries)\nVALID_TYPES (from _registry)" as sc #LightYellow
+rectangle "scan_codebase.py\n(MODULE_VOCAB: 9 entries, local --\nVALID_TYPES, PIPELINE_TYPES from _registry)" as sc #LightYellow
 
 yaml --> reg : loaded by
 yaml --> vreg : validated by
@@ -236,15 +243,37 @@ note bottom of vreg : Added after this diagram's\nprior revision -- catches malf
   actually running it against a deliberately broken copy of the registry (bad script path, empty
   `validators` list, missing `default`, unknown field) and checking it reported all four, not
   just by reading the check logic.
+- **Per-type behavioural flags scattered across scripts** — re-auditing this item (carried over
+  from the prior revision as unresolved) found it was half-stale: `verify_content.py`'s
+  `UNIVERSAL_DOCS` was already derived from `document-registry.yaml` via `_registry.py`'s
+  `get_universal_docs()` — an earlier, undocumented fix. The real remaining problem was
+  `verify_logs.py`'s `LOGGING_REQUIRED` / `LOGGING_OPTIONAL` / `TRACE_ID_TYPES` / `PIPELINE_TYPES`
+  / `LLM_TYPES` and `verify_tests.py`'s `PIPELINE_TYPES` — independently declared, with
+  `PIPELINE_TYPES` a literal duplicate across the two files — plus `scan_codebase.py` re-writing
+  the same `data-pipeline`/`ml-pipeline` pairing as an inline tuple instead of importing it. All
+  five sets now live in `_registry.py` (frozensets, same placement as `VALID_TYPES`); the three
+  scripts import them instead of declaring locally. Confirmed by asserting
+  `verify_logs.PIPELINE_TYPES is verify_tests.PIPELINE_TYPES` (the same object, not
+  coincidentally-equal duplicates) and by running the full test suite (`pytest tests/`) — this
+  touches `_registry.py`, imported by nearly every validator, so a full run rather than only the
+  directly-affected tests' was the right bar here. Regenerating `orchestrator.py`'s golden/snapshot
+  fixtures for the earlier `verify_workflow_registry.py` addition (previous entry, this section)
+  surfaced a real bug this same full-suite run caught: `orchestrator.py`'s `_render()` had a
+  hardcoded exclusion list for scripts that don't accept `--project-type`
+  (`verify_registry.py`, `verify_index_coverage.py`) that `verify_workflow_registry.py` was never
+  added to — every generated command for it would have crashed with "unrecognized arguments" the
+  first time anyone actually ran their `.ai/WORKFLOW.md`. Fixed in the same pass.
 
 ### Open
 
-- **Per-type behavioural flags scattered across scripts** — `VALID_TYPES` is centralised, but
-  per-type behavioural sets remain local: `verify_logs.py`'s `LOGGING_REQUIRED` /
-  `TRACE_ID_TYPES`, `verify_tests.py`'s `PIPELINE_TYPES`, `verify_content.py`'s `UNIVERSAL_DOCS`,
-  `scan_codebase.py`'s `guess_type()` heuristics. No cross-script consistency check exists for
-  these. *(Carried over from the prior revision of this document — not re-audited in this pass;
-  verify against current script content before relying on it.)*
+- **`_PRICING_PER_M_TOKENS` duplicated across `semantic.py` and `framework_fix_agents.py`** —
+  same three-model USD/1M-token table, independently declared in each file (see Telemetry &
+  Token Accounting). Two copies of small, stable data was a deliberate tradeoff when
+  `framework_fix_agents.py` was added — `templates/script/generators/` and
+  `templates/script/validators/_spec_code_adapters/` are independent `sys.path` roots, so
+  centralising would mean a cross-package import for three dict literals. Worth revisiting if a
+  third opt-in LLM call site is added: at that point the duplication is the same shape as the
+  `PIPELINE_TYPES` problem resolved above, not a one-off.
 
 ---
 
@@ -268,9 +297,66 @@ using the framework needs.
 
 ---
 
+## Multi-Agent Pipeline: Framework Self-Fix
+
+`diagnose_spec.py -> propose_framework_fix.py` was already a two-stage pipeline before this
+section existed — diagnosis, then a fix — but both stages were rule-based: classify by whether
+the template has the section, then insert a hardcoded placeholder comment. `--ai-draft` makes the
+second stage a genuine two-agent LLM handoff, via `framework_fix_agents.py`:
+
+```
+diagnose_spec.py                         (rule-based — see below for why this stays that way)
+  classify: project-level vs framework-level gap
+        |
+        v  (framework-level gap only, --ai-draft passed through)
+propose_framework_fix.py --ai-draft
+        |
+        v
+framework_fix_agents.run_ai_draft_pipeline()
+        |
+        +-- draft_fix()   [Agent 1]  Claude drafts real guidance prose for the missing
+        |                            section, given the gap description + the template's
+        |                            existing content for style/structure reference
+        |
+        +-- review_fix()  [Agent 2]  a *separate* Claude call grades the draft against
+        |                            this framework's own prose-quality bar (the same
+        |                            vague-wording / placeholder-language patterns
+        |                            verify_prose.py's Vale rules catch in real docs) —
+        |                            approve or reject, fails closed on any error
+        |
+        v
+  approved -> drafted text goes into the PR
+  rejected, no ANTHROPIC_API_KEY, draft/review call failed, or token budget exceeded
+        -> falls back to the placeholder (never a worse PR than the default)
+```
+
+**Why two agents, not one call that drafts-and-checks-itself:** the draft agent's job is to write
+something useful; the review agent's job is to be skeptical of it. A single call grading its own
+output in the same turn is a weaker check than a fresh pass whose entire prompt is "find problems
+with this" — the same reason a second human reviewer catches things a self-review misses. This
+is a small, honest instance of the pattern, not a dressed-up single LLM call: `draft_fix()` and
+`review_fix()` are two separate `messages.create()` calls with different prompts and different
+jobs, confirmed by the self-test asserting `mock_client.messages.calls == 2` for an approved run.
+
+**Why `diagnose_spec.py`'s own classification stays rule-based:** "does the template already
+contain this section" is a structural yes/no question a string check answers exactly; an LLM
+judgment call there would be strictly less reliable for zero benefit. Not every step in an
+agent pipeline needs to be an agent — using an LLM only where judgment is actually required (is
+this draft good enough) and staying deterministic where a fact can just be checked (does this
+heading exist) is itself the design decision worth defending, not a gap to fill in later.
+
+**Constraint, same as `--semantic` / `--llm-review`:** `--ai-draft` must never appear in
+`workflow-registry.yaml` or a pre-commit sequence — it makes real LLM calls, its output is
+non-deterministic, and `diagnose_spec.py` / `propose_framework_fix.py` aren't wired into
+`workflow-registry.yaml` at all today (sprint-end / on-demand tools only), so this is a
+docs-level constraint rather than one currently enforced by a config check the way the other
+two are.
+
+---
+
 ## Telemetry & Token Accounting
 
-Four JSON logs under `logs/telemetry/`, each append-only, each best-effort (never raises on
+Five JSON logs under `logs/telemetry/`, each append-only, each best-effort (never raises on
 write failure):
 
 | File | Written by | Content |
@@ -279,18 +365,22 @@ write failure):
 | `skip-verify.json` | pre-commit, when `PROJECT_STARTER_SKIP_VERIFY` bypasses the gates | `ts`, `staged_files` — the bypass still prints a loud `[SKIP]` line; this is in addition, not instead |
 | `token-usage.json` | `semantic.py`, after every `semantic_compare()` call | `ts`, `model`, `calls`, `input_tokens`, `output_tokens`, `estimated_cost_usd`, `budget_tokens`, `budget_exceeded` |
 | `security-review-usage.json` | `llm_security_review.py`, after every `run_llm_security_review()` call | `ts`, `cost_usd`, `duration_ms`, `num_turns` — whatever fields the installed Claude Code version's `--output-format json` reports; read defensively, never assumes the schema |
+| `framework-fix-agents-usage.json` | `framework_fix_agents.py`, after every `run_ai_draft_pipeline()` call | `ts`, `model`, `calls` (2 when both agents ran, 1 if the draft agent failed before review), `input_tokens`, `output_tokens`, `estimated_cost_usd`, `budget_tokens`, `budget_exceeded` |
 
-`token-usage.json` and `security-review-usage.json` are the only two backed by a real LLM
-response rather than local state — `semantic.py` and `llm_security_review.py` are the framework's
-only two call sites for a live LLM call (`--semantic` on `verify_spec_code.py`, `--llm-review` on
-`verify_security.py`), so they're also the only places able to report *measured* usage instead of
-an estimate. `semantic.py` additionally checks accumulated `input_tokens + output_tokens` against
-`SPEC_CODE_TOKEN_BUDGET` (if set) before firing, stops mid-run when the budget is hit, and prices
-the total from a small per-model USD/1M-token table (`_PRICING_PER_M_TOKENS`, overridable via
-`SPEC_CODE_PRICE_INPUT_PER_M` / `_OUTPUT_PER_M` for unlisted models or price changes).
-`llm_security_review.py` has no equivalent budget cap — a single `/security-review` invocation is
-one call, not a loop over multiple ambiguous field pairs the way `semantic.py`'s is, so there is
-nothing to cap mid-run.
+`token-usage.json`, `security-review-usage.json`, and `framework-fix-agents-usage.json` are the
+only three backed by a real LLM response rather than local state — `semantic.py`,
+`llm_security_review.py`, and `framework_fix_agents.py` are the framework's only three call sites
+for a live LLM call (`--semantic` on `verify_spec_code.py`, `--llm-review` on `verify_security.py`,
+`--ai-draft` on `propose_framework_fix.py`), so they're also the only places able to report
+*measured* usage instead of an estimate. `semantic.py` and `framework_fix_agents.py` both check
+accumulated `input_tokens + output_tokens` against an optional per-tool budget env var
+(`SPEC_CODE_TOKEN_BUDGET`, `FRAMEWORK_FIX_TOKEN_BUDGET`) before firing, stop mid-run when the
+budget is hit, and price the total from a small per-model USD/1M-token table — two independent
+copies of the same small table (`_PRICING_PER_M_TOKENS` in each file), not centralised; see this
+document's own Coupling Problem Catalogue for the kind of thing that becomes worth centralising
+once a third caller needs it. `llm_security_review.py` has no equivalent budget cap — a single
+`/security-review` invocation is one call, not a loop over multiple ambiguous field pairs or a
+two-agent handoff, so there is nothing to cap mid-run.
 
 `_otel.py` optionally dual-emits every one of these writes as an OpenTelemetry span
 (`OTEL_EXPORTER_OTLP_ENDPOINT` set + `opentelemetry-*` installed; no-op otherwise), including
@@ -310,10 +400,12 @@ for the same task, rather than relying on OTel's in-process parent/child trackin
 | Document -> path mapping | `document-registry.yaml` -> `build_file_locations()` / `build_doc_paths()` | Centralised |
 | Registry shape validity | `verify_registry.py` | Guarded |
 | Human-readable matrix | `document-matrix.md` synced by Check 11 | Guarded |
-| Per-type behavioural flags | Scattered sets in `verify_logs.py`, `verify_tests.py`, `verify_content.py` | Open |
+| Per-type behavioural flags | `_registry.py` (`LOGGING_REQUIRED`, `LOGGING_OPTIONAL`, `TRACE_ID_TYPES`, `PIPELINE_TYPES`, `LLM_TYPES`) -> imported by `verify_logs.py`, `verify_tests.py`, `scan_codebase.py`; `UNIVERSAL_DOCS` via `get_universal_docs()` | Centralised |
 | Task startup context | `build-context.py` -> `.ai/AI_CONTEXT.md` | Implemented |
 | Task validator sequence | `workflow-registry.yaml` -> `orchestrator.py` -> `.ai/WORKFLOW.md` | Implemented; guarded by `verify_workflow_registry.py` |
 | Agent-specific task instructions | `adapters/<tool>/` templates, embedded in `orchestrator.py`, drift-guarded by `test_adapter_contracts.py` | Implemented |
 | Session/task telemetry | `telemetry_writer.py`, `_otel.py` | Implemented |
 | Real LLM token/cost accounting (spec<->code) | `semantic.py` -> `logs/telemetry/token-usage.json` | Implemented |
 | Real LLM cost/duration accounting (security review) | `llm_security_review.py` -> `logs/telemetry/security-review-usage.json` | Implemented |
+| Real LLM token/cost accounting (framework self-fix) | `framework_fix_agents.py` -> `logs/telemetry/framework-fix-agents-usage.json` | Implemented |
+| Framework-level gap draft + review (multi-agent) | `propose_framework_fix.py --ai-draft` -> `framework_fix_agents.py` (draft agent + review agent) | Implemented; see Multi-Agent Pipeline section |

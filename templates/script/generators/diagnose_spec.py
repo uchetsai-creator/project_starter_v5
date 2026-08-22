@@ -106,6 +106,7 @@ def propose_fix(
     gap_description: str,
     framework_repo: str,
     dry_run: bool,
+    ai_draft: bool = False,
 ) -> str:
     """Call propose_framework_fix.py and return its stdout output."""
     cmd = [
@@ -117,6 +118,8 @@ def propose_fix(
     ]
     if dry_run:
         cmd.append("--dry-run")
+    if ai_draft:
+        cmd.append("--ai-draft")
     result = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace")
     out = result.stdout.strip()
     if result.returncode != 0:
@@ -192,6 +195,14 @@ def main() -> int:
     parser.add_argument(
         "--dry-run", action="store_true",
         help="Show what would happen without creating PRs or writing files"
+    )
+    parser.add_argument(
+        "--ai-draft", action="store_true",
+        help=(
+            "Pass through to propose_framework_fix.py --ai-draft: draft real guidance via "
+            "framework_fix_agents.py's two-agent LLM pipeline instead of a placeholder. "
+            "Opt-in, developer-invoked only — never wire this into an automated sequence."
+        ),
     )
     args = parser.parse_args()
 
@@ -308,7 +319,9 @@ def main() -> int:
         for g in framework_gaps:
             gap_desc = g["section"].lstrip("#").strip()
             print(f"\n  → {g['doc']}: {gap_desc}")
-            output = propose_fix(project_type, g["doc"], gap_desc, args.framework_repo, args.dry_run)
+            output = propose_fix(
+                project_type, g["doc"], gap_desc, args.framework_repo, args.dry_run, args.ai_draft,
+            )
             print(f"    {output}")
         print(
             "\nRound 1 complete. Merge or skip the PRs above, "

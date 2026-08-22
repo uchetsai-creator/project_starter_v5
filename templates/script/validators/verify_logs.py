@@ -25,7 +25,14 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from _registry import VALID_TYPES
+from _registry import (
+    LLM_TYPES,
+    LOGGING_OPTIONAL,
+    LOGGING_REQUIRED,
+    PIPELINE_TYPES,
+    TRACE_ID_TYPES,
+    VALID_TYPES,
+)
 from _verify_common import (
     _append_telemetry,
     _is_placeholder,
@@ -33,17 +40,6 @@ from _verify_common import (
     _section_body,
     _telemetry_ts,
 )
-
-# Types where logging-spec.md is Required or Optional
-LOGGING_REQUIRED = {'web-app', 'cli-tool', 'data-pipeline', 'ml-pipeline', 'microservices', 'mobile-app'}
-LOGGING_OPTIONAL = {'llm-app'}
-
-# Types where trace_id propagation is expected
-TRACE_ID_TYPES = {'web-app', 'data-pipeline', 'ml-pipeline', 'llm-app', 'microservices', 'mobile-app'}
-
-# Per-type addenda
-PIPELINE_TYPES = {'data-pipeline', 'ml-pipeline'}
-LLM_TYPES = {'llm-app'}
 
 # Required sections in logging-spec.md that must have ≥ MIN_SECTION_LINES filled lines
 LOGGING_SPEC_SECTIONS = [

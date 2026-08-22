@@ -21,6 +21,22 @@ CHAPTER_ORDER: dict[str, int] = {
     'build': 3, 'test': 4, 'deployment': 5,
 }
 
+# Per-type behavioural flags — the single source for classifications more than one
+# script needs, the same role VALID_TYPES plays for the type list itself. These five
+# used to be declared independently in verify_logs.py and verify_tests.py
+# (PIPELINE_TYPES was a literal duplicate in both), and scan_codebase.py re-wrote the
+# data-pipeline/ml-pipeline pairing inline instead of importing it. See
+# docs/architecture-analysis.md -> Coupling Problem Catalogue.
+LOGGING_REQUIRED: frozenset[str] = frozenset({
+    'web-app', 'cli-tool', 'data-pipeline', 'ml-pipeline', 'microservices', 'mobile-app',
+})
+LOGGING_OPTIONAL: frozenset[str] = frozenset({'llm-app'})
+TRACE_ID_TYPES: frozenset[str] = frozenset({
+    'web-app', 'data-pipeline', 'ml-pipeline', 'llm-app', 'microservices', 'mobile-app',
+})
+PIPELINE_TYPES: frozenset[str] = frozenset({'data-pipeline', 'ml-pipeline'})
+LLM_TYPES: frozenset[str] = frozenset({'llm-app'})
+
 _REGISTRY: dict[str, Any] | None = None
 
 

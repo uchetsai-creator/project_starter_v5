@@ -53,7 +53,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / 'validators'))
-from _registry import VALID_TYPES
+from _registry import PIPELINE_TYPES, VALID_TYPES
 from _verify_common import _src_has_real_files, parse_types
 
 # ---------------------------------------------------------------------------
@@ -207,7 +207,7 @@ def guess_type(name: str, project_type: str | None = None, path: str | None = No
     if is_shared(name):
         return "Shared / Infrastructure"
 
-    if project_type in ("data-pipeline", "ml-pipeline"):
+    if project_type in PIPELINE_TYPES:
         if path and is_pipeline_stage_detected(path):
             return "Pipeline Stage (detected)"
         if is_pipeline_stage(name):

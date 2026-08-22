@@ -24,10 +24,8 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from _registry import VALID_TYPES
+from _registry import PIPELINE_TYPES, VALID_TYPES
 from _verify_common import _append_telemetry, _read_file, _section_body, _telemetry_ts
-
-PIPELINE_TYPES = {'data-pipeline', 'ml-pipeline'}
 
 # test-report.md is Required for all types
 TEST_REPORT_PATH = 'specs/test-report.md'
