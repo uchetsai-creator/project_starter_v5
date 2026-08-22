@@ -731,6 +731,10 @@ No validator logic lives in the orchestrator — separation of concerns is stric
 
 **`workflow-registry.yaml`** maps each task type to an ordered validator list. Add a new entry
 when a new task type is introduced; update an existing entry when the validator set changes.
+`verify_workflow_registry.py` schema-validates this file (script paths resolve to a real file,
+no empty `validators` list, a `default` entry exists) the same way `verify_registry.py` validates
+`document-registry.yaml` — a bad entry here used to only surface at `orchestrator.py`'s runtime,
+not before a commit. Runs first in every sequence, same placement as `verify_registry.py`.
 
 ---
 

@@ -3,14 +3,18 @@
 > Refreshed 2026-08-22. Previous revision described a 5-validator, pre-orchestrator snapshot of
 > the framework and had drifted from the actual codebase — the orchestrator, adapter, skill, and
 > telemetry layers below existed in code but not in this document. Rewritten from the current
-> source tree, not from memory of the previous revision.
+> source tree, not from memory of the previous revision. Updated same day to add
+> `llm_security_review.py` (`verify_security.py --llm-review`) and `verify_workflow_registry.py`,
+> both added after the initial rewrite.
 
 ## Current Architecture
 
 The framework is four layers: **entry points** (how a project starts using it), **orchestration**
 (how a task's validator sequence is decided), **verification** (the gates that actually run), and
 **agent adapters + telemetry** (how the plan and its results reach an AI coding tool and get
-recorded). 14 validator scripts, 6 root-level orchestration/detection scripts, 6 Claude-facing
+recorded). 13 `verify_*.py` gates (9 always-on, 3 opt-in, 1 framework self-check), 2 LLM-wrapper
+scripts invoked from two of those opt-in gates (`semantic.py`, `llm_security_review.py`), 4
+further framework support tools, 6 root-level orchestration/detection scripts, 6 Claude-facing
 Skills, and 2 agent adapters (Claude, Codex) as of this revision.
 
 **Entry points** — run once per project, or on demand to re-classify:
@@ -43,6 +47,9 @@ Skills, and 2 agent adapters (Claude, Codex) as of this revision.
 - `verify_index_coverage.py` — index-table ↔ per-item-file coverage
 - `verify_acceptance.py` — functional requirements ↔ test coverage
 - `verify_registry.py` — schema-validates `document-registry.yaml` itself
+- `verify_workflow_registry.py` — schema-validates `workflow-registry.yaml` itself (script paths
+  resolve, no empty `validators` list, a `default` entry exists); runs first in every sequence,
+  same placement as `verify_registry.py`
 
 **Verification layer — opt-in gates**, enabled per-project via `.project-starter.yml` keys, added
 to the sequence by `orchestrator.py` only when configured:
@@ -52,7 +59,10 @@ to the sequence by `orchestrator.py` only when configured:
   flutter, swiftui); `--semantic` wraps any of these with `semantic.py`, an LLM-assisted pass for
   ambiguous field renames — opt-in only, explicitly excluded from `workflow-registry.yaml`
   sequences (developer-invoked analysis, not a commit gate)
-- `verify_security.py` — SAST wrapper (bandit / eslint-plugin-security / Semgrep)
+- `verify_security.py` — SAST wrapper (bandit / eslint-plugin-security / Semgrep); `--llm-review`
+  wraps it with `llm_security_review.py`, headlessly invoking Claude Code's `/security-review`
+  Skill for the class of issue a pattern-matcher can't see — opt-in only, same exclusion from
+  `workflow-registry.yaml` as `--semantic`
 - `verify_prose.py` — Vale wrapper for prose-quality (vague wording, prose-form placeholders)
 
 **Framework self-check / support tools** — run at sprint end or on demand:
@@ -92,12 +102,14 @@ package "always-on gates\n(.githooks/pre-commit)" {
   [verify_index_coverage.py]
   [verify_acceptance.py]
   [verify_registry.py]
+  [verify_workflow_registry.py]
 }
 
 package "opt-in gates\n(config-gated)" {
   [verify_spec_code.py]
   [semantic.py] as semantic
   [verify_security.py]
+  [llm_security_review.py] as llmreview
   [verify_prose.py]
 }
 
@@ -120,6 +132,7 @@ database "docs/" as docs
 [detect_type.py] --> config : --apply writes project_type
 [orchestrator.py] --> config
 [orchestrator.py] --> wfreg : resolves validator sequence
+[verify_workflow_registry.py] --> wfreg : schema-validates
 [orchestrator.py] --> [build-context.py] : invokes internally
 [orchestrator.py] --> [adapters/claude/*] : --adapter renders\nstart-task.md
 [build-context.py] --> docs
@@ -130,9 +143,11 @@ database "docs/" as docs
 [verify_logs.py] --> docs
 [verify_tests.py] --> docs
 [verify_spec_code.py] --> semantic : --semantic wraps adapter
+[verify_security.py] --> llmreview : --llm-review wraps it
 
 [telemetry_writer.py] --> telemetry_files : task-run.json
 [semantic] --> telemetry_files : token-usage.json\n(usage, cost, budget)
+[llmreview] --> telemetry_files : security-review-usage.json\n(cost, duration, turns)
 [_otel.py] ..> telemetry_files : dual-emit as OTel span\n(opt-in, OTEL_EXPORTER_OTLP_ENDPOINT)
 
 note right of wfreg
@@ -145,6 +160,11 @@ end note
 note right of semantic
   never appears in
   workflow-registry.yaml —
+  developer-invoked, not a gate
+end note
+
+note right of llmreview
+  same rule as semantic.py —
   developer-invoked, not a gate
 end note
 @enduml
@@ -207,6 +227,15 @@ note bottom of vreg : Added after this diagram's\nprior revision -- catches malf
   `.ai/AI_CONTEXT.md` as a deterministic ordered read list; `orchestrator.py` writes
   `.ai/WORKFLOW.md` as the broader task plan. Neither depends on the agent inferring scope from
   `AGENTS.md` prose.
+- **Validator sequencing (`workflow-registry.yaml`) had no equivalent schema gate** —
+  `verify_registry.py` validated `document-registry.yaml`'s shape, but nothing validated
+  `workflow-registry.yaml`'s shape the same way (a validator script path that doesn't exist, a
+  task type with an empty sequence, a missing `default` fallback). `orchestrator.py` used to fail
+  at invocation time instead of at a dedicated check. `verify_workflow_registry.py` now closes
+  this the same way `verify_registry.py` closed it for `document-registry.yaml`. Confirmed by
+  actually running it against a deliberately broken copy of the registry (bad script path, empty
+  `validators` list, missing `default`, unknown field) and checking it reported all four, not
+  just by reading the check logic.
 
 ### Open
 
@@ -216,11 +245,6 @@ note bottom of vreg : Added after this diagram's\nprior revision -- catches malf
   `scan_codebase.py`'s `guess_type()` heuristics. No cross-script consistency check exists for
   these. *(Carried over from the prior revision of this document — not re-audited in this pass;
   verify against current script content before relying on it.)*
-- **Validator sequencing (`workflow-registry.yaml`) has no equivalent schema gate** —
-  `verify_registry.py` validates `document-registry.yaml`'s shape, but nothing validates
-  `workflow-registry.yaml`'s shape the same way (e.g. a validator script path that doesn't exist,
-  a task type with an empty sequence). `orchestrator.py` currently fails at invocation time
-  instead of at a dedicated check.
 
 ---
 
@@ -246,7 +270,7 @@ using the framework needs.
 
 ## Telemetry & Token Accounting
 
-Three JSON logs under `logs/telemetry/`, each append-only, each best-effort (never raises on
+Four JSON logs under `logs/telemetry/`, each append-only, each best-effort (never raises on
 write failure):
 
 | File | Written by | Content |
@@ -254,14 +278,19 @@ write failure):
 | `task-run.json` | `adapters/claude/telemetry_writer.py`, called by `stop-hook.sh` | `ts`, `task`, `adapter`, `orchestrator_runs` — one row per Claude Code session boundary |
 | `skip-verify.json` | pre-commit, when `PROJECT_STARTER_SKIP_VERIFY` bypasses the gates | `ts`, `staged_files` — the bypass still prints a loud `[SKIP]` line; this is in addition, not instead |
 | `token-usage.json` | `semantic.py`, after every `semantic_compare()` call | `ts`, `model`, `calls`, `input_tokens`, `output_tokens`, `estimated_cost_usd`, `budget_tokens`, `budget_exceeded` |
+| `security-review-usage.json` | `llm_security_review.py`, after every `run_llm_security_review()` call | `ts`, `cost_usd`, `duration_ms`, `num_turns` — whatever fields the installed Claude Code version's `--output-format json` reports; read defensively, never assumes the schema |
 
-`token-usage.json` is the only one backed by a real API response rather than local state:
-`semantic.py` is the framework's single call site for a live LLM call (`--semantic` on
-`verify_spec_code.py`), so it's also the only place able to report *measured* usage instead of an
-estimate. Each call checks accumulated `input_tokens + output_tokens` against
+`token-usage.json` and `security-review-usage.json` are the only two backed by a real LLM
+response rather than local state — `semantic.py` and `llm_security_review.py` are the framework's
+only two call sites for a live LLM call (`--semantic` on `verify_spec_code.py`, `--llm-review` on
+`verify_security.py`), so they're also the only places able to report *measured* usage instead of
+an estimate. `semantic.py` additionally checks accumulated `input_tokens + output_tokens` against
 `SPEC_CODE_TOKEN_BUDGET` (if set) before firing, stops mid-run when the budget is hit, and prices
 the total from a small per-model USD/1M-token table (`_PRICING_PER_M_TOKENS`, overridable via
 `SPEC_CODE_PRICE_INPUT_PER_M` / `_OUTPUT_PER_M` for unlisted models or price changes).
+`llm_security_review.py` has no equivalent budget cap — a single `/security-review` invocation is
+one call, not a loop over multiple ambiguous field pairs the way `semantic.py`'s is, so there is
+nothing to cap mid-run.
 
 `_otel.py` optionally dual-emits every one of these writes as an OpenTelemetry span
 (`OTEL_EXPORTER_OTLP_ENDPOINT` set + `opentelemetry-*` installed; no-op otherwise), including
@@ -283,7 +312,8 @@ for the same task, rather than relying on OTel's in-process parent/child trackin
 | Human-readable matrix | `document-matrix.md` synced by Check 11 | Guarded |
 | Per-type behavioural flags | Scattered sets in `verify_logs.py`, `verify_tests.py`, `verify_content.py` | Open |
 | Task startup context | `build-context.py` -> `.ai/AI_CONTEXT.md` | Implemented |
-| Task validator sequence | `workflow-registry.yaml` -> `orchestrator.py` -> `.ai/WORKFLOW.md` | Implemented; no schema gate on the registry itself (Open) |
+| Task validator sequence | `workflow-registry.yaml` -> `orchestrator.py` -> `.ai/WORKFLOW.md` | Implemented; guarded by `verify_workflow_registry.py` |
 | Agent-specific task instructions | `adapters/<tool>/` templates, embedded in `orchestrator.py`, drift-guarded by `test_adapter_contracts.py` | Implemented |
 | Session/task telemetry | `telemetry_writer.py`, `_otel.py` | Implemented |
-| Real LLM token/cost accounting | `semantic.py` -> `logs/telemetry/token-usage.json` | Implemented (single call site) |
+| Real LLM token/cost accounting (spec<->code) | `semantic.py` -> `logs/telemetry/token-usage.json` | Implemented |
+| Real LLM cost/duration accounting (security review) | `llm_security_review.py` -> `logs/telemetry/security-review-usage.json` | Implemented |

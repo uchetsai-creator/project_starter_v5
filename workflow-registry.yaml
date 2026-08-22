@@ -8,6 +8,11 @@
 # Task types: feature | pipeline-stage | bug-fix | sprint-end | eval-run | iac-change
 # If the current task type has no entry, the "default" workflow is used.
 #
+# verify_workflow_registry.py validates this file's own schema (script paths resolve,
+# no empty validators lists, a 'default' entry exists) — the same role verify_registry.py
+# plays for document-registry.yaml. Runs first in every sequence below, same placement
+# as verify_registry.py, so a broken entry here is caught before anything else runs.
+#
 # Phase 48 — --semantic flag for verify_spec_code.py:
 #   --semantic is opt-in only. Do NOT add it to any sequence below.
 #   Adding --semantic here is a bug — it makes LLM API calls and is not a gate.
@@ -31,6 +36,8 @@ workflows:
     validators:
       - script: docs/script/validators/verify_registry.py
         args: []
+      - script: docs/script/validators/verify_workflow_registry.py
+        args: []
       - script: docs/script/validators/verify_docs.py
         args: [--content]
       - script: docs/script/validators/verify_logs.py
@@ -51,6 +58,8 @@ workflows:
     validators:
       - script: docs/script/validators/verify_registry.py
         args: []
+      - script: docs/script/validators/verify_workflow_registry.py
+        args: []
       - script: docs/script/validators/verify_docs.py
         args: [--content]
       - script: docs/script/validators/verify_logs.py
@@ -69,6 +78,8 @@ workflows:
     validators:
       - script: docs/script/validators/verify_registry.py
         args: []
+      - script: docs/script/validators/verify_workflow_registry.py
+        args: []
       - script: docs/script/validators/verify_docs.py
         args: [--content]
       - script: docs/script/validators/verify_content.py
@@ -84,6 +95,8 @@ workflows:
   sprint-end:
     validators:
       - script: docs/script/validators/verify_registry.py
+        args: []
+      - script: docs/script/validators/verify_workflow_registry.py
         args: []
       - script: docs/script/validators/verify_docs.py
         args: [--content]
@@ -114,6 +127,8 @@ workflows:
     validators:
       - script: docs/script/validators/verify_registry.py
         args: []
+      - script: docs/script/validators/verify_workflow_registry.py
+        args: []
       - script: docs/script/validators/verify_docs.py
         args: [--content]
       - script: docs/script/validators/verify_content.py
@@ -133,6 +148,8 @@ workflows:
     validators:
       - script: docs/script/validators/verify_registry.py
         args: []
+      - script: docs/script/validators/verify_workflow_registry.py
+        args: []
       - script: docs/script/validators/verify_docs.py
         args: [--content]
       - script: docs/script/validators/verify_content.py
@@ -150,6 +167,8 @@ workflows:
   default:
     validators:
       - script: docs/script/validators/verify_registry.py
+        args: []
+      - script: docs/script/validators/verify_workflow_registry.py
         args: []
       - script: docs/script/validators/verify_docs.py
         args: [--content]
