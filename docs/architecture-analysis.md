@@ -31,7 +31,12 @@ Claude-facing Skills, and 2 agent adapters (Claude, Codex) as of this revision.
   current task type, looks up the matching validator sequence in `workflow-registry.yaml`,
   invokes `build-context.py` internally, and writes `.ai/WORKFLOW.md` (a deterministic plan) plus
   an adapter-specific file (`adapters/claude/start-task.md` output, or the Codex equivalent) via
-  `--adapter`
+  `--adapter`. `_resolve_spec_code_bindings()` resolves `.project-starter.yml`'s
+  `spec_code_bindings` list (multiple contracts) or the legacy single
+  `spec_code_adapter`/`spec_code_spec`/`spec_code_src` trio into a uniform list, rendering one
+  `verify_spec_code.py` invocation per binding — `.githooks/pre-commit` calls this same function
+  via `python3 -c "from orchestrator import ..."` rather than re-parsing the YAML list in bash,
+  so there is one resolution rule, not two that could drift apart
 - `build-context.py` — reads the same config, queries `document-registry.yaml`, and writes
   `.ai/AI_CONTEXT.md`: an ordered list of exactly which docs to read for this task, so the agent
   doesn't infer scope from `AGENTS.md` prose
@@ -230,6 +235,20 @@ note bottom of vreg : Added after this diagram's\nprior revision -- catches malf
   `verify_framework.py` Check 11; `verify_registry.py` now schema-validates the registry itself.
 - **Document file paths encoded in two places** — the registry's `path` field is the single
   source; moving a document requires one edit.
+- **`.project-starter.yml`'s spec_code config had exactly one consumer... until it needed two** —
+  `orchestrator.py` (Python, real YAML parsing) and `.githooks/pre-commit` (bash, `grep`/`sed`
+  reading flat `key: value` lines) both need to resolve the same config into the same list of
+  bindings. Adding `spec_code_bindings` (a YAML list) could easily have meant writing the
+  resolution rule twice — once in Python, once re-implemented in bash regex over a nested
+  structure bash was never a good tool for. Instead, `_resolve_spec_code_bindings()` lives once
+  in `orchestrator.py`; the bash hook calls it via `python3 -c "from orchestrator import ..."`.
+  One resolution rule, two callers — same shape as `_registry.py`'s `VALID_TYPES`, just crossing
+  a language boundary instead of a file boundary. Caught a real bug doing it this way instead of
+  duplicating the logic: `_load_yaml()` expects a `pathlib.Path`, not a raw string, and on native
+  Windows Python's stdout text-mode `\n` → `\r\n` translation left a trailing `\r` stuck to each
+  line's last field after bash's `read` — both would have been silent false-negatives (the gate
+  just never firing, no error) had they shipped. Found by actually staging files in a throwaway
+  git repo and watching the gate not fire, not by reading the code.
 - **AI startup cost: project type resolved by inference** — `build-context.py` writes
   `.ai/AI_CONTEXT.md` as a deterministic ordered read list; `orchestrator.py` writes
   `.ai/WORKFLOW.md` as the broader task plan. Neither depends on the agent inferring scope from

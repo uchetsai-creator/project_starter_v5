@@ -79,6 +79,13 @@ spec_code_spec:
 spec_code_src:
 # Optional — all three must be set together to enable the spec <-> code drift gate.
 # See README.md -> Spec <-> Code Validator for the full list of adapter names.
+# More than one contract to validate (e.g. a REST API plus a background pipeline)?
+# Use spec_code_bindings instead — see README.md -> Spec <-> Code Validator.
+
+spec_code_bindings:
+# Optional — a list of adapter/spec/src mappings, for more than one contract in
+# the same project. Mutually exclusive with the single trio above (this list wins if
+# both are set). See README.md -> Spec <-> Code Validator for the example format.
 
 test_command:
 # Optional. Shell command that runs this project's test suite, e.g. `pytest -q` |

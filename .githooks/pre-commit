@@ -114,6 +114,7 @@ DOCS_PATH="docs"
 SPEC_CODE_ADAPTER=""
 SPEC_CODE_SPEC=""
 SPEC_CODE_SRC=""
+SPEC_CODE_BINDINGS=""
 SECURITY_SCAN_SRC=""
 PROSE_SCAN_ENABLED=""
 TEST_COMMAND=""
@@ -125,6 +126,39 @@ if [ -f "$CONFIG" ]; then
     SPEC_CODE_ADAPTER=$(grep '^spec_code_adapter:' "$CONFIG" | sed 's/spec_code_adapter:[[:space:]]*//' | tr -d "\"' ") || true
     SPEC_CODE_SPEC=$(grep '^spec_code_spec:' "$CONFIG" | sed 's/spec_code_spec:[[:space:]]*//' | tr -d "\"' ") || true
     SPEC_CODE_SRC=$(grep '^spec_code_src:' "$CONFIG" | sed 's/spec_code_src:[[:space:]]*//' | tr -d "\"' ") || true
+    # Resolves spec_code_bindings (the multi-contract list form) OR the legacy single
+    # trio above into "adapter<TAB>spec<TAB>src" lines, one per binding. Delegates to
+    # orchestrator.py's already-tested _resolve_spec_code_bindings() instead of
+    # re-parsing a nested YAML list with grep/sed here — bash pattern-matching a flat
+    # "key: value" line is a fundamentally different (and much safer) problem than
+    # parsing a YAML list of mappings; get it wrong here and every commit on every
+    # project using this framework is affected. Empty output (missing orchestrator.py,
+    # unparsable config, zero bindings) degrades to "no spec<->code gate configured" —
+    # same as today's behavior when the legacy trio is unset.
+    if [ -f "orchestrator.py" ]; then
+        SPEC_CODE_BINDINGS=$(python3 -c "
+import sys
+import pathlib
+sys.path.insert(0, '.')
+try:
+    from orchestrator import _load_yaml, _resolve_spec_code_bindings
+    cfg = _load_yaml(pathlib.Path(sys.argv[1]))
+    for b in _resolve_spec_code_bindings(cfg):
+        print(b['adapter'] + '\t' + b['spec'] + '\t' + b['src'])
+except Exception:
+    pass
+" "$CONFIG" 2>/dev/null) || SPEC_CODE_BINDINGS=""
+        # Strip any \r — on native Windows, Python's stdout is opened in text mode and
+        # translates \n to \r\n; bash's `read` below only consumes the \n, leaving a
+        # trailing \r stuck to each line's last field (src). That \r then makes every
+        # `grep -F "$B_SRC"` staged-file match fail silently — a false negative (the
+        # gate never fires), not a crash, so it doesn't show up as an error. Confirmed
+        # by actually staging a file under a binding's src on Windows and observing the
+        # gate not fire before this line was added.
+        SPEC_CODE_BINDINGS="${SPEC_CODE_BINDINGS//$'\r'/}"
+    else
+        SPEC_CODE_BINDINGS=""
+    fi
     SECURITY_SCAN_SRC=$(grep '^security_scan_src:' "$CONFIG" | sed 's/security_scan_src:[[:space:]]*//' | tr -d "\"' ") || true
     PROSE_SCAN_ENABLED=$(grep '^prose_scan_enabled:' "$CONFIG" | sed 's/prose_scan_enabled:[[:space:]]*//' | tr -d "\"' ") || true
     # Not tr -d "'\" " here — unlike the fields above, a real command legitimately
@@ -134,8 +168,15 @@ if [ -f "$CONFIG" ]; then
     TEST_COMMAND=$(grep '^test_command:' "$CONFIG" | sed -E 's/^test_command:[[:space:]]*//') || true
 fi
 
-# ── spec_code_adapter value guard ─────────────────────────────────────────────
-# Catches: typos in adapter name that would cause verify_spec_code.py to silently skip
+# ── spec_code_adapter value guard (legacy single trio) ────────────────────────
+# Catches: a typo'd adapter name, checked as soon as spec_code_adapter itself is set —
+# independent of whether spec_code_spec / spec_code_src are also filled in yet. This is
+# deliberately NOT folded into the resolved-bindings guard below: _resolve_spec_code_bindings()
+# only returns a binding once all three fields are present, so a project that's set the
+# adapter but hasn't finished filling in spec/src yet would otherwise get zero feedback
+# on a typo'd adapter name until the other two fields are also filled in. Confirmed by
+# tests/unit/test_pre_commit_skip_verify.py's blocking-config fixture, which sets exactly
+# this (adapter filled, spec/src blank) and expects the typo to be caught immediately.
 KNOWN_ADAPTERS="fastapi flask django express gin click typer airflow dagster prefect luigi python_library typescript tool_schema langchain terraform pulumi ansible react_native flutter swiftui python_logging javascript_logging"
 if [ -n "$SPEC_CODE_ADAPTER" ]; then
     ADAPTER_VALID=false
@@ -148,6 +189,29 @@ if [ -n "$SPEC_CODE_ADAPTER" ]; then
         echo "    Fix the value in .project-starter.yml or leave spec_code_adapter blank to disable the gate."
         exit 1
     fi
+fi
+
+# ── spec_code_bindings adapter guard (resolved bindings, either config form) ──
+# Catches the same typo, but for every *complete* resolved binding — covers
+# spec_code_bindings entries the check above can't see (it only reads the legacy
+# trio's raw value). An incomplete spec_code_bindings entry (adapter set, spec or src
+# missing) is silently dropped by _resolve_spec_code_bindings() rather than checked
+# here — same documented scope boundary as that function's docstring.
+if [ -n "$SPEC_CODE_BINDINGS" ]; then
+    while IFS=$'\t' read -r B_ADAPTER B_SPEC B_SRC; do
+        [ -z "$B_ADAPTER" ] && continue
+        ADAPTER_VALID=false
+        for known in $KNOWN_ADAPTERS; do
+            [ "$B_ADAPTER" = "$known" ] && ADAPTER_VALID=true && break
+        done
+        if [ "$ADAPTER_VALID" = false ]; then
+            echo "[FAIL] pre-commit: spec_code adapter '$B_ADAPTER' is not a recognised adapter."
+            echo "    Known adapters: $KNOWN_ADAPTERS"
+            echo "    Fix the value in .project-starter.yml (spec_code_adapter, or the matching"
+            echo "    entry in spec_code_bindings)."
+            exit 1
+        fi
+    done <<< "$SPEC_CODE_BINDINGS"
 fi
 
 if [ -z "$PROJECT_TYPE" ]; then
@@ -332,34 +396,40 @@ if [ -n "$SPEC_FACING_STAGED" ]; then
 fi
 
 # ── Spec ↔ Code validation ─────────────────────────────────────────────────────
-# Trigger: any spec contract document staged, OR any file under the configured
-#          spec_code_src tree staged — catches drift from EITHER side changing alone,
-#          including code changed directly without touching the spec.
+# Trigger: any spec contract document staged, OR any file under a configured binding's
+#          src tree staged — catches drift from EITHER side changing alone, including
+#          code changed directly without touching the spec.
 # Catches: spec–code drift introduced alongside a spec update, or code silently
 #          diverging from a spec that was never updated.
-# Requires spec_code_adapter / spec_code_spec / spec_code_src set in .project-starter.yml —
-# skipped entirely (no check, no noise) when unset, matching prior default behavior.
+# Requires spec_code_bindings, or the legacy spec_code_adapter/spec_code_spec/
+# spec_code_src trio, set in .project-starter.yml — skipped entirely (no check, no
+# noise) when unset, matching prior default behavior. One verify_spec_code.py
+# invocation per resolved binding — a project with a REST API and a background
+# pipeline gets both checked, not just whichever was configured first.
 SPEC_CONTRACT_STAGED=$(printf '%s\n' "$STAGED" \
     | grep -E '(pipeline-contract|cli-contract|api-contract|public-api|llm-contract|topology|mobile-contract)\.md$' || true)
-if [ -n "$SPEC_CODE_ADAPTER" ] && [ -n "$SPEC_CODE_SPEC" ] && [ -n "$SPEC_CODE_SRC" ] \
-    && [ -f "docs/script/validators/verify_spec_code.py" ]; then
-    SRC_STAGED=$(printf '%s\n' "$STAGED" | grep -F "$SPEC_CODE_SRC" || true)
-    if [ -n "$SPEC_CONTRACT_STAGED" ] || [ -n "$SRC_STAGED" ]; then
-        echo "  → verify_spec_code.py --adapter $SPEC_CODE_ADAPTER (spec or src staged) ..."
-        python3 "docs/script/validators/verify_spec_code.py" \
-            --project-type "$PROJECT_TYPE" \
-            --adapter "$SPEC_CODE_ADAPTER" --spec "$SPEC_CODE_SPEC" --src "$SPEC_CODE_SRC" \
-            --strict 2>&1 || PASS=false
-    fi
+if [ -n "$SPEC_CODE_BINDINGS" ] && [ -f "docs/script/validators/verify_spec_code.py" ]; then
+    while IFS=$'\t' read -r B_ADAPTER B_SPEC B_SRC; do
+        [ -z "$B_ADAPTER" ] && continue
+        SRC_STAGED=$(printf '%s\n' "$STAGED" | grep -F "$B_SRC" || true)
+        if [ -n "$SPEC_CONTRACT_STAGED" ] || [ -n "$SRC_STAGED" ]; then
+            echo "  → verify_spec_code.py --adapter $B_ADAPTER (spec or src staged) ..."
+            python3 "docs/script/validators/verify_spec_code.py" \
+                --project-type "$PROJECT_TYPE" \
+                --adapter "$B_ADAPTER" --spec "$B_SPEC" --src "$B_SRC" \
+                --strict 2>&1 || PASS=false
+        fi
+    done <<< "$SPEC_CODE_BINDINGS"
 fi
 
 # ── Spec ↔ Code coverage tip (non-blocking) ────────────────────────────────────
-# Trigger: a spec contract document is staged, but spec_code_adapter isn't configured.
+# Trigger: a spec contract document is staged, but no binding (either config form)
+# resolved to anything.
 # Purpose: the drift gate above is entirely invisible when unset — a project can
 # silently have zero spec<->code protection indefinitely. This surfaces that gap
 # at the moment it actually matters (a spec contract is being committed) instead
 # of depending on someone having read the optional setup docs beforehand.
-if [ -z "$SPEC_CODE_ADAPTER" ] && [ -n "$SPEC_CONTRACT_STAGED" ]; then
+if [ -z "$SPEC_CODE_BINDINGS" ] && [ -n "$SPEC_CONTRACT_STAGED" ]; then
     ADAPTERS=""
     case "$PROJECT_TYPE" in
         web-app|microservices)   ADAPTERS="fastapi, flask, django, express, gin" ;;
@@ -396,6 +466,10 @@ fi
 # Trigger: spec_code_src is already configured (so a src path is known), but
 # security_scan_src isn't — this is the actionable moment to suggest enabling it,
 # reusing an existing signal instead of adding new file-staging detection.
+# Only checks the legacy single-trio $SPEC_CODE_SRC, not spec_code_bindings — a
+# project using only the new multi-binding form loses this one suggestion message
+# (nothing else), not worth the complexity of picking a src path out of a list for
+# a non-blocking tip. Set security_scan_src by hand in that case.
 if [ -z "$SECURITY_SCAN_SRC" ] && [ -n "$SPEC_CODE_SRC" ]; then
     echo "  [TIP] No SAST scan configured for this project."
     echo "        Set security_scan_src: $SPEC_CODE_SRC in .project-starter.yml to run bandit"

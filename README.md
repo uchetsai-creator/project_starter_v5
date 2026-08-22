@@ -701,7 +701,7 @@ python3 orchestrator.py --dry-run
 |---|---|---|
 | `.project-starter.yml` | `project_type` | Select validator commands + context |
 | `.project-starter.yml` | `task_type` (optional) | Select workflow template |
-| `.project-starter.yml` | `spec_code_adapter` / `spec_code_spec` / `spec_code_src` (optional, all three required together) | Appends `--adapter --spec --src` to any `verify_spec_code.py` step |
+| `.project-starter.yml` | `spec_code_adapter` / `spec_code_spec` / `spec_code_src` (optional, all three required together) — or `spec_code_bindings` (list form, for more than one contract; wins if both are set) | One `verify_spec_code.py --adapter --spec --src` step per resolved binding |
 | `docs/current-state.md` | `Task Type:` field (optional) | Override task_type per task |
 | `workflow-registry.yaml` | `workflows[task_type].validators` | Ordered post-task validator sequence |
 
@@ -1684,9 +1684,28 @@ Once configured:
   This is what catches code changed directly without the spec being updated — the exact case a
   spec-file-only trigger misses.
 
-Only one adapter mapping is supported via `.project-starter.yml`. Projects validating more than
-one contract (e.g. multiple services) can still run additional `verify_spec_code.py` invocations
-manually or from CI, per the **Usage** examples above.
+**More than one contract to validate?** Use `spec_code_bindings` instead of the single trio — a
+list of the same three keys, one entry per contract:
+
+```yaml
+spec_code_bindings:
+  - adapter: fastapi
+    spec: docs/specs/api-contract.md
+    src: src/api/
+  - adapter: airflow
+    spec: docs/specs/pipeline-contract.md
+    src: src/stages/
+```
+
+Mutually exclusive with the single trio (`spec_code_bindings` wins if both are set — no need to
+migrate an existing single-binding project unless you're adding a second contract). Both
+`orchestrator.py` and `.githooks/pre-commit` render/run one `verify_spec_code.py` invocation per
+binding — the hook's bash side delegates the actual YAML resolution to `orchestrator.py`'s
+`_resolve_spec_code_bindings()` (`python3 -c "from orchestrator import ..."`) rather than
+re-parsing a nested YAML list with `grep`/`sed`, which is a fundamentally different (and much
+riskier to get subtly wrong) problem than the flat `key: value` lines the rest of the hook reads.
+An incomplete entry (missing `spec` or `src`) is silently dropped, not an error — same
+graceful-skip philosophy as the single trio being left blank.
 
 ### Writing a custom adapter
 
@@ -2026,10 +2045,13 @@ confirm a document isn't a placeholder and has the sections/rows the schema expe
 confirm the content is factually accurate. A confidently wrong, fully-filled-in spec passes every
 check exactly as well as a correct one.
 
-**Multi-contract projects need extra manual wiring.** Only one adapter mapping is configured via
-`.project-starter.yml` at a time. A project validating more than one contract (multiple services,
-multiple libraries) needs additional manual or CI-driven `verify_spec_code.py` invocations for the
-rest — see the per-adapter commands under [Usage](#usage) above.
+**Multi-contract projects: use `spec_code_bindings`.** `.project-starter.yml` supports a list of
+`{adapter, spec, src}` mappings (`spec_code_bindings`), not just the single legacy trio — a project
+with a REST API and a background pipeline gets both wired into `.githooks/pre-commit` and
+`orchestrator.py`'s generated workflow automatically, one `verify_spec_code.py` invocation per
+binding. See [Wiring it into pre-commit](#wiring-it-into-pre-commit) below. One real limitation
+remains: the *coverage tip* (the non-blocking `[TIP]` suggesting `security_scan_src`) only reads
+the legacy trio's `src`, not the bindings list — cosmetic, not a gate, see that section for why.
 
 **The security scan is opt-in too, and its coverage is narrow.** `security_scan_src` is unset by
 default — same invisible-until-you-turn-it-on shape as `spec_code_adapter`, mitigated the same

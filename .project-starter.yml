@@ -69,9 +69,27 @@ spec_code_src:
 #   spec_code_spec: docs/specs/api-contract.md
 #   spec_code_src: src/
 #
-# Only one adapter mapping is supported here. Projects needing more than one contract
-# validated (e.g. multiple services) can still run verify_spec_code.py directly with
-# additional --adapter/--spec/--src invocations — see README.md.
+# Only one binding — for more than one contract in the same project (e.g. a REST API
+# plus a background pipeline), use spec_code_bindings instead (below); the two forms
+# are mutually exclusive — spec_code_bindings wins if both are set. See README.md ->
+# Spec ↔ Code Validator.
+
+spec_code_bindings:
+# Optional — a list of {adapter, spec, src} mappings, for projects validating more than
+# one contract. Each entry needs all three keys; an incomplete entry is silently dropped
+# rather than erroring. Renders as one verify_spec_code.py invocation per binding in
+# .githooks/pre-commit and orchestrator.py's generated workflow. Leave blank/empty and
+# use the single spec_code_adapter/spec_code_spec/spec_code_src trio above instead if you
+# only have one contract — no need to use this form for a single binding.
+#
+# Example (REST API + background pipeline in the same repo):
+#   spec_code_bindings:
+#     - adapter: fastapi
+#       spec: docs/specs/api-contract.md
+#       src: src/api/
+#     - adapter: airflow
+#       spec: docs/specs/pipeline-contract.md
+#       src: src/stages/
 
 security_scan_src:
 # Optional. Enables the SAST gate (verify_security.py) in .githooks/pre-commit and in the

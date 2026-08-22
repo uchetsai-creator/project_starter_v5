@@ -138,12 +138,7 @@ def _build_workflow(project_root: Path, task_type_override: str | None = None) -
     workflow = workflows.get(workflow_key, {})
     validators = workflow.get("validators", [])
 
-    spec_code = None
-    sc_adapter = cfg.get("spec_code_adapter")
-    sc_spec = cfg.get("spec_code_spec")
-    sc_src = cfg.get("spec_code_src")
-    if sc_adapter and sc_spec and sc_src:
-        spec_code = {"adapter": sc_adapter, "spec": sc_spec, "src": sc_src}
+    spec_code_bindings = _resolve_spec_code_bindings(cfg)
 
     security_scan_src = cfg.get("security_scan_src") or None
     prose_scan_enabled = cfg.get("prose_scan_enabled") is True
@@ -154,10 +149,48 @@ def _build_workflow(project_root: Path, task_type_override: str | None = None) -
         "workflow_key": workflow_key,
         "validators": validators,
         "docs_path": docs_path,
-        "spec_code": spec_code,
+        "spec_code_bindings": spec_code_bindings,
         "security_scan_src": security_scan_src,
         "prose_scan_enabled": prose_scan_enabled,
     }
+
+
+def _resolve_spec_code_bindings(cfg: dict) -> list[dict]:
+    """Return a list of {adapter, spec, src} bindings for verify_spec_code.py.
+
+    Supports two forms, checked in this order:
+      1. `spec_code_bindings:` — a YAML list of {adapter, spec, src} mappings, for
+         projects with more than one contract to validate (e.g. a REST API plus a
+         background pipeline in the same repo). Each entry needs all three keys;
+         incomplete entries are silently dropped rather than erroring, matching this
+         function's overall graceful-skip philosophy — the same as an unconfigured
+         single binding rendering no --adapter/--spec/--src flags rather than failing.
+      2. The legacy single `spec_code_adapter` / `spec_code_spec` / `spec_code_src`
+         trio — still works unchanged, no migration required. Existing
+         .project-starter.yml files (this framework's own included) don't need to
+         change; `spec_code_bindings` is purely additive.
+
+    Returns an empty list if neither form is configured — verify_spec_code.py still
+    runs (per workflow-registry.yaml) but renders with no extra flags and skips
+    gracefully, same as before this function existed.
+    """
+    bindings_raw = cfg.get("spec_code_bindings")
+    if bindings_raw:
+        bindings = []
+        for b in bindings_raw:
+            if not isinstance(b, dict):
+                continue
+            adapter, spec, src = b.get("adapter"), b.get("spec"), b.get("src")
+            if adapter and spec and src:
+                bindings.append({"adapter": adapter, "spec": spec, "src": src})
+        return bindings
+
+    sc_adapter = cfg.get("spec_code_adapter")
+    sc_spec = cfg.get("spec_code_spec")
+    sc_src = cfg.get("spec_code_src")
+    if sc_adapter and sc_spec and sc_src:
+        return [{"adapter": sc_adapter, "spec": sc_spec, "src": sc_src}]
+    return []
 
 
 def _render(ctx: dict) -> str:
@@ -178,14 +211,15 @@ def _render(ctx: dict) -> str:
         "## Post-task validators (run in order)",
     ]
 
-    spec_code = ctx.get("spec_code")
+    spec_code_bindings = ctx.get("spec_code_bindings") or []
     security_scan_src = ctx.get("security_scan_src")
 
     if ctx["validators"]:
-        for i, v in enumerate(ctx["validators"], start=1):
+        rendered: list[str] = []
+        for v in ctx["validators"]:
             script = v.get("script", "")
             extra_args = [str(a) for a in v.get("args", [])]
-            parts = ["python3", script]
+            base_parts = ["python3", script]
             # verify_registry.py validates document-registry.yaml itself,
             # verify_workflow_registry.py validates workflow-registry.yaml itself, and
             # verify_index_coverage.py checks index <-> per-item file coverage by
@@ -195,15 +229,32 @@ def _render(ctx: dict) -> str:
             if not script.endswith((
                 "verify_registry.py", "verify_workflow_registry.py", "verify_index_coverage.py",
             )):
-                parts.append(f"--project-type {pt}")
-            if spec_code and script.endswith("verify_spec_code.py"):
-                parts.append(f"--adapter {spec_code['adapter']} --spec {spec_code['spec']} --src {spec_code['src']}")
+                base_parts.append(f"--project-type {pt}")
+
+            if script.endswith("verify_spec_code.py") and spec_code_bindings:
+                # One rendered line per binding — a project validating more than one
+                # contract (e.g. a REST API and a background pipeline) gets one
+                # verify_spec_code.py invocation per contract, not one invocation that
+                # can only carry a single --adapter/--spec/--src triple.
+                for binding in spec_code_bindings:
+                    parts = list(base_parts)
+                    parts.append(
+                        f"--adapter {binding['adapter']} --spec {binding['spec']} --src {binding['src']}",
+                    )
+                    parts += extra_args
+                    rendered.append(" ".join(parts))
+                continue
+
+            parts = list(base_parts)
             if security_scan_src and script.endswith("verify_security.py"):
                 parts.append(f"--src {security_scan_src}")
             if ctx.get("prose_scan_enabled") and script.endswith("verify_prose.py"):
                 parts.append(f"--docs {ctx['docs_path']}")
             parts += extra_args
-            lines.append(f"{i}. `{' '.join(parts)}`")
+            rendered.append(" ".join(parts))
+
+        for i, cmd in enumerate(rendered, start=1):
+            lines.append(f"{i}. `{cmd}`")
     else:
         lines.append("_(no validators configured for this task type)_")
 
