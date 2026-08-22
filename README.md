@@ -146,9 +146,37 @@ a human's own decision.
    blocks every commit where required docs are missing, unfilled, or (if you've configured
    `spec_code_adapter` in `.project-starter.yml`) drifted from the code.
 
-**Existing project (already has code):** follow `templates/init/retrofit.md` instead of a
-type's init file — it scans your actual codebase first (via `scan_codebase.py`) and documents
-what's really there, rather than assuming a blank slate.
+**Existing project (already has code):** keep a clone of this `project_starter_v5` repo in its own
+location, entirely separate from the target project — e.g. `~/tools/project_starter_v5` — never
+nested inside it. From that clone, run the same Bootstrap command above, pointed at the existing
+project's directory:
+```bash
+cd ~/tools/project_starter_v5
+bash setup.sh --init <type> /path/to/your-existing-project     # or: python3 init.py <type> /path/to/your-existing-project
+```
+It only ever copies specific files via `shutil.copytree`/`copy2`; it never touches `.git/`, so
+this is always safe even when the destination already has its own git history — and if that
+destination is itself a git repo, this also installs the pre-commit hook into *its* `.git/hooks/`,
+so commits to that project are actually checked.
+
+**Do not instead copy or `git clone` this `project_starter_v5` folder itself into your existing
+project's directory.** If that folder still has its own `.git/` inside it, your existing repo's
+`git add` will record it as a *gitlink* — a pointer to a commit SHA, not the actual file contents
+— instead of real files. The commit looks fine locally, but anyone else who clones your repo (or
+you, on a different machine) gets an empty/broken reference where those files should be, not the
+framework itself. If this already happened to you: remove the nested `.git/` (or re-copy using
+`--init` instead) and re-add the files so git records real content.
+
+Then, from the target project's own directory, follow `templates/init/retrofit.md` (read from the
+separate `project_starter_v5` clone, e.g. `~/tools/project_starter_v5/templates/init/retrofit.md`
+— init files are never copied into the target project) instead of a type's init file — it scans
+your actual codebase first (via `scan_codebase.py`) and documents what's really there, rather than
+assuming a blank slate.
+
+**Picking up framework updates later:** `git pull` inside the separate `project_starter_v5` clone,
+then re-run the same `--init` command again, pointed at the same existing project — `init.py`'s
+copies use `dirs_exist_ok=True`, so re-running it is safe and just overwrites the framework files
+with the newer versions. This never touches the target project's own `.git/` either.
 
 From here: **Project Initialization** below has the full per-type document list, **Verification**
 covers exactly what the pre-commit hook checks, and **Spec ↔ Code Validator** covers wiring up
