@@ -36,7 +36,6 @@ from __future__ import annotations
 
 import json
 import os
-import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -385,18 +384,18 @@ if __name__ == '__main__':
                 _MockResponse('Concrete, specific guidance for this section.', 150, 60),
                 _MockResponse(json.dumps({'verdict': 'approve', 'reasoning': 'good'}), 80, 20),
             ]
-            call_log = []
+            call_log: list[str] = []
 
             def _fake_get_client():
                 call_log.append('called')
                 return _MockClient(responses)
 
             real_get_client = sys.modules[__name__]._get_client
-            sys.modules[__name__]._get_client = _fake_get_client
+            sys.modules[__name__]._get_client = _fake_get_client  # type: ignore[attr-defined]
             try:
                 result = run_ai_draft_pipeline('web-app', 'specs/research.md', 'Error Handling', '# template')
             finally:
-                sys.modules[__name__]._get_client = real_get_client
+                sys.modules[__name__]._get_client = real_get_client  # type: ignore[attr-defined]
 
             assert result['approved'] is True
             assert result['text'] == 'Concrete, specific guidance for this section.'
@@ -423,11 +422,11 @@ if __name__ == '__main__':
                 return _MockClient(responses)
 
             real_get_client = sys.modules[__name__]._get_client
-            sys.modules[__name__]._get_client = _fake_get_client2
+            sys.modules[__name__]._get_client = _fake_get_client2  # type: ignore[attr-defined]
             try:
                 result2 = run_ai_draft_pipeline('web-app', 'specs/research.md', 'Error Handling', '# template')
             finally:
-                sys.modules[__name__]._get_client = real_get_client
+                sys.modules[__name__]._get_client = real_get_client  # type: ignore[attr-defined]
 
             assert result2['approved'] is False
             assert result2['text'] is None

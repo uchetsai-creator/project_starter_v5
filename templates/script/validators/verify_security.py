@@ -499,10 +499,10 @@ def main() -> None:
 
     if args.llm_review:
         from llm_security_review import (  # noqa: PLC0415 — optional, only loaded when passed
+            _write_review_telemetry,
             print_review,
             run_llm_security_review,
         )
-        from llm_security_review import _write_review_telemetry  # noqa: PLC0415
 
         review = run_llm_security_review()
         print_review(review)
