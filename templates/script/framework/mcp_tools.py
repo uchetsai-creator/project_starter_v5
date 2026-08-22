@@ -31,9 +31,9 @@ if str(_VALIDATORS_DIR) not in sys.path:
     sys.path.insert(0, str(_VALIDATORS_DIR))
 
 from _registry import VALID_TYPES  # noqa: E402
-from verify_docs import run_audit  # noqa: E402
-from verify_content import audit as verify_content_audit  # noqa: E402
 from _verify_common import read_doc_profile  # noqa: E402
+from verify_content import audit as verify_content_audit  # noqa: E402
+from verify_docs import run_audit  # noqa: E402
 
 
 class ToolError(Exception):

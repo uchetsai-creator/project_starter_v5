@@ -259,10 +259,10 @@ def print_results(results, types, lite=False):
             content = _content_suffix(r.get('content'))
             print(f'  {r["label"]:<24} {r["doc"]}{note}{content}')
 
-    total_required = counts['present'] + counts['missing_required']
     present_required = sum(
         1 for r in results if r['status'] == 'present' and r.get('note') != '(optional)'
     )
+    total_required = present_required + counts['missing_required']
 
     print()
     print(f'  Required : {present_required} / {total_required} present')

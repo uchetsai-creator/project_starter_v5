@@ -215,7 +215,7 @@ def check_shared_utility(lines: list[str]) -> list[str]:
                 issues.append("plantuml class: no real method signatures (all placeholder)")
 
     # Used by table
-    used_m = re.search(r'\*\*Used by\*\*|^Used by\s*:', text, re.MULTILINE | re.IGNORECASE)
+    used_m = re.search(r'\*\*Used by\*\*|\*\*Used by:\*\*|^Used by\s*:', text, re.MULTILINE | re.IGNORECASE)
     if not used_m:
         issues.append("'Used by' section missing")
     else:

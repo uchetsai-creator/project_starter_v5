@@ -150,6 +150,7 @@ def _task_parent_context(task_name: str, cwd: str):
         span_id = int(state["span_id"], 16)
     else:
         # New task, or first emit() ever for it — create and export the root span once.
+        assert _tracer is not None, "caller must confirm _get_tracer() is non-None first"
         with _tracer.start_as_current_span(f"task: {task_name}") as root_span:
             root_span.set_attribute("task", task_name)
             ctx = root_span.get_span_context()

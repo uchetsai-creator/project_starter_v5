@@ -1,0 +1,27 @@
+
+Document Content Quality — microservices+web-app
+────────────────────────────────────────────────────────────────────
+Document                       Required     Quality
+────────────────────────────────────────────────────────────────────
+project-requirements.md        Missing      —
+research.md                    Missing      —
+quickstart.md                  Missing      —
+test-plan.md                   Missing      —
+test-report.md                 Missing      —
+architecture.md                Present      Fully filled
+deployment.md                  Missing      —
+api-contract.md                Present      No real endpoint rows found (Method + Path not filled)
+service-catalog.md             Present      Fully filled
+service-contract.md            Present      No inter-service endpoints or events documented
+permissions.md                 Present      Fully filled
+logging-spec.md                Missing      —
+business-process.md            Present      Fully filled
+business-objects.md            Missing      —
+business-rules.md              Missing      —
+backend.md                     Missing      —
+database.md                    Missing      —
+data-model.md                  Missing      —
+
+Documents  : 6 / 18 present
+Quality    : 4 / 6 existing documents fully filled
+

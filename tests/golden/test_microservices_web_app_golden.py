@@ -1,4 +1,4 @@
-"""Golden regression tests for iac example project."""
+"""Golden regression tests for microservices-web-app hybrid example project."""
 import os
 import subprocess
 import sys
@@ -16,8 +16,12 @@ _VERIFY_CONTENT = REPO_ROOT / "templates/script/validators/verify_content.py"
 _VERIFY_SECURITY = REPO_ROOT / "templates/script/validators/verify_security.py"
 _VERIFY_PROSE = REPO_ROOT / "templates/script/validators/verify_prose.py"
 
-PROJECT_TYPE = "iac"
-TASK_TYPE = "iac-change"
+# examples/ directory name uses a hyphen; the declared project_type inside
+# .project-starter.yml (and the --project-type flag value) uses a plus, since
+# this is a hybrid of two types (see .project-starter.yml for this example).
+EXAMPLE_DIR = "microservices-web-app"
+PROJECT_TYPE = "microservices+web-app"
+TASK_TYPE = "feature"
 
 
 def _run(args, cwd, **kwargs):
@@ -30,27 +34,27 @@ def _run(args, cwd, **kwargs):
 
 
 def test_orchestrator_dry_run(snapshot_update, tmp_path):
-    proj = setup_golden_project(tmp_path, PROJECT_TYPE)
+    proj = setup_golden_project(tmp_path, EXAMPLE_DIR)
     result = _run(
         [sys.executable, "orchestrator.py", "--dry-run", "--task-type", TASK_TYPE],
         proj,
     )
     assert result.returncode == 0, f"orchestrator failed:\n{result.stderr}"
-    assert_golden(f"golden_{PROJECT_TYPE}_orchestrator.md", normalize(result.stdout), snapshot_update)
+    assert_golden(f"golden_{EXAMPLE_DIR}_orchestrator.md", normalize(result.stdout), snapshot_update)
 
 
 def test_build_context_dry_run(snapshot_update, tmp_path):
-    proj = setup_golden_project(tmp_path, PROJECT_TYPE)
+    proj = setup_golden_project(tmp_path, EXAMPLE_DIR)
     result = _run(
         [sys.executable, "build-context.py", "--dry-run", "--task-type", TASK_TYPE],
         proj,
     )
     assert result.returncode == 0, f"build-context failed:\n{result.stderr}"
-    assert_golden(f"golden_{PROJECT_TYPE}_build_context.md", normalize(result.stdout), snapshot_update)
+    assert_golden(f"golden_{EXAMPLE_DIR}_build_context.md", normalize(result.stdout), snapshot_update)
 
 
 def test_verify_registry(tmp_path):
-    proj = setup_golden_project(tmp_path, PROJECT_TYPE)
+    proj = setup_golden_project(tmp_path, EXAMPLE_DIR)
     result = _run(
         [sys.executable, str(_VERIFY_REGISTRY), "--registry", str(REPO_ROOT / "document-registry.yaml")],
         proj,
@@ -59,40 +63,40 @@ def test_verify_registry(tmp_path):
 
 
 def test_verify_docs_snapshot(snapshot_update, tmp_path):
-    proj = setup_golden_project(tmp_path, PROJECT_TYPE)
+    proj = setup_golden_project(tmp_path, EXAMPLE_DIR)
     result = _run(
         [sys.executable, str(_VERIFY_DOCS), "--project-type", PROJECT_TYPE, "--docs", "docs", "--json"],
         proj,
     )
     assert result.returncode == 0, f"verify_docs failed:\n{result.stdout}"
-    assert_golden(f"golden_{PROJECT_TYPE}_verify_docs.json", result.stdout, snapshot_update)
+    assert_golden(f"golden_{EXAMPLE_DIR}_verify_docs.json", result.stdout, snapshot_update)
 
 
 def test_verify_content_snapshot(snapshot_update, tmp_path):
-    proj = setup_golden_project(tmp_path, PROJECT_TYPE)
+    proj = setup_golden_project(tmp_path, EXAMPLE_DIR)
     result = _run(
         [sys.executable, str(_VERIFY_CONTENT), "--project-type", PROJECT_TYPE, "--docs", "docs"],
         proj,
     )
     assert result.returncode == 0, f"verify_content failed:\n{result.stdout}"
-    assert_golden(f"golden_{PROJECT_TYPE}_verify_content.txt", normalize(result.stdout), snapshot_update)
+    assert_golden(f"golden_{EXAMPLE_DIR}_verify_content.txt", normalize(result.stdout), snapshot_update)
 
 
 def test_verify_security_unconfigured_skips_gracefully(snapshot_update, tmp_path):
-    proj = setup_golden_project(tmp_path, PROJECT_TYPE)
+    proj = setup_golden_project(tmp_path, EXAMPLE_DIR)
     result = _run(
         [sys.executable, str(_VERIFY_SECURITY), "--project-type", PROJECT_TYPE, "--strict"],
         proj,
     )
     assert result.returncode == 0, f"verify_security failed:\n{result.stdout}"
-    assert_golden(f"golden_{PROJECT_TYPE}_verify_security.txt", normalize(result.stdout), snapshot_update)
+    assert_golden(f"golden_{EXAMPLE_DIR}_verify_security.txt", normalize(result.stdout), snapshot_update)
 
 
 def test_verify_prose_unconfigured_skips_gracefully(snapshot_update, tmp_path):
-    proj = setup_golden_project(tmp_path, PROJECT_TYPE)
+    proj = setup_golden_project(tmp_path, EXAMPLE_DIR)
     result = _run(
         [sys.executable, str(_VERIFY_PROSE), "--project-type", PROJECT_TYPE, "--strict"],
         proj,
     )
     assert result.returncode == 0, f"verify_prose failed:\n{result.stdout}"
-    assert_golden(f"golden_{PROJECT_TYPE}_verify_prose.txt", normalize(result.stdout), snapshot_update)
+    assert_golden(f"golden_{EXAMPLE_DIR}_verify_prose.txt", normalize(result.stdout), snapshot_update)

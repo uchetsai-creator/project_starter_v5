@@ -209,9 +209,12 @@ improvement. Contains two append-only JSON files:
   `level` is `"pass"` or `"fail"`. Use to identify which validators and documents fail most.
 
 - **`task-run.json`** — one entry per Claude Code session (written by `adapters/claude/stop-hook.sh`
-  on session end). Schema: `{ ts, task, adapter, orchestrator_runs, token_count }`.
+  on session end). Schema: `{ ts, task, adapter, orchestrator_runs }`.
   `orchestrator_runs` is read from `.orchestrator_runs.json` (maintained by `orchestrator.py`).
-  `token_count` is `null` — placeholder until the adapter exposes API response metadata.
+  There is no `token_count` field here — Claude Code doesn't pass session token usage to hooks,
+  so the framework doesn't fabricate one. Real, API-measured token usage (from `--semantic`'s
+  own LLM calls) is tracked separately in `logs/telemetry/token-usage.json` — see
+  README.md → Validation Telemetry → Token usage (`--semantic`).
 
 Not committed (excluded by `.gitignore` via `.ai/`). Generated automatically; do not edit manually.
 

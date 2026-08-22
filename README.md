@@ -1280,7 +1280,8 @@ dual-emission below for the opt-in exception. Validator results go to `.ai/telem
 | Validator pass/fail per document | verify scripts | `verify_docs.py`, `verify_content.py` with `--telemetry` |
 | Task session boundary | `current-state.md` + Stop hook | `adapters/claude/stop-hook.sh` |
 | Orchestrator run count per task | `orchestrator.py` state file | `orchestrator.py` on each run |
-| Token count | API response metadata | placeholder `null` — requires adapter-level data |
+| Token count (Claude Code session) | API response metadata | placeholder `null` — Claude Code doesn't expose per-session token usage to hooks, so this field can't be filled honestly; see Limitations |
+| Token count + cost (`--semantic` LLM calls) | Anthropic API response `usage` | `semantic.py` — real numbers, see [Token usage (`--semantic`)](#token-usage---semantic) below |
 
 ### Schema — `validation-result.json` (append-only array)
 
@@ -1302,8 +1303,38 @@ dual-emission below for the opt-in exception. Validator results go to `.ai/telem
 ```
 
 `orchestrator_runs` counts how many times `orchestrator.py` ran during the session (read from
-`logs/telemetry/.orchestrator_runs.json`). `token_count` is `null` until the adapter exposes
-API response metadata — the field is reserved for a future phase.
+`logs/telemetry/.orchestrator_runs.json`). `token_count` stays `null` here — this row is written
+by the Stop hook at Claude Code session end, and Claude Code does not currently pass its own
+token/cost totals to hooks. This framework does not fabricate that number; if you need real
+Claude Code session cost, get it from `claude usage` / the Anthropic Console, not from this file.
+
+### Token usage (`--semantic`)
+
+Unlike the session-level `token_count` above, `--semantic` (see
+[Semantic matching](#semantic-matching)) is the one place this framework makes a live LLM call
+itself — so it's the one place real usage can be measured instead of estimated. Every call's
+actual `response.usage` (from the Anthropic SDK) is accumulated for the run and appended to
+`logs/telemetry/token-usage.json`:
+
+```json
+{ "ts": "2026-08-21T10:00:00Z", "model": "claude-haiku-4-5-20251001",
+  "calls": 2, "input_tokens": 412, "output_tokens": 180,
+  "estimated_cost_usd": 0.001312, "budget_tokens": null, "budget_exceeded": false }
+```
+
+- `estimated_cost_usd` is computed from a pricing table in `semantic.py` (USD per 1M tokens) —
+  it's an estimate derived from real token counts, not a real counted estimate of token counts.
+  Verify against [anthropic.com/pricing](https://www.anthropic.com/pricing) before relying on it,
+  and override with `SPEC_CODE_PRICE_INPUT_PER_M` / `SPEC_CODE_PRICE_OUTPUT_PER_M` (USD per 1M
+  tokens) if the model isn't in the table or the price has moved.
+- **Budget cap:** set `SPEC_CODE_TOKEN_BUDGET` (total input+output tokens) to stop `--semantic`
+  from making further LLM calls once the run crosses it. Remaining items are skipped with a
+  `[WARN]`; verdicts already gathered are still returned. There is no cap by default.
+- The CLI prints a one-line summary (`Token usage (...): N call(s), X in / Y out — est. cost
+  $Z`) after the semantic report, and `--json` includes the same data under `token_usage`.
+- Dual-emitted as an OTel span (`semantic_token_usage`) alongside the local JSON file, same
+  opt-in pattern as [OTel dual-emission](#otel-dual-emission-opt-in) below — a no-op unless
+  both `opentelemetry-*` is installed and `OTEL_EXPORTER_OTLP_ENDPOINT` is set.
 
 ### Usage
 
@@ -1714,8 +1745,9 @@ undocumented refactor.
 
 **Requirements:** `pip install anthropic` and `ANTHROPIC_API_KEY` environment variable.
 
-**Token cost estimate:** ~200–400 tokens per field pair using claude-haiku-4-5. A typical endpoint
-with 3 field-name diffs costs ~600–1200 tokens (~$0.001 at Haiku pricing).
+**Token cost:** ~200–400 tokens per field pair using claude-haiku-4-5 is a reasonable ballpark for
+sizing a run before you start it, but every run also records *actual* usage, cost, and an optional
+budget cap — see [Token usage (`--semantic`)](#token-usage---semantic) above.
 
 **Output format:**
 
