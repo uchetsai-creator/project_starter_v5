@@ -1907,6 +1907,15 @@ undocumented refactor.
 sizing a run before you start it, but every run also records *actual* usage, cost, and an optional
 budget cap — see [Token usage (`--semantic`)](#token-usage---semantic) above.
 
+**Coverage tip (non-blocking):** a plain run (no `--semantic`) that finds a clean structural pass
+(no field added/removed/retyped) but changed 20+ lines under `--src` since `HEAD` prints a `[TIP]`
+suggesting `--semantic`. Deliberately a purely quantitative signal (a `git diff --numstat` line
+count), not a fuzzy field-name/type similarity heuristic — a self-invented heuristic there risked
+spamming false suggestions or missing real drift, the opposite of what a coverage tip should do. A
+structural pass only means field *names and types* didn't change; behavior inside a function body
+can drift without touching its signature at all, which `--semantic` exists to catch and a line-count
+signal can only hint might be worth checking, not confirm. Never auto-triggers `--semantic` itself.
+
 **Output format:**
 
 ```
@@ -2059,6 +2068,14 @@ flag.
 ```bash
 python3 docs/script/validators/verify_security.py --src src/ --llm-review
 ```
+
+**Coverage tip (non-blocking):** a plain scan (no `--llm-review`) that finds at least one `medium`+
+severity finding prints a `[TIP]` suggesting `--llm-review` for a deeper look — reusing severity
+this run already computed, not a new heuristic invented to decide when to suggest it. A SAST rule
+match only means a known-unsafe *pattern* was found, not that it's actually exploitable in this
+specific context; that judgment call is exactly what `--llm-review`'s non-deterministic,
+context-aware pass is for. Never auto-triggers `--llm-review` itself — same "suggest, don't run"
+rule as everything else opt-in here.
 
 Requires the `claude` CLI installed and authenticated on whatever machine runs this (`claude auth
 login`, or `ANTHROPIC_API_KEY` set) — missing or unauthenticated prints a `[WARN]` and skips, the

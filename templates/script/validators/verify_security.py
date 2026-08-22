@@ -375,7 +375,7 @@ def run_scan(src: str, min_severity: str = 'medium') -> dict:
 # Output
 # ---------------------------------------------------------------------------
 
-def print_report(result: dict, min_severity: str) -> None:
+def print_report(result: dict, min_severity: str, llm_review_run: bool = False) -> None:
     print(f"\nSecurity Scan (SAST)  src={result['src']}")
     if result['tools_run']:
         print(f"  tools run: {', '.join(result['tools_run'])}")
@@ -411,6 +411,27 @@ def print_report(result: dict, min_severity: str) -> None:
         for f in items:
             print(f"       — {f['file']}:{f['line']}  [{f['rule']}]  {f['message']}")
     print()
+
+    # ── --llm-review coverage tip (non-blocking) ────────────────────────────
+    # Trigger: at least one medium+ severity finding above, and this run didn't
+    # already pass --llm-review. Reuses a signal this scan already computed —
+    # no new heuristic invented just to decide when to suggest this — same
+    # non-blocking [TIP] pattern as .githooks/pre-commit's spec<->code /
+    # security-scan / prose-scan coverage tips. A SAST rule match only means a
+    # known-unsafe *pattern* was found, not that it's actually exploitable in
+    # context; --llm-review's non-deterministic, context-aware pass is exactly
+    # for that judgment call, so it stays a suggestion, never auto-triggered.
+    if not llm_review_run:
+        medium_plus = sum(
+            1 for f in result['findings']
+            if _SEVERITY_RANK.get(f['severity'], 0) >= _SEVERITY_RANK['medium']
+        )
+        if medium_plus:
+            print(
+                f"  [TIP] {medium_plus} medium+ severity finding(s) above — consider running "
+                "--llm-review for a deeper, context-aware look (a SAST rule match doesn't tell "
+                "you whether it's actually exploitable here). See README.md -> Security Scan (SAST).\n"
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -491,7 +512,7 @@ def main() -> None:
     if args.json_output:
         print(json.dumps(result, indent=2))
     else:
-        print_report(result, args.min_severity)
+        print_report(result, args.min_severity, llm_review_run=args.llm_review)
 
     ts = _telemetry_ts()
     status = 'pass' if result['passed'] else 'fail'

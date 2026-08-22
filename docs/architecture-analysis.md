@@ -398,6 +398,35 @@ note bottom of vreg : Added after this diagram's\nprior revision -- catches malf
   into. Branch protection remains what it always was: a manual, one-time GitHub Settings step for
   whoever owns the target repo, for if and when they decide repo-wide enforcement is what they
   actually want.
+- **`--semantic` / `--llm-review` / `--ai-draft` are opt-in by design (see the header comments in
+  `verify_spec_code.py` / `verify_security.py` / `workflow-registry.yaml`), but nothing ever
+  surfaced that they exist at the moment they'd actually be useful — purely on the human to
+  remember.** Closed the same way Sprint Documentation Sync's 3-entry trigger works (a cheap,
+  already-computed signal decides whether to nudge), for two of the three (`--ai-draft`'s closest
+  analog, the self-improving loop's Step 4 decision gate in `templates/sprint-sync.md`, already
+  existed before this). `verify_security.py`'s version was straightforward: its trigger signal
+  already exists in the tool's own output with no invention needed — `print_report()` now prints a
+  non-blocking `[TIP]` suggesting `--llm-review` whenever the scan finds at least one `medium`+
+  severity finding and `--llm-review` wasn't already passed in that same invocation, reusing
+  severity the scan already computed. `verify_spec_code.py`'s `--semantic` was the harder case: a
+  fuzzy "these field names look semantically close" heuristic was considered and rejected — a
+  self-invented heuristic there risks the exact failure mode this framework keeps avoiding
+  elsewhere, wrong often enough to either spam false suggestions or silently miss real drift.
+  Replaced with a purely quantitative signal instead: `_changed_lines_in_src()` shells out to
+  `git diff --numstat HEAD -- <src>` and sums changed lines; `print_report()` suggests `--semantic`
+  only when the structural comparison found a clean pass (no field added/removed/retyped) *and*
+  that line count is >= 20 — a structural pass only confirms field names/types didn't change, it
+  says nothing about behavior inside an unchanged signature, which is exactly what a large diff
+  with zero structural findings hints might be worth a second, semantic look. Returns `None` (never
+  a false trigger) outside a git repo or if the `git` command fails, so the tip only ever fires on
+  a signal it's actually sure about. Both are the same non-blocking `[TIP]` pattern
+  `.githooks/pre-commit` already uses three times (spec↔code / security-scan / prose-scan coverage
+  tips) for exactly this "you have a capability configured but aren't using it" situation.
+  Deliberately plain `print()` calls in the validator scripts themselves, not an AGENTS.md
+  instruction telling Claude to ask — an instruction only fires if whatever tool is committing
+  happens to be an LLM agent that read and followed it; a line the validator itself prints fires
+  for any tool, any human, every time the condition is met, matching every other "convention →
+  real, tool-agnostic signal" upgrade in this document.
 - **Validator sequencing (`workflow-registry.yaml`) had no equivalent schema gate** —
   `verify_registry.py` validated `document-registry.yaml`'s shape, but nothing validated
   `workflow-registry.yaml`'s shape the same way (a validator script path that doesn't exist, a

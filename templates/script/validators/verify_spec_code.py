@@ -75,6 +75,7 @@ import importlib
 import json
 import os
 import re
+import subprocess
 import sys
 from pathlib import Path
 from typing import Callable
@@ -426,12 +427,52 @@ _ZERO_COVERAGE_NOTE = (
     "          docs/contributing-adapters.md to add a detector for this language.\n"
 )
 
+# --semantic coverage tip threshold: a purely quantitative signal, deliberately not a
+# fuzzy name/type similarity heuristic (see docs/architecture-analysis.md for why that
+# was rejected as too risky to invent). A structural pass (this comparator found zero
+# missing/extra/mismatched fields) alongside a large change under --src is the specific
+# shape worth flagging: behavior can change inside a function body without touching its
+# signature at all, which is exactly what a field-level diff structurally cannot see.
+_SEMANTIC_TIP_LINE_THRESHOLD = 20
+
+
+def _changed_lines_in_src(src: str) -> int | None:
+    """Sum of added + removed lines under src since HEAD (staged + unstaged), via
+    `git diff --numstat HEAD -- <src>`. Returns None -- never a false trigger -- when
+    this isn't a git repo, git isn't on PATH, or the command otherwise fails; the
+    --semantic coverage tip below only fires on a signal it's actually sure about."""
+    try:
+        proc = subprocess.run(
+            ['git', 'diff', '--numstat', 'HEAD', '--', src],
+            capture_output=True, text=True, encoding='utf-8', errors='replace',
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if proc.returncode != 0:
+        return None
+    total = 0
+    for line in proc.stdout.splitlines():
+        parts = line.split('\t')
+        if len(parts) < 2:
+            continue
+        added, removed = parts[0], parts[1]
+        if added == '-' or removed == '-':  # binary file — numstat marks with '-'
+            continue
+        try:
+            total += int(added) + int(removed)
+        except ValueError:
+            continue
+    return total
+
 
 # ---------------------------------------------------------------------------
 # Output
 # ---------------------------------------------------------------------------
 
-def print_report(report: dict, spec: str, src: str, adapter: str, zero_coverage: bool = False) -> None:
+def print_report(
+    report: dict, spec: str, src: str, adapter: str,
+    zero_coverage: bool = False, semantic_run: bool = False,
+) -> None:
     print(f"\nSpec <-> Code Validator  adapter={adapter}")
     print(f"  spec : {spec}")
     print(f"  src  : {src}\n")
@@ -441,6 +482,22 @@ def print_report(report: dict, spec: str, src: str, adapter: str, zero_coverage:
             print(_ZERO_COVERAGE_NOTE)
         else:
             print("  [OK]  No mismatches — spec and code are in sync.\n")
+
+        # --semantic coverage tip (non-blocking): a structural pass here only means no
+        # field was added/removed/retyped -- it says nothing about whether the code
+        # *behind* an unchanged field's signature still does what the spec describes.
+        # Reuses a purely quantitative signal (lines changed under --src since HEAD) to
+        # decide when that's worth flagging, instead of a fuzzy name/type similarity
+        # heuristic -- see _SEMANTIC_TIP_LINE_THRESHOLD's comment for why.
+        if not semantic_run:
+            changed = _changed_lines_in_src(src)
+            if changed is not None and changed >= _SEMANTIC_TIP_LINE_THRESHOLD:
+                print(
+                    f"  [TIP] {changed} line(s) changed under --src since HEAD, but the structural "
+                    "comparison above found nothing — that only checks field names/types, not "
+                    "behavior inside an unchanged signature. Consider running --semantic to "
+                    "double-check. See README.md -> Spec <-> Code Validator.\n"
+                )
         return
 
     if zero_coverage:
@@ -653,7 +710,7 @@ def main() -> None:
             'token_usage': token_usage,
         }, indent=2))
     else:
-        print_report(report, args.spec, args.src, args.adapter, zero_coverage)
+        print_report(report, args.spec, args.src, args.adapter, zero_coverage, semantic_run=args.semantic)
         if semantic_verdicts:
             print_semantic_report(semantic_verdicts)
         if token_usage and token_usage['calls']:

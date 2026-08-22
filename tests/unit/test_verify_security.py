@@ -330,3 +330,68 @@ def test_cli_empty_src_dir_passes(tmp_path):
     result = _run("--src", str(src), "--strict")
     assert result.returncode == 0
     assert "nothing to scan" in result.stdout
+
+
+# ---------------------------------------------------------------------------
+# print_report — --llm-review coverage tip
+#
+# A SAST rule match only means a known-unsafe *pattern* was found, not that it's
+# exploitable in context -- the tip nudges toward --llm-review's context-aware pass
+# for exactly the findings worth a second look, reusing severity this scan already
+# computed rather than inventing a new heuristic to decide when to suggest it.
+# ---------------------------------------------------------------------------
+
+def _result(findings: list[dict]) -> dict:
+    return {
+        "src": "src/", "tools_run": ["bandit"], "tools_skipped": [],
+        "findings": findings, "blocking_findings": 0, "passed": True,
+    }
+
+
+def test_medium_finding_triggers_llm_review_tip(capsys):
+    vs.print_report(_result([
+        {"tool": "bandit", "file": "app.py", "line": 3, "severity": "medium", "rule": "B101", "message": "x"},
+    ]), "medium")
+    out = capsys.readouterr().out
+    assert "[TIP]" in out
+    assert "--llm-review" in out
+    assert "1 medium+" in out
+
+
+def test_high_finding_also_triggers_llm_review_tip(capsys):
+    vs.print_report(_result([
+        {"tool": "bandit", "file": "app.py", "line": 3, "severity": "high", "rule": "B602", "message": "x"},
+    ]), "medium")
+    assert "[TIP]" in capsys.readouterr().out
+
+
+def test_low_only_finding_does_not_trigger_llm_review_tip(capsys):
+    vs.print_report(_result([
+        {"tool": "bandit", "file": "app.py", "line": 3, "severity": "low", "rule": "B101", "message": "x"},
+    ]), "medium")
+    assert "--llm-review" not in capsys.readouterr().out
+
+
+def test_no_findings_does_not_trigger_llm_review_tip(capsys):
+    vs.print_report(_result([]), "medium")
+    assert "--llm-review" not in capsys.readouterr().out
+
+
+def test_llm_review_already_run_suppresses_the_tip(capsys):
+    """No point suggesting --llm-review again when this same invocation already ran it."""
+    vs.print_report(
+        _result([
+            {"tool": "bandit", "file": "app.py", "line": 3, "severity": "high", "rule": "B602", "message": "x"},
+        ]),
+        "medium", llm_review_run=True,
+    )
+    assert "[TIP]" not in capsys.readouterr().out
+
+
+def test_multiple_medium_plus_findings_counted_together(capsys):
+    vs.print_report(_result([
+        {"tool": "bandit", "file": "a.py", "line": 1, "severity": "medium", "rule": "B101", "message": "x"},
+        {"tool": "bandit", "file": "b.py", "line": 2, "severity": "high", "rule": "B602", "message": "y"},
+        {"tool": "bandit", "file": "c.py", "line": 3, "severity": "low", "rule": "B404", "message": "z"},
+    ]), "medium")
+    assert "2 medium+" in capsys.readouterr().out
