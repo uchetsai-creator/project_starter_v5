@@ -256,6 +256,44 @@ def test_cli_apply_updates_existing_yml(tmp_path):
     assert "[your-project-type]" not in yml.read_text(encoding="utf-8")
 
 
+def test_cli_apply_fresh_yml_marks_project_type_unconfirmed(tmp_path):
+    (tmp_path / "main.tf").touch()
+    result = _run(str(tmp_path), "--apply")
+    assert result.returncode == 0
+    text = (tmp_path / ".project-starter.yml").read_text(encoding="utf-8")
+    assert "project_type_confirmed: false" in text
+    # exactly one occurrence — no duplicate line
+    assert text.count("project_type_confirmed:") == 1
+
+
+def test_cli_apply_existing_yml_adds_unconfirmed_field(tmp_path):
+    yml = tmp_path / ".project-starter.yml"
+    yml.write_text("project_type: [your-project-type]\ndocs_path: docs/\n")
+    (tmp_path / "main.tf").touch()
+    result = _run(str(tmp_path), "--apply")
+    assert result.returncode == 0
+    text = yml.read_text(encoding="utf-8")
+    assert "project_type_confirmed: false" in text
+    assert text.count("project_type_confirmed:") == 1
+
+
+def test_cli_apply_resets_previously_confirmed_type_to_unconfirmed(tmp_path):
+    # A human (or a prior --apply that was then confirmed) had already set this to
+    # true. Re-running --apply writes a *new* project_type value, so whatever
+    # confirmation applied to the old value must not silently carry over.
+    yml = tmp_path / ".project-starter.yml"
+    yml.write_text(
+        "project_type: web-app\nproject_type_confirmed: true\ndocs_path: docs/\n",
+    )
+    (tmp_path / "main.tf").touch()
+    result = _run(str(tmp_path), "--apply")
+    assert result.returncode == 0
+    text = yml.read_text(encoding="utf-8")
+    assert "project_type_confirmed: false" in text
+    assert "project_type_confirmed: true" not in text
+    assert text.count("project_type_confirmed:") == 1
+
+
 def test_cli_invalid_path_exits_nonzero():
     result = _run("/nonexistent/path/that/does/not/exist")
     assert result.returncode != 0

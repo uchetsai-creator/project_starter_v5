@@ -21,7 +21,12 @@ Claude-facing Skills, and 2 agent adapters (Claude, Codex) as of this revision.
 
 **Entry points** — run once per project, or on demand to re-classify:
 - `detect_type.py` — infers project type from file layout / dependency manifests / free-text
-  requirements; `--apply` writes the result straight into `.project-starter.yml`
+  requirements; `--apply` writes the result straight into `.project-starter.yml`, alongside
+  `project_type_confirmed: false` — a confidence threshold alone only catches a low-scoring
+  guess, not a high-scoring one that's still wrong (mixed signals), so every `--apply` write
+  is gated the same way regardless of confidence; `.githooks/pre-commit` blocks commits until
+  it's flipped to `true`. Never written for a human-typed `project_type` — only gates a
+  machine guess
 - `init.py` (and `setup.sh --init`, which delegates to it for the bash-only path) — copies
   `templates/script/` → `docs/script/`, the matching `templates/init/<type>.md`, and
   `adapters/claude/skills/` → `.claude/skills/` into a fresh project
@@ -253,6 +258,19 @@ note bottom of vreg : Added after this diagram's\nprior revision -- catches malf
   `.ai/AI_CONTEXT.md` as a deterministic ordered read list; `orchestrator.py` writes
   `.ai/WORKFLOW.md` as the broader task plan. Neither depends on the agent inferring scope from
   `AGENTS.md` prose.
+- **A high-confidence `detect_type.py` guess had no confirmation gate, only a low-confidence
+  refusal** — `--apply` already refused to write a *low*-scoring recommendation
+  (`test_cli_apply_refuses_on_low_confidence`), but a *high*-scoring one that's still wrong
+  (mixed signals — e.g. a data-pipeline project with a small internal FastAPI admin panel can
+  genuinely score high for `web-app`) sailed straight through with nothing forcing anyone to
+  actually check it. `--apply` now writes `project_type_confirmed: false` alongside `project_type`
+  on every write, regardless of confidence; a new `.githooks/pre-commit` guard (same shape as the
+  existing `Clarifying Questions Asked` guard — a boolean-ish field must be explicitly set before
+  a commit that depends on it is allowed) blocks commits until it's `true`. A human typing
+  `project_type` in by hand never triggers the field — `_mark_project_type_unconfirmed()` only
+  runs inside `--apply`'s own write path, so a human decision is never retroactively made to look
+  unconfirmed. Confirmed working end-to-end against a real git repo (field `false` blocks with the
+  right message, `true` and field-absent both pass silently), not just unit-tested in isolation.
 - **Validator sequencing (`workflow-registry.yaml`) had no equivalent schema gate** —
   `verify_registry.py` validated `document-registry.yaml`'s shape, but nothing validated
   `workflow-registry.yaml`'s shape the same way (a validator script path that doesn't exist, a

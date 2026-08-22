@@ -90,6 +90,15 @@ the actual type with the user first (see AGENTS.md -> New requirement from the u
 `--force` to apply it anyway. `--json` output includes an `"authoritative"` boolean for the same
 signal in machine-readable form.
 
+**A confidence threshold only catches a low-scoring guess — not a high-scoring one that's still
+wrong** (e.g. mixed signals: a data-pipeline project with a small internal FastAPI admin panel
+can genuinely score high for `web-app`). So every `--apply` — regardless of confidence — also
+writes `project_type_confirmed: false` into `.project-starter.yml`. `.githooks/pre-commit` blocks
+commits while that field is `false`; confirm the detected type is actually right, then set it to
+`true` (or delete the line) to unblock. A human typing `project_type` in by hand never triggers
+this field at all — it exists only to gate a *machine* guess, not to make every project justify
+a human's own decision.
+
 ---
 
 **New project (no code yet):**

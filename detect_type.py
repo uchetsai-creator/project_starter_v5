@@ -501,6 +501,33 @@ def _guess_src_dir(root: Path) -> str:
     return "src/"
 
 
+def _mark_project_type_unconfirmed(text: str) -> str:
+    """Ensure a `project_type_confirmed: false` line exists right after `project_type:`
+    in an existing .project-starter.yml being updated by --apply.
+
+    Only --apply ever calls this — a human hand-editing project_type in their own file
+    never goes through this path, so a human decision is never retroactively marked
+    unconfirmed. If the field already exists (a prior --apply, possibly already flipped
+    to true by the user), it's forced back to false: this --apply just wrote a new
+    project_type value, so whatever confirmation applied to the old value no longer
+    applies to the new one."""
+    if re.search(r"^project_type_confirmed:", text, flags=re.MULTILINE):
+        return re.sub(
+            r"^project_type_confirmed:.*$",
+            "project_type_confirmed: false",
+            text,
+            count=1,
+            flags=re.MULTILINE,
+        )
+    return re.sub(
+        r"^(project_type:.*)$",
+        r"\1\nproject_type_confirmed: false",
+        text,
+        count=1,
+        flags=re.MULTILINE,
+    )
+
+
 def _suggest_spec_code(root: Path, recommendation: str) -> dict[str, str] | None:
     """Suggest spec_code_adapter/spec_code_spec/spec_code_src for a non-hybrid
     recommendation, or None if no adapter signal matched. Never authoritative —
@@ -754,8 +781,13 @@ def main() -> None:
                 text,
                 flags=re.MULTILINE,
             )
+            new_text = _mark_project_type_unconfirmed(new_text)
             yml.write_text(new_text, encoding="utf-8")
             print(f"[OK] Updated project_type in {yml}")
+            print("     project_type_confirmed: false — .githooks/pre-commit blocks commits until")
+            print("     this is confirmed and set to true (or removed). See AGENTS.md -> New")
+            print("     requirement from the user: a passing confidence score is not the same as")
+            print("     someone having actually checked this is right.")
             if spec_code_suggestion:
                 print("     spec_code_adapter/spec/src left untouched — this file already exists;")
                 print("     see the suggestion above to fill them in by hand.")
@@ -764,6 +796,12 @@ def main() -> None:
                 yml.write_text(
                     f"# project_starter — project configuration\n"
                     f"project_type: {recommendation}\n"
+                    f"project_type_confirmed: false\n"
+                    f"# project_type_confirmed is written by detect_type.py --apply, never by a human\n"
+                    f"# typing project_type in by hand — a machine guess needs confirming, a human\n"
+                    f"# decision doesn't. .githooks/pre-commit blocks commits until this is set to\n"
+                    f"# true (or the line is removed) — confirm the detected type is actually right\n"
+                    f"# first, don't just flip it to unblock yourself.\n"
                     f"docs_path: docs/\n"
                     f"task_type:\n"
                     f"# spec_code_* below is an UNVERIFIED guess from detect_type.py — confirm the\n"
@@ -775,16 +813,24 @@ def main() -> None:
                     encoding="utf-8",
                 )
                 print(f"[OK] Created {yml} with project_type: {recommendation}")
+                print("     project_type_confirmed: false — confirm and flip to true before committing.")
                 print("     spec_code_adapter/spec/src pre-filled with an unverified guess — confirm before relying on it.")
             else:
                 yml.write_text(
                     f"# project_starter — project configuration\n"
                     f"project_type: {recommendation}\n"
+                    f"project_type_confirmed: false\n"
+                    f"# project_type_confirmed is written by detect_type.py --apply, never by a human\n"
+                    f"# typing project_type in by hand — a machine guess needs confirming, a human\n"
+                    f"# decision doesn't. .githooks/pre-commit blocks commits until this is set to\n"
+                    f"# true (or the line is removed) — confirm the detected type is actually right\n"
+                    f"# first, don't just flip it to unblock yourself.\n"
                     f"docs_path: docs/\n"
                     f"task_type:\n",
                     encoding="utf-8",
                 )
                 print(f"[OK] Created {yml} with project_type: {recommendation}")
+                print("     project_type_confirmed: false — confirm and flip to true before committing.")
     else:
         print(f"To apply:  python3 detect_type.py {args.path} --apply")
         print(f"To init:   bash setup.sh --init {recommendation} {args.path}")

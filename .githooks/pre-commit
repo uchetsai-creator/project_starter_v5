@@ -231,6 +231,25 @@ fi
 echo "pre-commit: project-type=$PROJECT_TYPE  docs=$DOCS_PATH"
 PASS=true
 
+# ── project_type confirmation guard ─────────────────────────────────────────────
+# Trigger: .project-starter.yml has a `project_type_confirmed: false` line — written by
+# detect_type.py --apply to mark project_type as an unverified machine guess (see that
+# script's --force flag help text / AGENTS.md -> New requirement from the user). Absent
+# entirely means either a human wrote project_type by hand (a human decision doesn't need
+# re-confirming) or the file predates this field — not retroactively broken either way.
+# Catches: a detect_type.py recommendation that passed the confidence gate but is still
+# wrong (mixed signals in the scan) getting applied and silently trusted, because a
+# confidence threshold alone only catches the low-confidence case — see docs/architecture-
+# analysis.md for why that gap needed a second, independent gate rather than a higher
+# threshold.
+if [ -f "$CONFIG" ] && grep -qE '^project_type_confirmed:[[:space:]]*false' "$CONFIG"; then
+    echo "  [FAIL] project_type_confirmed: false in $CONFIG — detect_type.py's guess hasn't been confirmed yet."
+    echo "         Confirm the detected project_type is actually correct, then set"
+    echo "         project_type_confirmed: true (or remove the line) before committing —"
+    echo "         see AGENTS.md -> New requirement from the user."
+    PASS=false
+fi
+
 # ── Unscoped source-change guard ───────────────────────────────────────────────
 # Trigger: any staged file that isn't docs/, guidance/, .githooks/, .claude/, .codex/,
 # adapters/, logs/, .ai/, or one of the known framework root files — i.e. it looks like
