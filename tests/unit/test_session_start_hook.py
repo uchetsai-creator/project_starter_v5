@@ -15,6 +15,7 @@ Runs the real script via subprocess, matching the pre-commit test suite's approa
 """
 import json
 import subprocess
+import time
 from pathlib import Path
 
 import pytest
@@ -165,3 +166,127 @@ def test_real_task_never_gets_research_nudge_regardless_of_research_state(tmp_pa
     result = _run(tmp_path)
     assert result.returncode == 0
     assert result.stdout.strip() == ""
+
+
+# ---------------------------------------------------------------------------
+# Spec drift since last touch: a Required Context file committed more recently than
+# current-state.md itself may mean the Steps here were planned against an older spec.
+# Pure git-log timestamp comparison (same mechanism as learning_log_nudge.py) -- these
+# fixtures need a real git repo with real commits, unlike the plain-directory fixtures
+# above (git log fails gracefully outside a repo, so this code path never runs there).
+# ---------------------------------------------------------------------------
+
+def _git(*args: str, cwd: Path) -> None:
+    subprocess.run(["git", *args], cwd=cwd, check=True, capture_output=True)
+
+
+def _make_git_repo_with_required_context(tmp_path: Path) -> Path:
+    repo = tmp_path / "repo"
+    docs = repo / "docs" / "specs"
+    docs.mkdir(parents=True)
+    _git("init", "-q", "-b", "main", cwd=repo)
+    _git("config", "user.email", "test@example.com", cwd=repo)
+    _git("config", "user.name", "Test", cwd=repo)
+
+    (docs / "api-contract.md").write_text("## GET /orders/{id}\n", encoding="utf-8")
+    (repo / "docs" / "current-state.md").write_text(
+        "**Task:** Build the order API\n\n"
+        "**Clarifying Questions Asked:** Y\n\n"
+        "## Required Context\n\n"
+        "* `docs/specs/api-contract.md`\n",
+        encoding="utf-8",
+    )
+    _git("add", ".", cwd=repo)
+    _git("commit", "-q", "-m", "base", cwd=repo)
+    return repo
+
+
+def test_spec_changed_after_current_state_triggers_drift_nudge(tmp_path):
+    repo = _make_git_repo_with_required_context(tmp_path)
+    time.sleep(1.1)  # git commit timestamps have 1-second resolution
+    (repo / "docs" / "specs" / "api-contract.md").write_text(
+        "## GET /orders/{id}\n## POST /orders\n", encoding="utf-8",
+    )
+    _git("add", ".", cwd=repo)
+    _git("commit", "-q", "-m", "spec changed after current-state.md", cwd=repo)
+
+    result = _run(repo)
+    assert result.returncode == 0
+    payload = json.loads(result.stdout)
+    ctx = payload["hookSpecificOutput"]["additionalContext"]
+    assert "changed more recently than current-state.md itself" in ctx
+    assert "api-contract.md" in ctx
+
+
+def test_current_state_touched_after_spec_is_silent(tmp_path):
+    """current-state.md itself is the most recent commit -- no drift to report."""
+    repo = _make_git_repo_with_required_context(tmp_path)
+    time.sleep(1.1)
+    (repo / "docs" / "current-state.md").write_text(
+        "**Task:** Build the order API\n\n"
+        "**Clarifying Questions Asked:** Y\n\n"
+        "## Required Context\n\n"
+        "* `docs/specs/api-contract.md`\n\n"
+        "- [x] Step 1 done\n",
+        encoding="utf-8",
+    )
+    _git("add", ".", cwd=repo)
+    _git("commit", "-q", "-m", "current-state.md touched after spec", cwd=repo)
+
+    result = _run(repo)
+    assert result.returncode == 0
+    assert result.stdout.strip() == ""
+
+
+def test_placeholder_required_context_is_ignored(tmp_path):
+    """The template's own placeholder line ("docs/[relevant file]") must never be
+    treated as a real path to check."""
+    repo = tmp_path / "repo"
+    docs = repo / "docs"
+    docs.mkdir(parents=True)
+    _git("init", "-q", "-b", "main", cwd=repo)
+    _git("config", "user.email", "test@example.com", cwd=repo)
+    _git("config", "user.name", "Test", cwd=repo)
+    (docs / "current-state.md").write_text(
+        "**Task:** Build the order API\n\n"
+        "**Clarifying Questions Asked:** Y\n\n"
+        "## Required Context\n\n"
+        "* `docs/[relevant file]`\n"
+        "* `[other required file paths]`\n",
+        encoding="utf-8",
+    )
+    _git("add", ".", cwd=repo)
+    _git("commit", "-q", "-m", "base", cwd=repo)
+
+    result = _run(repo)
+    assert result.returncode == 0
+    assert result.stdout.strip() == ""
+
+
+def test_placeholder_task_never_gets_spec_drift_nudge(tmp_path):
+    """An unscoped/placeholder task has no meaningful Required Context yet -- the
+    drift check must not run at all for it."""
+    repo = tmp_path / "repo"
+    docs = repo / "docs" / "specs"
+    docs.mkdir(parents=True)
+    _git("init", "-q", "-b", "main", cwd=repo)
+    _git("config", "user.email", "test@example.com", cwd=repo)
+    _git("config", "user.name", "Test", cwd=repo)
+    (docs / "api-contract.md").write_text("## GET /orders/{id}\n", encoding="utf-8")
+    (repo / "docs" / "current-state.md").write_text(
+        "**Task:** [Task name, e.g., BE Order API]\n\n"
+        "## Required Context\n\n"
+        "* `docs/specs/api-contract.md`\n",
+        encoding="utf-8",
+    )
+    _git("add", ".", cwd=repo)
+    _git("commit", "-q", "-m", "base", cwd=repo)
+    time.sleep(1.1)
+    (docs / "api-contract.md").write_text("## GET /orders/{id}\n## POST /orders\n", encoding="utf-8")
+    _git("add", ".", cwd=repo)
+    _git("commit", "-q", "-m", "spec changed", cwd=repo)
+
+    result = _run(repo)
+    payload = json.loads(result.stdout)
+    ctx = payload["hookSpecificOutput"]["additionalContext"]
+    assert "changed more recently than current-state.md itself" not in ctx

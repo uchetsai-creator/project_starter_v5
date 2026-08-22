@@ -49,6 +49,42 @@ if [ -f "$CS" ]; then
             MSG="docs/current-state.md has a real Current Task but Clarifying Questions Asked is unfilled -- set it to Y (asked before implementing) or N/A (pre-scoped task / Checkpoint A applied) once confirmed. pre-commit blocks the commit until this is set."
         fi
     fi
+
+    # ── Spec drift since last touch ─────────────────────────────────────────
+    # Trigger: a real (non-placeholder) Current Task, with specific files listed
+    # under Required Context. Compares each listed file's last commit timestamp
+    # against current-state.md's own last commit timestamp -- no content diffing,
+    # no judgment call about whether the change actually matters, purely "did this
+    # move more recently than I last touched my own task file." Same mechanism as
+    # learning_log_nudge.py (task-log.md vs learning-log.md commit timestamps).
+    # This is the closest this framework gets to Spec Kit's "plan/tasks regenerate
+    # when the spec changes" -- deliberately a nudge, not an auto-rewrite: silently
+    # regenerating someone's Steps would mean discarding manual planning content
+    # without asking, which no gate anywhere in this framework does.
+    if [ -n "$TASK_LINE" ] && ! echo "$TASK_LINE" | grep -qE '\['; then
+        CS_COMMIT_TS=$(git log -1 --format=%ct -- "$CS" 2>/dev/null)
+        if [ -n "$CS_COMMIT_TS" ]; then
+            REQUIRED_CONTEXT_SECTION=$(awk '/^## Required Context/{p=1; next} /^## /{p=0} p' "$CS" 2>/dev/null)
+            STALE_FILES=""
+            while IFS= read -r line; do
+                PATH_CANDIDATE=$(printf '%s' "$line" | sed -n 's/^\* `\(.*\)`$/\1/p')
+                [ -z "$PATH_CANDIDATE" ] && continue
+                case "$PATH_CANDIDATE" in
+                    *\[*) continue ;;  # still the template placeholder, not a real path
+                esac
+                [ -f "$PATH_CANDIDATE" ] || continue
+                DOC_COMMIT_TS=$(git log -1 --format=%ct -- "$PATH_CANDIDATE" 2>/dev/null)
+                if [ -n "$DOC_COMMIT_TS" ] && [ "$DOC_COMMIT_TS" -gt "$CS_COMMIT_TS" ]; then
+                    STALE_FILES="${STALE_FILES}${PATH_CANDIDATE}, "
+                fi
+            done <<< "$REQUIRED_CONTEXT_SECTION"
+            if [ -n "$STALE_FILES" ]; then
+                STALE_FILES="${STALE_FILES%, }"
+                SPEC_DRIFT_MSG="Required Context file(s) changed more recently than current-state.md itself: ${STALE_FILES}. The Steps here may have been planned against an older version of the spec -- worth re-reading before continuing."
+                MSG="${MSG:+$MSG }$SPEC_DRIFT_MSG"
+            fi
+        fi
+    fi
 fi
 
 if [ -n "$MSG" ] && command -v python3 &>/dev/null; then

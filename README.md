@@ -255,7 +255,7 @@ project_starter/                     ← this repo (template only)
 │   │   ├── start-task.md           ← slash command template (copy to .claude/commands/ in your project)
 │   │   ├── run-verify.sh           ← Claude Code Stop-hook script: writes validator --json output to logs/verify-{timestamp}.json, plus real-time project_type_confirmed / Clarifying Questions Asked / Doc Checklist / Sprint Documentation Sync checks and the same --json output's --strict pass/fail for verify_docs/logs/tests/content
 │   │   ├── stop-hook.sh            ← writes session boundary to logs/telemetry/task-run.json on Claude Code session end
-│   │   ├── session-start-hook.sh   ← non-blocking nudge: re-checks current-state.md scoping state fresh every session, plus a brand-new-project nudge toward research.md when both Task and research.md are still unscoped
+│   │   ├── session-start-hook.sh   ← non-blocking nudge: re-checks current-state.md scoping state fresh every session, a brand-new-project nudge toward research.md when both Task and research.md are still unscoped, and a spec-drift nudge when a Required Context file was committed more recently than current-state.md itself
 │   │   ├── learning_log_nudge.py   ← non-blocking nudge: flags when docs/task-log.md was closed out more recently than learning-log.md was last touched (never checks entry content — see Learning Checkpoint enforcement below)
 │   │   ├── pretooluse_scope_guard.py ← BLOCKING: denies Edit/Write/MultiEdit/NotebookEdit on source files until current-state.md is scoped (see Learning Checkpoint enforcement below)
 │   │   ├── telemetry_writer.py     ← telemetry row writer invoked by stop-hook.sh
@@ -1303,7 +1303,24 @@ Optional fast-feedback (Claude Code only, Stop hook — adapters/claude/run-veri
    version of this same idea)
 ```
 
-Spec-facing documents (writing audience check): `business-rules.md`, `pipeline-contract.md`, `research.md`, `quickstart.md`, `architecture/*.md`, `modules/*/*-module-data-flow.md`
+**Writing Audience violations** checks every document listed in `document-registry.yaml` for
+`Sprint N` / `Task N` / `(SN)` references, not just the `audience: external` (stakeholder-facing)
+subset it used to be hardcoded to — `audience` only ever meant "is this in the generated PDF,"
+never "is per-task planning narrative okay to leave here." Reads each document's `path` from the
+registry dynamically (same `_load_yaml()` import pattern as the `spec_code_bindings` resolution
+above) instead of a second hardcoded list that could drift from it. `current-state.md`'s Steps
+section and `sprint-change-log.md` are deliberately **not** in the registry — that's where
+per-task planning and historical implementation notes actually belong; every document that *is*
+registered (`api-contract.md`, `data-model.md`, `project-requirements.md`, and everything else,
+`internal` or `external` alike) should only ever describe the system's current state.
+
+**Open-ended per-item files** — `modules/[module]/[module]-module-data-flow.md`,
+`modules/[module]/[module]-flow.md`, `business/[object-name]-object.md`,
+`business/[process-name]-process.md`, `specs/prompts/[id]-prompt.md` — grow with however many
+modules/objects/processes/prompts a project actually has, so their exact paths can never be
+pre-registered; each family's *index* file is registered and covered by the check above, but the
+per-item files need a pattern match instead, kept as a supplement to the registry-driven list, not
+a replacement for it.
 
 **Prototyping/spike escape hatch:** `PROJECT_STARTER_SKIP_VERIFY=1 git commit -m "wip"` skips
 every check above for that one commit — loudly (`[SKIP]` line) and audibly (a row appended to

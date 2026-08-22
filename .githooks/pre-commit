@@ -452,13 +452,77 @@ if [ -n "$CS_FILE" ]; then
 fi
 
 # ── Writing Audience violations ────────────────────────────────────────────────
-# Trigger: any spec-facing document staged
-# Spec-facing: business-rules.md, pipeline-contract.md, research.md, quickstart.md,
-#              architecture/*.md, modules/*/*-module-data-flow.md
-# Catches: sprint/task references written into stakeholder-facing documents
-SPEC_FACING_STAGED=$(printf '%s\n' "$STAGED" | grep -E \
-    '(business-rules|pipeline-contract|research|quickstart)\.md$|(^|/)architecture/.*\.md$|modules/.*-module-data-flow\.md$' \
+# Trigger: any document registered in document-registry.yaml staged.
+# Catches: sprint/task references written into any spec document, not just the
+# `audience: external` (stakeholder-facing) ones this used to be hardcoded to. The
+# `audience` field only ever meant "is this in the generated PDF for stakeholders" —
+# it was never a statement that `audience: internal` docs (api-contract.md,
+# data-model.md, project-requirements.md, ...) are fine to carry per-task planning
+# narrative. That distinction doesn't exist: document-registry.yaml only lists
+# documents describing the system's *current* state; current-state.md's Steps
+# section (this task's plan) and sprint-change-log.md (the historical record) are
+# deliberately NOT in the registry — exactly where that content belongs instead.
+# Every registered document's path is read dynamically (single source of truth,
+# same _load_yaml() import pattern as _resolve_spec_code_bindings() above) rather
+# than hardcoding a second list here that could drift from the registry.
+REGISTRY_DOC_PATHS=""
+if [ -f "document-registry.yaml" ]; then
+    REGISTRY_DOC_PATHS=$(python3 -c "
+import sys
+import pathlib
+sys.path.insert(0, '.')
+try:
+    from _workflow_utils import _load_yaml
+    data = _load_yaml(pathlib.Path('document-registry.yaml'))
+    for doc in data.get('documents', {}).values():
+        p = doc.get('path')
+        if p:
+            print(p)
+except Exception:
+    pass
+" 2>/dev/null) || REGISTRY_DOC_PATHS=""
+    REGISTRY_DOC_PATHS="${REGISTRY_DOC_PATHS//$'\r'/}"
+fi
+
+SPEC_FACING_STAGED=""
+if [ -n "$REGISTRY_DOC_PATHS" ]; then
+    while IFS= read -r DOC_PATH; do
+        [ -z "$DOC_PATH" ] && continue
+        FULL_PATH="${DOCS_PATH}/${DOC_PATH}"
+        MATCH=$(printf '%s\n' "$STAGED" | grep -xF "$FULL_PATH" || true)
+        if [ -n "$MATCH" ]; then
+            SPEC_FACING_STAGED="${SPEC_FACING_STAGED}${MATCH}
+"
+        fi
+    done <<< "$REGISTRY_DOC_PATHS"
+fi
+
+# Open-ended per-item document families: each has an index file that IS registered in
+# document-registry.yaml (covered above), but the per-item files underneath it grow
+# with however many modules/objects/processes/prompts a project actually has, so their
+# exact paths can never be pre-registered -- a pattern match is the only way to cover a
+# set whose membership isn't known in advance. Kept as a supplement to the
+# registry-driven list above, not a replacement for it. All five below were checked by
+# actually listing every dynamic-name family in this framework (module-data-flow,
+# module-flow, business-object, business-process, prompt) -- module-data-flow was the
+# one this guard covered before switching to the registry-driven list (a regression,
+# now restored); the other four were never covered even before that change, closed
+# here at the same time since it's the same mechanism and the same fix.
+DYNAMIC_NAME_STAGED=$(printf '%s\n' "$STAGED" | grep -E \
+    'modules/.*-module-data-flow\.md$|modules/module-data-flow\.md$|modules/.*-flow\.md$|modules/module-flow\.md$|business/.*-object\.md$|business/business-objects\.md$|business/.*-process\.md$|specs/prompts/.*-prompt\.md$' \
     || true)
+if [ -n "$DYNAMIC_NAME_STAGED" ]; then
+    SPEC_FACING_STAGED="${SPEC_FACING_STAGED}${DYNAMIC_NAME_STAGED}
+"
+fi
+
+# The registry-driven list and the pattern-based list above can each independently
+# match the same file (e.g. a per-module data-flow file also ending in "-flow.md")
+# -- dedupe so a violation in one file is never reported twice.
+if [ -n "$SPEC_FACING_STAGED" ]; then
+    SPEC_FACING_STAGED=$(printf '%s\n' "$SPEC_FACING_STAGED" | sort -u)
+fi
+
 if [ -n "$SPEC_FACING_STAGED" ]; then
     FOUND_VIOLATIONS=false
     while IFS= read -r file; do

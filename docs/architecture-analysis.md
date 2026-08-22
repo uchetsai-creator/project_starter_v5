@@ -467,6 +467,60 @@ note bottom of vreg : Added after this diagram's\nprior revision -- catches malf
   centralising would mean a cross-package import for three dict literals. Worth revisiting if a
   third opt-in LLM call site is added: at that point the duplication is the same shape as the
   `PIPELINE_TYPES` problem resolved above, not a one-off.
+- **The Writing Audience guard only ever checked `audience: external` documents — a task-plan
+  narrative leaking into an `audience: internal` spec (e.g. `api-contract.md`) had zero
+  protection.** Surfaced by actually using the framework as intended: implementing a real feature
+  against `api-contract.md`, and noticing the spec kept growing with per-task planning content
+  instead of staying a clean description of the current contract. `audience` in
+  `document-registry.yaml` was never a statement about whether task/sprint narrative is
+  acceptable — it only ever meant "is this included in the generated stakeholder PDF." The two
+  concerns had been conflated: `current-state.md`'s Steps section and `sprint-change-log.md` are
+  deliberately *not* in the registry at all — that's where per-task planning and historical
+  implementation notes belong — so every document that *is* registered, `internal` or `external`
+  alike, should carry none of that. Fixed by reading every document's `path` from
+  `document-registry.yaml` dynamically at guard time (same `_load_yaml()` import pattern already
+  used for `_resolve_spec_code_bindings()`) instead of a second, hand-maintained list of
+  "spec-facing" filenames that had silently fallen out of sync with the registry's own audience
+  field. Confirmed against a real repo: a `Sprint 3` / `Task 42` reference in `api-contract.md`
+  now blocks the commit (previously invisible to this guard entirely); `architecture.md`
+  (`audience: external`, the guard's original scope) still blocks the same way; `current-state.md`
+  and `sprint-change-log.md` — deliberately absent from the registry — are confirmed still exempt,
+  since flagging them would break the very place this content is supposed to live.
+- **The registry-driven rewrite above silently dropped coverage for `modules/[module]/[module]-
+  module-data-flow.md` — a real regression, caught before it shipped, not after.** The old
+  hardcoded regex included `modules/.*-module-data-flow\.md$` as one of its four patterns; the new
+  registry-driven list only matches *fixed* paths read from `document-registry.yaml`, and this
+  entire family (the index `modules/module-data-flow.md` plus one file per module, name unknown
+  until the module exists) was never registered there at all — an open-ended set can't be, its
+  membership isn't fixed. Checking systematically for every other document family with the same
+  shape (an index file that *is* registered, per-item files under it that aren't) found three more,
+  none of which the old regex covered either: `modules/[module]/[module]-flow.md`,
+  `business/[object-name]-object.md`, `business/[process-name]-process.md`,
+  `specs/prompts/[id]-prompt.md`. Fixed by keeping the registry-driven list for fixed-path
+  documents and adding a supplementary pattern match for all four open-ended families back in,
+  deduped against the registry list (a per-module data-flow file, for instance, matches both) so a
+  violation is never reported twice. Confirmed against a real repo for all four families, including
+  the specific dedup case (`business/business-process.md` is simultaneously the registered index
+  *and* matches the per-item `.*-process\.md$` pattern) reported exactly once, not twice.
+- **Nothing detected when a spec changed out from under an already-scoped task's Steps.** Compared
+  against GitHub Spec Kit's explicit design (plan/tasks are derived from the spec and regenerated
+  when it changes — manual edits to the derived artifact are lost on purpose, because they should
+  have been spec edits) this framework had no equivalent at all: `current-state.md`'s Steps are
+  written once at task setup and never re-validated against the spec they were planned from. Full
+  auto-regeneration was rejected as out of scope — silently rewriting a human's task plan without
+  asking discards manual content the same way Spec Kit's model does, but every other opt-in/nudge
+  decision in this document has been "detect and surface," never "silently overwrite," and there
+  is no reason to break that pattern here just because Spec Kit's own answer is more aggressive.
+  `session-start-hook.sh` now compares git commit timestamps: `current-state.md`'s own last commit
+  against each file listed under its Required Context section (the same file list already read
+  elsewhere for `.ai/AI_CONTEXT.md`); a Required Context file committed more recently is
+  surfaced as a non-blocking `SessionStart` nudge, the same commit-timestamp-comparison mechanism
+  `learning_log_nudge.py` already uses for `task-log.md` vs `learning-log.md`. Placeholder Required
+  Context lines (the template's own `docs/[relevant file]`) and placeholder Tasks are excluded
+  from the check the same way the rest of this hook already excludes them. Confirmed against a
+  real repo in both directions: a spec committed after `current-state.md` triggers the nudge with
+  the specific file named; `current-state.md` committed after the spec (the common case — e.g.
+  checking off a Step) stays silent.
 
 ---
 
