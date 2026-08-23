@@ -91,6 +91,13 @@ test_command:
 # Optional. Shell command that runs this project's test suite, e.g. `pytest -q` |
 # `npm test` | `go test ./...`. When set, .githooks/pre-commit actually runs it on every
 # commit and blocks if it exits non-zero. Leave blank to skip this gate.
+
+sprint_sync_stale_days:
+# Optional. Age-based fallback for the Sprint Documentation Sync guard: that guard's
+# main trigger is a count (3 Pending entries in docs/sprint-change-log.md), which a
+# low-volume/solo project may never reach. When set, a commit is also blocked once the
+# oldest Pending entry's **Date:** field is at least this many days old. Leave blank to
+# skip this fallback (default). Example: sprint_sync_stale_days: 14
 """
 
 

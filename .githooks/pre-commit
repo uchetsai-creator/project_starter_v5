@@ -138,6 +138,7 @@ SPEC_CODE_BINDINGS=""
 SECURITY_SCAN_SRC=""
 PROSE_SCAN_ENABLED=""
 TEST_COMMAND=""
+SPRINT_SYNC_STALE_DAYS=""
 
 if [ -f "$CONFIG" ]; then
     PROJECT_TYPE=$(grep '^project_type:' "$CONFIG" | sed 's/project_type:[[:space:]]*//' | tr -d "\"' ")
@@ -186,6 +187,7 @@ except Exception:
     # as-is (just trimmed of leading whitespace after the YAML key) instead of
     # stripping characters that could be part of the command itself.
     TEST_COMMAND=$(grep '^test_command:' "$CONFIG" | sed -E 's/^test_command:[[:space:]]*//') || true
+    SPRINT_SYNC_STALE_DAYS=$(grep '^sprint_sync_stale_days:' "$CONFIG" | sed 's/sprint_sync_stale_days:[[:space:]]*//' | tr -d "\"' ") || true
 fi
 
 # ── spec_code_adapter value guard (legacy single trio) ────────────────────────
@@ -232,6 +234,16 @@ if [ -n "$SPEC_CODE_BINDINGS" ]; then
             exit 1
         fi
     done <<< "$SPEC_CODE_BINDINGS"
+fi
+
+# ── sprint_sync_stale_days value guard ────────────────────────────────────────
+# Catches: a non-numeric value (typo, or "2 weeks" instead of a day count) — checked
+# immediately so a bad config value fails clearly at commit time instead of the
+# age-based fallback below silently never firing.
+if [ -n "$SPRINT_SYNC_STALE_DAYS" ] && ! echo "$SPRINT_SYNC_STALE_DAYS" | grep -qE '^[0-9]+$'; then
+    echo "[FAIL] pre-commit: sprint_sync_stale_days '$SPRINT_SYNC_STALE_DAYS' is not a positive integer."
+    echo "    Fix the value in .project-starter.yml (a day count, e.g. 14) or leave it blank to disable the fallback."
+    exit 1
 fi
 
 if [ -z "$PROJECT_TYPE" ]; then
@@ -281,6 +293,17 @@ fi
 # synchronized") has actually landed on disk, not whether this particular commit is the
 # one that did it. Blocks every commit while the count stays at or above 3, same as
 # project_type_confirmed — a state-of-the-world check, not scoped to what's staged.
+#
+# Age-based fallback (opt-in via sprint_sync_stale_days in .project-starter.yml): the
+# count trigger alone has a gap — a low-volume/solo project may never accumulate 3
+# Pending entries, so the guard above never fires and the backlog can sit indefinitely
+# with only the sprint-doc-sync Skill's non-blocking nudge (see README.md -> Sprint
+# Documentation Sync guard). When sprint_sync_stale_days is set, this also blocks once
+# the OLDEST Pending entry's **Date:** field is at least that many days old, even if
+# the count is only 1 or 2. Leave it blank to skip this fallback (default — matches
+# prior behavior, count-only). Entries are appended in chronological order (see
+# templates/sprint-change-log.md), so the first Pending entry found scanning
+# top-to-bottom is the oldest one still outstanding.
 SPRINT_LOG="${DOCS_PATH}/sprint-change-log.md"
 if [ -f "$SPRINT_LOG" ]; then
     PENDING_COUNT=$(grep -cE '^\*\*Status:\*\* Pending documentation synchronization' "$SPRINT_LOG" || true)
@@ -290,6 +313,33 @@ if [ -f "$SPRINT_LOG" ]; then
         echo "         Run Sprint Documentation Sync (templates/sprint-sync.md) before committing further work —"
         echo "         see AGENTS.md -> Sprint Documentation Sync."
         PASS=false
+    elif [ "$PENDING_COUNT" -ge 1 ] && [ -n "$SPRINT_SYNC_STALE_DAYS" ]; then
+        OLDEST_PENDING_DATE=$(awk '
+            /^\*\*Date:\*\*/ { d=$0 }
+            /^\*\*Status:\*\* Pending documentation synchronization/ { print d; exit }
+        ' "$SPRINT_LOG" | sed -E 's/^\*\*Date:\*\* *//' | tr -d '\r')
+        if [ -n "$OLDEST_PENDING_DATE" ]; then
+            STALE_DAYS=$(python3 -c "
+import sys
+from datetime import datetime
+raw = sys.argv[1].strip()
+try:
+    d = datetime.strptime(raw, '%Y-%m-%d')
+except ValueError:
+    print(-1)
+else:
+    print((datetime.now() - d).days)
+" "$OLDEST_PENDING_DATE" 2>/dev/null)
+            STALE_DAYS="${STALE_DAYS//$'\r'/}"
+            STALE_DAYS="${STALE_DAYS:--1}"
+            if [ "$STALE_DAYS" -ge "$SPRINT_SYNC_STALE_DAYS" ]; then
+                echo "  [FAIL] $SPRINT_LOG has $PENDING_COUNT entry(ies) pending — oldest dated $OLDEST_PENDING_DATE"
+                echo "         ($STALE_DAYS days old, threshold: $SPRINT_SYNC_STALE_DAYS days). Below the count"
+                echo "         threshold (3) but stale — run Sprint Documentation Sync before committing further"
+                echo "         work — see AGENTS.md -> Sprint Documentation Sync."
+                PASS=false
+            fi
+        fi
     fi
 fi
 

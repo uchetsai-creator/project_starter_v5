@@ -50,6 +50,20 @@ test_command:
 # Point this at a fast subset (unit tests) if your full suite is slow — every commit runs
 # it. Reserve the full/integration suite for CI.
 
+sprint_sync_stale_days:
+# Optional. Adds an age-based fallback to the Sprint Documentation Sync guard in
+# .githooks/pre-commit. That guard's main trigger is a count — 3 entries in
+# docs/sprint-change-log.md at "Status: Pending documentation synchronization" — which
+# has a gap: a low-volume/solo project may never accumulate 3 Pending entries, so the
+# count trigger never fires and the backlog can sit indefinitely with only the
+# sprint-doc-sync Skill's non-blocking nudge. When set, a commit is also blocked once
+# the OLDEST Pending entry's **Date:** field is at least this many days old — even if
+# the count is only 1 or 2. Leave blank to skip this fallback (default — matches prior
+# behavior, count-only).
+#
+# Example:
+#   sprint_sync_stale_days: 14
+
 spec_code_adapter:
 spec_code_spec:
 spec_code_src:

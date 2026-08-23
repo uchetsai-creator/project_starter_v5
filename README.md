@@ -902,9 +902,14 @@ python3 orchestrator.py --adapter claude --dry-run
      indefinitely with no mechanical backstop, only the `sprint-doc-sync` Skill's nudge. This
      guard blocks every commit once 3 (or more) entries are at `Status: Pending documentation
      synchronization`, until Sprint Documentation Sync (`templates/sprint-sync.md`) marks them
-     `Documentation synchronized`. `adapters/claude/run-verify.sh` mirrors this (and the two guards
-     above) as a non-blocking Stop-hook nudge — see the fast-feedback bullet below for why a
-     git-commit-only gate isn't enough on its own for a workflow with infrequent commits.
+     `Documentation synchronized`. The count trigger alone still has a gap for a low-volume/solo
+     project that never accumulates 3 Pending entries — `sprint_sync_stale_days` in
+     `.project-starter.yml` closes it: when set, the same guard also blocks once the *oldest*
+     Pending entry's `**Date:**` field is at least that many days old, regardless of count. Opt-in
+     — leave it blank to keep count-only behavior. `adapters/claude/run-verify.sh` mirrors this
+     (and the two guards above) as a non-blocking Stop-hook nudge — see the fast-feedback bullet
+     below for why a git-commit-only gate isn't enough on its own for a workflow with infrequent
+     commits.
 4. The seven procedural docs below auto-trigger as Claude Skills — `--init` / `setup.sh --init`
    already copied `adapters/claude/skills/` into your project's `.claude/skills/` folder (see
    `init.py`), so this step needs no action for a project bootstrapped that way. Only relevant

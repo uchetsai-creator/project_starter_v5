@@ -17,6 +17,7 @@ Runs the real bash script via subprocess against a minimal isolated git repo, ma
 test_pre_commit_project_type_confirmed.py's approach -- skipped if bash isn't on PATH.
 """
 import subprocess
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -31,9 +32,14 @@ pytestmark = pytest.mark.skipif(_BASH is None, reason="bash not found on PATH")
 
 _PENDING_ENTRY = "### Task: {n}\n**Status:** Pending documentation synchronization\n---\n\n"
 _SYNCED_ENTRY = "### Task: {n}\n**Status:** Documentation synchronized — 2026-08-22\n---\n\n"
+_PENDING_ENTRY_DATED = (
+    "### Task: {n}\n**Date:** {date}\n**Status:** Pending documentation synchronization\n---\n\n"
+)
 
 
-def _make_repo(tmp_path: Path, sprint_log_body: str | None) -> Path:
+def _make_repo(
+    tmp_path: Path, sprint_log_body: str | None, extra_config: str = "",
+) -> Path:
     repo = tmp_path / "repo"
     repo.mkdir()
     subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
@@ -41,7 +47,7 @@ def _make_repo(tmp_path: Path, sprint_log_body: str | None) -> Path:
     subprocess.run(["git", "config", "user.name", "Test"], cwd=repo, check=True)
 
     (repo / ".project-starter.yml").write_text(
-        "project_type: web-app\ndocs_path: docs/\n", encoding="utf-8",
+        "project_type: web-app\ndocs_path: docs/\n" + extra_config, encoding="utf-8",
     )
     docs = repo / "docs"
     docs.mkdir()
@@ -114,3 +120,67 @@ def test_no_sprint_change_log_does_not_block(tmp_path):
     result = _run_hook(repo)
     assert "Pending documentation synchronization" not in result.stdout
     assert result.returncode == 0
+
+
+# ── Age-based fallback (sprint_sync_stale_days) ─────────────────────────────────
+# Closes the gap above these tests: a low-volume/solo project that never accumulates
+# 3 Pending entries never trips the count guard, so the backlog can sit indefinitely
+# with no mechanical backstop. sprint_sync_stale_days is opt-in (blank = count-only,
+# matching all tests above) -- these tests cover it explicitly configured.
+
+def test_stale_single_pending_entry_blocks_when_configured(tmp_path):
+    old_date = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
+    body = "# Sprint Change Log\n\n" + _PENDING_ENTRY_DATED.format(n="A", date=old_date)
+    repo = _make_repo(tmp_path, body, extra_config="sprint_sync_stale_days: 14\n")
+    result = _run_hook(repo)
+    assert "entry(ies) pending" in result.stdout
+    assert old_date in result.stdout
+    assert result.returncode == 1
+
+
+def test_recent_single_pending_entry_does_not_block_when_configured(tmp_path):
+    today = datetime.now().strftime("%Y-%m-%d")
+    body = "# Sprint Change Log\n\n" + _PENDING_ENTRY_DATED.format(n="A", date=today)
+    repo = _make_repo(tmp_path, body, extra_config="sprint_sync_stale_days: 14\n")
+    result = _run_hook(repo)
+    assert "entry(ies) pending" not in result.stdout
+    assert result.returncode == 0
+
+
+def test_stale_pending_entry_does_not_block_without_config(tmp_path):
+    """Same stale entry as the blocking test above, but sprint_sync_stale_days is left
+    unset -- default behavior must stay count-only, unchanged from before this fallback
+    existed."""
+    old_date = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
+    body = "# Sprint Change Log\n\n" + _PENDING_ENTRY_DATED.format(n="A", date=old_date)
+    repo = _make_repo(tmp_path, body)
+    result = _run_hook(repo)
+    assert "entry(ies) pending" not in result.stdout
+    assert result.returncode == 0
+
+
+def test_oldest_of_multiple_pending_entries_is_used(tmp_path):
+    """2 Pending entries (below the count threshold of 3) -- the OLDER date should be
+    the one that trips the fallback, since entries are chronological (oldest first)."""
+    older = (datetime.now() - timedelta(days=20)).strftime("%Y-%m-%d")
+    newer = (datetime.now() - timedelta(days=2)).strftime("%Y-%m-%d")
+    body = (
+        "# Sprint Change Log\n\n"
+        + _PENDING_ENTRY_DATED.format(n="A", date=older)
+        + _PENDING_ENTRY_DATED.format(n="B", date=newer)
+    )
+    repo = _make_repo(tmp_path, body, extra_config="sprint_sync_stale_days: 14\n")
+    result = _run_hook(repo)
+    assert older in result.stdout
+    assert newer not in result.stdout
+    assert result.returncode == 1
+
+
+def test_invalid_sprint_sync_stale_days_fails_clearly(tmp_path):
+    """A non-numeric value is a config error, not a silent no-op -- must fail fast with
+    a clear message, same convention as the spec_code_adapter typo guard."""
+    repo = _make_repo(tmp_path, sprint_log_body=None, extra_config="sprint_sync_stale_days: two weeks\n")
+    result = _run_hook(repo)
+    assert "sprint_sync_stale_days" in result.stdout
+    assert "not a positive integer" in result.stdout
+    assert result.returncode == 1
