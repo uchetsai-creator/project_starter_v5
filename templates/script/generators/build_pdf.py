@@ -508,26 +508,30 @@ def svg_to_png(svg_path, out_path, max_width=1400, max_height=900):
 
 def inject_plantuml_blocks(md_text, rel, docs_dir, html_svg_pairs, png_cache_dir):
     """Replace ```plantuml blocks in markdown with embedded PNG images."""
-    os.path.splitext(os.path.basename(rel))[0]
+    base = os.path.splitext(os.path.basename(rel))[0]
+    blocks = list(re.finditer(r'```plantuml([\s\S]*?)```', md_text))
+    n = len(blocks)
+
+    counter = {'i': 0}
 
     def replace_block(m):
-        m.group(1).strip()
-        # Find matching pre-rendered SVG
-        os.path.join(png_cache_dir, 'plantuml_svg')
-        # Try to find the svg by scanning rendered pairs
-        for key, pair in html_svg_pairs.items():
-            if pair.get('md') and os.path.basename(pair['md']) == os.path.basename(rel):
-                svg_path = pair['svg']
-                if os.path.exists(svg_path):
-                    png_name = os.path.splitext(os.path.basename(svg_path))[0] + '.png'
-                    png_path = os.path.join(png_cache_dir, png_name)
-                    svg_mtime  = os.path.getmtime(svg_path)
-                    png_mtime  = os.path.getmtime(png_path) if os.path.exists(png_path) else -1
-                    if not os.path.exists(png_path) or svg_mtime > png_mtime:
-                        svg_to_png(svg_path, png_path)
-                    if os.path.exists(png_path):
-                        png_rel = os.path.relpath(png_path, docs_dir)
-                        return '![](' + png_rel + ')\n'
+        idx = counter['i']
+        counter['i'] += 1
+        suffix = '' if n == 1 else f'-{idx}'
+        key = f'{base}{suffix}'
+        pair = html_svg_pairs.get(key)
+        if pair:
+            svg_path = pair['svg']
+            if os.path.exists(svg_path):
+                png_name = os.path.splitext(os.path.basename(svg_path))[0] + '.png'
+                png_path = os.path.join(png_cache_dir, png_name)
+                svg_mtime  = os.path.getmtime(svg_path)
+                png_mtime  = os.path.getmtime(png_path) if os.path.exists(png_path) else -1
+                if not os.path.exists(png_path) or svg_mtime > png_mtime:
+                    svg_to_png(svg_path, png_path)
+                if os.path.exists(png_path):
+                    png_rel = os.path.relpath(png_path, docs_dir)
+                    return '![](' + png_rel + ')\n'
         return ''  # fallback: remove the block if no SVG found
 
     return re.sub(r'```plantuml([\s\S]*?)```', replace_block, md_text)
