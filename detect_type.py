@@ -429,7 +429,7 @@ def _read_dep_names(root: Path) -> tuple[set[str], set[str]]:
     # requirements*.txt
     for req_file in root.glob("requirements*.txt"):
         try:
-            for line in req_file.read_text(encoding="utf-8", errors="ignore").splitlines():
+            for line in req_file.read_text(encoding="utf-8", errors="replace").splitlines():
                 line = line.strip()
                 if not line or line.startswith("#"):
                     continue
@@ -443,7 +443,7 @@ def _read_dep_names(root: Path) -> tuple[set[str], set[str]]:
     pyproject = root / "pyproject.toml"
     if pyproject.exists():
         try:
-            text = pyproject.read_text(encoding="utf-8", errors="ignore")
+            text = pyproject.read_text(encoding="utf-8", errors="replace")
             for m in re.finditer(r'"([a-zA-Z0-9_\-\.]+)\s*[>=<!\[]', text):
                 python_deps.add(m.group(1).lower())
         except OSError:
@@ -453,7 +453,7 @@ def _read_dep_names(root: Path) -> tuple[set[str], set[str]]:
     for sfile in (root / "setup.py", root / "setup.cfg"):
         if sfile.exists():
             try:
-                text = sfile.read_text(encoding="utf-8", errors="ignore")
+                text = sfile.read_text(encoding="utf-8", errors="replace")
                 for m in re.finditer(r"['\"]([a-zA-Z0-9_\-\.]+)\s*[>=<!\[]?['\"]", text):
                     python_deps.add(m.group(1).lower())
             except OSError:
@@ -463,7 +463,7 @@ def _read_dep_names(root: Path) -> tuple[set[str], set[str]]:
     pkg_json = root / "package.json"
     if pkg_json.exists():
         try:
-            data = json.loads(pkg_json.read_text(encoding="utf-8", errors="ignore"))
+            data = json.loads(pkg_json.read_text(encoding="utf-8", errors="replace"))
             for section in ("dependencies", "devDependencies", "peerDependencies"):
                 for pkg in data.get(section, {}):
                     node_deps.add(pkg.lower())

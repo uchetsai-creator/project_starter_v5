@@ -156,9 +156,9 @@ def main() -> None:
     )
     parser.add_argument(
         "--task-type",
-        choices=valid_task_types,
+        choices=valid_task_types or None,
         metavar="TYPE",
-        help=f"Override task type ({', '.join(valid_task_types)})",
+        help=f"Override task type ({', '.join(valid_task_types)})" if valid_task_types else "Override task type",
     )
     parser.add_argument(
         "--dry-run",

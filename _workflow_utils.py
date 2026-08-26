@@ -15,11 +15,18 @@ def _load_yaml(path: Path) -> dict:
         print("[FAIL] PyYAML not found. Install with: pip install pyyaml", file=sys.stderr)
         sys.exit(1)
     with path.open(encoding="utf-8") as fh:
-        return yaml.safe_load(fh) or {}
+        try:
+            return yaml.safe_load(fh) or {}
+        except yaml.YAMLError as exc:
+            print(f"[FAIL] Failed to parse {path}: {exc}", file=sys.stderr)
+            sys.exit(1)
 
 
 def _load_valid_task_types(project_root: Path) -> list[str]:
-    """Derive valid task types from workflow-registry.yaml keys (excluding 'default')."""
+    """Derive valid task types from workflow-registry.yaml keys (excluding 'default').
+    Best-effort: a missing or unparsable registry degrades to [] (no --task-type
+    validation) rather than crashing, since callers only use this to build an
+    optional argparse `choices` list."""
     try:
         import yaml
     except ImportError:
@@ -28,7 +35,11 @@ def _load_valid_task_types(project_root: Path) -> list[str]:
     if not wf_path.exists():
         return []
     with wf_path.open(encoding="utf-8") as fh:
-        data = yaml.safe_load(fh) or {}
+        try:
+            data = yaml.safe_load(fh) or {}
+        except yaml.YAMLError as exc:
+            print(f"[WARN] Failed to parse {wf_path}: {exc} — skipping --task-type validation", file=sys.stderr)
+            return []
     return [k for k in data.get("workflows", {}) if k != "default"]
 
 

@@ -30,7 +30,49 @@ _VS_PATH = (
 _REPO_ROOT = _VS_PATH.parent.parent.parent.parent
 
 _HAS_BANDIT = shutil.which("bandit") is not None
-_HAS_ESLINT = shutil.which("eslint") is not None
+
+
+def _eslint_supports_flat_config() -> str | None:
+    """--no-config-lookup was only added in ESLint 8.21 — older globally-installed
+    eslint binaries (e.g. distro packages, which can lag many major versions behind
+    npm's latest) reject it with exit code 2, which would otherwise make this test
+    FAIL rather than SKIP on those systems. Returns None if usable, else a skip reason."""
+    exe = shutil.which("eslint")
+    if exe is None:
+        return "eslint not installed"
+    try:
+        proc = subprocess.run(
+            [exe, "--no-config-lookup", "--version"],
+            capture_output=True, text=True, timeout=10,
+        )
+    except OSError:
+        return "eslint not installed"
+    if proc.returncode != 0:
+        return "installed eslint is too old to support --no-config-lookup (needs 8.21+)"
+    return None
+
+
+def _eslint_plugin_security_missing() -> bool:
+    """require('eslint-plugin-security') must resolve from _REPO_ROOT (see
+    _run_eslint()'s docstring) — it's a devDependency the repo doesn't vendor by
+    default, only present after `npm install eslint-plugin-security` there."""
+    node = shutil.which("node")
+    if node is None:
+        return True
+    try:
+        proc = subprocess.run(
+            [node, "-e", "require.resolve('eslint-plugin-security')"],
+            capture_output=True, text=True, cwd=str(_REPO_ROOT), timeout=10,
+        )
+    except OSError:
+        return True
+    return proc.returncode != 0
+
+
+_ESLINT_SKIP_REASON = _eslint_supports_flat_config()
+if _ESLINT_SKIP_REASON is None and _eslint_plugin_security_missing():
+    _ESLINT_SKIP_REASON = "eslint-plugin-security not installed in repo (npm install eslint-plugin-security)"
+_HAS_ESLINT = _ESLINT_SKIP_REASON is None
 
 
 def _run(*args: str, cwd=None) -> subprocess.CompletedProcess:
@@ -60,7 +102,7 @@ def test_bandit_finds_real_shell_true_issue(tmp_path):
     assert "B602" in rules  # subprocess with shell=True
 
 
-@pytest.mark.skipif(not _HAS_ESLINT, reason="eslint not installed")
+@pytest.mark.skipif(not _HAS_ESLINT, reason=_ESLINT_SKIP_REASON or "eslint not usable")
 def test_eslint_finds_real_eval_and_child_process_issues(tmp_path):
     """The config file must be written inside the repo (where node_modules lives) for
     require('eslint-plugin-security') to resolve — see _run_eslint()'s docstring. This
