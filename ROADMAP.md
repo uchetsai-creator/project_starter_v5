@@ -1976,7 +1976,7 @@ A collection of minor code quality issues across multiple files, none individual
 
 ---
 
-## Phase 57 — Critical Runtime Bug Fixes
+## Phase 57 — Critical Runtime Bug Fixes ✅ Complete
 
 **Discovered in post-Phase-56 audit.**
 
@@ -2001,7 +2001,7 @@ Two bugs cause runtime errors or produce corrupt output on every normal use.
 
 ---
 
-## Phase 58 — Gitignore & Task Log Hygiene
+## Phase 58 — Gitignore & Task Log Hygiene ✅ Complete
 
 **Discovered in post-Phase-56 audit.**
 
@@ -2033,7 +2033,7 @@ Every session boundary appends an incomplete row (status always `—`). `task-lo
 
 ---
 
-## Phase 59 — Stale Reference & Annotation Cleanup
+## Phase 59 — Stale Reference & Annotation Cleanup ✅ Complete
 
 **Discovered in post-Phase-56 audit.**
 
@@ -2194,7 +2194,7 @@ Phase 52.5 introduced capability adapters (`_capability_*.py`) as the authoritat
 
 ---
 
-## Phase 63 — Stop Hook Telemetry Extraction
+## Phase 63 — Stop Hook Telemetry Extraction ✅ Complete
 
 **Discovered in post-Phase-56 audit.**
 
@@ -2215,7 +2215,7 @@ Phase 52.5 introduced capability adapters (`_capability_*.py`) as the authoritat
 
 ---
 
-## Phase 64 — Registry Replacement Documentation
+## Phase 64 — Registry Replacement Documentation ✅ Complete
 
 **Discovered in post-Phase-56 audit.**
 
@@ -2238,7 +2238,7 @@ Phase 52.5 introduced capability adapters (`_capability_*.py`) as the authoritat
 
 ---
 
-## Phase 65 — Framework Test Suite (Overview)
+## Phase 65 — Framework Test Suite (Overview) ✅ Complete
 
 **Discovered in post-Phase-56 audit.**
 
@@ -2257,7 +2257,7 @@ Split into four implementable sub-phases, each independently committable:
 
 ---
 
-## Phase 65.1 — Unit Tests + Test Scaffolding
+## Phase 65.1 — Unit Tests + Test Scaffolding ✅ Complete
 
 ### Goal
 
@@ -2285,7 +2285,7 @@ Set up the test infrastructure and implement unit tests for all pure functions. 
 
 ---
 
-## Phase 65.2 — Contract Tests
+## Phase 65.2 — Contract Tests ✅ Complete
 
 ### Goal
 
@@ -2359,7 +2359,7 @@ def test_workflow_registry_all_scripts_exist():
 
 ---
 
-## Phase 65.3 — Snapshot Tests + Minimal Fixtures
+## Phase 65.3 — Snapshot Tests + Minimal Fixtures ✅ Complete
 
 ### Goal
 
@@ -2412,7 +2412,7 @@ Generated on first run (`--snapshot-update`), committed, auto-diffed on every su
 
 ---
 
-## Phase 65.4 — E2E Tests + Filled Fixtures
+## Phase 65.4 — E2E Tests + Filled Fixtures ✅ Complete
 
 ### Goal
 
