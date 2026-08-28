@@ -255,9 +255,11 @@ project_starter/                     ← this repo (template only)
 │   │   ├── start-task.md           ← slash command template (copy to .claude/commands/ in your project)
 │   │   ├── run-verify.sh           ← Claude Code Stop-hook script: writes validator --json output to logs/verify-{timestamp}.json, plus real-time project_type_confirmed / Clarifying Questions Asked / Doc Checklist / Sprint Documentation Sync checks and the same --json output's --strict pass/fail for verify_docs/logs/tests/content
 │   │   ├── stop-hook.sh            ← writes session boundary to logs/telemetry/task-run.json on Claude Code session end
-│   │   ├── session-start-hook.sh   ← non-blocking nudge: re-checks current-state.md scoping state fresh every session, a brand-new-project nudge toward research.md when both Task and research.md are still unscoped, and a spec-drift nudge when a Required Context file was committed more recently than current-state.md itself
+│   │   ├── session-start-hook.sh   ← non-blocking nudge: re-checks current-state.md scoping state fresh every session, a brand-new-project nudge toward research.md when both Task and research.md are still unscoped, a spec-drift nudge when a Required Context file was committed more recently than current-state.md itself, and (if `checkpoint_enforcement: session-prompt`) asks once per session whether to turn pretooluse_scope_guard.py's block on for that session
 │   │   ├── learning_log_nudge.py   ← non-blocking nudge: flags when docs/task-log.md was closed out more recently than learning-log.md was last touched (never checks entry content — see Learning Checkpoint enforcement below)
-│   │   ├── pretooluse_scope_guard.py ← BLOCKING: denies Edit/Write/MultiEdit/NotebookEdit on source files until current-state.md is scoped (see Learning Checkpoint enforcement below)
+│   │   ├── pretooluse_scope_guard.py ← BLOCKING: denies Edit/Write/MultiEdit/NotebookEdit on source files until current-state.md is scoped (see Learning Checkpoint enforcement below); opt-in `checkpoint_enforcement: session-prompt`/`off` modes in .project-starter.yml relax this per session
+│   │   ├── checkpoint_session_state.py ← shared read/write helpers for the session-prompt mode's per-session choice (logs/telemetry/checkpoint-session-choices.json)
+│   │   ├── record_checkpoint_choice.py ← CLI the agent runs to persist the user's session-prompt answer, keyed by session_id
 │   │   ├── telemetry_writer.py     ← telemetry row writer invoked by stop-hook.sh
 │   │   └── skills/                 ← Claude Skills, static; copied to .claude/skills/ automatically by `--init` (see Agent Adapters → Per-tool setup)
 │   │       ├── retrofit-existing-project/SKILL.md
@@ -888,6 +890,13 @@ python3 orchestrator.py --adapter claude --dry-run
      every other gate here, it's optional: without it, "ask before implementing" (AGENTS.md ->
      New requirement from the user) is enforced by the agent choosing to follow AGENTS.md, not
      by anything mechanical, until this hook (or the pre-commit backstop) is wired in.
+     `.project-starter.yml`'s `checkpoint_enforcement` key relaxes this once the hook *is*
+     wired in: `session-prompt` asks once per Claude Code session (via
+     `session-start-hook.sh` injecting `additionalContext`, answer recorded by
+     `record_checkpoint_choice.py`) whether to actually turn the block on for that session —
+     a session that hasn't answered yet fails open, same as leaving the key unset would have
+     before this option existed; `off` always allows. Leave the key unset for the original
+     always-on behavior.
    - `.githooks/pre-commit`'s **Doc Checklist completeness guard** — the same "convention until
      something checks it" gap existed for `current-state.md`'s Doc Checklist (AGENTS.md -> Closing
      out a task): nothing previously verified the per-task doc-update list was actually applied

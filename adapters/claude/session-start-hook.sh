@@ -11,10 +11,29 @@
 #
 # Never blocks: always exits 0, even on any internal failure. This is a reminder, not a
 # gate — the actual gate is the Clarifying Questions Asked check in .githooks/pre-commit.
+#
+# Also asks (via injected additionalContext) whether to turn on
+# pretooluse_scope_guard.py's mechanical enforcement for *this* session, but only when
+# .project-starter.yml sets checkpoint_enforcement: session-prompt — see that file's
+# comment and pretooluse_scope_guard.py's docstring for the full opt-in design. Silent
+# no-op (same as before this existed) when that key is unset, matching every other
+# optional gate in this framework.
 
 CS="docs/current-state.md"
 RESEARCH="docs/specs/research.md"
 MSG=""
+
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SESSION_ID=""
+if command -v python3 &>/dev/null; then
+    SESSION_ID=$(python3 -c "
+import json, sys
+try:
+    print(json.load(sys.stdin).get('session_id', ''))
+except Exception:
+    print('')
+" 2>/dev/null)
+fi
 
 # A **Decision:** line whose value isn't the template's own bracketed placeholder
 # (e.g. "[Final choice, e.g., AWS SQS]") counts as real content. Deliberately looser
@@ -84,6 +103,27 @@ if [ -f "$CS" ]; then
                 MSG="${MSG:+$MSG }$SPEC_DRIFT_MSG"
             fi
         fi
+    fi
+fi
+
+# ── Learning Checkpoint enforcement prompt (opt-in) ─────────────────────────
+# Only fires when .project-starter.yml sets checkpoint_enforcement: session-prompt
+# AND this session hasn't already answered (checked via checkpoint_session_state.py,
+# keyed by session_id) -- see pretooluse_scope_guard.py for the other half.
+CFG=".project-starter.yml"
+if [ -f "$CFG" ] \
+    && grep -qE '^checkpoint_enforcement:[[:space:]]*session-prompt[[:space:]]*$' "$CFG" \
+    && [ -n "$SESSION_ID" ] && command -v python3 &>/dev/null; then
+    ANSWERED=$(SESSION_ID="$SESSION_ID" HOOK_DIR="$HOOK_DIR" python3 -c "
+import os, sys
+sys.path.insert(0, os.environ['HOOK_DIR'])
+import checkpoint_session_state as s
+choice = s.read_choice(os.environ['SESSION_ID'], '.')
+print('' if choice is None else ('true' if choice else 'false'))
+" 2>/dev/null)
+    if [ -z "$ANSWERED" ]; then
+        CHECKPOINT_MSG="This project has checkpoint_enforcement: session-prompt set in .project-starter.yml. This session (session_id: $SESSION_ID) has not yet chosen whether to enable Learning Checkpoint enforcement. Before doing any other work, ask the user with AskUserQuestion: 要不要在這個 session 啟用 learning-checkpoint 的強制機制？啟用後，修改程式碼前必須先在 docs/current-state.md 填好 Task 和 Clarifying Questions Asked 欄位，否則會被 PreToolUse hook 擋下；不啟用的話，仍要照 learning-checkpoint Skill 的 Checkpoint A/B 問題模板，用對話方式先問過再動手，只是不會被機制擋下。 Then record the answer by running: python3 adapters/claude/record_checkpoint_choice.py --session-id $SESSION_ID --enabled true (or --enabled false)."
+        MSG="${MSG:+$MSG }$CHECKPOINT_MSG"
     fi
 fi
 

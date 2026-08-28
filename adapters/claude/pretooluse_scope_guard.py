@@ -20,6 +20,17 @@ Fail-open by design: any parse error, missing/placeholder .project-starter.yml, 
 unrecognized tool_name results in "allow" -- this hook must never be the reason a
 session breaks, matching every other optional gate in this framework (spec_code_adapter,
 security_scan_src, prose_scan_enabled all no-op cleanly when unset).
+
+Default behavior (checkpoint_enforcement unset in .project-starter.yml): always enforces,
+exactly as above -- no prompt, no opt-out, matches every version of this file before this
+option existed. Two opt-in variants of that default, set via .project-starter.yml's
+checkpoint_enforcement key:
+  - `session-prompt`: only enforces once the *current Claude Code session* has explicitly
+    chosen to turn this on -- session-start-hook.sh asks once per session (a session that
+    hasn't answered yet fails open, same as `off`) and adapters/claude/
+    record_checkpoint_choice.py records the answer, keyed to that session's session_id, in
+    logs/telemetry/checkpoint-session-choices.json. See checkpoint_session_state.py.
+  - `off`: always allows -- a killswitch that doesn't require touching .claude/settings.json.
 """
 from __future__ import annotations
 
@@ -27,6 +38,9 @@ import json
 import os
 import re
 import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import checkpoint_session_state as _cps  # noqa: E402
 
 GATED_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit"}
 
@@ -107,6 +121,26 @@ def decide(payload: dict, cwd: str) -> tuple[str, str]:
     project_type = _read_config_value(config_path, "project_type")
     if not project_type or re.match(r"^\[.+\]$", project_type):
         return "allow", "project_type unset or still a placeholder -- not initialized yet"
+
+    enforcement_mode = _read_config_value(config_path, "checkpoint_enforcement").strip().lower()
+    if enforcement_mode == "off":
+        return "allow", "checkpoint_enforcement: off -- guard disabled via .project-starter.yml"
+    if enforcement_mode == "session-prompt":
+        session_id = payload.get("session_id", "")
+        choice = _cps.read_choice(session_id, cwd)
+        if choice is None:
+            return "allow", (
+                "checkpoint_enforcement: session-prompt -- this session has not chosen "
+                "yet whether to enable enforcement, failing open (see SessionStart nudge "
+                "and adapters/claude/record_checkpoint_choice.py)"
+            )
+        if choice is False:
+            return "allow", (
+                "checkpoint_enforcement: session-prompt -- user opted out of mechanical "
+                "enforcement for this session (Checkpoint A/B still apply conversationally)"
+            )
+        # choice is True -> fall through to the scoping check below, same as the
+        # always-on default.
 
     docs_path = _read_config_value(config_path, "docs_path") or "docs/"
     docs_path = docs_path.strip("/") or "docs"

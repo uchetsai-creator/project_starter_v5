@@ -128,3 +128,25 @@ prose_scan_enabled:
 #
 # Example:
 #   prose_scan_enabled: true
+
+checkpoint_enforcement:
+# Optional (unset | session-prompt | off). Controls how strictly
+# adapters/claude/pretooluse_scope_guard.py enforces the Learning Checkpoint scoping rule
+# (see README.md -> Learning Checkpoint enforcement).
+#   - unset (default): matches every version of this framework before this key existed --
+#     the guard always enforces once wired into .claude/settings.json's PreToolUse and
+#     project_type is set above, with no prompt and no opt-out.
+#   - session-prompt: adapters/claude/session-start-hook.sh asks once per Claude Code
+#     session (via injected additionalContext) whether to turn the guard on for that
+#     session. A session that hasn't answered yet fails open (same as `off`), so a session
+#     can never be silently blocked before it had the chance to answer. If the user opts
+#     out, Checkpoint A/B still apply conversationally (learning-checkpoint Skill) -- only
+#     the mechanical PreToolUse block is skipped. The answer is recorded by
+#     adapters/claude/record_checkpoint_choice.py in
+#     logs/telemetry/checkpoint-session-choices.json (gitignored), keyed to that session's
+#     session_id -- see adapters/claude/checkpoint_session_state.py.
+#   - off: the guard always allows, regardless of current-state.md's scoping state -- a
+#     killswitch that doesn't require touching .claude/settings.json.
+#
+# Example:
+#   checkpoint_enforcement: session-prompt

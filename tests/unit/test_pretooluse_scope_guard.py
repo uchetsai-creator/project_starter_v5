@@ -14,6 +14,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(REPO_ROOT / "adapters" / "claude"))
 
+import checkpoint_session_state as cps  # noqa: E402
 import pretooluse_scope_guard as guard  # noqa: E402
 
 
@@ -122,6 +123,81 @@ def test_malformed_payload_fails_open_end_to_end(tmp_path):
     assert result.returncode == 0
     out = json.loads(result.stdout)
     assert out["hookSpecificOutput"]["permissionDecision"] == "allow"
+
+
+# ---------------------------------------------------------------------------
+# checkpoint_enforcement opt-in modes (unset = tests above, unchanged behavior)
+# ---------------------------------------------------------------------------
+
+def _write_project_with_enforcement(tmp_path: Path, mode: str,
+                                     current_state: str | None = _PLACEHOLDER_TASK) -> Path:
+    (tmp_path / ".project-starter.yml").write_text(
+        f"project_type: web-app\ndocs_path: docs/\ncheckpoint_enforcement: {mode}\n",
+        encoding="utf-8",
+    )
+    if current_state is not None:
+        docs = tmp_path / "docs"
+        docs.mkdir(exist_ok=True)
+        (docs / "current-state.md").write_text(current_state, encoding="utf-8")
+    return tmp_path
+
+
+def _payload_with_session(tool_name: str, file_path: str, session_id: str) -> dict:
+    return {"tool_name": tool_name, "tool_input": {"file_path": file_path}, "session_id": session_id}
+
+
+def test_checkpoint_enforcement_off_always_allows_even_when_unscoped(tmp_path):
+    project = _write_project_with_enforcement(tmp_path, "off")
+    decision, _ = guard.decide(_payload("Edit", "src/login.js"), str(project))
+    assert decision == "allow"
+
+
+def test_session_prompt_unanswered_session_fails_open(tmp_path):
+    project = _write_project_with_enforcement(tmp_path, "session-prompt")
+    decision, reason = guard.decide(
+        _payload_with_session("Edit", "src/login.js", "session-a"), str(project),
+    )
+    assert decision == "allow"
+    assert "has not chosen yet" in reason
+
+
+def test_session_prompt_opted_out_allows_even_when_unscoped(tmp_path):
+    project = _write_project_with_enforcement(tmp_path, "session-prompt")
+    cps.write_choice("session-a", False, cwd=str(project))
+    decision, reason = guard.decide(
+        _payload_with_session("Edit", "src/login.js", "session-a"), str(project),
+    )
+    assert decision == "allow"
+    assert "opted out" in reason
+
+
+def test_session_prompt_opted_in_denies_when_unscoped(tmp_path):
+    project = _write_project_with_enforcement(tmp_path, "session-prompt")
+    cps.write_choice("session-a", True, cwd=str(project))
+    decision, reason = guard.decide(
+        _payload_with_session("Edit", "src/login.js", "session-a"), str(project),
+    )
+    assert decision == "deny"
+    assert "no scoped Current Task" in reason
+
+
+def test_session_prompt_opted_in_allows_when_scoped(tmp_path):
+    project = _write_project_with_enforcement(tmp_path, "session-prompt", current_state=_SCOPED_Y)
+    cps.write_choice("session-a", True, cwd=str(project))
+    decision, _ = guard.decide(
+        _payload_with_session("Edit", "src/login.js", "session-a"), str(project),
+    )
+    assert decision == "allow"
+
+
+def test_session_prompt_different_session_id_is_unanswered(tmp_path):
+    project = _write_project_with_enforcement(tmp_path, "session-prompt")
+    cps.write_choice("session-a", True, cwd=str(project))
+    decision, reason = guard.decide(
+        _payload_with_session("Edit", "src/login.js", "session-b"), str(project),
+    )
+    assert decision == "allow"
+    assert "has not chosen yet" in reason
 
 
 def test_end_to_end_denies_unscoped_source_write(tmp_path):

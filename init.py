@@ -98,6 +98,14 @@ sprint_sync_stale_days:
 # low-volume/solo project may never reach. When set, a commit is also blocked once the
 # oldest Pending entry's **Date:** field is at least this many days old. Leave blank to
 # skip this fallback (default). Example: sprint_sync_stale_days: 14
+
+checkpoint_enforcement:
+# Optional (unset | session-prompt | off). Controls how strictly
+# adapters/claude/pretooluse_scope_guard.py enforces the Learning Checkpoint scoping
+# rule. unset (default) = always enforces, no prompt. `session-prompt` = ask once per
+# Claude Code session (session-start-hook.sh) whether to turn the guard on for that
+# session; unanswered sessions fail open. `off` = always allow. See README.md ->
+# Learning Checkpoint enforcement and pretooluse_scope_guard.py's docstring.
 """
 
 

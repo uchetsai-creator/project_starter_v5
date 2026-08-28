@@ -15,6 +15,7 @@ Runs the real script via subprocess, matching the pre-commit test suite's approa
 """
 import json
 import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -25,15 +26,18 @@ from tests.conftest import find_posix_bash
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 HOOK = REPO_ROOT / "adapters" / "claude" / "session-start-hook.sh"
 
+sys.path.insert(0, str(REPO_ROOT / "adapters" / "claude"))
+import checkpoint_session_state as cps  # noqa: E402
+
 _BASH = find_posix_bash()
 pytestmark = pytest.mark.skipif(_BASH is None, reason="bash not found on PATH")
 
 
-def _run(cwd: Path) -> subprocess.CompletedProcess:
+def _run(cwd: Path, stdin: str = "{}") -> subprocess.CompletedProcess:
     assert _BASH is not None  # module-level skipif guarantees this by the time we get here
     return subprocess.run(
         [_BASH, str(HOOK)], cwd=cwd, capture_output=True, text=True,
-        encoding="utf-8", errors="replace", input="{}",
+        encoding="utf-8", errors="replace", input=stdin,
     )
 
 
@@ -261,6 +265,84 @@ def test_placeholder_required_context_is_ignored(tmp_path):
     result = _run(repo)
     assert result.returncode == 0
     assert result.stdout.strip() == ""
+
+
+# ---------------------------------------------------------------------------
+# Learning Checkpoint enforcement opt-in prompt: only fires when
+# .project-starter.yml sets checkpoint_enforcement: session-prompt AND the
+# current session_id (from stdin) hasn't already recorded a choice.
+# ---------------------------------------------------------------------------
+
+def _write_session_prompt_config(tmp_path: Path) -> None:
+    (tmp_path / ".project-starter.yml").write_text(
+        "project_type: web-app\ndocs_path: docs/\ncheckpoint_enforcement: session-prompt\n",
+        encoding="utf-8",
+    )
+
+
+def test_session_prompt_config_unset_never_prompts_even_with_session_id(tmp_path):
+    result = _run(tmp_path, stdin=json.dumps({"session_id": "session-a"}))
+    assert result.returncode == 0
+    assert result.stdout.strip() == ""
+
+
+def test_session_prompt_no_session_id_does_not_prompt(tmp_path):
+    _write_session_prompt_config(tmp_path)
+    result = _run(tmp_path, stdin="{}")
+    assert result.returncode == 0
+    assert result.stdout.strip() == ""
+
+
+def test_session_prompt_unanswered_session_prompts(tmp_path):
+    _write_session_prompt_config(tmp_path)
+    result = _run(tmp_path, stdin=json.dumps({"session_id": "session-a"}))
+    assert result.returncode == 0
+    payload = json.loads(result.stdout)
+    ctx = payload["hookSpecificOutput"]["additionalContext"]
+    assert payload["hookSpecificOutput"]["hookEventName"] == "SessionStart"
+    assert "session_id: session-a" in ctx
+    assert "record_checkpoint_choice.py" in ctx
+
+
+def test_session_prompt_answered_session_is_silent(tmp_path):
+    _write_session_prompt_config(tmp_path)
+    cps.write_choice("session-a", True, cwd=str(tmp_path))
+    result = _run(tmp_path, stdin=json.dumps({"session_id": "session-a"}))
+    assert result.returncode == 0
+    assert result.stdout.strip() == ""
+
+
+def test_session_prompt_answered_false_is_also_silent(tmp_path):
+    _write_session_prompt_config(tmp_path)
+    cps.write_choice("session-a", False, cwd=str(tmp_path))
+    result = _run(tmp_path, stdin=json.dumps({"session_id": "session-a"}))
+    assert result.returncode == 0
+    assert result.stdout.strip() == ""
+
+
+def test_session_prompt_different_session_id_prompts_again(tmp_path):
+    _write_session_prompt_config(tmp_path)
+    cps.write_choice("session-a", True, cwd=str(tmp_path))
+    result = _run(tmp_path, stdin=json.dumps({"session_id": "session-b"}))
+    assert result.returncode == 0
+    payload = json.loads(result.stdout)
+    ctx = payload["hookSpecificOutput"]["additionalContext"]
+    assert "session_id: session-b" in ctx
+
+
+def test_session_prompt_combines_with_scoping_nudge(tmp_path):
+    """Both nudges can fire in the same additionalContext string."""
+    _write_session_prompt_config(tmp_path)
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    (docs / "current-state.md").write_text(
+        "**Task:** [Task name, e.g., BE Order API]\n", encoding="utf-8",
+    )
+    result = _run(tmp_path, stdin=json.dumps({"session_id": "session-a"}))
+    payload = json.loads(result.stdout)
+    ctx = payload["hookSpecificOutput"]["additionalContext"]
+    assert "no scoped Current Task" in ctx
+    assert "session_id: session-a" in ctx
 
 
 def test_placeholder_task_never_gets_spec_drift_nudge(tmp_path):

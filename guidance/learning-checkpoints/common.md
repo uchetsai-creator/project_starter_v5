@@ -13,6 +13,17 @@ has a scoped `Current Task` and a filled `Clarifying Questions Asked` field. Tha
 backstop, not a replacement for actually running the checkpoints below — it can't tell
 whether real questions were asked, only whether the field was filled in.
 
+That mechanical backstop is either always-on or fully absent, by default — no per-session
+choice. `.project-starter.yml`'s `checkpoint_enforcement: session-prompt` adds a third
+option: `adapters/claude/session-start-hook.sh` asks once per Claude Code session (via
+injected `additionalContext`) whether to turn the mechanical block on for that session. If
+the user opts in, `pretooluse_scope_guard.py` enforces exactly as described above for the
+rest of that session. If the user opts out (or the session hasn't answered yet), the guard
+allows everything and this file's checkpoints fall back to being purely conversational —
+still run them, just without the mechanical backstop catching a skipped one. See
+`pretooluse_scope_guard.py`'s docstring and `.project-starter.yml`'s comment for the full
+design.
+
 ---
 
 ## Checkpoint 0 — Unfamiliar Technology (only when it applies)
