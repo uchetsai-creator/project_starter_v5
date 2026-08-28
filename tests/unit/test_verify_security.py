@@ -395,3 +395,33 @@ def test_multiple_medium_plus_findings_counted_together(capsys):
         {"tool": "bandit", "file": "c.py", "line": 3, "severity": "low", "rule": "B404", "message": "z"},
     ]), "medium")
     assert "2 medium+" in capsys.readouterr().out
+
+
+# ---------------------------------------------------------------------------
+# Telemetry — regression coverage for the dict/positional schema drift: this validator
+# used to call _append_telemetry() with the positional-args convention ('script'/'status'
+# keys), diverging from the 'validator'/'level' schema every other validator writes and
+# README.md's validation-result.json documents. Fixed to use the dict convention; this
+# test guards it from silently reverting.
+# ---------------------------------------------------------------------------
+
+def test_telemetry_uses_validator_and_level_keys_not_script_and_status(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "app.py").write_text("def safe():\n    return 1\n", encoding="utf-8")
+    result = subprocess.run(
+        [sys.executable, str(SCRIPT), "--src", str(src), "--project-type", "cli-tool"],
+        capture_output=True, text=True, encoding="utf-8", errors="replace",
+        cwd=str(tmp_path),
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    telemetry_file = tmp_path / ".ai" / "telemetry" / "validation-result.json"
+    assert telemetry_file.exists()
+    rows = json.loads(telemetry_file.read_text(encoding="utf-8"))
+    assert len(rows) == 1
+    row = rows[0]
+    assert row["validator"] == "verify_security.py"
+    assert row["level"] in ("pass", "fail")
+    assert row["project_type"] == "cli-tool"
+    assert "script" not in row
+    assert "status" not in row

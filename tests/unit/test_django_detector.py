@@ -10,6 +10,8 @@ sys.path.insert(0, str(_ADAPTERS_DIR))
 
 from django import DjangoDetector  # noqa: E402
 
+sys.path.remove(str(_ADAPTERS_DIR))  # don't leak onto sys.path — see test_ansible_detector.py
+
 
 def _extract(*sources: str):
     paths = []

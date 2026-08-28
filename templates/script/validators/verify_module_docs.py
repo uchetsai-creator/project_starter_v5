@@ -27,6 +27,8 @@ import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scanners"))
+from _module_types import MODULE_TYPE_REGISTRY
 from _registry import VALID_TYPES
 from _verify_common import (
     _append_telemetry,
@@ -38,7 +40,9 @@ from _verify_common import (
     parse_types,
 )
 
-MODULE_TYPES = ['Pipeline Stage', 'Feature', 'Background Job', 'Shared Utility', 'Resource Group']
+# Every raw label scan_codebase.py / draft_module_flow.py can write into a doc header —
+# see _module_types.py for why there are more than the 5 check_quality() buckets.
+MODULE_TYPES = list(MODULE_TYPE_REGISTRY)
 
 # Primary module type expected per project type (informational — used in summary hint)
 PRIMARY_MODULE_TYPE = {
@@ -235,20 +239,27 @@ def check_shared_utility(lines: list[str]) -> list[str]:
     return issues
 
 
+_QUALITY_CHECKS = {
+    'Pipeline Stage':  check_pipeline_stage,
+    'Feature':         check_feature,
+    'Background Job':  check_background_job,
+    'Shared Utility':  check_shared_utility,
+    'Resource Group':  check_feature,
+}
+
+
 def check_quality(lines: list[str], module_type: str) -> tuple[str, list[str]]:
-    """Return (status, issues). status: 'pass' | 'fail' | 'unknown'."""
-    if module_type == 'Pipeline Stage':
-        issues = check_pipeline_stage(lines)
-    elif module_type == 'Feature':
-        issues = check_feature(lines)
-    elif module_type == 'Background Job':
-        issues = check_background_job(lines)
-    elif module_type == 'Shared Utility':
-        issues = check_shared_utility(lines)
-    elif module_type == 'Resource Group':
-        issues = check_feature(lines)
-    else:
+    """Return (status, issues). status: 'pass' | 'fail' | 'unknown'.
+
+    Dispatches via MODULE_TYPE_REGISTRY's quality_bucket rather than matching module_type
+    directly — module_type may be any of the 9 raw labels (e.g. 'Command', 'Namespace'),
+    not just the 5 buckets _QUALITY_CHECKS knows about. See _module_types.py.
+    """
+    bucket = MODULE_TYPE_REGISTRY.get(module_type, {}).get('quality_bucket')
+    check_fn = _QUALITY_CHECKS.get(bucket) if bucket else None
+    if check_fn is None:
         return ('unknown', [f"Unrecognized module type '{module_type}'"])
+    issues = check_fn(lines)
     return ('pass' if not issues else 'fail', issues)
 
 

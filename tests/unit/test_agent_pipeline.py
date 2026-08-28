@@ -183,33 +183,64 @@ def test_run_pipeline_total_usage_sums_across_roles():
     assert result["total_usage"]["cost_usd"] == pytest.approx(0.003)
 
 
-# --- _default_caller: real CLI wiring, tested against a live-verified envelope shape ---
+# --- _default_caller: real claude-agent-sdk wiring ---
+#
+# Mocked at the query() boundary — monkeypatching agent_pipeline.query, the same spot
+# _default_caller_async() itself calls into — not the internal Transport class the SDK
+# exposes: that class's own docstring says it's an unstable, low-level API subject to
+# change ("exposed for custom transport implementations... may change or be removed in
+# any future release"), so it isn't the SDK's intended test seam.
+#
+# Field values below are shaped from claude_agent_sdk.ResultMessage's real
+# dataclasses.fields() (checked against the installed package, not assumed from docs —
+# see module docstring), not from a live, unmocked query() call — see module docstring
+# for what live verification this rewrite does and doesn't have, unlike the
+# subprocess-based version it replaced.
 
-_REAL_ENVELOPE_SHAPE = {
-    "type": "result", "subtype": "success", "is_error": False,
-    "duration_ms": 2284, "duration_api_ms": 3405, "num_turns": 1,
-    "result": "pong", "stop_reason": "end_turn",
-    "session_id": "37111c71-8d77-4539-8694-51807c018b19",
-    "total_cost_usd": 0.03374835,
-    "usage": {
-        "input_tokens": 2, "cache_creation_input_tokens": 7617,
-        "cache_read_input_tokens": 15692, "output_tokens": 4,
-    },
-}
+pytest.importorskip("claude_agent_sdk", reason="claude-agent-sdk not installed")
+
+from claude_agent_sdk import (  # noqa: E402
+    CLINotFoundError,
+    ProcessError,
+    ResultMessage,
+)
+
+
+def _fake_result_message(**overrides) -> ResultMessage:
+    fields: dict = {
+        "subtype": "success", "duration_ms": 2284, "duration_api_ms": 3405,
+        "is_error": False, "num_turns": 1, "session_id": "37111c71-8d77-4539-8694-51807c018b19",
+        "stop_reason": "end_turn", "total_cost_usd": 0.03374835, "result": "pong",
+        "usage": {
+            "input_tokens": 2, "cache_creation_input_tokens": 7617,
+            "cache_read_input_tokens": 15692, "output_tokens": 4,
+        },
+    }
+    fields.update(overrides)
+    return ResultMessage(**fields)  # type: ignore[arg-type]
+
+
+def _fake_query_returning(result_message):
+    async def fake_query(*, prompt, options=None, transport=None):
+        yield result_message
+    return fake_query
+
+
+def _fake_query_raising(exc):
+    async def fake_query(*, prompt, options=None, transport=None):
+        raise exc
+        yield  # pragma: no cover — makes this an async generator; never reached
+    return fake_query
 
 
 def test_default_caller_parses_real_envelope_shape(monkeypatch):
-    captured_cmd = {}
+    captured_options = {}
 
-    def fake_run(cmd, **kwargs):
-        captured_cmd["cmd"] = cmd
-        class _P:
-            returncode = 0
-            stdout = json.dumps(_REAL_ENVELOPE_SHAPE)
-            stderr = ""
-        return _P()
+    async def fake_query(*, prompt, options=None, transport=None):
+        captured_options["options"] = options
+        yield _fake_result_message()
 
-    monkeypatch.setattr(agent_pipeline.subprocess, "run", fake_run)
+    monkeypatch.setattr(agent_pipeline, "query", fake_query)
     result = agent_pipeline._default_caller("ping", max_budget_usd=0.5)
 
     assert result.text == "pong"
@@ -219,51 +250,53 @@ def test_default_caller_parses_real_envelope_shape(monkeypatch):
     assert result.cache_read_input_tokens == 15692
     assert result.cost_usd == pytest.approx(0.03374835)
     assert result.duration_ms == 2284
-    assert "--output-format" in captured_cmd["cmd"] and "json" in captured_cmd["cmd"]
-    assert "--max-budget-usd" in captured_cmd["cmd"] and "0.5" in captured_cmd["cmd"]
+    assert captured_options["options"].max_budget_usd == 0.5
+    assert captured_options["options"].permission_mode == "dontAsk"
+    assert captured_options["options"].allowed_tools == ["Read", "Glob", "Grep"]
 
 
 def test_default_caller_omits_budget_flag_when_none(monkeypatch):
-    captured_cmd = {}
+    captured_options = {}
 
-    def fake_run(cmd, **kwargs):
-        captured_cmd["cmd"] = cmd
-        class _P:
-            returncode = 0
-            stdout = json.dumps(_REAL_ENVELOPE_SHAPE)
-            stderr = ""
-        return _P()
+    async def fake_query(*, prompt, options=None, transport=None):
+        captured_options["options"] = options
+        yield _fake_result_message()
 
-    monkeypatch.setattr(agent_pipeline.subprocess, "run", fake_run)
+    monkeypatch.setattr(agent_pipeline, "query", fake_query)
     agent_pipeline._default_caller("ping", max_budget_usd=None)
-    assert "--max-budget-usd" not in captured_cmd["cmd"]
+    assert captured_options["options"].max_budget_usd is None
 
 
 def test_default_caller_raises_agent_invocation_error_on_is_error(monkeypatch):
-    envelope = dict(_REAL_ENVELOPE_SHAPE, is_error=True, subtype="error_max_turns")
-
-    def fake_run(cmd, **kwargs):
-        class _P:
-            returncode = 0
-            stdout = json.dumps(envelope)
-            stderr = ""
-        return _P()
-
-    monkeypatch.setattr(agent_pipeline.subprocess, "run", fake_run)
+    monkeypatch.setattr(
+        agent_pipeline, "query",
+        _fake_query_returning(_fake_result_message(is_error=True, subtype="error_max_turns")),
+    )
     with pytest.raises(agent_pipeline.AgentInvocationError, match="error_max_turns"):
         agent_pipeline._default_caller("ping")
 
 
-def test_default_caller_raises_agent_invocation_error_on_nonzero_exit(monkeypatch):
-    def fake_run(cmd, **kwargs):
-        class _P:
-            returncode = 1
-            stdout = ""
-            stderr = "boom"
-        return _P()
-
-    monkeypatch.setattr(agent_pipeline.subprocess, "run", fake_run)
+def test_default_caller_raises_agent_invocation_error_on_process_error(monkeypatch):
+    monkeypatch.setattr(
+        agent_pipeline, "query",
+        _fake_query_raising(ProcessError("boom", exit_code=1, stderr="boom")),
+    )
     with pytest.raises(agent_pipeline.AgentInvocationError, match="boom"):
+        agent_pipeline._default_caller("ping")
+
+
+def test_default_caller_raises_agent_invocation_error_when_cli_not_found(monkeypatch):
+    monkeypatch.setattr(
+        agent_pipeline, "query",
+        _fake_query_raising(CLINotFoundError("claude CLI not found")),
+    )
+    with pytest.raises(agent_pipeline.AgentInvocationError, match="not find"):
+        agent_pipeline._default_caller("ping")
+
+
+def test_default_caller_raises_agent_invocation_error_when_sdk_not_installed(monkeypatch):
+    monkeypatch.setattr(agent_pipeline, "_SDK_AVAILABLE", False)
+    with pytest.raises(agent_pipeline.AgentInvocationError, match="pip install claude-agent-sdk"):
         agent_pipeline._default_caller("ping")
 
 

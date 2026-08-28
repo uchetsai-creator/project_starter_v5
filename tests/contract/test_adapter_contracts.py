@@ -26,6 +26,13 @@ from _capability_mobile import MobileAdapter
 from _capability_pipeline import DataPipelineAdapter
 from _capability_web_api import WebAPIAdapter
 
+sys.path.remove(str(_ADAPTERS_DIR))  # don't leak onto sys.path — see
+# tests/unit/test_ansible_detector.py. (The actual source of the click-collision bug
+# CHANGELOG.md's [Unreleased] "Fixed" entry describes turned out to be
+# tests/contract/test_detect_type_adapter_sync.py importing verify_spec_code.py, not
+# this file — this cleanup is still worth keeping regardless, same reasoning as the
+# other 14 files.)
+
 ALL_ADAPTER_CLASSES = [
     DataPipelineAdapter,
     WebAPIAdapter,

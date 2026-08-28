@@ -25,6 +25,8 @@ assert _spec is not None and _spec.loader is not None
 gin = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(gin)
 
+sys.path.remove(str(_ADAPTERS_DIR))  # don't leak onto sys.path — see test_ansible_detector.py
+
 _TREE_SITTER_AVAILABLE = gin._get_parser() is not None
 # Applied per-test (not as a module-wide pytestmark) so
 # test_missing_tree_sitter_returns_empty_not_raises still runs even when tree-sitter

@@ -17,6 +17,17 @@ from detect_type import (  # noqa: E402
 sys.path.insert(0, str(REPO_ROOT / "templates/script/validators"))
 import verify_spec_code as vsc  # noqa: E402
 
+# verify_spec_code.py's own module-level code inserts its _spec_code_adapters/ dir onto
+# sys.path too (needed for its own importlib.import_module()-based dynamic adapter
+# loading at runtime — see its own module, not fixable there without breaking that).
+# This test only reads vsc.ADAPTER_REGISTRY (a plain dict, no dynamic dispatch), so it's
+# safe to remove that leak here right after import — left in place, it silently shadows
+# any later `import click`/`django`/etc. for a real same-named package for the rest of
+# the pytest session; see CHANGELOG.md's [Unreleased] "Fixed" entry for the concrete bug
+# this caused (this was the actual source, not tests/contract/test_adapter_contracts.py
+# as first suspected — that file already cleans up correctly on its own).
+sys.path.remove(str(vsc._ADAPTER_DIR))
+
 
 def test_every_adapter_signal_alias_is_a_valid_adapter():
     unknown = sorted({

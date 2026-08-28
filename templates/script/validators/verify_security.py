@@ -514,9 +514,13 @@ def main() -> None:
     else:
         print_report(result, args.min_severity, llm_review_run=args.llm_review)
 
-    ts = _telemetry_ts()
-    status = 'pass' if result['passed'] else 'fail'
-    _append_telemetry('verify_security', args.project_type or '', status, ts)
+    _append_telemetry({
+        'ts': _telemetry_ts(),
+        'project_type': args.project_type or '',
+        'validator': 'verify_security.py',
+        'level': 'pass' if result['passed'] else 'fail',
+        'finding_count': len(result['findings']),
+    })
 
     if args.llm_review:
         from llm_security_review import (  # noqa: PLC0415 — optional, only loaded when passed

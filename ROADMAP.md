@@ -3143,3 +3143,46 @@ Detectors declare their own capability and framework identity as metadata. The c
 ### When to schedule
 
 When the number of registered detectors makes manual registry maintenance visibly painful, or when the framework intends to support third-party detector packages.
+
+---
+
+## Phase future — `agent_pipeline.py` Integration
+
+**Not scheduled. Record of design intent.**
+
+### Problem
+
+`templates/script/framework/agent_pipeline.py` implements a real, tested multi-agent
+orchestration layer (dependency-ordered role calls reusing this framework's own Skills,
+format-compliance retry, real usage/cost tracking via `claude-agent-sdk`, optional OTel
+emission) — but as of the Phase [Unreleased] rewrite off hand-rolled subprocess wiring
+onto the official SDK, `run_pipeline()` has no caller anywhere in the shipped framework:
+not `workflow-registry.yaml`, not any `SKILL.md`, not `orchestrator.py`. Its own test
+suite (`tests/unit/test_agent_pipeline.py`) is what currently exercises it.
+
+### Goal
+
+Give `run_pipeline()` a real integration point so the roles it already knows how to chain
+(`code-quality-check` → `module-completion-check`, in `ROLES`) actually run somewhere in
+the framework's own workflow, instead of only running when someone imports the module
+directly or runs its tests.
+
+### Concept
+
+Candidate entry points, not yet decided between:
+- A new `workflow-registry.yaml` validator entry that shells out to `run_pipeline()`
+  instead of (or in addition to) the interactive-session Skill invocation the two roles
+  already support today.
+- A CLI flag on `orchestrator.py` (e.g. `--headless-review`) for running the same review
+  a human would trigger interactively, from CI or a pre-merge check with no human present.
+- Left as opt-in standalone tooling a project can wire into its own CI, documented but
+  never auto-invoked by the framework itself.
+
+### When to schedule
+
+When there's a concrete need to run these Skills outside an interactive Claude Code
+session (CI, a scheduled job, a pre-merge gate) — not before, per this framework's own
+Complexity check (`code-quality-check.md` → Complexity: "can you point to a real, current
+caller/requirement that needs this flexibility today?"). Delete this module instead if no
+such need materializes and it starts costing real maintenance attention (e.g. failing to
+build against a new SDK major version with nothing depending on it to notice).

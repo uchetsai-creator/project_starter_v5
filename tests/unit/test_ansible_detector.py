@@ -10,6 +10,9 @@ sys.path.insert(0, str(_ADAPTERS_DIR))
 
 from ansible import AnsibleDetector  # noqa: E402
 
+sys.path.remove(str(_ADAPTERS_DIR))  # don't leak the adapters dir onto sys.path for
+# later-collected test modules — it shadows any real package sharing a detector's name
+
 
 def _extract(yaml_source: str):
     with tempfile.NamedTemporaryFile(suffix=".yml", mode="w", delete=False, encoding="utf-8") as f:

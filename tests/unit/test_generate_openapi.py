@@ -14,6 +14,7 @@ if they were request/response fields. Both are fixed in templates/specs/api-cont
 these tests lock the fix in.
 """
 import importlib.util
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -37,6 +38,16 @@ _spec.loader.exec_module(go)
 # (needed for its `from _capability_web_api import WebAPIAdapter`), so _base is
 # importable here too, cleanly, instead of reaching into WebAPIAdapter's module.
 from _base import NormalizedEndpoint, NormalizedField  # noqa: E402
+
+# Undo go's own sys.path.insert (see generate_openapi.py) now that both imports above
+# are done — leaving it in place would leak _spec_code_adapters/ onto sys.path for the
+# rest of this pytest session (loading a script via exec_module, unlike running it as
+# its own subprocess, shares this process's sys.path with every other test module —
+# see CHANGELOG.md's [Unreleased] "Fixed" entry for the concrete bug this caused).
+# extract_spec() (the only go.WebAPIAdapter method this file calls) parses spec
+# markdown only — no framework-specific detector dispatch, so it needs no path access
+# beyond this import; empirically confirmed by this file's own test run below.
+sys.path.remove(os.path.abspath(go._ADAPTER_DIR))
 
 # ---------------------------------------------------------------------------
 # _to_openapi_path

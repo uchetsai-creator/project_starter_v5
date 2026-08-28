@@ -14,7 +14,77 @@ All notable changes to this framework are documented here. Format loosely follow
 
 ## [Unreleased]
 
+### Fixed
+- 17 test files across `tests/unit/` and `tests/contract/` each
+  `sys.path.insert(0, .../_spec_code_adapters)` to import a same-named detector module
+  (`click.py`, `django.py`, `express.py`, ...) ahead of any real PyPI package sharing that
+  name, but never removed it — a process-global leak that persisted for the rest of the
+  pytest session once any one of them was collected. Harmless until this rewrite made
+  `templates/script/framework/agent_pipeline.py` depend on `claude-agent-sdk`, which does
+  its own internal `import click`: with `_spec_code_adapters` still on `sys.path` from an
+  earlier-collected file, that import silently resolved to this framework's own `click.py`
+  adapter instead of the real package, crashing `test_agent_pipeline.py`'s collection with
+  `AttributeError: module 'click' has no attribute 'command'`. Confirmed pre-existing, not
+  introduced by the SDK rewrite: `pytest tests/unit/test_agent_pipeline.py` alone passed
+  before this fix (no earlier file to leak the pollution), and `pytest tests/unit/` alone
+  also passed too.
+  - 15 files fixed directly (`test_ansible_detector.py`, `test_express_detector.py`,
+    `test_django_detector.py`, `test_javascript_logging_detector.py`,
+    `test_langchain_detector.py`, `test_luigi_detector.py`,
+    `test_output_field_resolution.py`, `test_react_native_detector.py`,
+    `test_python_logging_detector.py`, `test_terraform_detector.py`,
+    `test_swiftui_detector.py`, `test_typescript_detector.py`, `test_typer_detector.py`,
+    `test_gin_detector.py`, `test_adapter_contracts.py`) — each now removes
+    `_ADAPTERS_DIR` from `sys.path` immediately after its own import of the target module
+    completes, instead of leaving it for the rest of the session. `test_new_detector.py`
+    (also matched a `_spec_code_adapters` grep) needed no change — it runs
+    `new_detector.py` as a subprocess against an isolated `tmp_path` copy and never
+    touches this process's `sys.path`.
+  - **This alone did not fix the crash** — the actual leak reaching `test_agent_pipeline.py`
+    turned out to come from two *production* scripts, not a test file: `generate_openapi.py`
+    and `verify_spec_code.py` each do the same `sys.path.insert(0, .../_spec_code_adapters)`
+    at module level, correctly, for their own standalone runtime (`FrameworkAdapter`'s lazy
+    `importlib.import_module()` dispatch — see `_base.py` — needs that path for the whole
+    process lifetime, not just at the top-level import, so neither script can safely remove
+    it itself). Loading either script inside the shared pytest process — `test_generate_openapi.py`
+    via `importlib.util.spec_from_file_location(...).exec_module(...)`, and
+    `test_detect_type_adapter_sync.py` via a plain `import verify_spec_code` — leaks that
+    same mutation into every later-collected test module, same failure mode as the 15
+    test files above. `test_adapter_contracts.py` was first suspected (it's the only
+    match for a literal `_spec_code_adapters` string search in `tests/contract/`, and it
+    collects before `tests/unit/`) but was already cleaning up correctly — confirmed via a
+    debug `sys.path` print at the crash site and a process-of-elimination bisection across
+    `tests/contract/`'s files, not assumed from the string search alone. Fix: both call
+    sites (`test_generate_openapi.py`, after its `from _base import ...`;
+    `test_detect_type_adapter_sync.py`, after its `import verify_spec_code as vsc`) now
+    remove the path via the loaded module's own `_ADAPTER_DIR` attribute
+    (`go._ADAPTER_DIR`, `vsc._ADAPTER_DIR`) once they're done needing it — both only use
+    functions/dicts that don't need the path at call time (`extract_spec()` parses spec
+    markdown only, no framework-specific dispatch; `ADAPTER_REGISTRY` is a plain dict),
+    confirmed by running each file's own test suite after the change, not assumed.
+
 ### Changed
+- `templates/script/framework/agent_pipeline.py`'s `_default_caller()` rewired off a
+  hand-rolled `subprocess.run(['claude', '-p', '--output-format', 'json'])` call with
+  manual JSON-envelope parsing onto the official `claude-agent-sdk` package
+  (`claude_agent_sdk.query()` + `ClaudeAgentOptions`) — the library Claude Code itself
+  ships for headless/programmatic invocation, rather than reimplementing that transport by
+  hand. Reason: an audit found this module had zero callers anywhere in the shipped
+  framework (not `workflow-registry.yaml`, not any `SKILL.md`, not README/ROADMAP) and no
+  documented rationale for the original subprocess approach — see ROADMAP.md for the
+  still-open integration point. Behavior of `call_agent()`/`run_pipeline()` (retry-on-
+  format-noncompliance only, usage accumulation, OTel emission, dependency ordering) is
+  unchanged; only `_default_caller`'s transport changed. Requires
+  `pip install claude-agent-sdk` — see README → Running the test suite for the same
+  optional-dependency treatment as bandit/semgrep/eslint/Vale/opentelemetry-\*.
+  `tests/unit/test_agent_pipeline.py`'s `test_default_caller_*` tests updated to
+  monkeypatch `agent_pipeline.query` (the SDK's intended test seam is mocking `query()`
+  itself, not its internal `Transport` class — that class's own docstring marks it an
+  unstable low-level API subject to change) instead of `subprocess.run`, using
+  `claude_agent_sdk.ResultMessage`'s real `dataclasses.fields()` (checked against the
+  installed package) rather than a guessed shape. Unlike the module this replaced, this
+  rewrite has NOT been verified against a live, unmocked `query()` call — see the module
+  docstring.
 - `init.py` (and `setup.sh --init`, which delegates to it) now copies `adapters/claude/skills/`
   into the new project's `.claude/skills/` automatically, instead of leaving it as a separate,
   easy-to-miss manual step (README → Agent Adapters → Claude Code, step 4). Confirmed by

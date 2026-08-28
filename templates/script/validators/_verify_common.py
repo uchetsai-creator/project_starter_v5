@@ -90,8 +90,12 @@ def _append_telemetry(
 ) -> None:
     """Append a telemetry entry to .ai/telemetry/validation-result.json.
 
-    Accepts either a dict (legacy style used by verify_docs etc.) or
-    positional args (script, project_type, status, ts) used by verify_acceptance.
+    Accepts either a dict — the schema documented in README.md -> validation-result.json,
+    with keys 'ts'/'project_type'/'validator'/'level' (used by every validator in this
+    framework as of Phase 52.6, after verify_security.py and verify_acceptance.py were moved
+    off the positional style to stop writing a different key set, 'script'/'status', into the
+    same append-only file) — or positional args (script, project_type, status, ts), kept only
+    for external/third-party callers still using the old convention.
     """
     if isinstance(entry_or_script, dict):
         entry = entry_or_script

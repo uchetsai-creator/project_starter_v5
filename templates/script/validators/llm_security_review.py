@@ -14,55 +14,83 @@ Usage via verify_security.py:
 
 Constraint: --llm-review must never appear in workflow-registry.yaml or pre-commit
 sequences — same rule as verify_spec_code.py's --semantic (see that file's docstring).
-It shells out to a live Claude Code session, and its output is non-deterministic, so it is
+It calls a live Claude Code session, and its output is non-deterministic, so it is
 a developer-invoked analysis pass, never an automated gate. Findings are printed but never
 affect --strict's exit code, for the same reason.
 
-Requires: the `claude` CLI installed and authenticated on whatever machine runs this
-(`claude auth login`, or ANTHROPIC_API_KEY set, depending on your auth mode). Missing or
-unauthenticated CLI prints a [WARN] and skips — same graceful-degradation pattern as
-semantic.py's ANTHROPIC_API_KEY check. This is a portability property, not a per-machine
-dependency baked into this file: clone this repo onto any machine, install and log into
-Claude Code once, and it works there too.
+Transport is the official `claude-agent-sdk` (`pip install claude-agent-sdk`) — see
+agent_pipeline.py's module docstring for the general rationale (this file was rewritten
+off the same hand-rolled `subprocess.run(['claude', '-p', ...])` + manual JSON-envelope
+parsing this replaced, for the same reason: the CLI-flags-vary-by-version problem the old
+docstring warned about here doesn't exist with the SDK's typed `ClaudeAgentOptions` —
+CLAUDE_CLI_EXTRA_ARGS is gone, there's nothing left to override). `/security-review` is
+one of Claude Code's own bundled Skills — dispatched by name via the prompt string
+(`query(prompt="/security-review", ...)`), the same mechanism the SDK's own docs use to
+demonstrate dispatching a user-authored skill; no special-casing needed for it being
+bundled rather than project-authored.
 
-Token/cost accounting: `claude -p --output-format json` returns a JSON result envelope
-that, as of the Claude Code versions this was tested against, includes a cost/usage
-summary (`total_cost_usd`, `duration_ms`, `num_turns`). This wrapper reads whatever of
-those fields is present via `.get(...)` and never assumes the schema — a CLI version
-that renames or drops a field degrades to a None value here, not a crash. Usage is
-appended to logs/telemetry/security-review-usage.json, mirroring semantic.py's
-token-usage.json, and dual-emitted as an OTel span the same way.
+Requires: `claude-agent-sdk` installed (`pip install claude-agent-sdk`) and Claude Code
+authenticated on whatever machine runs this (`claude auth login`, or ANTHROPIC_API_KEY
+set). Missing package, missing/unauthenticated CLI, or a query-level error all print a
+[WARN] and skip — same graceful-degradation pattern as semantic.py's ANTHROPIC_API_KEY
+check. This is a portability property, not a per-machine dependency baked into this file:
+clone this repo onto any machine, install and log into Claude Code once, and it works
+there too.
 
-CLI flags for non-interactive tool permission (e.g. --permission-mode) vary by Claude
-Code version — verify against `claude --help` on your installed version before relying
-on the exact invocation below; override with the CLAUDE_CLI_EXTRA_ARGS env var
-(space-separated) if your version needs different flags.
+Token/cost accounting: `claude_agent_sdk.query()`'s `ResultMessage` carries the same
+ground-truth usage/cost/latency numbers the CLI itself reports (`total_cost_usd`,
+`duration_ms`, `num_turns`) — see agent_pipeline.py's module docstring for how the field
+names were verified against the installed package rather than assumed. Usage is appended
+to logs/telemetry/security-review-usage.json, mirroring semantic.py's token-usage.json,
+and dual-emitted as an OTel span the same way.
+
+Permission mode is `dontAsk` + `allowed_tools=["Read", "Glob", "Grep"]` — read-only tools
+run without prompting (no human is present to approve anything in a headless run), and
+anything else is denied outright rather than falling through to an unregistered
+`canUseTool` callback, which would otherwise hang. `/security-review` only needs to read
+code to review it.
 
 Run self-test:
     python3 llm_security_review.py   # exits 0 on success; does not call the CLI
 """
 from __future__ import annotations
 
+import asyncio
 import json
 import os
-import shutil
-import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+try:
+    from claude_agent_sdk import (
+        ClaudeAgentOptions,
+        ClaudeSDKError,
+        CLIJSONDecodeError,
+        CLINotFoundError,
+        ProcessError,
+        ResultError,
+        ResultMessage,
+        query,
+    )
+    _SDK_AVAILABLE = True
+except ImportError:
+    _SDK_AVAILABLE = False
+
 _DEFAULT_TIMEOUT_SECONDS = 300
+_HEADLESS_ALLOWED_TOOLS = ["Read", "Glob", "Grep"]
 
-
-def _find_claude_cli() -> str | None:
-    return shutil.which('claude')
+_EMPTY_RESULT = {
+    'ran': False, 'result_text': None, 'cost_usd': None,
+    'duration_ms': None, 'num_turns': None, 'error': None,
+}
 
 
 def run_llm_security_review(
     project_root: str = '.',
     timeout: int = _DEFAULT_TIMEOUT_SECONDS,
 ) -> dict:
-    """Invoke `claude -p "/security-review" --output-format json` in project_root.
+    """Invoke the /security-review Skill via claude_agent_sdk.query() in project_root.
 
     Returns:
       {
@@ -73,67 +101,72 @@ def run_llm_security_review(
         num_turns: int | None,
         error: str | None,
       }
-    Never raises — a missing CLI, failed auth, timeout, or unparsable output all return
-    ran=False (or ran=True with unknown cost fields) with `error` explaining why, same
-    spirit as semantic.py's client-unavailable path returning [] instead of raising.
+    Never raises — a missing SDK/CLI, failed auth, timeout, or query-level error all
+    return ran=False with `error` explaining why, same spirit as semantic.py's
+    client-unavailable path returning [] instead of raising.
     """
-    exe = _find_claude_cli()
-    if exe is None:
-        msg = (
-            "claude CLI not found on PATH — install Claude Code and run `claude auth login` "
-            "(or set ANTHROPIC_API_KEY) to enable --llm-review."
-        )
+    if not _SDK_AVAILABLE:
+        msg = "claude-agent-sdk is not installed — pip install claude-agent-sdk to enable --llm-review."
         print(f"[WARN] {msg}")
-        return {'ran': False, 'result_text': None, 'cost_usd': None,
-                'duration_ms': None, 'num_turns': None, 'error': msg}
-
-    extra_args = os.environ.get('CLAUDE_CLI_EXTRA_ARGS', '').split()
-    cmd = [exe, '-p', '/security-review', '--output-format', 'json', *extra_args]
+        return {**_EMPTY_RESULT, 'error': msg}
 
     try:
-        proc = subprocess.run(
-            cmd, cwd=project_root, capture_output=True, text=True,
-            encoding='utf-8', errors='replace', timeout=timeout,
-        )
-    except subprocess.TimeoutExpired:
+        return asyncio.run(asyncio.wait_for(
+            _run_llm_security_review_async(project_root), timeout=timeout,
+        ))
+    except asyncio.TimeoutError:
         msg = (
-            f"claude CLI timed out after {timeout}s — set CLAUDE_CLI_EXTRA_ARGS if your "
-            "version needs different flags, or pass a longer timeout to run_llm_security_review()."
+            f"claude_agent_sdk.query() timed out after {timeout}s — pass a longer "
+            "timeout to run_llm_security_review()."
         )
         print(f"[WARN] {msg}")
-        return {'ran': False, 'result_text': None, 'cost_usd': None,
-                'duration_ms': None, 'num_turns': None, 'error': msg}
-    except OSError as exc:
-        msg = f"failed to launch claude CLI: {exc}"
-        print(f"[WARN] {msg}")
-        return {'ran': False, 'result_text': None, 'cost_usd': None,
-                'duration_ms': None, 'num_turns': None, 'error': msg}
+        return {**_EMPTY_RESULT, 'error': msg}
 
-    if proc.returncode != 0:
-        msg = (
-            f"claude CLI exited {proc.returncode} — "
-            f"{(proc.stderr or '').strip()[:300] or 'no stderr output'}"
-        )
-        print(f"[WARN] {msg}")
-        return {'ran': False, 'result_text': None, 'cost_usd': None,
-                'duration_ms': None, 'num_turns': None, 'error': msg}
 
-    raw = proc.stdout or ''
+async def _run_llm_security_review_async(project_root: str) -> dict:
+    options = ClaudeAgentOptions(
+        cwd=project_root,
+        permission_mode="dontAsk",
+        allowed_tools=_HEADLESS_ALLOWED_TOOLS,
+    )
     try:
-        data = json.loads(raw)
-    except json.JSONDecodeError:
-        # Older/different CLI versions, or a CLAUDE_CLI_EXTRA_ARGS override that changes
-        # --output-format: treat stdout as the review text itself rather than failing
-        # the whole pass over an unparsable envelope.
-        return {'ran': True, 'result_text': raw.strip() or None, 'cost_usd': None,
-                'duration_ms': None, 'num_turns': None, 'error': None}
+        result_message: ResultMessage | None = None
+        async for message in query(prompt="/security-review", options=options):
+            if isinstance(message, ResultMessage):
+                result_message = message
+    except CLINotFoundError as e:
+        msg = (
+            "claude-agent-sdk could not find the Claude Code CLI it wraps — install "
+            f"Claude Code and run `claude auth login` (or set ANTHROPIC_API_KEY): {e}"
+        )
+        print(f"[WARN] {msg}")
+        return {**_EMPTY_RESULT, 'error': msg}
+    except (ProcessError, ResultError) as e:
+        msg = f"claude_agent_sdk.query() failed: {e}"
+        print(f"[WARN] {msg}")
+        return {**_EMPTY_RESULT, 'error': msg}
+    except (CLIJSONDecodeError, ClaudeSDKError) as e:
+        # ClaudeSDKError is the SDK's base class — also catches MessageParseError,
+        # which isn't exported at package top level to import and catch by name.
+        msg = f"claude_agent_sdk.query() returned an unparseable response: {e}"
+        print(f"[WARN] {msg}")
+        return {**_EMPTY_RESULT, 'error': msg}
+
+    if result_message is None:
+        msg = "claude_agent_sdk.query() produced no ResultMessage"
+        print(f"[WARN] {msg}")
+        return {**_EMPTY_RESULT, 'error': msg}
+    if result_message.is_error:
+        msg = f"claude_agent_sdk.query() reported an error: {result_message.subtype!r}"
+        print(f"[WARN] {msg}")
+        return {**_EMPTY_RESULT, 'error': msg}
 
     return {
         'ran': True,
-        'result_text': data.get('result') or data.get('response') or None,
-        'cost_usd': data.get('total_cost_usd'),
-        'duration_ms': data.get('duration_ms'),
-        'num_turns': data.get('num_turns'),
+        'result_text': result_message.result or None,
+        'cost_usd': result_message.total_cost_usd,
+        'duration_ms': result_message.duration_ms,
+        'num_turns': result_message.num_turns,
         'error': None,
     }
 
@@ -195,42 +228,55 @@ def print_review(review: dict) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Self-test (no real CLI call anywhere below — shutil.which and subprocess.run are
-# monkeypatched for every path, including the "success" ones, so this never touches
-# the network. See semantic.py's self-test for the same pattern applied to a direct
-# Anthropic API client instead of a subprocess CLI call.)
+# Self-test (no real CLI call anywhere below — the SDK's query() is monkeypatched for
+# every path, including the "success" ones, so this never touches the network. See
+# semantic.py's self-test for the same pattern applied to a direct Anthropic API client,
+# and agent_pipeline.py's test_agent_pipeline.py for the same query()-mocking approach
+# — the SDK's own Transport class is an unstable internal API, not its intended test
+# seam; mocking query() itself is.)
 # ---------------------------------------------------------------------------
 
 if __name__ == '__main__':
     import tempfile
 
-    _real_which = shutil.which
-    _real_subprocess_run = subprocess.run
+    if not _SDK_AVAILABLE:
+        print("[SKIP] llm_security_review self-test — claude-agent-sdk not installed")
+        sys.exit(0)
 
-    class _MockCompletedProcess:
-        def __init__(self, stdout: str, returncode: int = 0, stderr: str = ''):
-            self.stdout = stdout
-            self.stderr = stderr
-            self.returncode = returncode
+    _real_query = query
 
-    # --- test: claude CLI not found -> graceful skip, no exception ---
-    shutil.which = lambda name: None  # type: ignore[assignment]
+    def _fake_result_message(**overrides) -> ResultMessage:
+        fields: dict = {
+            'subtype': 'success', 'duration_ms': 1234, 'duration_api_ms': 1500,
+            'is_error': False, 'num_turns': 1, 'session_id': 'test-session',
+            'stop_reason': 'end_turn', 'total_cost_usd': 0.0042,
+            'result': 'No security findings.',
+        }
+        fields.update(overrides)
+        return ResultMessage(**fields)  # type: ignore[arg-type]
+
+    def _set_fake_query(result_message=None, exc=None):
+        async def fake_query(*, prompt, options=None, transport=None):
+            if exc is not None:
+                raise exc
+                yield  # pragma: no cover — makes this an async generator; never reached
+            yield result_message
+        globals()['query'] = fake_query
+
+    def _restore_query():
+        globals()['query'] = _real_query
+
+    # --- test: CLI not found -> graceful skip, no exception ---
+    _set_fake_query(exc=CLINotFoundError("claude CLI not found"))
     try:
         result = run_llm_security_review()
         assert result['ran'] is False
         assert result['error'] is not None
     finally:
-        shutil.which = _real_which  # type: ignore[assignment]
+        _restore_query()
 
-    # --- test: mocked successful CLI call -> JSON envelope parsed correctly ---
-    mock_stdout = json.dumps({
-        'result': 'No security findings.',
-        'total_cost_usd': 0.0042,
-        'duration_ms': 1234,
-        'num_turns': 1,
-    })
-    shutil.which = lambda name: '/fake/path/to/claude'  # type: ignore[assignment]
-    subprocess.run = lambda *a, **k: _MockCompletedProcess(mock_stdout)  # type: ignore[assignment]
+    # --- test: mocked successful query -> ResultMessage fields mapped correctly ---
+    _set_fake_query(result_message=_fake_result_message())
     try:
         result_ok = run_llm_security_review()
         assert result_ok['ran'] is True
@@ -240,33 +286,18 @@ if __name__ == '__main__':
         assert result_ok['num_turns'] == 1
         assert result_ok['error'] is None
     finally:
-        shutil.which = _real_which  # type: ignore[assignment]
-        subprocess.run = _real_subprocess_run  # type: ignore[assignment]
+        _restore_query()
 
-    # --- test: mocked non-JSON stdout -> falls back to raw text, cost unknown ---
-    shutil.which = lambda name: '/fake/path/to/claude'  # type: ignore[assignment]
-    subprocess.run = lambda *a, **k: _MockCompletedProcess('plain text review output')  # type: ignore[assignment]
-    try:
-        result_text_only = run_llm_security_review()
-        assert result_text_only['ran'] is True
-        assert result_text_only['result_text'] == 'plain text review output'
-        assert result_text_only['cost_usd'] is None
-    finally:
-        shutil.which = _real_which  # type: ignore[assignment]
-        subprocess.run = _real_subprocess_run  # type: ignore[assignment]
-
-    # --- test: mocked non-zero exit (e.g. auth failure) -> graceful skip ---
-    shutil.which = lambda name: '/fake/path/to/claude'  # type: ignore[assignment]
-    subprocess.run = lambda *a, **k: _MockCompletedProcess(  # type: ignore[assignment]
-        '', returncode=1, stderr='not authenticated',
-    )
+    # --- test: mocked is_error result -> graceful skip ---
+    _set_fake_query(result_message=_fake_result_message(
+        is_error=True, subtype='error_during_execution', result=None,
+    ))
     try:
         result_auth_fail = run_llm_security_review()
         assert result_auth_fail['ran'] is False
-        assert 'not authenticated' in result_auth_fail['error']
+        assert 'error_during_execution' in result_auth_fail['error']
     finally:
-        shutil.which = _real_which  # type: ignore[assignment]
-        subprocess.run = _real_subprocess_run  # type: ignore[assignment]
+        _restore_query()
 
     # --- test: telemetry write + read-back; ran=False writes nothing ---
     with tempfile.TemporaryDirectory() as tmpdir:

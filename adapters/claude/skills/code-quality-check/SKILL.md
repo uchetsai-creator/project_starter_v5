@@ -124,7 +124,6 @@ Possible areas:
 - Layering
 - Package First
 - Complexity
-- Missing Pattern
 - Naming
 - Schema
 - Security
@@ -240,6 +239,15 @@ Low finding, which at least got queued for a reason grounded in a real rule).
 
 # Area-Specific Rules
 
+**Parallelizable across areas**: the areas below are independent of each other — Security
+findings don't depend on Naming findings, Schema findings don't depend on Performance
+findings, and so on. If an interactive session is running this review (Task/fork subagents
+available), fork one subagent per area instead of working through the list sequentially in
+one context, then merge the returned findings tables into one report before applying the
+Severity Guide and Evidence Rules above. On a small project-type inspection scope (few
+areas actually apply, per the Required Context table), the fork overhead usually isn't
+worth it — sequential is fine below roughly 3 applicable areas.
+
 ## Layering
 
 Check that each layer contains only what belongs to it.
@@ -307,40 +315,30 @@ anywhere, that's itself part of the finding.
 
 ---
 
-## Missing Pattern
+## Design Pattern Check (opt-in — not part of this skill's default run)
 
-The mirror image of Complexity above: instead of an abstraction with no real second case,
-this is the same type-dispatch logic (an `if`/`elif` chain or `isinstance`/type-check chain
-over the same fixed set of types) hand-duplicated across two or more functions or files. Each
-copy has to be kept in sync by hand whenever a type is added, which is exactly the kind of
-drift risk a Registry, Strategy, or plain polymorphism (a method on each type instead of a
-chain checking every type from outside) is for.
+Deep design-pattern analysis (missing-pattern opportunities across all 23 GoF patterns +
+Registry, and pattern misuse/over-engineering) lives in the separate `design-pattern-check`
+skill, not here. It has two modes (Fast: static-only, current code only; Deep: adds git-history
+mining per candidate) — but even Fast mode's close line-by-line comparison across every
+candidate site is too slow to run silently as part of every code quality pass.
 
-| Project type | What to look for |
-|---|---|
-| **Web App / Microservices** | The same business-type switch (order status, payment method, notification channel...) reimplemented in more than one function/file instead of one lookup table or polymorphic method |
-| **CLI Tool** | Subcommand-name → handler mapping duplicated between the parser and the dispatcher instead of one command registry |
-| **Library / SDK** | The same input-type branching (`isinstance`/type check) repeated across multiple public functions instead of dispatching once at the boundary |
-| **Data Pipeline / ML Pipeline** | Per-source-format or per-source-system branching (CSV vs. JSON vs. API vs. DB) duplicated across multiple stages instead of one pluggable reader/writer interface |
-| **AI / LLM App** | Per-provider branching (OpenAI vs. Anthropic vs. local model, or per-tool-name dispatch) duplicated across call sites instead of one adapter interface |
-| **IaC / DevOps** | Per-cloud-provider or per-environment conditional blocks duplicated across multiple modules instead of parameterized/adapter modules |
-| **Mobile App** | Per-platform (iOS/Android) branching duplicated inside shared business logic instead of one platform-abstraction layer |
+Before finishing this review, ask the user:
 
-Check:
-- Is the exact same set of types/cases branched on in two or more places?
-- When a new type/case was added, did more than one of those places have to be edited to keep
-  it working? (Check `changelog.md` / `git log` for the type that was added most recently — did
-  every duplicate site actually get updated, or did one get missed?)
-- Would collapsing the duplicates into one registry/dispatch table, or moving the per-type
-  logic onto the type itself (polymorphism), remove the duplication with no loss of behavior?
+> "I can also run a deep design-pattern audit (missing/misused patterns — Strategy, Factory,
+> Registry, Observer, Singleton, and 19 others). Fast mode reads and cross-compares the current
+> code only; Deep mode also mines git history per candidate to catch risks that haven't broken
+> yet but have a track record of changing. Which do you want, or skip for this pass?"
 
-Severity: **Medium** — usually a maintainability/drift-risk cost, not a correctness bug yet.
-Use **High** only if a duplicate site was evidenced to have actually drifted (missing a case
-the other site(s) already handle — an outdated `elif` chain that silently falls through).
+- If Fast or Deep → invoke `design-pattern-check` with that mode and fold its findings table
+  into this report.
+- If skip → write one line in this report: "Design pattern audit: skipped by request." Do not
+  silently omit the area — the reader should be able to tell "skipped" from "checked, clean."
+- Do not run it unasked, and do not assume a mode. Do not re-ask later in the same session
+  unless the user brings it up again.
 
-Recommendation: name the specific pattern that fits (Strategy, Factory, Registry, Template
-Method, or plain polymorphism) and point to where this codebase already does it well, if it
-does — reuse that shape rather than inventing a new one.
+The lightweight over-engineering check below (Complexity) still runs by default — it only
+needs a quick eyeball of the abstraction, not a full cross-site comparison.
 
 ---
 

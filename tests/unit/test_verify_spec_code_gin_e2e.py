@@ -16,7 +16,12 @@ from pathlib import Path
 import pytest
 
 _VALIDATORS_DIR = Path(__file__).resolve().parent.parent.parent / "templates/script/validators"
-sys.path.insert(0, str(_VALIDATORS_DIR / "_spec_code_adapters"))
+# No sys.path.insert here — this file never imports from _spec_code_adapters/ directly
+# (only real packages tree_sitter/tree_sitter_go, and verify_spec_code.py runs as its
+# own subprocess below, which doesn't need this process's sys.path). A previous version
+# inserted _spec_code_adapters/ unconditionally and never removed it, silently relying
+# on test_generate_openapi.py's own module-level sys.path.insert to be redundant instead
+# of the reverse — see CHANGELOG.md's [Unreleased] "Fixed" entry.
 
 try:
     import tree_sitter_go  # noqa: F401

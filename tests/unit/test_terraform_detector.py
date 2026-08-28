@@ -10,6 +10,8 @@ sys.path.insert(0, str(_ADAPTERS_DIR))
 
 from terraform import TerraformDetector, _top_level_keys  # noqa: E402
 
+sys.path.remove(str(_ADAPTERS_DIR))  # don't leak onto sys.path — see test_ansible_detector.py
+
 
 def _extract(hcl_source: str):
     with tempfile.NamedTemporaryFile(suffix=".tf", mode="w", delete=False, encoding="utf-8") as f:

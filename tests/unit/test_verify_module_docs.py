@@ -39,6 +39,80 @@ def test_detect_module_type_returns_none_when_missing():
 
 
 # ---------------------------------------------------------------------------
+# detect_module_type — raw scan_codebase.py labels (Command/Namespace/Service/Screen/
+# Shared-Infrastructure). Regression coverage for the drift these 5 labels weren't
+# recognized before MODULE_TYPES was derived from _module_types.MODULE_TYPE_REGISTRY:
+# scan_codebase.py --scaffold writes one of these into a cli-tool/library/microservices/
+# mobile-app module's doc header, and detect_module_type() returned None for all of them,
+# so check_quality() fell through to the 'unknown' branch below with a confusing
+# "Unrecognized module type ''" — see _module_types.py's module docstring.
+# ---------------------------------------------------------------------------
+
+def test_detect_module_type_command():
+    assert detect_module_type(["Module type: Command"]) == "Command"
+
+
+def test_detect_module_type_namespace():
+    assert detect_module_type(["Module type: Namespace"]) == "Namespace"
+
+
+def test_detect_module_type_service():
+    assert detect_module_type(["Module type: Service"]) == "Service"
+
+
+def test_detect_module_type_screen():
+    assert detect_module_type(["Module type: Screen"]) == "Screen"
+
+
+def test_detect_module_type_shared_infrastructure():
+    # The raw label scan_codebase.py's guess_type()/is_shared() actually emits — distinct
+    # from the "Shared Utility" spelling draft_module_flow.py normalizes to (tested above).
+    assert detect_module_type(["Module type: Shared / Infrastructure"]) == "Shared / Infrastructure"
+
+
+# ---------------------------------------------------------------------------
+# check_quality — same 5 raw labels must resolve to a real bucket, not 'unknown'
+# ---------------------------------------------------------------------------
+
+def test_check_quality_command_resolves_to_feature_bucket():
+    status, issues = check_quality(["Module type: Command"], "Command")
+    assert status != "unknown"
+    assert issues == check_feature(["Module type: Command"])
+
+
+def test_check_quality_namespace_resolves_to_shared_utility_bucket():
+    status, issues = check_quality(["Module type: Namespace"], "Namespace")
+    assert status != "unknown"
+    assert issues == check_shared_utility(["Module type: Namespace"])
+
+
+def test_check_quality_service_resolves_to_feature_bucket():
+    status, issues = check_quality(["Module type: Service"], "Service")
+    assert status != "unknown"
+    assert issues == check_feature(["Module type: Service"])
+
+
+def test_check_quality_screen_resolves_to_feature_bucket():
+    status, issues = check_quality(["Module type: Screen"], "Screen")
+    assert status != "unknown"
+    assert issues == check_feature(["Module type: Screen"])
+
+
+def test_check_quality_shared_infrastructure_resolves_to_shared_utility_bucket():
+    status, issues = check_quality(["Module type: Shared / Infrastructure"], "Shared / Infrastructure")
+    assert status != "unknown"
+    assert issues == check_shared_utility(["Module type: Shared / Infrastructure"])
+
+
+def test_check_quality_still_unknown_for_a_genuinely_unrecognized_label():
+    # Guards against the fix over-correcting into accepting anything — an actually
+    # unrecognized label must still hit the 'unknown' branch, not silently pass.
+    status, issues = check_quality(["Module type: Nonsense"], "Nonsense")
+    assert status == "unknown"
+    assert "Unrecognized module type 'Nonsense'" in issues[0]
+
+
+# ---------------------------------------------------------------------------
 # check_pipeline_stage
 # ---------------------------------------------------------------------------
 

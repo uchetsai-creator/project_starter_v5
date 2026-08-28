@@ -10,6 +10,8 @@ sys.path.insert(0, str(_ADAPTERS_DIR))
 
 from _utils import _resolve_output_fields  # noqa: E402
 
+sys.path.remove(str(_ADAPTERS_DIR))  # don't leak onto sys.path — see test_ansible_detector.py
+
 
 def _fields(source: str, func_name: str = "handler"):
     tree = ast.parse(source)

@@ -41,6 +41,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scanners"))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "validators"))
+from _module_types import MODULE_TYPE_REGISTRY  # noqa: E402
 from _registry import VALID_TYPES  # noqa: E402
 from _verify_common import parse_types  # noqa: E402
 from scan_codebase import base_type, guess_type  # noqa: E402
@@ -240,26 +241,18 @@ def entry_candidates(structures: list[FileStructure]) -> list[str]:
 # ---------------------------------------------------------------------------
 # Format mapping — module-data-flow.md defines 4 canonical formats;
 # scan_codebase.py's per-project-type vocabulary (Command, Namespace, Service,
-# Screen, Resource Group, ...) maps down onto them.
+# Screen, Resource Group, ...) maps down onto them via _module_types.py's
+# MODULE_TYPE_REGISTRY (single source of truth, shared with verify_module_docs.py).
 # ---------------------------------------------------------------------------
-
-_FORMAT_A_LABELS = {"Feature", "Command", "Namespace", "Service", "Screen"}
-_FORMAT_B_LABELS = {"Background Job"}
-_FORMAT_C_LABELS = {"Shared / Infrastructure"}
-# Pipeline Stage has confidence-qualifier suffixes: "Pipeline Stage (detected)" etc.
 
 
 def resolve_format(module_type_label: str) -> str:
-    label = base_type(module_type_label)
-    if label.startswith("Pipeline Stage"):
-        return "D"
-    if label in _FORMAT_A_LABELS:
-        return "A"
-    if label in _FORMAT_B_LABELS:
-        return "B"
-    if label in _FORMAT_C_LABELS:
-        return "C"
-    return "UNKNOWN"  # e.g. Resource Group — module-data-flow.md has no matching format
+    label = base_type(module_type_label)  # strips "Pipeline Stage (detected)" -> "Pipeline Stage"
+    draft_format = MODULE_TYPE_REGISTRY.get(label, {}).get("draft_format")
+    # e.g. Resource Group — module-data-flow.md has no matching format (documented,
+    # tested gap — see tests/unit/test_draft_module_flow.py's
+    # test_unmapped_module_type_falls_back_honestly_instead_of_guessing)
+    return draft_format or "UNKNOWN"
 
 
 # ---------------------------------------------------------------------------

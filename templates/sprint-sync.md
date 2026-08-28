@@ -46,12 +46,23 @@ in this project, run this early if the Pending count reaches 3 first — whichev
    b. For any document with ⚠️ or ❌ fill result: load `templates/specs/spec-review.md`, paste the document, run the LLM Judge rubric.
    c. Resolve all FAIL items (score < 4 on any criterion) before proceeding.
    d. Record result in `docs/specs/test-report.md → Spec Review` section: document name, date, overall score, PASS/FAIL.
+
+   **Parallelizable when ≥3 documents need review**: each document's Spec Review is
+   independent of every other document's result — reviewing document A's quality never
+   depends on how document B scored. If an interactive session is running this (Task/fork
+   subagents available) and 3+ documents need review this sprint, fork one subagent per
+   document instead of reviewing them one at a time in the same context; aggregate the
+   PASS/FAIL/score results back into `test-report.md` once all finish. Below that count,
+   the fork overhead isn't worth it — just review sequentially.
 6. **Spec challenge** — for each Required spec document that passed Spec Review this sprint:
    a. Load `templates/specs/spec-challenge.md`, paste the document.
    b. LLM outputs an Unresolved Questions list — Critical / Major / Minor.
    c. For each Critical question: update the spec to answer it.
    d. Repeat until the round's Critical list is empty.
    e. Record final round count in `docs/specs/test-report.md → Spec Challenge` section.
+
+   Same parallelization note as Step 5 applies here — independent per document, worth
+   forking at 3+ documents.
 7. **(Optional) Self-improving loop** — run only if the Step 4 decision gate directed you here (unresolved WARN after triage). For full usage, PR format, and architecture diagram, see `docs/self-improving-loop.md` (canonical reference).
    a. **Round 1** — diagnose and open framework fix PRs:
       ```bash

@@ -471,9 +471,13 @@ def main() -> None:
             for issue in result['issues']:
                 print(f'  • {issue}')
 
-    ts = _telemetry_ts()
-    status = 'pass' if result['passed'] else 'fail'
-    _append_telemetry('verify_acceptance', args.project_type, status, ts)
+    _append_telemetry({
+        'ts': _telemetry_ts(),
+        'project_type': args.project_type,
+        'validator': 'verify_acceptance.py',
+        'level': 'pass' if result['passed'] else 'fail',
+        'issue_count': len(result['issues']),
+    })
 
     if not result['passed'] and args.strict:
         sys.exit(1)

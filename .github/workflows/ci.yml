@@ -58,8 +58,8 @@ jobs:
       #    verify_security.py's _run_eslint() docstring), and the original eslint config
       #    assuming the legacy .eslintrc system ESLint 9+ removed. Neither would have been
       #    caught by the mocked tests alone.
-      - name: Install bandit, semgrep, tree-sitter, opentelemetry (pip)
-        run: pip install bandit semgrep tree-sitter tree-sitter-go opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp-proto-http
+      - name: Install bandit, semgrep, tree-sitter, claude-agent-sdk, opentelemetry (pip)
+        run: pip install bandit semgrep tree-sitter tree-sitter-go claude-agent-sdk opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp-proto-http
 
       - uses: actions/setup-node@v4
         with:

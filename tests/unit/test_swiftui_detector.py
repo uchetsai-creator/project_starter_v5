@@ -10,6 +10,8 @@ sys.path.insert(0, str(_ADAPTERS_DIR))
 
 from swiftui import SwiftuiDetector  # noqa: E402
 
+sys.path.remove(str(_ADAPTERS_DIR))  # don't leak onto sys.path — see test_ansible_detector.py
+
 
 def _extract(source: str):
     with tempfile.NamedTemporaryFile(suffix=".swift", mode="w", delete=False, encoding="utf-8") as f:

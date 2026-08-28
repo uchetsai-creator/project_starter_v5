@@ -17,12 +17,26 @@ order, passing every already-completed role's result forward as extra context fo
 that declare a dependency on it, and aggregates all role results (including usage) into
 one report.
 
-Usage/cost/latency numbers come from `claude -p --output-format json`'s own response
-envelope (`usage`, `total_cost_usd`, `duration_ms`) — ground truth reported by the CLI,
-not a client-side token estimate. That envelope's shape was confirmed against a live
-`claude -p "..." --output-format json` call, not assumed; see the fixture in
-tests/unit/test_agent_pipeline.py's test_default_caller tests for the exact shape used.
-`--max-budget-usd` is passed straight through to the CLI, which enforces the cap itself.
+Transport is the official `claude-agent-sdk` (`pip install claude-agent-sdk`), Claude
+Code's own headless invocation library — not a hand-rolled `subprocess.run(['claude',
+'-p', ...])` call with manual JSON-envelope parsing (see CHANGELOG.md for why this
+module was rewritten off that approach). Usage/cost/latency numbers come from the SDK's
+own `ResultMessage` (`usage`, `total_cost_usd`, `duration_ms`) — the same ground-truth
+envelope the CLI reports, not a client-side token estimate; field names verified against
+the installed `claude-agent-sdk` package via `dataclasses.fields()`, not assumed from
+docs alone (docs and installed package agreed at the time this was written — see
+CHANGELOG.md for the exact version). Unlike the module this replaced, this has NOT been
+verified against a live, unmocked `query()` call — only against the real dataclass shape
+and monkeypatched tests (see tests/unit/test_agent_pipeline.py's test_default_caller_*
+tests). `max_budget_usd` is passed straight through to `ClaudeAgentOptions`, which the SDK
+enforces itself.
+
+Permission mode is `dontAsk` + `allowed_tools=["Read", "Glob", "Grep"]` — the SDK docs'
+own recommended shape for "a fixed, explicit tool surface for a headless agent": read-only
+tools run without prompting (there is no human present to approve anything), and anything
+not on that list is denied outright rather than falling through to a `canUseTool`
+callback this module never registers (which would otherwise hang forever). A role never
+needs to write files or run shell commands to review code — only to read it.
 
 Each attempt is also emitted as a span via this framework's existing optional OTel
 dual-emission layer (templates/script/validators/_otel.py) — silently a no-op unless
@@ -34,23 +48,52 @@ upstream as of writing, so names may shift in a future OTel spec revision.
 `call_agent()` takes a `caller` callback (`str -> CallResult`) so the retry, validation,
 and usage-accumulation logic is fully unit-testable without a live `claude` process or
 network access — same reasoning as mcp_tools.py's dict-in/dict-out design in this same
-directory. The default caller (`_default_caller`) is real, working subprocess wiring
-against the `claude` CLI's headless mode, not a stub — inject a fake caller only in tests.
+directory. The default caller (`_default_caller`) is real, working SDK wiring against
+`claude_agent_sdk.query()`, not a stub — inject a fake caller only in tests. `query` /
+`ClaudeAgentOptions` / the SDK exception classes are imported at module level inside a
+try/except (mirroring how `framework_fix_agents.py`'s `_get_client()` treats its own
+optional `anthropic` import) so this module stays importable even where `claude-agent-sdk`
+isn't installed — `_default_caller` raises `AgentInvocationError` with an install hint the
+first time it's actually called in that case, rather than failing at import time.
+
+As of this rewrite, nothing in the shipped framework calls `run_pipeline()` yet — see
+ROADMAP.md for the planned integration point. This module is deliberately still standalone
+infrastructure, not orphaned-and-forgotten; its own test suite is what currently exercises
+it, same as before the rewrite.
 """
 from __future__ import annotations
 
+import asyncio
 import functools
 import json
-import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
+try:
+    from claude_agent_sdk import (
+        ClaudeAgentOptions,
+        ClaudeSDKError,
+        CLIJSONDecodeError,
+        CLINotFoundError,
+        ProcessError,
+        ResultError,
+        ResultMessage,
+        query,
+    )
+    _SDK_AVAILABLE = True
+except ImportError:
+    _SDK_AVAILABLE = False
+
 _FRAMEWORK_DIR = Path(__file__).resolve().parent
 _VALIDATORS_DIR = _FRAMEWORK_DIR.parent / "validators"
 _REPO_ROOT = _FRAMEWORK_DIR.parent.parent.parent
 _SKILLS_DIR = _REPO_ROOT / "adapters" / "claude" / "skills"
+
+# Read-only tool surface for a headless role call — see module docstring's Permission
+# mode paragraph for why dontAsk + this allowlist, not bypassPermissions or plan.
+_HEADLESS_ALLOWED_TOOLS = ["Read", "Glob", "Grep"]
 
 _VALID_SEVERITIES = {"High", "Medium", "Low", "Nit"}
 _VALID_STATUSES = {"pass", "fail"}
@@ -90,11 +133,13 @@ RESPONSE_SCHEMA_DESCRIPTION = (
 
 
 class AgentInvocationError(Exception):
-    """Raised when the `claude` CLI call itself fails — non-zero exit, an unparseable
-    envelope, the CLI's own is_error flag, or a --max-budget-usd cap hit. This is an
-    infrastructure failure, not the agent producing a malformed answer, so call_agent()
-    never retries it under the format-compliance loop — retrying a broken subprocess
-    call the same way as a bad JSON reply would hide a real operational problem."""
+    """Raised when the underlying `claude_agent_sdk.query()` call itself fails —
+    claude-agent-sdk not installed, the CLI binary it wraps not found, a query process
+    failure, an unparseable response, the SDK's own is_error flag, or a max_budget_usd
+    cap hit. This is an infrastructure failure, not the agent producing a malformed
+    answer, so call_agent() never retries it under the format-compliance loop — retrying
+    a broken query the same way as a bad JSON reply would hide a real operational
+    problem."""
 
 
 class AgentCallError(Exception):
@@ -116,9 +161,9 @@ class AgentCallError(Exception):
 
 @dataclass
 class CallResult:
-    """One `claude -p --output-format json` invocation, reduced to what call_agent()
-    needs: the agent's actual text answer plus the CLI's own ground-truth usage/cost/
-    latency numbers."""
+    """One `claude_agent_sdk.query()` invocation, reduced to what call_agent() needs:
+    the agent's actual text answer plus the SDK's ground-truth usage/cost/latency
+    numbers (from ResultMessage — the same envelope the `claude` CLI itself reports)."""
 
     text: str
     input_tokens: int
@@ -133,37 +178,60 @@ Caller = Callable[[str], CallResult]
 
 
 def _default_caller(prompt: str, max_budget_usd: float | None = None) -> CallResult:
-    """Real wiring against Claude Code's headless mode: --output-format json so usage/
-    cost/latency are the CLI's own reported ground truth rather than a client-side token
-    estimate, and --max-budget-usd (when given) is enforced by the CLI itself — a real
-    per-call spend cap, not just a number logged after the fact."""
-    cmd = ["claude", "-p", prompt, "--output-format", "json"]
-    if max_budget_usd is not None:
-        cmd += ["--max-budget-usd", str(max_budget_usd)]
+    """Real wiring against the official claude-agent-sdk. Synchronous wrapper around
+    _default_caller_async() via asyncio.run() — call_agent()/run_pipeline() and the
+    Caller type stay synchronous, so this is the one place the async/sync boundary
+    lives, not spread across the whole module."""
+    if not _SDK_AVAILABLE:
+        raise AgentInvocationError(
+            "claude-agent-sdk is not installed — pip install claude-agent-sdk"
+        )
+    return asyncio.run(_default_caller_async(prompt, max_budget_usd))
 
-    result = subprocess.run(
-        cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=300,
+
+async def _default_caller_async(prompt: str, max_budget_usd: float | None) -> CallResult:
+    """dontAsk + Read/Glob/Grep-only, no cwd/system_prompt override — see module
+    docstring's Permission mode paragraph. max_budget_usd is enforced by the SDK
+    itself when set (ClaudeAgentOptions.max_budget_usd), not checked after the fact."""
+    options = ClaudeAgentOptions(
+        permission_mode="dontAsk",
+        allowed_tools=_HEADLESS_ALLOWED_TOOLS,
+        max_budget_usd=max_budget_usd,
     )
-    if result.returncode != 0:
-        raise AgentInvocationError(f"claude CLI exited {result.returncode}: {result.stderr}")
-
     try:
-        envelope = json.loads(result.stdout)
-    except json.JSONDecodeError as e:
-        raise AgentInvocationError(f"claude CLI did not return a valid JSON envelope: {e}") from e
+        result_message: ResultMessage | None = None
+        async for message in query(prompt=prompt, options=options):
+            if isinstance(message, ResultMessage):
+                result_message = message
+    except CLINotFoundError as e:
+        raise AgentInvocationError(
+            f"claude-agent-sdk could not find the Claude Code CLI it wraps: {e}"
+        ) from e
+    except (ProcessError, ResultError) as e:
+        raise AgentInvocationError(f"claude_agent_sdk.query() failed: {e}") from e
+    except (CLIJSONDecodeError, ClaudeSDKError) as e:
+        # ClaudeSDKError is the SDK's base class — this also catches MessageParseError,
+        # which isn't exported at package top level to import and catch by name.
+        raise AgentInvocationError(
+            f"claude_agent_sdk.query() returned an unparseable response: {e}"
+        ) from e
 
-    if envelope.get("is_error"):
-        raise AgentInvocationError(f"claude CLI reported an error: {envelope.get('subtype')!r}")
+    if result_message is None:
+        raise AgentInvocationError("claude_agent_sdk.query() produced no ResultMessage")
+    if result_message.is_error:
+        raise AgentInvocationError(
+            f"claude_agent_sdk.query() reported an error: {result_message.subtype!r}"
+        )
 
-    usage = envelope.get("usage", {})
+    usage = result_message.usage or {}
     return CallResult(
-        text=envelope.get("result", ""),
+        text=result_message.result or "",
         input_tokens=usage.get("input_tokens", 0),
         output_tokens=usage.get("output_tokens", 0),
         cache_creation_input_tokens=usage.get("cache_creation_input_tokens", 0),
         cache_read_input_tokens=usage.get("cache_read_input_tokens", 0),
-        cost_usd=envelope.get("total_cost_usd", 0.0),
-        duration_ms=envelope.get("duration_ms", 0),
+        cost_usd=result_message.total_cost_usd or 0.0,
+        duration_ms=result_message.duration_ms,
     )
 
 

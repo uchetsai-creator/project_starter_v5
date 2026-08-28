@@ -12,6 +12,8 @@ _SKILL_SOURCES = {
         REPO_ROOT / "templates/init/retrofit.md",
     REPO_ROOT / "adapters/claude/skills/code-quality-check/SKILL.md":
         REPO_ROOT / "code-quality-check.md",
+    REPO_ROOT / "adapters/claude/skills/design-pattern-check/SKILL.md":
+        REPO_ROOT / "templates/design-pattern-check.md",
     REPO_ROOT / "adapters/claude/skills/module-completion-check/SKILL.md":
         REPO_ROOT / "templates/module-completion.md",
     REPO_ROOT / "adapters/claude/skills/sprint-doc-sync/SKILL.md":

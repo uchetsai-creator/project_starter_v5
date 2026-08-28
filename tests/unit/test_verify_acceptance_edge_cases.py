@@ -45,6 +45,39 @@ def test_no_api_contract_file_returns_no_issues(tmp_path):
     assert va.check_edge_case_traceability(str(tmp_path)) == []
 
 
+# ---------------------------------------------------------------------------
+# Telemetry — regression coverage for the dict/positional schema drift: this validator
+# used to call _append_telemetry() with the positional-args convention ('script'/'status'
+# keys), diverging from the 'validator'/'level' schema every other validator writes and
+# README.md's validation-result.json documents. Fixed to use the dict convention; this
+# test guards it from silently reverting.
+# ---------------------------------------------------------------------------
+
+def test_telemetry_uses_validator_and_level_keys_not_script_and_status(tmp_path):
+    import json
+    import subprocess
+    import sys
+
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    result = subprocess.run(
+        [sys.executable, str(_VA_PATH), "--project-type", "cli-tool", "--docs", str(docs)],
+        capture_output=True, text=True, encoding="utf-8", errors="replace",
+        cwd=str(tmp_path),
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    telemetry_file = tmp_path / ".ai" / "telemetry" / "validation-result.json"
+    assert telemetry_file.exists()
+    rows = json.loads(telemetry_file.read_text(encoding="utf-8"))
+    assert len(rows) == 1
+    row = rows[0]
+    assert row["validator"] == "verify_acceptance.py"
+    assert row["level"] in ("pass", "fail")
+    assert row["project_type"] == "cli-tool"
+    assert "script" not in row
+    assert "status" not in row
+
+
 def test_no_edge_cases_section_returns_no_issues(tmp_path):
     _write(tmp_path / "specs" / "api-contract.md", "# API Contract\n\nNo edge cases here.\n")
     assert va.check_edge_case_traceability(str(tmp_path)) == []

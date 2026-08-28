@@ -264,6 +264,7 @@ project_starter/                     ← this repo (template only)
 │   │   └── skills/                 ← Claude Skills, static; copied to .claude/skills/ automatically by `--init` (see Agent Adapters → Per-tool setup)
 │   │       ├── retrofit-existing-project/SKILL.md
 │   │       ├── code-quality-check/SKILL.md
+│   │       ├── design-pattern-check/SKILL.md
 │   │       ├── module-completion-check/SKILL.md
 │   │       ├── sprint-doc-sync/SKILL.md
 │   │       ├── learning-checkpoint/SKILL.md
@@ -919,7 +920,7 @@ python3 orchestrator.py --adapter claude --dry-run
      (and the two guards above) as a non-blocking Stop-hook nudge — see the fast-feedback bullet
      below for why a git-commit-only gate isn't enough on its own for a workflow with infrequent
      commits.
-4. The seven procedural docs below auto-trigger as Claude Skills — `--init` / `setup.sh --init`
+4. The eight procedural docs below auto-trigger as Claude Skills — `--init` / `setup.sh --init`
    already copied `adapters/claude/skills/` into your project's `.claude/skills/` folder (see
    `init.py`), so this step needs no action for a project bootstrapped that way. Only relevant
    if you used the Manual alternative in Quick Start instead: copy `adapters/claude/skills/` →
@@ -933,6 +934,7 @@ python3 orchestrator.py --adapter claude --dry-run
    |---|---|
    | `retrofit-existing-project` | documenting an existing codebase that has code but no docs |
    | `code-quality-check` | a requested code/architecture review, or Learning Checkpoint A's escalation |
+   | `design-pattern-check` | opt-in only — `code-quality-check` asks whether to include it (Fast or Deep mode), or the user explicitly requests a design-pattern review; never runs unasked |
    | `module-completion-check` | a module just reached 100% complete |
    | `sprint-doc-sync` | `sprint-change-log.md` reaches 3 pending-sync entries |
    | `learning-checkpoint` | before implementing any task (Checkpoints 0/A/B/C) |
@@ -943,14 +945,15 @@ python3 orchestrator.py --adapter claude --dry-run
    separate, framework-repo-only skill at `.claude/skills/add-framework-adapter/` (see
    Contributing a Framework Adapter below), since it's for people extending project_starter_v5
    itself, not for application code written in a project that merely uses the framework.
-   `tests/contract/test_skill_contracts.py` guards seven of these eight `SKILL.md` bodies
+   `tests/contract/test_skill_contracts.py` guards eight of these nine `SKILL.md` bodies
    against drifting from their canonical source docs (`templates/init/retrofit.md`,
-   `code-quality-check.md`, `templates/module-completion.md`, `templates/sprint-sync.md`,
-   `guidance/learning-checkpoints/common.md`, `templates/task-completion.md`,
-   `docs/contributing-adapters.md`), the same pattern `test_agent_adapter_templates.py`
-   already uses for the slash-command templates above. `research-decision-log` has no
-   canonical source doc to mirror — it doesn't wrap an existing procedural doc the way the
-   other seven do, so it's written directly as a standalone `SKILL.md` instead.
+   `code-quality-check.md`, `templates/design-pattern-check.md`, `templates/module-completion.md`,
+   `templates/sprint-sync.md`, `guidance/learning-checkpoints/common.md`,
+   `templates/task-completion.md`, `docs/contributing-adapters.md`), the same pattern
+   `test_agent_adapter_templates.py` already uses for the slash-command templates above.
+   `research-decision-log` has no canonical source doc to mirror — it doesn't wrap an existing
+   procedural doc the way the other eight do, so it's written directly as a standalone
+   `SKILL.md` instead.
 
 **Codex**
 
@@ -1240,6 +1243,25 @@ uses gradual typing (untyped function bodies aren't checked by default) rather t
 catching real inconsistencies in code that already declares types, not forcing annotations
 everywhere at once.
 
+**`tests/` is split into five directories by what each one asserts, not by subject matter —
+know which one you're adding to:**
+
+| Directory | Asserts | Scope |
+|---|---|---|
+| `tests/unit/` | Individual function/class behavior, usually with dependencies monkeypatched. Also holds the real-tool integration tests (see below) — same directory, distinguished by whether they mock the tool or shell out to it. | One function or one script's logic |
+| `tests/contract/` | Cross-file consistency — does list/registry A still match what generator/registry B actually produces (e.g. `test_module_type_registry_sync.py`, `test_skill_contracts.py`). Catches exactly the "two files quietly disagree" drift class this framework's own `design-pattern-check` Skill calls a Missing-Pattern candidate. | Two or more specific files, by name |
+| `tests/e2e/` | **Behavioral correctness** — exit codes, "does the expected file/field exist," "does the pipeline wire together." Never compares full text output. | Full orchestrator → build-context → validator chain, one project type per test |
+| `tests/golden/` | **Output-text stability** for the full per-project-type validator chain (`verify_registry` + `verify_docs` + `verify_content` + `verify_security` + `verify_prose`) run against a real fixture project in `examples/`. Catches unintended wording/format changes across every validator working together. | One project type's entire validator chain, compared byte-for-byte (after timestamp normalization) against a stored file |
+| `tests/snapshot/` | **Output-text stability** for a single script's raw stdout only (`orchestrator.py`, `build-context.py`, `verify_docs.py --json`) — narrower scope than golden, no validator chaining. | One script invocation at a time |
+
+`golden` and `snapshot` look similar (both compare against a stored reference file) but are not
+redundant: `snapshot` catches a wording change in one script in isolation; `golden` catches a
+regression that only shows up once several validators run together against a real project.
+Both were kept as separate directories deliberately — merging them would mix two different
+regression granularities into one, which is harder to bisect when a golden file test starts
+failing (you'd no longer know whether the break came from one script or from an interaction
+between several).
+
 Re-generate snapshot golden files after intentional output changes:
 
 ```bash
@@ -1252,14 +1274,16 @@ The PDF smoke test (`tests/e2e/test_pdf_generation.py`) is skipped unless `plant
 **Real-tool tests are skipped, not failed, when their tool isn't installed** — the mocked
 JSON-parsing unit tests (e.g. `test_verify_security.py`) still run either way, but the
 tests that exercise the actual tool (`test_gin_detector.py`, `test_verify_prose.py`,
-`test_verify_security_e2e.py`, `test_otel.py`'s real-collector cases) only run when it's
-present. `.github/workflows/ci.yml` installs all of them — bandit, semgrep,
+`test_verify_security_e2e.py`, `test_otel.py`'s real-collector cases,
+`test_agent_pipeline.py`'s `test_default_caller_*` — via `pytest.importorskip`) only run
+when it's present. `.github/workflows/ci.yml` installs all of them — bandit, semgrep,
 tree-sitter/tree-sitter-go, eslint + eslint-plugin-security (via npm, at the repo root —
-see `verify_security.py`'s `_run_eslint()` docstring for why location matters), Vale, and
-the opentelemetry packages — specifically so CI exercises the real integrations, not just
-the mocks. To run them locally the same way:
+see `verify_security.py`'s `_run_eslint()` docstring for why location matters), Vale,
+`claude-agent-sdk` (used by `templates/script/framework/agent_pipeline.py` — see its
+module docstring), and the opentelemetry packages — specifically so CI exercises the real
+integrations, not just the mocks. To run them locally the same way:
 ```bash
-pip install bandit semgrep tree-sitter tree-sitter-go opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp-proto-http
+pip install bandit semgrep tree-sitter tree-sitter-go claude-agent-sdk opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp-proto-http
 npm install --no-save eslint eslint-plugin-security   # must run at the repo root
 # Vale: see vale.sh/docs/install (not a pip/npm package)
 ```
