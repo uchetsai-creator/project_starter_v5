@@ -127,6 +127,22 @@ ADAPTER_REGISTRY: dict[str, tuple[str, str, str | None]] = {
     'javascript_logging': ('_capability_logging', 'LoggingAdapter', 'javascript_logging'),
 }
 
+def _capability_for_adapter(adapter_name: str) -> str | None:
+    """Resolve a --adapter value (capability name OR legacy framework alias) to
+    its owning capability name, e.g. 'fastapi' -> 'web-api', 'web-api' -> 'web-api'.
+    Returns None if the adapter name isn't registered."""
+    entry = ADAPTER_REGISTRY.get(adapter_name)
+    if not entry:
+        return None
+    module_name, _cls_name, hint = entry
+    if hint is None:
+        return adapter_name  # already a capability adapter
+    for name, (mod, _c, h) in ADAPTER_REGISTRY.items():
+        if mod == module_name and h is None:
+            return name
+    return None
+
+
 _ADAPTER_DIR = Path(__file__).resolve().parent / '_spec_code_adapters'
 sys.path.insert(0, str(_ADAPTER_DIR))
 
@@ -425,6 +441,8 @@ _ZERO_COVERAGE_NOTE = (
     "          spec that also has 0 items would otherwise silently print [OK] here.\n"
     "          Run --list-adapters to see what's registered; see\n"
     "          docs/contributing-adapters.md to add a detector for this language.\n"
+    "          Or rerun with --suggest-detector for an LLM-drafted starting point\n"
+    "          (opt-in, requires ANTHROPIC_API_KEY, never auto-registered).\n"
 )
 
 # --semantic coverage tip threshold: a purely quantitative signal, deliberately not a
@@ -632,6 +650,15 @@ def main() -> None:
             '(requires ANTHROPIC_API_KEY; never use in automated sequences)'
         ),
     )
+    parser.add_argument(
+        '--suggest-detector', action='store_true',
+        help=(
+            'When --src has real files but 0 code items were extracted (zero_coverage), ask '
+            'the LLM to draft a starting-point Detector for --framework/--adapter and write it '
+            'to _spec_code_adapters/_drafts/ for human review (requires ANTHROPIC_API_KEY; '
+            'never auto-registered, never auto-committed, never use in automated sequences)'
+        ),
+    )
     args = parser.parse_args()
 
     if args.project_type:
@@ -698,6 +725,25 @@ def main() -> None:
         semantic_verdicts = adapter_obj.semantic_compare(report)
         token_usage = getattr(adapter_obj, 'token_usage', None)
 
+    # --suggest-detector only fires on the specific failure shape it exists for:
+    # real files under --src, but nothing matched (zero_coverage). It never runs
+    # just because mismatches were found — those already have a real detector.
+    detector_draft = None  # {'ok': bool, 'path': str|None, 'reason': str|None}
+    if zero_coverage and args.suggest_detector:
+        from detector_draft import draft_detector  # noqa: PLC0415
+        capability_name = _capability_for_adapter(args.adapter)
+        framework_hint = getattr(args, 'framework', None) or args.adapter
+        if capability_name is None:
+            detector_draft = {
+                'ok': False, 'path': None,
+                'reason': f"Cannot resolve a capability for adapter {args.adapter!r}.",
+            }
+        else:
+            result = draft_detector(capability_name, framework_hint, args.src)
+            detector_draft = {'ok': result.ok, 'path': result.path, 'reason': result.reason}
+            if result.token_usage and result.token_usage['calls']:
+                token_usage = result.token_usage  # only one of --semantic/--suggest-detector runs per invocation
+
     if args.json_output:
         print(json.dumps({
             'project_type': args.project_type,
@@ -708,6 +754,7 @@ def main() -> None:
             'zero_coverage': zero_coverage,
             'semantic_verdicts': semantic_verdicts,
             'token_usage': token_usage,
+            'detector_draft': detector_draft,
         }, indent=2))
     else:
         print_report(report, args.spec, args.src, args.adapter, zero_coverage, semantic_run=args.semantic)
@@ -715,6 +762,15 @@ def main() -> None:
             print_semantic_report(semantic_verdicts)
         if token_usage and token_usage['calls']:
             print_token_usage(token_usage)
+        if detector_draft is not None:
+            if detector_draft['ok']:
+                print(
+                    f"  [DRAFT]  Candidate detector written to {detector_draft['path']}\n"
+                    "           Not reviewed, not registered, not committed — see the file's own\n"
+                    "           header and docs/contributing-adapters.md before promoting it.\n",
+                )
+            else:
+                print(f"  [WARN]  --suggest-detector did not produce a draft: {detector_draft['reason']}\n")
 
     if args.strict and args.dry_run:
         print(
