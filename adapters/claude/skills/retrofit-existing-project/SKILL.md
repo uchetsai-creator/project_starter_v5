@@ -1,6 +1,6 @@
 ---
 name: retrofit-existing-project
-description: Use when documenting an existing codebase that already has code but no docs — retrofitting project_starter documentation onto it. Walks through reading the codebase, running the module inventory scan, a code quality check, filling in architecture/spec/business docs, module flow files, project status docs, and generating the PDF. Do NOT use for a brand-new project with no code yet — use the per-type init file instead (see AGENTS.md → Project Initialization).
+description: Use when documenting an existing codebase that already has code but no docs — retrofitting project_starter documentation onto it. Walks through reading the codebase, running the module inventory scan, a code quality check, filling in architecture/spec/business docs, module flow files, project status docs, and generating the PDF. Also use (see "Update recheck" section) when a project already retrofitted with this framework gets a framework-update nudge from session-start-hook.sh, to reconcile its docs against what changed upstream. Do NOT use Steps 1-5 for a brand-new project with no code yet — use the per-type init file instead (see AGENTS.md → Project Initialization).
 ---
 
 # Retrofitting an Existing Project
@@ -115,3 +115,28 @@ ls document-registry.yaml   # must exist; if not: cp /path/to/project_starter_v5
 ```
 python3 docs/script/generators/build_pdf.py docs --lang en -o docs/project-documentation-en.pdf
 ```
+
+---
+
+## Update recheck (project already retrofitted, framework has since updated)
+
+Use this instead of Steps 1-5 when session-start-hook.sh's framework-update nudge fires
+(`.project-starter.yml`'s `framework_commit` is behind project_starter_v5's upstream
+HEAD) — the project already has docs, so the goal is to find what changed upstream and
+apply only that, not redo the retrofit from scratch.
+
+1. Confirm with the user this is what they want (the nudge already asks via
+   AskUserQuestion before this Skill is invoked).
+2. Pull or re-clone the latest project_starter_v5 to a local path.
+3. Diff `document-registry.yaml` (new project vs. this project's copy) — new required
+   documents, changed `required_sections`, or a document dropped for this project's type
+   are the signal for what to add or update.
+4. Diff `templates/script/validators/` and `.githooks/pre-commit` for gates that didn't
+   exist at this project's last sync — a new gate silently failing every commit afterward
+   is worse than not adopting it yet, so confirm each one with the user before wiring it in.
+5. Skim `CHANGELOG.md`'s entries newer than this project's recorded `framework_commit`
+   for anything else user-facing (renamed fields, new `.project-starter.yml` keys).
+6. Update the specific docs/config the diff above actually calls for — not a full re-run
+   of Step 2's document list.
+7. Set `framework_commit` in `.project-starter.yml` to the new upstream SHA (`git
+   rev-parse HEAD` in the pulled checkout) so the nudge doesn't repeat next session.

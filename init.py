@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import shutil
 import stat
+import subprocess
 import sys
 from pathlib import Path
 
@@ -106,7 +107,35 @@ checkpoint_enforcement:
 # Claude Code session (session-start-hook.sh) whether to turn the guard on for that
 # session; unanswered sessions fail open. `off` = always allow. See README.md ->
 # Learning Checkpoint enforcement and pretooluse_scope_guard.py's docstring.
+
+framework_commit: {framework_commit}
+# The project_starter_v5 commit this project was scaffolded from -- set automatically
+# above. If set, session-start-hook.sh (if wired in -- see README.md -> Agent Adapters)
+# checks once per session whether project_starter_v5's upstream HEAD has moved past this
+# and nudges you to re-run the retrofit-existing-project Skill's update-recheck. Blank
+# means init.py couldn't determine it (not run from a git checkout of project_starter_v5)
+# -- the check silently skips itself in that case. Update by hand to silence the nudge
+# without actually re-checking, or leave it as whatever the recheck sets it to.
+
+framework_repo_url:
+# Optional. Overrides the upstream repo URL used for the framework_commit check above --
+# e.g. a fork or internal mirror. Leave blank to use project_starter_v5's default GitHub URL.
 """
+
+
+def _detect_framework_commit(script_dir: Path) -> str:
+    """Best-effort HEAD SHA of the project_starter_v5 checkout init.py is running from,
+    for the update-check in session-start-hook.sh. Blank (not a hard failure) when git
+    is missing or script_dir isn't a git checkout at all (e.g. a downloaded zip) --
+    framework_commit staying blank is exactly what makes that check opt-in."""
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"], cwd=script_dir,
+            capture_output=True, text=True, timeout=5,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    return result.stdout.strip() if result.returncode == 0 else ""
 
 
 def init_project(project_type: str, dest: Path) -> None:
@@ -196,10 +225,15 @@ def init_project(project_type: str, dest: Path) -> None:
     )
     print("[OK] copied templates/ -> templates/ (excluding templates/script/, handled separately above)")
 
+    framework_commit = _detect_framework_commit(script_dir)
     (dest / ".project-starter.yml").write_text(
-        _PROJECT_STARTER_YML.format(project_type=project_type), encoding="utf-8",
+        _PROJECT_STARTER_YML.format(
+            project_type=project_type, framework_commit=framework_commit,
+        ),
+        encoding="utf-8",
     )
-    print(f"[OK] wrote .project-starter.yml (project_type: {project_type})")
+    commit_note = framework_commit or "unknown -- not a git checkout"
+    print(f"[OK] wrote .project-starter.yml (project_type: {project_type}, framework_commit: {commit_note})")
 
     # Install pre-commit hook — only if a real git repo exists (HEAD file is the marker)
     git_head = dest / ".git" / "HEAD"

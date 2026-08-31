@@ -225,6 +225,24 @@ def test_init_py_does_not_duplicate_gitignore_block_on_second_run(tmp_path):
     assert text.count(".ai/") == 1
 
 
+def test_init_py_records_framework_commit_from_source_checkout(tmp_path):
+    """init.py runs from REPO_ROOT (a real git checkout of project_starter_v5 in CI/dev),
+    so framework_commit should come out matching REPO_ROOT's own HEAD -- the SHA
+    session-start-hook.sh's update check later compares against upstream."""
+    dest = tmp_path / "proj"
+    result = _run_init(dest)
+    assert result.returncode == 0, result.stderr
+
+    head = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=str(REPO_ROOT),
+        capture_output=True, text=True,
+    ).stdout.strip()
+    yml_text = (dest / ".project-starter.yml").read_text(encoding="utf-8")
+    if head:
+        assert f"framework_commit: {head}" in yml_text
+    assert "framework_repo_url:" in yml_text
+
+
 def test_init_py_missing_args_exits_nonzero():
     result = subprocess.run(
         [sys.executable, str(INIT_PY)],

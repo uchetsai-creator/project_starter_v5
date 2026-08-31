@@ -40,6 +40,7 @@ missing documentation automatically — instead of relying on anyone remembering
 
 **Reference**
 - [Retrofitting an existing project](#retrofitting-an-existing-project)
+- [Framework update check](#framework-update-check)
 - [Module types](#module-types)
 - [Diagrams](#diagrams)
 - [Module inventory scan](#module-inventory-scan)
@@ -255,7 +256,8 @@ project_starter/                     ← this repo (template only)
 │   │   ├── start-task.md           ← slash command template (copy to .claude/commands/ in your project)
 │   │   ├── run-verify.sh           ← Claude Code Stop-hook script: writes validator --json output to logs/verify-{timestamp}.json, plus real-time project_type_confirmed / Clarifying Questions Asked / Doc Checklist / Sprint Documentation Sync checks and the same --json output's --strict pass/fail for verify_docs/logs/tests/content
 │   │   ├── stop-hook.sh            ← writes session boundary to logs/telemetry/task-run.json on Claude Code session end
-│   │   ├── session-start-hook.sh   ← non-blocking nudge: re-checks current-state.md scoping state fresh every session, a brand-new-project nudge toward research.md when both Task and research.md are still unscoped, a spec-drift nudge when a Required Context file was committed more recently than current-state.md itself, and (if `checkpoint_enforcement: session-prompt`) asks once per session whether to turn pretooluse_scope_guard.py's block on for that session
+│   │   ├── session-start-hook.sh   ← non-blocking nudge: re-checks current-state.md scoping state fresh every session, a brand-new-project nudge toward research.md when both Task and research.md are still unscoped, a spec-drift nudge when a Required Context file was committed more recently than current-state.md itself, (if `checkpoint_enforcement: session-prompt`) asks once per session whether to turn pretooluse_scope_guard.py's block on for that session, and (if `.project-starter.yml`'s `framework_commit` is set) runs check_framework_update.py and surfaces its nudge if project_starter_v5 has updates upstream
+│   │   ├── check_framework_update.py ← compares .project-starter.yml's framework_commit against project_starter_v5's upstream HEAD via `git ls-remote`; opt-in (blank framework_commit skips it) and silent on any failure — see session-start-hook.sh and Framework update check below
 │   │   ├── learning_log_nudge.py   ← non-blocking nudge: flags when docs/task-log.md was closed out more recently than learning-log.md was last touched (never checks entry content — see Learning Checkpoint enforcement below)
 │   │   ├── pretooluse_scope_guard.py ← BLOCKING: denies Edit/Write/MultiEdit/NotebookEdit on source files until current-state.md is scoped (see Learning Checkpoint enforcement below); opt-in `checkpoint_enforcement: session-prompt`/`off` modes in .project-starter.yml relax this per session
 │   │   ├── checkpoint_session_state.py ← shared read/write helpers for the session-prompt mode's per-session choice (logs/telemetry/checkpoint-session-choices.json)
@@ -1001,6 +1003,28 @@ The flow follows Steps 1, 1b, 1c, 2, 3, 4, and 5:
 `code-quality-check.md` can also be used independently at any time as a standalone code review checklist.
 
 ---
+
+## Framework update check
+
+Once a project has been retrofitted (or scaffolded via `--init`), `.project-starter.yml`'s
+`framework_commit` field records the project_starter_v5 commit it was built against —
+`init.py` sets this automatically, from `git rev-parse HEAD` of the project_starter_v5
+checkout it ran from.
+
+If Claude Code's `session-start-hook.sh` is wired into your project (see Agent Adapters →
+Per-tool setup), it checks this on every `SessionStart`: `check_framework_update.py` runs
+`git ls-remote` against the upstream repo (or `framework_repo_url`, if you've overridden it
+for a fork/mirror) and compares the result to `framework_commit`. If they differ, the agent
+is nudged to ask you (via `AskUserQuestion`) whether to pull the latest project_starter_v5
+and reconcile this project against it — see `retrofit-existing-project`'s "Update recheck"
+section for what that reconciliation actually does (diff `document-registry.yaml` and the
+validator/pre-commit gates, not a full re-retrofit).
+
+Like every other hook in this framework, this is opt-in and non-blocking:
+- `framework_commit` blank (the default before this field existed) skips the check entirely.
+- Any failure — no `git`, no network, a slow/unreachable remote — is silent; it never blocks
+  or errors the session, only skips the nudge for that session.
+- Runs once per `SessionStart`, not on every tool call.
 
 ## Module types
 

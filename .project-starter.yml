@@ -129,6 +129,23 @@ prose_scan_enabled:
 # Example:
 #   prose_scan_enabled: true
 
+framework_commit:
+# Optional. The project_starter_v5 commit SHA this project was scaffolded/last synced
+# from. Set automatically by init.py at project creation. When set,
+# adapters/claude/session-start-hook.sh (if wired into .claude/settings.json — see
+# README.md -> Agent Adapters) compares it against the upstream repo's current HEAD via
+# `git ls-remote` once per Claude Code session and nudges the user if they differ. Leave
+# blank to skip the check entirely (default for projects scaffolded before this field
+# existed, or for anyone who doesn't want it). After reviewing an update (see
+# retrofit-existing-project Skill's update-recheck section), update this to the new SHA
+# to silence the nudge until the next upstream change.
+
+framework_repo_url:
+# Optional. Overrides the upstream repo URL used for the framework_commit check above --
+# e.g. if you vendor project_starter_v5 from a fork or an internal mirror instead of
+# https://github.com/uchetsai-creator/project_starter_v5.git (the default when this is
+# blank). Only read when framework_commit is also set.
+
 checkpoint_enforcement:
 # Optional (unset | session-prompt | off). Controls how strictly
 # adapters/claude/pretooluse_scope_guard.py enforces the Learning Checkpoint scoping rule

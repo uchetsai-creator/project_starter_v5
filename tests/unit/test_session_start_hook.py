@@ -372,3 +372,85 @@ def test_placeholder_task_never_gets_spec_drift_nudge(tmp_path):
     payload = json.loads(result.stdout)
     ctx = payload["hookSpecificOutput"]["additionalContext"]
     assert "changed more recently than current-state.md itself" not in ctx
+
+
+# ---------------------------------------------------------------------------
+# Framework update nudge: opt-in via .project-starter.yml's framework_commit, compared
+# against a local git repo standing in for the real GitHub upstream (see
+# test_check_framework_update.py -- `git ls-remote` works identically against a local
+# path, no network needed).
+# ---------------------------------------------------------------------------
+
+def _make_upstream_repo(tmp_path: Path) -> tuple:
+    upstream = tmp_path / "upstream"
+    upstream.mkdir()
+    _git("init", "-q", "-b", "main", cwd=upstream)
+    _git("config", "user.email", "test@example.com", cwd=upstream)
+    _git("config", "user.name", "Test", cwd=upstream)
+    (upstream / "README.md").write_text("hello\n", encoding="utf-8")
+    _git("add", ".", cwd=upstream)
+    _git("commit", "-q", "-m", "initial", cwd=upstream)
+    head = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=upstream, capture_output=True, text=True, check=True,
+    ).stdout.strip()
+    return upstream, head
+
+
+def test_stale_framework_commit_triggers_update_nudge(tmp_path):
+    upstream, old_head = _make_upstream_repo(tmp_path)
+    (upstream / "README.md").write_text("hello again\n", encoding="utf-8")
+    _git("add", ".", cwd=upstream)
+    _git("commit", "-q", "-m", "second commit", cwd=upstream)
+
+    (tmp_path / ".project-starter.yml").write_text(
+        f"project_type: web-app\nframework_commit: {old_head}\nframework_repo_url: {upstream}\n",
+        encoding="utf-8",
+    )
+    result = _run(tmp_path)
+    assert result.returncode == 0
+    payload = json.loads(result.stdout)
+    ctx = payload["hookSpecificOutput"]["additionalContext"]
+    assert "project_starter_v5" in ctx
+    assert "AskUserQuestion" in ctx
+
+
+def test_up_to_date_framework_commit_is_silent(tmp_path):
+    upstream, head = _make_upstream_repo(tmp_path)
+    (tmp_path / ".project-starter.yml").write_text(
+        f"project_type: web-app\nframework_commit: {head}\nframework_repo_url: {upstream}\n",
+        encoding="utf-8",
+    )
+    result = _run(tmp_path)
+    assert result.returncode == 0
+    assert result.stdout.strip() == ""
+
+
+def test_unset_framework_commit_is_silent(tmp_path):
+    (tmp_path / ".project-starter.yml").write_text(
+        "project_type: web-app\n", encoding="utf-8",
+    )
+    result = _run(tmp_path)
+    assert result.returncode == 0
+    assert result.stdout.strip() == ""
+
+
+def test_framework_update_nudge_combines_with_scoping_nudge(tmp_path):
+    """Both nudges can fire in the same additionalContext string."""
+    upstream, old_head = _make_upstream_repo(tmp_path)
+    (upstream / "README.md").write_text("hello again\n", encoding="utf-8")
+    _git("add", ".", cwd=upstream)
+    _git("commit", "-q", "-m", "second commit", cwd=upstream)
+    (tmp_path / ".project-starter.yml").write_text(
+        f"project_type: web-app\nframework_commit: {old_head}\nframework_repo_url: {upstream}\n",
+        encoding="utf-8",
+    )
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    (docs / "current-state.md").write_text(
+        "**Task:** [Task name, e.g., BE Order API]\n", encoding="utf-8",
+    )
+    result = _run(tmp_path)
+    payload = json.loads(result.stdout)
+    ctx = payload["hookSpecificOutput"]["additionalContext"]
+    assert "no scoped Current Task" in ctx
+    assert "project_starter_v5" in ctx

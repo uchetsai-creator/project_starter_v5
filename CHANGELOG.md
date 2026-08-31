@@ -14,6 +14,26 @@ All notable changes to this framework are documented here. Format loosely follow
 
 ## [Unreleased]
 
+### Added
+- Framework-update check: `.project-starter.yml` gained two new optional fields,
+  `framework_commit` (the project_starter_v5 SHA a project was scaffolded/last synced
+  from — set automatically by `init.py`) and `framework_repo_url` (override for a fork or
+  internal mirror). New `adapters/claude/check_framework_update.py`, wired into
+  `adapters/claude/session-start-hook.sh`, compares `framework_commit` against upstream's
+  current HEAD via `git ls-remote` once per Claude Code session and nudges the user (via
+  AskUserQuestion) to review the update when they differ — opt-in (blank `framework_commit`
+  skips the check entirely, matching every other optional gate in this framework) and
+  always silent on failure (missing git, no network, timeout), same non-blocking-nudge
+  contract as every other check in that hook. `retrofit-existing-project` (Skill and its
+  canonical source `templates/init/retrofit.md`) gained a new "Update recheck" section for
+  what to do when the nudge fires on a project that's already been retrofitted: diff
+  `document-registry.yaml` and the validator/pre-commit gates against the freshly pulled
+  framework instead of redoing the full retrofit, then update `framework_commit` to silence
+  the nudge. Covered by `tests/unit/test_check_framework_update.py` (a local git repo
+  stands in for the real GitHub upstream — `git ls-remote` works identically against a
+  local path, no network needed) plus new cases in `test_session_start_hook.py` and
+  `test_init_py.py`.
+
 ### Fixed
 - 17 test files across `tests/unit/` and `tests/contract/` each
   `sys.path.insert(0, .../_spec_code_adapters)` to import a same-named detector module

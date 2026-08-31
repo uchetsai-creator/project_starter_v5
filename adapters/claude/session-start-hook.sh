@@ -18,6 +18,11 @@
 # comment and pretooluse_scope_guard.py's docstring for the full opt-in design. Silent
 # no-op (same as before this existed) when that key is unset, matching every other
 # optional gate in this framework.
+#
+# Also checks (via check_framework_update.py, ~4s max) whether project_starter_v5 itself
+# has moved past this project's recorded framework_commit, and if so nudges the user to
+# review the update — see that script's docstring. Opt-in the same way: silent no-op when
+# framework_commit is unset in .project-starter.yml, or on any network/git failure.
 
 CS="docs/current-state.md"
 RESEARCH="docs/specs/research.md"
@@ -124,6 +129,17 @@ print('' if choice is None else ('true' if choice else 'false'))
     if [ -z "$ANSWERED" ]; then
         CHECKPOINT_MSG="This project has checkpoint_enforcement: session-prompt set in .project-starter.yml. This session (session_id: $SESSION_ID) has not yet chosen whether to enable Learning Checkpoint enforcement. Before doing any other work, ask the user with AskUserQuestion: 要不要在這個 session 啟用 learning-checkpoint 的強制機制？啟用後，修改程式碼前必須先在 docs/current-state.md 填好 Task 和 Clarifying Questions Asked 欄位，否則會被 PreToolUse hook 擋下；不啟用的話，仍要照 learning-checkpoint Skill 的 Checkpoint A/B 問題模板，用對話方式先問過再動手，只是不會被機制擋下。 Then record the answer by running: python3 adapters/claude/record_checkpoint_choice.py --session-id $SESSION_ID --enabled true (or --enabled false)."
         MSG="${MSG:+$MSG }$CHECKPOINT_MSG"
+    fi
+fi
+
+# ── Framework update check (opt-in via .project-starter.yml's framework_commit) ────
+# See check_framework_update.py's docstring: silent no-op when framework_commit is
+# unset, git/network are unavailable, or the ls-remote call times out -- a reminder,
+# not a gate, matching every other check in this hook.
+if [ -f "$CFG" ] && command -v python3 &>/dev/null && command -v git &>/dev/null; then
+    FRAMEWORK_UPDATE_MSG=$(python3 "$HOOK_DIR/check_framework_update.py" 2>/dev/null)
+    if [ -n "$FRAMEWORK_UPDATE_MSG" ]; then
+        MSG="${MSG:+$MSG }$FRAMEWORK_UPDATE_MSG"
     fi
 fi
 
