@@ -35,6 +35,7 @@ import sys
 from dataclasses import fields as dataclass_fields
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 _ADAPTERS_DIR = Path(__file__).resolve().parent
@@ -49,7 +50,7 @@ _DRAFT_MODEL = os.environ.get('SPEC_CODE_MODEL', 'claude-haiku-4-5-20251001')
 # unlike framework_fix_agents.py (a different sys.path root under generators/), this
 # module lives in the same _spec_code_adapters/ package as semantic.py, so importing
 # instead of copy-pasting has no cross-package cost.
-from semantic import _PRICING_PER_M_TOKENS, _estimate_cost, _get_client  # noqa: E402
+from semantic import _estimate_cost, _get_client  # noqa: E402
 
 _MAX_SAMPLE_FILES = 5
 _MAX_SAMPLE_CHARS_PER_FILE = 4000
@@ -86,7 +87,7 @@ def draft_detector(
     failure (no API key, no package, malformed LLM output, etc.) — a failed
     draft must never be written silently as if it were usable.
     """
-    token_usage = {
+    token_usage: dict[str, Any] = {
         'model': _DRAFT_MODEL,
         'calls': 0,
         'input_tokens': 0,
@@ -389,7 +390,9 @@ if __name__ == '__main__':
     assert _validate_draft_code(bad_code_2) == "Detector subclass has no extract() method"
 
     # --- _validate_draft_code: rejects syntax errors ---
-    assert _validate_draft_code("def broken(:\n").startswith("SyntaxError")
+    syntax_problem = _validate_draft_code("def broken(:\n")
+    assert syntax_problem is not None
+    assert syntax_problem.startswith("SyntaxError")
 
     # --- _validate_draft_code: rejects empty output ---
     assert _validate_draft_code("   \n") == "empty output"
@@ -404,8 +407,9 @@ if __name__ == '__main__':
     assert _safe_name("") == "unknown"
 
     # --- _describe_normalized_form: known + unknown capabilities ---
-    assert _describe_normalized_form('cli') is not None
-    assert 'NormalizedCommand' in _describe_normalized_form('cli')
+    cli_form = _describe_normalized_form('cli')
+    assert cli_form is not None
+    assert 'NormalizedCommand' in cli_form
     assert _describe_normalized_form('not-a-real-capability') is None
 
     # --- draft_detector: no API key -> clean failure, nothing written ---
@@ -416,6 +420,7 @@ if __name__ == '__main__':
         (src_dir / 'main.go').write_text('package main\n', encoding='utf-8')
         result = draft_detector('web-api', 'gin', str(src_dir))
         assert result.ok is False
+        assert result.reason is not None
         assert 'ANTHROPIC_API_KEY' in result.reason
     if saved_key:
         os.environ['ANTHROPIC_API_KEY'] = saved_key
@@ -456,6 +461,7 @@ if __name__ == '__main__':
                 sys.modules[__name__]._get_client = real_get_client  # type: ignore[attr-defined]
 
             assert result2.ok is False
+            assert result2.reason is not None
             assert 'validation' in result2.reason
             # _DRAFTS_DIR is anchored to this module's real location, not cwd — by
             # design (drafts always land in the real adapters dir, not wherever the
