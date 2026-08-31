@@ -60,6 +60,58 @@ Read and follow `code-quality-check.md`. Do not proceed to Step 2 until the chec
 11. Create `docs/business/business-rules.md` — describe the actual constraints enforced in code.
 12. Create `docs/specs/research.md` — document the technology choices already made and why (if known).
 
+For items 9-12 specifically, do not write the WHY from a blind read — those are exactly
+the fields that require understanding intent, not just syntax, and a wrong guess there is
+worse than an empty one (same principle as Step 3's `draft_module_flow.py` note below).
+Continue to Step 2b before writing the Reason / rationale columns for these four documents.
+
+---
+
+## Step 2b — Infer business logic candidates (confirm with the user)
+
+`scan_codebase.py` and `draft_module_flow.py` pre-fill what is mechanically true (folder
+names, class/function names). Business rules, process steps, and design rationale — items
+9-12 in Step 2 above — are meaning, not syntax, so a script cannot fill them the same way.
+It can, however, point at where the enforcement already lives in code, which is most of the
+work of writing a rule down. Run this per module, after Step 1b's inventory is confirmed:
+
+```
+python3 docs/script/generators/infer_business_logic.py <module_src_dir> --project-type <type> --docs docs
+```
+
+This writes a staging file to `docs/_inferred/[module]/[module]-inferred.md` — never
+directly into `business-rules.md`, `business-process.md`, `business-objects.md`, or
+`research.md`. Every candidate carries a confidence tier and a source pointer:
+
+- **High** — a guard clause that rejects/raises in code right now. The WHAT is settled;
+  only the wording and the Reason column need confirming.
+- **Medium** — a comment or docstring near a guard clause implies a reason. May be stale or
+  wrong — confirm, don't assume.
+- **Low** — a commit message touching the module matches rationale language, with no guard
+  clause changed alongside it. Weak evidence; expect most of these to be rejected.
+
+Add `--history` to also mine `git log` for Low-confidence items — slower, and often noisy
+this early, so leave it off on the first pass through a large module.
+
+**Confirmation round with the user, one module at a time:**
+1. Present the High-confidence items first — for each, ask the user to confirm the
+   paraphrase and supply the Reason (the script never invents Reason text).
+2. Present Medium, then Low — for each, confirm, edit, or reject. A rejected item is
+   simply dropped; do not carry it forward or re-ask in a later round.
+3. Only a confirmed item gets transcribed into the real document (`business-rules.md`'s
+   BR-XXX table, `business-process.md`'s Decision Points / Exceptions tables,
+   `business-objects.md`, or `research.md`'s rationale column) — in the user's confirmed
+   wording, not the script's raw paraphrase.
+4. Anything with no candidate at all — or confirmed-empty after review — still gets a
+   `[NEEDS CLARIFICATION]` entry in the real document, same convention Step 4 already uses
+   for `project-requirements.md`. Do not leave a silent gap.
+5. Delete `docs/_inferred/[module]/` for a module once every item has been confirmed,
+   edited, or rejected — it is a staging area, not a permanent doc, and is not part of
+   `document-registry.yaml`.
+
+Do not proceed to Step 3 for a module until its business-logic candidates (if any were
+found) have been through this confirmation round.
+
 ---
 
 ## Step 3 — Fill in module flow files (one module at a time)
