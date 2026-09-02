@@ -254,7 +254,7 @@ def init_project(project_type: str, dest: Path) -> None:
 
     print("\nNext steps:")
     print(f"  cd {dest}")
-    print("  python3 orchestrator.py --adapter claude   # generate .ai/WORKFLOW.md + start-task.md")
+    print("  python3 orchestrator.py   # generates .ai/WORKFLOW.md + Claude/Codex adapter output automatically")
     print(f"  Open templates/init/{project_type}.md and follow its numbered steps.")
 
 

@@ -143,8 +143,9 @@ a human's own decision.
    [Project Initialization](#project-initialization)), then open `templates/init/<type>.md`
    **from this framework repo** and follow its numbered steps. (The init files are not copied
    to your project — keep the framework repo around for reference.)
-3. Run `python3 orchestrator.py --adapter claude` — writes
-   `.ai/WORKFLOW.md` + `.ai/AI_CONTEXT.md` and renders `.claude/commands/start-task.md`.
+3. Run `python3 orchestrator.py` — writes `.ai/WORKFLOW.md` + `.ai/AI_CONTEXT.md` and
+   renders `.claude/commands/start-task.md` automatically (`--adapter claude` restricts to
+   just that file).
 4. Set the **Current Task** in `docs/current-state.md`, then start work: read
    `.ai/AI_CONTEXT.md` first, follow `AGENTS.md`'s rules as you go, and run the validators listed
    in `.ai/WORKFLOW.md` before closing out the task.
@@ -543,10 +544,10 @@ new_project/
 
 > **Note:** `adapters/` stays in the framework repo — it is **not** copied to user projects.
 > Every adapter's template is embedded directly in `orchestrator.py` (see `_ADAPTER_TEMPLATES`),
-> so adapter output (`.claude/commands/start-task.md` or `.codex/setup.md` +
-> `.codex/task-instructions.md`) can be generated into your project by running
-> `orchestrator.py --adapter claude` or `orchestrator.py --adapter codex` from nothing more than
-> the files listed above — no `adapters/` directory needs to exist in your project.
+> so adapter output (`.claude/commands/start-task.md` and `.codex/setup.md` +
+> `.codex/task-instructions.md`) is generated into your project automatically by running plain
+> `orchestrator.py` — from nothing more than the files listed above; no `adapters/` directory
+> needs to exist in your project.
 
 The `docs/specs/`, `docs/architecture/`, and `docs/modules/` contents differ per project type:
 
@@ -804,24 +805,24 @@ not before a commit. Runs first in every sequence, same placement as `verify_reg
 ## Agent Adapters
 
 The orchestrator produces a tool-agnostic `.ai/WORKFLOW.md` that any AI tool (or a human) can
-read directly. Adapters are an optional extra layer on top of that: they translate the same
-output into a specific tool's native instruction format so developers do not need to wire up
-the orchestrator manually. Claude Code and Codex ship today — `AGENTS.md` and
-`.ai/WORKFLOW.md` remain plain Markdown any tool can follow without one.
+read directly. Adapters translate that same output into a specific tool's native instruction
+format so developers do not need to wire up the orchestrator manually. Claude Code and Codex
+ship today, and both are rendered automatically on every `orchestrator.py` run — no flag
+needed. `AGENTS.md` and `.ai/WORKFLOW.md` remain plain Markdown any other tool can follow
+directly, without either adapter.
 
 ```
-orchestrator.py --adapter claude
+orchestrator.py                          (default — no flag needed)
         │
-        ├── writes  .ai/WORKFLOW.md          (always)
+        ├── writes  .ai/WORKFLOW.md                    (always)
         │
-        └── claude  → .claude/commands/start-task.md   (slash command with WORKFLOW.md injected)
+        ├── claude  → .claude/commands/start-task.md   (slash command with WORKFLOW.md injected)
+        │
+        └── codex   → .codex/setup.md                  (one-time setup instructions)
+                     .codex/task-instructions.md      (current workflow snapshot injected)
 
-orchestrator.py --adapter codex
-        │
-        ├── writes  .ai/WORKFLOW.md          (always)
-        │
-        └── codex   → .codex/setup.md               (one-time setup instructions)
-                     .codex/task-instructions.md   (current workflow snapshot injected)
+orchestrator.py --adapter claude         (restrict to one tool)
+orchestrator.py --no-adapter             (skip both, .ai/WORKFLOW.md only)
 ```
 
 **Constraint:** adapters contain only format translation. Document selection logic stays in
@@ -831,21 +832,26 @@ logic is a bug.
 ### Usage
 
 ```bash
-# Generate workflow + render Claude Code slash command:
-python3 orchestrator.py --adapter claude
+# Generate workflow + render both Claude Code and Codex output (default):
+python3 orchestrator.py
 
-# Generate workflow + render Codex setup/task-instructions files:
+# Restrict to a single tool:
+python3 orchestrator.py --adapter claude
 python3 orchestrator.py --adapter codex
 
+# .ai/WORKFLOW.md only, skip adapter output entirely:
+python3 orchestrator.py --no-adapter
+
 # Preview without writing any files:
-python3 orchestrator.py --adapter claude --dry-run
+python3 orchestrator.py --dry-run
 ```
 
 ### Per-tool setup
 
 **Claude Code**
 
-1. Run `python3 orchestrator.py --adapter claude` — this writes `.claude/commands/start-task.md`.
+1. Run `python3 orchestrator.py` — this writes `.claude/commands/start-task.md` automatically
+   (along with `.codex/` output — use `--adapter claude` to render Claude Code's file only).
 2. In any future session, type `/start-task` to have Claude run the orchestrator and walk through
    the current workflow plan.
 3. (Optional) For fast feedback without waiting for a manual validator run, copy this repo's
@@ -959,21 +965,24 @@ python3 orchestrator.py --adapter claude --dry-run
 
 **Codex**
 
-1. Run `python3 orchestrator.py --adapter codex` — this writes `.codex/setup.md` (one-time
-   setup instructions) and `.codex/task-instructions.md` (current workflow snapshot).
+1. Run `python3 orchestrator.py` — this writes `.codex/setup.md` (one-time setup instructions)
+   and `.codex/task-instructions.md` (current workflow snapshot) automatically (along with
+   `.claude/` output — use `--adapter codex` to render Codex's files only).
 2. Point Codex at `.codex/setup.md` at the start of a session; it explains how to read
    `.codex/task-instructions.md` for the current steps and how to regenerate both files.
-3. Re-run `python3 orchestrator.py --adapter codex` whenever the task or workflow changes —
+3. Re-run `python3 orchestrator.py` whenever the task or workflow changes —
    `.codex/task-instructions.md` is regenerated each time, the same way
    `.claude/commands/start-task.md` is for Claude Code.
 
 **Other AI tools:** no dedicated adapter ships today (Claude Code and Codex are the only tools
 this framework has real usage with) — `AGENTS.md` and `.ai/WORKFLOW.md` are plain Markdown, so
-any tool can still be pointed at them manually: run `python3 orchestrator.py` (no `--adapter`
-flag) and have the tool read `.ai/AI_CONTEXT.md` + `.ai/WORKFLOW.md` at the start of a session. A
-dedicated adapter for another tool, if one is genuinely needed later, would follow the same
-shape as `adapters/claude/` / `adapters/codex/` — a template embedded in `orchestrator.py`'s
-`_ADAPTER_TEMPLATES`, kept in sync by a `test_agent_adapter_templates.py`-style contract test.
+any tool can still be pointed at them manually: run `python3 orchestrator.py --no-adapter`
+(skips writing `.claude/`/`.codex/` output entirely) and have the tool read
+`.ai/AI_CONTEXT.md` + `.ai/WORKFLOW.md` at the start of a session — or leave the flag off; the
+extra Claude/Codex files are harmless to ignore if unused. A dedicated adapter for another tool,
+if one is genuinely needed later, would follow the same shape as `adapters/claude/` /
+`adapters/codex/` — a template embedded in `orchestrator.py`'s `_ADAPTER_TEMPLATES`, kept in
+sync by a `test_agent_adapter_templates.py`-style contract test.
 (Note: this is a different "adapter" concept from the spec↔code capability adapters described in
 `docs/contributing-adapters.md` below — that doc is about `verify_spec_code.py` framework
 detectors, unrelated to agent-tool adapters.)

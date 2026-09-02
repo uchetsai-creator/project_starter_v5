@@ -10,8 +10,13 @@ Usage:
   python3 orchestrator.py
   python3 orchestrator.py --task-type sprint-end
   python3 orchestrator.py --dry-run
+
+Agent-adapter output (.claude/commands/start-task.md, .codex/setup.md +
+.codex/task-instructions.md) is rendered automatically on every run — no flag
+needed. Use --adapter to restrict to a single tool, or --no-adapter to skip
+adapter rendering entirely for this run:
   python3 orchestrator.py --adapter claude
-  python3 orchestrator.py --adapter claude --dry-run
+  python3 orchestrator.py --no-adapter
 """
 
 import argparse
@@ -363,7 +368,16 @@ def main() -> None:
         "--adapter",
         choices=VALID_ADAPTERS,
         metavar="TOOL",
-        help=f"Render adapter output after writing WORKFLOW.md ({', '.join(VALID_ADAPTERS)})",
+        help=(
+            f"Restrict adapter output to a single tool ({', '.join(VALID_ADAPTERS)}). "
+            f"By default all of {VALID_ADAPTERS} are rendered on every run — this flag "
+            "narrows that, it does not opt in to something otherwise off."
+        ),
+    )
+    parser.add_argument(
+        "--no-adapter",
+        action="store_true",
+        help="Skip agent-adapter output entirely for this run (.ai/WORKFLOW.md is still written)",
     )
     parser.add_argument(
         "--no-overwrite",
@@ -372,13 +386,20 @@ def main() -> None:
     )
     args = parser.parse_args()
 
+    if args.adapter:
+        adapters_to_run = [args.adapter]
+    elif args.no_adapter:
+        adapters_to_run = []
+    else:
+        adapters_to_run = VALID_ADAPTERS
+
     ctx = _build_workflow(project_root, args.task_type)
     output = _render(ctx)
 
     if args.dry_run:
         print(output)
-        if args.adapter:
-            _run_adapter(args.adapter, project_root, output, dry_run=True)
+        for adapter in adapters_to_run:
+            _run_adapter(adapter, project_root, output, dry_run=True)
         return
 
     _invoke_build_context(project_root, ctx["task_type"])
@@ -402,8 +423,8 @@ def main() -> None:
     task_name = _read_task_name_from_current_state(docs_dir / "current-state.md")
     _track_orchestrator_run(project_root, task_name)
 
-    if args.adapter:
-        _run_adapter(args.adapter, project_root, output, dry_run=False)
+    for adapter in adapters_to_run:
+        _run_adapter(adapter, project_root, output, dry_run=False)
 
 
 if __name__ == "__main__":
