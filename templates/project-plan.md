@@ -4,10 +4,17 @@
   Ordering principles:
   1. Shared foundation first
   2. Each feature as a vertical slice: DB → BE → FE
-  3. Each task should be roughly half a day to one day of work
+  3. Size each task using the objective rules below, not a time guess — "half a day
+     to a day" is what a correctly-sized task tends to land on, but it is a side
+     effect of the rules, not the rule itself. If a task fits the rules but clearly
+     isn't half-day-sized, that means a step or file was undercounted — recheck it,
+     don't override the rules with a gut-feel estimate.
   4. Group tasks into sprints — a sprint is a logical chunk of work, typically 3-5 tasks
 
-  Task size rules:
+  Task size rules (apply these to decide where to split, in this order):
+  - One-sentence intent: you should be able to state the task's goal in one sentence
+    without joining two unrelated things with "and". A task can pass every rule below
+    and still be two tasks in disguise if it fails this check — split it first.
   - A task should have no more than 5 steps (excluding Verify).
   - If a task has more than 5 steps, split it into two tasks.
   - A task should touch no more than 3-4 files. If more, split it.
@@ -15,8 +22,25 @@
     without finishing another task first, merge them or reorder.
   - DB / BE / FE are always separate tasks. Never combine layers in one task.
 
-  Task naming convention: [Layer] [Feature Name]
+  Step size rules (apply within a task — steps are sequential, no [P] marker needed):
+  - A step is one action with exactly one expected result. If the Expected result needs
+    "and" to describe two separate checks, split into two steps.
+  - A step should map to roughly one file, or one function/endpoint/component within a
+    file. If a step's action needs 2+ files to reach its expected result, either split
+    it into one step per file, or the task itself is over the file-count rule above.
+  - A step's Expected result must be checkable immediately (read the diff, run one
+    command, glance at output) — not "only provable once a later step is also done."
+
+  Task naming convention: [Layer] [Feature Name], or [Layer] [P] [Feature Name] when
+  marked parallel-safe (see below).
   Layer prefixes: DB / BE / FE / MOD / INF
+
+  Parallel marker [P]: mark a task [P] when it has no dependency on any other
+  not-yet-completed task in the plan (e.g. two unrelated INF tasks, or DB tasks for two
+  different features in the same sprint). This framework executes one Current Task at a
+  time, so [P] does not mean "run simultaneously" — it means "not blocked, safe to pull
+  forward out of order if priorities shift." Do not mark a task [P] if it depends on
+  another layer in the same vertical slice (e.g. BE depending on its own DB task).
 
   Code quality tasks (added by code-quality-check.md) use the prefix [CODE QUALITY]
   and are inserted at the end of the current sprint when found.

@@ -2344,8 +2344,12 @@ Setting up PlantUML (diagram rendering) and generating the merged spec PDF from 
   The chapter each file belongs to is configured in `pdf_allowlist.py`.
 - **Single PDF allowlist**: `pdf_allowlist.py` is the only file to edit when adding documents
   to the PDF. `build_pdf.py` imports from it.
-- **Task granularity**: each task should be roughly half a day to one day of work, and
-  independently completable as a single Current Task — planning rules are defined directly in `AGENTS.md`.
+- **Task granularity**: sized by objective rules, not a time guess — states its goal in one
+  sentence, max 5 steps (excluding Verify), max 3-4 files touched, and independently
+  completable/verifiable as a single Current Task. DB / BE / FE are always separate tasks.
+  A task with no dependency on other pending work may be marked `[P]` (parallel-safe to
+  reorder — this framework still executes one Current Task at a time). Planning rules are
+  defined in `templates/project-plan.md`.
 - **Package First**: prefer an existing package, then an existing utility, then framework
   convention, and only write custom code for business logic, domain rules, data mapping, or
   system integration.
