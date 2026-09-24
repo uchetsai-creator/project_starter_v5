@@ -1,5 +1,7 @@
 # Optional. Copy this file to .github/workflows/verify.yml in your OWN project (not this
-# framework repo) if you want CI-level enforcement of .githooks/pre-commit's checks.
+# framework repo) if you want CI-level enforcement of .githooks/pre-commit's checks AND of
+# .githooks/pre-push's requirement gate (a local hook can always be skipped with
+# `git push --no-verify`; this is the backstop that cannot).
 #
 # init.py / setup.sh --init copies this file to <your-project>/templates/ci/ along with
 # every other reference template, but deliberately does NOT install it into
@@ -38,3 +40,17 @@ jobs:
         env:
           PROJECT_STARTER_DIFF_RANGE: origin/${{ github.base_ref }}...HEAD
         run: bash .githooks/pre-commit
+      # Same requirement gate `git push` runs locally (.githooks/pre-push): a requirement still
+      # In Progress, an unverified Complete one, or an overdue Sprint Documentation Sync blocks a
+      # PR whose base branch is gated (main/master by default; push_gate_branches in
+      # .project-starter.yml). Other base branches only warn. The hook reads its input as git
+      # feeds it to a pre-push hook -- "<local ref> <local sha> <remote ref> <remote sha>" --
+      # so we hand it the PR head commit and the base branch. Check out the PR head first so
+      # verify_acceptance.py sees the same files current-state.md is read from.
+      - name: Run pre-push requirement gate
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          git checkout -q --detach "$HEAD_SHA"
+          echo "refs/heads/pr $HEAD_SHA refs/heads/$BASE_REF 0000000000000000000000000000000000000000" | bash .githooks/pre-push

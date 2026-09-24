@@ -15,6 +15,9 @@ All notable changes to this framework are documented here. Format loosely follow
 ## [Unreleased]
 
 ### Added
+- CI backstop for the requirement gate: `templates/ci/github-actions-verify.yml` gains a "Run pre-push requirement
+  gate" step that feeds `.githooks/pre-push` the PR head commit and base branch, so `git push --no-verify` cannot
+  bypass it (pair it with branch protection, see README.md).
 - Requirement gate on `git push` (`.githooks/pre-push`, installed by `init.py --init`): `current-state.md` gains
   `Requirement IDs` and `Requirement Status` (`In Progress` / `Complete` / `Descoped — user: <reason>`). Commits are
   unrestricted; a push to a gated branch (`main`/`master`, override with `push_gate_branches`) is blocked while the
@@ -28,7 +31,10 @@ All notable changes to this framework are documented here. Format loosely follow
   `.ai/AI_CONTEXT.md`, matched against each doc's `update_trigger` in `document-registry.yaml`, the agent
   says which look unaffected and why, the user decides; `project-requirements.md` is always listed). The
   agreed list is what goes into `Doc Checklist`, so the documentation cost of a split is visible to the
-  user before they agree to it. Not mechanically checked beyond the existing Doc Checklist guard.
+  user before they agree to it. Enforced: the PreToolUse scope guard, `.githooks/pre-commit` (both source guards)
+  and `run-verify.sh` block while the `Docs to update` line is empty, still the placeholder, or does not name
+  `project-requirements.md`. Only applies when the line exists (older files are not covered); it checks the list
+  was written, not that the user agreed to it.
 - Clarifications are written back to the spec: `templates/current-state.md` Doc Checklist now starts with a
   `docs/project-requirements.md` item, and `guidance/clarifying-checklist.md` maps each Clarifications category to
   the requirements section it belongs in (scope/roles, FR, NFR, edge cases, AC, assumptions). At closeout,
@@ -133,6 +139,10 @@ All notable changes to this framework are documented here. Format loosely follow
     confirmed by running each file's own test suite after the change, not assumed.
 
 ### Changed
+- Sprint Documentation Sync guard (>= 3 Pending entries, plus the `sprint_sync_stale_days` age fallback) moved from
+  `.githooks/pre-commit` to `.githooks/pre-push`: a Pending backlog is a handover problem, so a push to a gated
+  branch is blocked (other branches only warn) while commits stay free. The `sprint_sync_stale_days` value check
+  stays in pre-commit so a config typo still fails early. `run-verify.sh` keeps mirroring it as a non-blocking nudge.
 - `templates/script/framework/agent_pipeline.py`'s `_default_caller()` rewired off a
   hand-rolled `subprocess.run(['claude', '-p', '--output-format', 'json'])` call with
   manual JSON-envelope parsing onto the official `claude-agent-sdk` package

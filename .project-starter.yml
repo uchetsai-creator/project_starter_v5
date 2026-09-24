@@ -52,11 +52,11 @@ test_command:
 
 sprint_sync_stale_days:
 # Optional. Adds an age-based fallback to the Sprint Documentation Sync guard in
-# .githooks/pre-commit. That guard's main trigger is a count — 3 entries in
+# .githooks/pre-push. That guard's main trigger is a count — 3 entries in
 # docs/sprint-change-log.md at "Status: Pending documentation synchronization" — which
 # has a gap: a low-volume/solo project may never accumulate 3 Pending entries, so the
 # count trigger never fires and the backlog can sit indefinitely with only the
-# sprint-doc-sync Skill's non-blocking nudge. When set, a commit is also blocked once
+# sprint-doc-sync Skill's non-blocking nudge. When set, a push to main/master is also blocked once
 # the OLDEST Pending entry's **Date:** field is at least this many days old — even if
 # the count is only 1 or 2. Leave blank to skip this fallback (default — matches prior
 # behavior, count-only).

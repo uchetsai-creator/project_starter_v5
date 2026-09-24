@@ -918,12 +918,13 @@ python3 orchestrator.py --dry-run
      placeholder (`` `docs/[relevant spec]` ``) — reusing the checklist's own checkbox state
      directly rather than adding a separate summary field a task could just as easily mark "done"
      without the items underneath actually being checked off.
-   - `.githooks/pre-commit`'s **Sprint Documentation Sync guard** — same gap for the count trigger
+   - `.githooks/pre-push`'s **Sprint Documentation Sync guard** (moved from pre-commit — a backlog is a
+     handover problem, so commits stay free) — same gap for the count trigger
      in AGENTS.md -> Sprint Documentation Sync: nothing verified the Pending backlog in
      `sprint-change-log.md` was actually synced once it hit 3 entries, so it could grow
      indefinitely with no mechanical backstop, only the `sprint-doc-sync` Skill's nudge. This
-     guard blocks every commit once 3 (or more) entries are at `Status: Pending documentation
-     synchronization`, until Sprint Documentation Sync (`templates/sprint-sync.md`) marks them
+     guard blocks a push to a gated branch (`main`/`master`) once 3 (or more) entries are at `Status: Pending documentation
+     synchronization` (other branches only warn), until Sprint Documentation Sync (`templates/sprint-sync.md`) marks them
      `Documentation synchronized`. The count trigger alone still has a gap for a low-volume/solo
      project that never accumulates 3 Pending entries — `sprint_sync_stale_days` in
      `.project-starter.yml` closes it: when set, the same guard also blocks once the *oldest*
@@ -1352,8 +1353,8 @@ Any AI tool (Claude Code / other / manual)
    — unlike verify_tests.py above, which only checks that test-report.md is filled in
         ↓
  [project_type_confirmed: false in .project-starter.yml]  confirmed yet? ← detect_type.py guess audit (block)
- [sprint-change-log.md: >= 3 entries Pending documentation synchronization]
-   Sprint Documentation Sync run yet? ← Pending-count threshold (block)
+ [pre-push · sprint-change-log.md: >= 3 entries Pending documentation synchronization]
+   Sprint Documentation Sync run yet? ← Pending-count threshold (block a push to main/master)
  [AGENTS.md staged]      line count ≤ 200            ← token budget (block)
  [specs/*.md staged]     changelog.md also staged?   ← audit trail (warn)
  [current-state.md + Status:Complete]  Closeout filled? ← closeout (block)
@@ -1428,7 +1429,17 @@ jobs:
       - env:
           PROJECT_STARTER_DIFF_RANGE: origin/${{ github.base_ref }}...HEAD
         run: bash .githooks/pre-commit
+      - env:                      # the same requirement gate `git push` runs (.githooks/pre-push)
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          git checkout -q --detach "$HEAD_SHA"
+          echo "refs/heads/pr $HEAD_SHA refs/heads/$BASE_REF 0000000000000000000000000000000000000000" | bash .githooks/pre-push
 ```
+The last step is what makes the requirement gate un-skippable: `git push --no-verify` bypasses the local
+`pre-push` hook, but not a required CI check on the PR into `main`. It reads `current-state.md` at the PR head
+and blocks while the requirement is `In Progress`, when `Complete` but `verify_acceptance.py --only` fails, or
+while Sprint Documentation Sync is overdue.
 **Deliberately not auto-installed by `--init`, unlike the pre-commit hook.** A local hook only ever
 affects the person who installed it; a GitHub Actions workflow runs on *every* contributor's PR the
 moment it's merged, whether or not they use this framework or agreed to it — a decision for

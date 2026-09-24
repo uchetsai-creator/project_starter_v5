@@ -101,6 +101,13 @@ if [ -f "$CONFIG" ]; then
                 || ! printf '%s' "$AC_VALUE" | grep -qiE '^Y([^A-Za-z]|$)'; }; then
                 ISSUES+=("$CS_PATH has a real Current Task but Approach Confirmed is still a placeholder or not Y. Explain the approach to the user, propose the breakdown, and once both are confirmed set it to Y (mandatory, no N/A) -- see AGENTS.md -> New requirement from the user.")
             fi
+            # Docs to update: only checked when the line exists; must name project-requirements.md.
+            DU_LINE=$(printf '%s\n' "$CS_CONTENT" | grep -E '^- \*\*Docs to update:\*\*' | head -1 || true)
+            DU_VALUE=$(printf '%s' "$DU_LINE" | sed 's/^- \*\*Docs to update:\*\*[[:space:]]*//; s/[[:space:]]*$//')
+            if [ -n "$DU_LINE" ] && { [ -z "$DU_VALUE" ] || printf '%s' "$DU_VALUE" | grep -qE '^\[' \
+                || ! printf '%s' "$DU_VALUE" | grep -qi 'project-requirements'; }; then
+                ISSUES+=("$CS_PATH has a real Current Task but Approach -> Docs to update is unfilled or does not list project-requirements.md. Agree with the user which spec docs each task updates (guidance/approach-proposal.md) -- see AGENTS.md -> New requirement from the user.")
+            fi
         fi
 
         CS_STATUS=$(printf '%s\n' "$CS_CONTENT" | grep -iE '^\*\*Status:\*\*' | head -1 || true)
@@ -116,10 +123,10 @@ if [ -f "$CONFIG" ]; then
         fi
     fi
 
-    # Sprint Documentation Sync -- also enforced by .githooks/pre-commit (blocking,
-    # working-tree state, same >= 3 threshold), mirrored here as an early warning for
-    # the same reason as the three checks above: a long stretch without a commit means
-    # this would otherwise stay invisible until the next commit finally happens.
+    # Sprint Documentation Sync -- also enforced by .githooks/pre-push (blocking on a push
+    # to a gated branch, same >= 3 threshold), mirrored here as an early warning for
+    # the same reason as the three checks above: a long stretch without a commit or push
+    # means this would otherwise stay invisible until the next push finally happens.
     SPRINT_LOG="${DOCS_PATH}/sprint-change-log.md"
     if [ -f "$SPRINT_LOG" ]; then
         PENDING_COUNT=$(grep -cE '^\*\*Status:\*\* Pending documentation synchronization' "$SPRINT_LOG" || true)

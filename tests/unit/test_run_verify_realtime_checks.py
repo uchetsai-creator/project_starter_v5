@@ -330,3 +330,38 @@ def test_no_current_state_md_does_not_crash(tmp_path):
     result = _run(repo)
     assert result.returncode == 0
     assert result.stdout.strip() == ""
+
+
+def _docs_state(value: str) -> str:
+    return (
+        "**Task:** Build the order API\n\n"
+        "**Clarifying Questions Asked:** Y\n\n"
+        "**Status:** In Progress\n\n"
+        "## Approach\n\n"
+        f"- **Docs to update:** {value}\n"
+    )
+
+
+def test_docs_to_update_placeholder_produces_nudge(tmp_path):
+    repo = _make_repo(tmp_path, current_state_body=_docs_state("[Per task: which spec docs change]"))
+    result = _run(repo)
+    assert result.returncode == 0
+    assert "Docs to update" in _nudge_context(result)
+
+
+def test_docs_to_update_without_project_requirements_produces_nudge(tmp_path):
+    repo = _make_repo(tmp_path, current_state_body=_docs_state("api-contract.md"))
+    assert "Docs to update" in _nudge_context(_run(repo))
+
+
+def test_docs_to_update_filled_does_not_produce_nudge(tmp_path):
+    repo = _make_repo(tmp_path, current_state_body=_docs_state("project-requirements.md, api-contract.md"))
+    result = _run(repo)
+    assert result.returncode == 0
+    assert result.stdout.strip() == ""
+
+
+def test_docs_to_update_line_absent_does_not_produce_nudge(tmp_path):
+    body = "**Task:** Build the order API\n\n**Clarifying Questions Asked:** Y\n\n**Status:** In Progress\n"
+    result = _run(_make_repo(tmp_path, current_state_body=body))
+    assert result.stdout.strip() == ""

@@ -113,6 +113,19 @@ _approach_value_is_valid() {
     printf '%s' "$value" | grep -qiE '^Y([^A-Za-z]|$)'
 }
 
+# Succeeds (exit 0) when current-state.md's "- **Docs to update:**" line (Approach section) is still a
+# placeholder, empty, or does not name project-requirements.md (always on the list -- the
+# Clarifications answers are written back into it). Fails (exit 1) when it is filled OR when the
+# line does not exist (older files are not covered). $1 = file content.
+_docs_to_update_unfilled() {
+    du_line=$(printf '%s\n' "$1" | grep -E '^- \*\*Docs to update:\*\*' | head -1 || true)
+    [ -z "$du_line" ] && return 1
+    du_value=$(printf '%s' "$du_line" | sed 's/^- \*\*Docs to update:\*\*[[:space:]]*//; s/[[:space:]]*$//')
+    case "$du_value" in ""|"["*) return 0 ;; esac
+    printf '%s' "$du_value" | grep -qi 'project-requirements' || return 0
+    return 1
+}
+
 # Lists the categories in current-state.md's "## Clarifications" section the user has not
 # answered: empty, the "[ask the user]" placeholder, or an N/A that is not written as
 # "N/A — user: <reason>" (only the user may skip a category; the agent may not). Prints nothing
@@ -314,66 +327,11 @@ if [ -f "$CONFIG" ] && grep -qE '^project_type_confirmed:[[:space:]]*false' "$CO
     PASS=false
 fi
 
-# ── Sprint Documentation Sync guard ─────────────────────────────────────────────
-# Trigger: docs/sprint-change-log.md has >= 3 entries at
-# "Status: Pending documentation synchronization" (see templates/sprint-sync.md).
-# Catches: the count threshold being crossed without Sprint Documentation Sync actually
-# running — previously pure convention (AGENTS.md -> Sprint Documentation Sync +
-# sprint-doc-sync Skill nudge), nothing verified it happened. Reads the working-tree
-# file directly, like the project_type_confirmed guard above, not staged content —
-# what matters is whether the fix (running the sync, which marks entries "Documentation
-# synchronized") has actually landed on disk, not whether this particular commit is the
-# one that did it. Blocks every commit while the count stays at or above 3, same as
-# project_type_confirmed — a state-of-the-world check, not scoped to what's staged.
-#
-# Age-based fallback (opt-in via sprint_sync_stale_days in .project-starter.yml): the
-# count trigger alone has a gap — a low-volume/solo project may never accumulate 3
-# Pending entries, so the guard above never fires and the backlog can sit indefinitely
-# with only the sprint-doc-sync Skill's non-blocking nudge (see README.md -> Sprint
-# Documentation Sync guard). When sprint_sync_stale_days is set, this also blocks once
-# the OLDEST Pending entry's **Date:** field is at least that many days old, even if
-# the count is only 1 or 2. Leave it blank to skip this fallback (default — matches
-# prior behavior, count-only). Entries are appended in chronological order (see
-# templates/sprint-change-log.md), so the first Pending entry found scanning
-# top-to-bottom is the oldest one still outstanding.
-SPRINT_LOG="${DOCS_PATH}/sprint-change-log.md"
-if [ -f "$SPRINT_LOG" ]; then
-    PENDING_COUNT=$(grep -cE '^\*\*Status:\*\* Pending documentation synchronization' "$SPRINT_LOG" || true)
-    PENDING_COUNT=${PENDING_COUNT:-0}
-    if [ "$PENDING_COUNT" -ge 3 ]; then
-        echo "  [FAIL] $SPRINT_LOG has $PENDING_COUNT entries at 'Pending documentation synchronization' (threshold: 3)."
-        echo "         Run Sprint Documentation Sync (templates/sprint-sync.md) before committing further work —"
-        echo "         see AGENTS.md -> Sprint Documentation Sync."
-        PASS=false
-    elif [ "$PENDING_COUNT" -ge 1 ] && [ -n "$SPRINT_SYNC_STALE_DAYS" ]; then
-        OLDEST_PENDING_DATE=$(awk '
-            /^\*\*Date:\*\*/ { d=$0 }
-            /^\*\*Status:\*\* Pending documentation synchronization/ { print d; exit }
-        ' "$SPRINT_LOG" | sed -E 's/^\*\*Date:\*\* *//' | tr -d '\r')
-        if [ -n "$OLDEST_PENDING_DATE" ]; then
-            STALE_DAYS=$(python3 -c "
-import sys
-from datetime import datetime
-raw = sys.argv[1].strip()
-try:
-    d = datetime.strptime(raw, '%Y-%m-%d')
-except ValueError:
-    print(-1)
-else:
-    print((datetime.now() - d).days)
-" "$OLDEST_PENDING_DATE" 2>/dev/null)
-            STALE_DAYS="${STALE_DAYS//$'\r'/}"
-            STALE_DAYS="${STALE_DAYS:--1}"
-            if [ "$STALE_DAYS" -ge "$SPRINT_SYNC_STALE_DAYS" ]; then
-                echo "  [FAIL] $SPRINT_LOG has $PENDING_COUNT entry(ies) pending — oldest dated $OLDEST_PENDING_DATE"
-                echo "         ($STALE_DAYS days old, threshold: $SPRINT_SYNC_STALE_DAYS days). Below the count"
-                echo "         threshold (3) but stale — run Sprint Documentation Sync before committing further"
-                echo "         work — see AGENTS.md -> Sprint Documentation Sync."
-                PASS=false
-            fi
-        fi
-    fi
-fi
+# ── Sprint Documentation Sync ─────────────────────────────────────────────────────
+# Not checked at commit time: a Pending backlog is a handover problem, so .githooks/pre-push
+# blocks it on a push to a gated branch (main/master) and only warns elsewhere. Committing stays
+# free so work can be saved while sync is pending. (The sprint_sync_stale_days value check above
+# stays here — a malformed config value should fail as early as possible.)
 
 # ── Unscoped source-change guard ───────────────────────────────────────────────
 # Trigger: any staged file that isn't docs/, guidance/, .githooks/, .claude/, .codex/,
@@ -418,6 +376,11 @@ if [ -n "$SOURCE_STAGED" ]; then
         if [ -n "$SCOPE_AC" ] && { printf '%s\n' "$SCOPE_AC" | grep -qE '\[' || ! _approach_value_is_valid "$SCOPE_AC"; }; then
             echo "  [FAIL] Source files staged but Approach Confirmed is unfilled or not Y in $CS_PATH."
             echo "         Explain the approach to the user, then propose the breakdown; once both are confirmed set it to Y (mandatory, no N/A) — see AGENTS.md -> New requirement from the user."
+            PASS=false
+        fi
+        if _docs_to_update_unfilled "$SCOPE_CS_CONTENT"; then
+            echo "  [FAIL] Source files staged but Approach -> Docs to update is unfilled or does not list project-requirements.md in $CS_PATH."
+            echo "         Agree with the user which spec docs each task updates (guidance/approach-proposal.md) and write the list there — see AGENTS.md -> New requirement from the user."
             PASS=false
         fi
     fi
@@ -570,6 +533,11 @@ if [ -n "$CS_FILE" ]; then
         if [ -n "$CS_AC" ] && { printf '%s\n' "$CS_AC" | grep -qE '\[' || ! _approach_value_is_valid "$CS_AC"; }; then
             echo "  [FAIL] current-state.md has a real Current Task but Approach Confirmed is still a placeholder or not Y"
             echo "         Set it to Y once the approach was explained to the user and the breakdown confirmed (mandatory, no N/A; for a task already discussed write \"Y — confirmed when project-plan.md was written\") — see AGENTS.md -> New requirement from the user."
+            PASS=false
+        fi
+        if _docs_to_update_unfilled "$CS_CONTENT"; then
+            echo "  [FAIL] current-state.md has a real Current Task but Approach -> Docs to update is unfilled or does not list project-requirements.md"
+            echo "         Agree with the user which spec docs each task updates (guidance/approach-proposal.md) and write the list there — see AGENTS.md -> New requirement from the user."
             PASS=false
         fi
     fi

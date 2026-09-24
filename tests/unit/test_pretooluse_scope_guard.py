@@ -355,3 +355,51 @@ def test_clarifications_unanswered_still_allows_doc_edits(tmp_path):
     project = _write_project(tmp_path, current_state=_clar_state({"Data": "[ask the user]"}))
     decision, _ = guard.decide(_payload("Edit", "docs/current-state.md"), str(project))
     assert decision == "allow"
+
+
+# --- Approach -> Docs to update: the docs each task updates are agreed with the user when the
+# breakdown is proposed. Only gates when the "- **Docs to update:**" line exists; must name
+# project-requirements.md (always on the list). ---
+
+def _docs_state(value: str) -> str:
+    return _SCOPED_Y + "\n## Approach\n\n- **Breakdown:** 3 tasks\n- **Docs to update:** " + value + "\n"
+
+
+def test_docs_to_update_line_absent_is_allowed(tmp_path):
+    project = _write_project(tmp_path, current_state=_SCOPED_Y + "\n## Approach\n\n- **Breakdown:** 3 tasks\n")
+    decision, _ = guard.decide(_payload("Write", "src/app.py"), str(project))
+    assert decision == "allow"
+
+
+def test_docs_to_update_placeholder_is_denied(tmp_path):
+    project = _write_project(tmp_path, current_state=_docs_state("[Per task: which spec docs change]"))
+    decision, reason = guard.decide(_payload("Write", "src/app.py"), str(project))
+    assert decision == "deny"
+    assert "Docs to update" in reason
+
+
+def test_docs_to_update_empty_is_denied(tmp_path):
+    project = _write_project(tmp_path, current_state=_docs_state(""))
+    decision, _ = guard.decide(_payload("Write", "src/app.py"), str(project))
+    assert decision == "deny"
+
+
+def test_docs_to_update_without_project_requirements_is_denied(tmp_path):
+    project = _write_project(tmp_path, current_state=_docs_state("api-contract.md (new endpoint)"))
+    decision, reason = guard.decide(_payload("Write", "src/app.py"), str(project))
+    assert decision == "deny"
+    assert "project-requirements" in reason
+
+
+def test_docs_to_update_filled_is_allowed(tmp_path):
+    project = _write_project(
+        tmp_path, current_state=_docs_state("task 1: project-requirements.md, api-contract.md; task 2: none"),
+    )
+    decision, _ = guard.decide(_payload("Write", "src/app.py"), str(project))
+    assert decision == "allow"
+
+
+def test_docs_to_update_unfilled_still_allows_doc_edits(tmp_path):
+    project = _write_project(tmp_path, current_state=_docs_state("[placeholder]"))
+    decision, _ = guard.decide(_payload("Edit", "docs/current-state.md"), str(project))
+    assert decision == "allow"

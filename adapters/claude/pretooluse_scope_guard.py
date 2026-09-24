@@ -134,6 +134,18 @@ def unanswered_clarifications(cs_content: str):
     return missing
 
 
+def docs_to_update_unfilled(cs_content: str) -> bool:
+    """True when current-state.md has a `- **Docs to update:**` line (Approach section) that is
+    empty, still the `[...]` placeholder, or does not name project-requirements.md (always on the
+    list -- the Clarifications answers are written back into it). False when the line does not
+    exist, so older current-state.md files are not covered."""
+    m = re.search(r"^- \*\*Docs to update:\*\*[ \t]*(.*)$", cs_content, re.MULTILINE)
+    if m is None:
+        return False
+    value = m.group(1).strip()
+    return not value or value.startswith("[") or "project-requirements" not in value.lower()
+
+
 def _approach_is_valid(value: str) -> bool:
     """Approach Confirmed accepts Y only (optionally followed by what was agreed): the
     discussion with the user is mandatory, so there is no N/A."""
@@ -240,6 +252,16 @@ def decide(payload: dict, cwd: str) -> tuple[str, str]:
             "then propose the task breakdown (current-state.md -> Approach), and wait for "
             "them to confirm or adjust each. The discussion is mandatory -- there is no "
             "N/A. Then set that field to Y -- see AGENTS.md -> New requirement from the user."
+        )
+
+    if docs_to_update_unfilled(cs_content):
+        return "deny", (
+            f"{docs_path}/current-state.md -> Approach -> Docs to update is unfilled or does not "
+            f"list project-requirements.md, and this would write to a source file ({rel_path}). "
+            "When you propose the breakdown, also list which spec docs each task updates "
+            "(candidates from .ai/AI_CONTEXT.md, matched against update_trigger in "
+            "document-registry.yaml; project-requirements.md is always on the list), agree the "
+            "list with the user, and write it there -- see guidance/approach-proposal.md."
         )
 
     return "allow", "current-state.md is scoped"

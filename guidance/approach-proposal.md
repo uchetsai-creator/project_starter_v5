@@ -85,6 +85,7 @@ Other branches only get a warning.
 `adapters/claude/pretooluse_scope_guard.py` and `.githooks/pre-commit` block source changes while a
 real Current Task's `Approach Confirmed` is unfilled or not `Y`. The checks apply when
 `current-state.md` has the field; the template always includes it, so new projects are checked from
-the first task. A `current-state.md` that predates the field must add it to be covered. Like
+the first task. The same hooks also block while `Approach → Docs to update` is empty, still the placeholder,
+or does not name `project-requirements.md`. A `current-state.md` that predates the field must add it to be covered. Like
 `Clarifying Questions Asked`, the check confirms the field was filled — it cannot tell whether the
 conversation really happened.
