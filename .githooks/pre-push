@@ -1,0 +1,112 @@
+#!/usr/bin/env bash
+# project_starter_v5 — requirement gate on `git push`
+#
+# Commits stay cheap: a half-finished requirement can be committed freely (spec and code are
+# legitimately out of step mid-work). Pushing is where work is handed over, so THIS is where a
+# requirement must be finished and verified — pre-commit does not run verify_acceptance.py.
+#
+# Reads docs/current-state.md as it is at the pushed commit. Only applies when the file has a
+# "**Requirement Status:**" field (older files are not covered) and Task is not a placeholder:
+#   In Progress                     -> the requirement is not finished
+#   Complete                        -> runs verify_acceptance.py --only <Requirement IDs> --strict
+#   Descoped — user: <reason>       -> accepted (only the user may abandon a requirement)
+#   anything else / placeholder     -> not accepted
+#
+# Pushes to a gated branch (default: main master; override with push_gate_branches in
+# .project-starter.yml, e.g. "main release") are BLOCKED on any problem. Pushes to other branches
+# only print [WARN], so a work-in-progress branch can still be backed up to the remote.
+#
+# Install (once per project clone; init.py --init does it for you):
+#   cp .githooks/pre-push .git/hooks/pre-push && chmod +x .git/hooks/pre-push
+#
+# Escape hatch: PROJECT_STARTER_SKIP_VERIFY=1 git push  (prints a loud [SKIP] line).
+# `git push --no-verify` skips this hook silently — a local hook can always be bypassed, so back
+# it with CI / branch protection on the gated branch (see README.md).
+
+set -euo pipefail
+
+if [ -n "${PROJECT_STARTER_SKIP_VERIFY:-}" ]; then
+    echo "[SKIP] pre-push: PROJECT_STARTER_SKIP_VERIFY is set — requirement gate skipped for this push."
+    exit 0
+fi
+
+CONFIG=".project-starter.yml"
+PROJECT_TYPE=""
+DOCS_PATH="docs"
+GATE_BRANCHES="main master"
+if [ -f "$CONFIG" ]; then
+    PROJECT_TYPE=$(grep '^project_type:' "$CONFIG" | sed 's/project_type:[[:space:]]*//' | tr -d "\"' " || true)
+    DOCS_CANDIDATE=$(grep '^docs_path:' "$CONFIG" | sed 's/docs_path:[[:space:]]*//' | tr -d "\"' /" || true)
+    [ -n "$DOCS_CANDIDATE" ] && DOCS_PATH="$DOCS_CANDIDATE"
+    GATE_CANDIDATE=$(grep '^push_gate_branches:' "$CONFIG" | sed 's/push_gate_branches:[[:space:]]*//' | tr -d "\"'" | tr ',' ' ' || true)
+    [ -n "$(printf '%s' "$GATE_CANDIDATE" | tr -d ' ')" ] && GATE_BRANCHES="$GATE_CANDIDATE"
+fi
+case "$PROJECT_TYPE" in ""|"["*) exit 0 ;; esac
+
+CS_PATH="${DOCS_PATH}/current-state.md"
+ZERO="0000000000000000000000000000000000000000"
+EXIT=0
+
+# Prints one line per problem with the requirement in current-state.md ($1 = file content).
+# Prints nothing when the requirement is fine or the file is not covered.
+_requirement_problems() {
+    content="$1"
+    task=$(printf '%s\n' "$content" | grep -E '^\*\*Task:\*\*' | head -1 | sed 's/^\*\*Task:\*\*[[:space:]]*//' || true)
+    case "$task" in ""|"["*) return 0 ;; esac
+    status_line=$(printf '%s\n' "$content" | grep -E '^\*\*Requirement Status:\*\*' | head -1 || true)
+    [ -z "$status_line" ] && return 0
+    status=$(printf '%s' "$status_line" | sed 's/^\*\*Requirement Status:\*\*[[:space:]]*//; s/[[:space:]]*$//')
+    ids=$(printf '%s\n' "$content" | grep -E '^\*\*Requirement IDs:\*\*' | head -1 | sed 's/^\*\*Requirement IDs:\*\*[[:space:]]*//; s/[[:space:]]*$//' || true)
+    case "$ids" in "["*) ids="" ;; esac
+
+    if printf '%s' "$status" | grep -qiE '^In Progress'; then
+        echo "Requirement Status is In Progress — finish the requirement (all tasks in Approach -> Breakdown), or, if the user drops it, set 'Descoped — user: <reason>'."
+    elif printf '%s' "$status" | grep -qE '^Complete([^A-Za-z]|$)'; then
+        if [ -z "$ids" ]; then
+            echo "Requirement Status is Complete but Requirement IDs is empty — list the FR-XXX / AC-XXX this requirement added (e.g. FR-012, AC-012)."
+        elif [ ! -f "docs/script/validators/verify_acceptance.py" ]; then
+            echo "[WARN-ONLY] docs/script/validators/verify_acceptance.py not found — acceptance check skipped."
+        else
+            if ! out=$(python3 docs/script/validators/verify_acceptance.py --project-type "$PROJECT_TYPE" --docs "$DOCS_PATH" --only "$ids" --strict 2>&1); then
+                echo "verify_acceptance.py --only $ids failed:"
+                printf '%s\n' "$out" | sed 's/^/    /'
+            fi
+        fi
+    elif printf '%s' "$status" | grep -qE '^Descoped[[:space:]]*(—|–|-)+[[:space:]]*[Uu]ser[[:space:]]*:[[:space:]]*[^[:space:]]'; then
+        return 0
+    else
+        echo "Requirement Status '$status' is a placeholder or not one of: In Progress / Complete / Descoped — user: <reason>."
+    fi
+}
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+    [ -z "${local_sha:-}" ] && continue
+    [ "$local_sha" = "$ZERO" ] && continue   # branch deletion
+    branch="${remote_ref#refs/heads/}"
+    gated=0
+    for b in $GATE_BRANCHES; do [ "$branch" = "$b" ] && gated=1; done
+
+    content=$(git show "${local_sha}:${CS_PATH}" 2>/dev/null || true)
+    [ -z "$content" ] && continue
+    problems=$(_requirement_problems "$content" || true)
+    [ -z "$problems" ] && continue
+
+    if [ "$gated" -eq 1 ]; then tag="[FAIL]"; else tag="[WARN]"; fi
+    printf '%s\n' "$problems" | while IFS= read -r line; do
+        case "$line" in
+            "[WARN-ONLY]"*) echo "  [WARN] pre-push: ${line#\[WARN-ONLY\] }" ;;
+            *) echo "  $tag pre-push ($branch): $line" ;;
+        esac
+    done
+    # WARN-ONLY lines never block; anything else blocks only on a gated branch.
+    if [ "$gated" -eq 1 ] && printf '%s\n' "$problems" | grep -qv '^\[WARN-ONLY\]'; then
+        EXIT=1
+    fi
+done
+
+if [ "$EXIT" -ne 0 ]; then
+    echo ""
+    echo "[FAIL] pre-push: push blocked. A requirement must be Complete and verified (or Descoped by the user)"
+    echo "       before it goes to a gated branch. Push a work-in-progress branch instead, or fix the above."
+fi
+exit "$EXIT"

@@ -152,6 +152,7 @@ def test_init_py_installs_pre_commit_hook_when_dest_is_a_git_repo(tmp_path):
     result = _run_init(dest)
     assert result.returncode == 0, result.stderr
     assert (dest / ".git" / "hooks" / "pre-commit").exists()
+    assert (dest / ".git" / "hooks" / "pre-push").exists()
 
 
 def test_init_py_never_auto_installs_ci_into_github_workflows(tmp_path):

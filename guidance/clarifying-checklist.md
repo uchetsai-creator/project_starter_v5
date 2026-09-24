@@ -57,7 +57,9 @@ confirmed and before coding, and show the user what you wrote:
 | Acceptance criteria | Acceptance Criteria (AC-XXX) |
 | Constraints & trade-offs, Terminology & conventions | Assumptions |
 
-Categories the user skipped (`N/A — user: ...`) write nothing. The `templates/current-state.md`
+Categories the user skipped (`N/A — user: ...`) write nothing. Then list the FR-/AC- ids you just added in
+`current-state.md → Requirement IDs` and keep `Requirement Status` at `In Progress` until the last task in the
+Breakdown is done (`.githooks/pre-push` verifies that requirement before a push to main/master). The `templates/current-state.md`
 Doc Checklist starts with a `project-requirements.md` line for this; check it off (`- [x]`) once
 the spec is updated. Other docs (architecture, API contracts, ...) are still chosen from
 `document-registry.yaml` `update_trigger` as before.

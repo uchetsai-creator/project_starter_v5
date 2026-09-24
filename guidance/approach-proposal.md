@@ -71,6 +71,15 @@ agreed. Accepted forms:
 `N/A` is **not** accepted. For a small change, the conversation can be one sentence to the user —
 but it still happens first.
 
+## Requirement status and the push gate
+
+A requirement is one Clarifications → Approach → Breakdown cycle. `current-state.md → Requirement Status`
+stays `In Progress` while any task in the Breakdown is open; set `Complete` (and fill `Requirement IDs`)
+when the last one is done. Commits are not blocked either way. `.githooks/pre-push` blocks a push to
+`main`/`master` (configurable: `push_gate_branches`) unless the requirement is `Complete` and
+`verify_acceptance.py --only <Requirement IDs>` passes, or the user marked it `Descoped — user: <reason>`.
+Other branches only get a warning.
+
 ## What is enforced
 
 `adapters/claude/pretooluse_scope_guard.py` and `.githooks/pre-commit` block source changes while a

@@ -248,9 +248,19 @@ def init_project(project_type: str, dest: Path) -> None:
         except OSError:
             pass  # chmod bits are meaningless on some filesystems (e.g. certain Windows setups)
         print("[OK] pre-commit hook installed")
+        push_src = dest / ".githooks" / "pre-push"
+        if push_src.exists():
+            push_dst = git_hooks / "pre-push"
+            shutil.copy2(push_src, push_dst)
+            try:
+                push_dst.chmod(push_dst.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+            except OSError:
+                pass
+            print("[OK] pre-push hook installed")
     else:
         print(f"[WARN] {dest} is not a git repository — run git init first, then:")
         print("       cp .githooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit")
+        print("       cp .githooks/pre-push .git/hooks/pre-push && chmod +x .git/hooks/pre-push")
 
     print("\nNext steps:")
     print(f"  cd {dest}")

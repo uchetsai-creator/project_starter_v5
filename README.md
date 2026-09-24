@@ -150,7 +150,8 @@ a human's own decision.
    `.ai/AI_CONTEXT.md` first, follow `AGENTS.md`'s rules as you go, and run the validators listed
    in `.ai/WORKFLOW.md` before closing out the task.
 5. `git commit` — if you used `--init`, the hook is already installed. Otherwise install it once:
-   `cp .githooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit`. It then
+   `cp .githooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit` (and the same for
+   `pre-push`). It then
    blocks every commit where required docs are missing, unfilled, or (if you've configured
    `spec_code_adapter` in `.project-starter.yml`) drifted from the code.
 
@@ -234,7 +235,8 @@ project_starter/                     ← this repo (template only)
 ├── code-quality-check.md            ← code review checklist for retrofitting existing projects
 ├── learning-log.md                  ← personal append-only log for Learning Checkpoint C.4 (teach-back gaps + pattern roster); not part of the document matrix
 ├── .githooks/
-│   └── pre-commit                   ← the hook itself (see Verification below); install via `cp` + `chmod +x`
+│   ├── pre-commit                   ← the hook itself (see Verification below); install via `cp` + `chmod +x`
+│   └── pre-push                     ← requirement gate on `git push` (Requirement Status / verify_acceptance.py --only); `--init` installs it
 ├── .pre-commit-config.yaml          ← optional alternative install path via the pre-commit framework (wraps .githooks/pre-commit, doesn't reimplement it)
 ├── .claude/
 │   ├── settings.json                ← (optional, copy to your project) wires run-verify.sh + stop-hook.sh into Stop, session-start-hook.sh into SessionStart, pretooluse_scope_guard.py into PreToolUse
@@ -1440,7 +1442,21 @@ target repo's Settings → Branches → Branch protection rules.
 `verify_acceptance.py` (FR-XXX → test plan → test report traceability) is **not** part of
 `.githooks/pre-commit` — checking full requirement traceability on every commit would block
 normal mid-sprint work before all FRs have test-report entries. It runs at sprint end instead,
-via the `sprint-end` entry in `workflow-registry.yaml` (see `templates/sprint-sync.md`).
+via the `sprint-end` entry in `workflow-registry.yaml` (see `templates/sprint-sync.md`, Step 4),
+and **per requirement at push time** via `.githooks/pre-push`:
+
+- `docs/current-state.md` has `Requirement IDs` (the FR-/AC- ids one requirement added) and
+  `Requirement Status` (`In Progress` / `Complete` / `Descoped — user: <reason>`). Commit freely while
+  it is `In Progress`.
+- `git push` to a gated branch (`main`/`master`; override with `push_gate_branches:` in
+  `.project-starter.yml`) is blocked unless the requirement is `Complete` and
+  `verify_acceptance.py --only <Requirement IDs> --strict` passes, or the user marked it `Descoped`.
+  Pushes to other branches only print `[WARN]`, so work in progress can still be backed up.
+- `--only` restricts FR/AC coverage to that requirement's ids; AC-XXX must appear in `test-plan.md`'s
+  Test Scope. The test report's `Overall status: Pass` is still whole-project, and the hook reads
+  `current-state.md` at the pushed commit. Older files without `Requirement Status` are not covered.
+- A local hook can always be skipped (`git push --no-verify`); back it with CI or branch protection.
+  `PROJECT_STARTER_SKIP_VERIFY=1 git push` is the loud escape hatch.
 
 **Edge Case traceability (Web App / Microservices, opt-in):** `verify_acceptance.py` also
 cross-references `api-contract.md`'s `## Edge Cases` table against `test-plan.md`'s Test Scope —

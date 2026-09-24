@@ -38,6 +38,17 @@
      while it is unfilled. Like Clarifying Questions Asked, this only checks the field was
      filled, not that a real conversation happened. -->
 
+**Requirement IDs:** [FR-/AC- ids this requirement adds to project-requirements.md, e.g. FR-012, AC-012]
+
+**Requirement Status:** [In Progress / Complete / Descoped — user: reason]
+<!-- One requirement = one Clarifications -> Approach -> Breakdown cycle (several tasks).
+     In Progress: tasks in the Breakdown are still open — commit freely, nothing is verified yet.
+     Complete: set when the LAST task in Approach -> Breakdown is done. `git push` to a gated branch
+     (main/master by default) then runs verify_acceptance.py --only <Requirement IDs> and blocks
+     on failure. Descoped — user: <reason>: the user dropped it (only the user may — the agent may
+     not). Not checked at commit time; enforced by .githooks/pre-push. Older files without this
+     field are not covered. -->
+
 **Status:** In Progress
 <!-- When done: "Complete — Pending Sprint Doc Sync" -->
 
@@ -165,6 +176,7 @@
 
 ## Closeout (when all Steps and Verify are done)
 
+- **Requirement Status**: when this was the LAST task in Approach → Breakdown, set `Requirement Status` → `Complete` (fill `Requirement IDs`); otherwise leave it `In Progress`. `git push` to main/master then verifies that requirement.
 - **Doc Checklist + current-state.md** (1 edit): apply Doc Checklist items above; set Status → `Complete — Pending Sprint Doc Sync`; mark steps `[x]`; promote Next Task → Current Task; update Required Context + Doc Checklist for new task; set Status → `In Progress`
   If this task touched any file outside `docs/`, commit *before* promoting Next Task →
   Current Task, then promote in its own docs-only commit — see `templates/task-completion.md`

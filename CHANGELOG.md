@@ -15,6 +15,14 @@ All notable changes to this framework are documented here. Format loosely follow
 ## [Unreleased]
 
 ### Added
+- Requirement gate on `git push` (`.githooks/pre-push`, installed by `init.py --init`): `current-state.md` gains
+  `Requirement IDs` and `Requirement Status` (`In Progress` / `Complete` / `Descoped — user: <reason>`). Commits are
+  unrestricted; a push to a gated branch (`main`/`master`, override with `push_gate_branches`) is blocked while the
+  requirement is `In Progress`, and when `Complete` must pass `verify_acceptance.py --only <ids> --strict`. Other
+  branches only warn. Reads `current-state.md` at the pushed commit; older files without the field are not covered.
+- `verify_acceptance.py`: AC-XXX traceability (AC ids must appear in test-plan.md's Test Scope; opt-in in a
+  whole-project run once any AC id is referenced) and `--only FR-XXX,AC-XXX` to scope a run to one requirement.
+  The test report's Overall status stays whole-project.
 - Docs to update is part of the breakdown discussion: `templates/current-state.md → Approach` has a
   `Docs to update` field, and `guidance/approach-proposal.md` says how to build it (candidates from
   `.ai/AI_CONTEXT.md`, matched against each doc's `update_trigger` in `document-registry.yaml`, the agent
@@ -74,6 +82,8 @@ All notable changes to this framework are documented here. Format loosely follow
   `test_init_py.py`.
 
 ### Fixed
+- `templates/sprint-sync.md` Step 4 now runs `verify_acceptance.py` (it was in `workflow-registry.yaml`'s `sprint-end`
+  but missing from the sync steps) and no longer says "All four must reach PASS" for a list of six/seven.
 - 17 test files across `tests/unit/` and `tests/contract/` each
   `sys.path.insert(0, .../_spec_code_adapters)` to import a same-named detector module
   (`click.py`, `django.py`, `express.py`, ...) ahead of any real PyPI package sharing that
