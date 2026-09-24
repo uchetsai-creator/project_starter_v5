@@ -76,7 +76,8 @@
   confirmation.
   1. Explain the approach in plain language (what will change, why this way, alternatives,
      risks) — no unexplained jargon; the user must be able to follow it to agree or disagree.
-  2. Only after that is agreed, propose the breakdown — it depends on the chosen approach.
+  2. Only after that is agreed, propose the breakdown — it depends on the chosen approach — together
+     with which spec docs each task will update (from document-registry.yaml `update_trigger`).
   Who to discuss what with: the approach and breakdown decide what ships first and what gets
   cut, so agree them with whoever owns the requirement; deeper technical detail is discussed with
   the people who will build and maintain it. Set Approach Confirmed to Y after both steps.
@@ -86,6 +87,7 @@
 - **Alternatives considered:** [At least one, with the trade-off, wherever there is a real choice]
 - **Risks / unknowns:** [What could go wrong; what to try first (spike) before committing to the plan]
 - **Breakdown:** [Tasks in order, each following the size rules in templates/project-plan.md; mark [P] where no dependency]
+- **Docs to update:** [Per task: which spec docs change and why (matched `update_trigger` in document-registry.yaml; project-requirements.md always) — the user confirms this list; it becomes the Doc Checklist]
 - **Out of scope:** [What this task deliberately does not do]
 
 ---

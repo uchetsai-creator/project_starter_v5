@@ -37,9 +37,20 @@ The breakdown depends on the chosen approach, so it comes second.
 - **Breakdown** — the tasks in order, each within the size rules in `templates/project-plan.md`
   (one-sentence intent, ≤5 steps, ≤3-4 files, independently verifiable), with `[P]` where a task
   has no pending dependency
+- **Docs to update** — for each task, which spec documents will change and why, so the user sees
+  the documentation cost of the split before agreeing to it. Build the list like this:
+  1. Start from the candidates in `.ai/AI_CONTEXT.md` (`python3 build-context.py`) — already filtered
+     by project type and task type from `document-registry.yaml`.
+  2. For each candidate, compare the approach with its `update_trigger` (e.g. architecture: "system
+     components or data-flow changes") and state whether this task hits it. Say which candidates you
+     think are NOT affected and why — the user decides, you do not silently drop them.
+  3. `project-requirements.md` is always on the list (the Clarifications answers are written back —
+     see `clarifying-checklist.md`). Also list files the task adds or removes if a README tree shows them.
+  4. Note which task updates which doc, so each task's Doc Checklist is known up front.
 - **Out of scope** — what this task deliberately does not do
 
-Wait for the user's reply again. Update the section to match what was agreed.
+Wait for the user's reply again. Update the section to match what was agreed — including the docs
+list; the agreed `Docs to update` is what you write into `Doc Checklist` when the task is set up.
 
 ## Who to discuss what with
 

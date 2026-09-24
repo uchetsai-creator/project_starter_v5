@@ -15,6 +15,12 @@ All notable changes to this framework are documented here. Format loosely follow
 ## [Unreleased]
 
 ### Added
+- Docs to update is part of the breakdown discussion: `templates/current-state.md → Approach` has a
+  `Docs to update` field, and `guidance/approach-proposal.md` says how to build it (candidates from
+  `.ai/AI_CONTEXT.md`, matched against each doc's `update_trigger` in `document-registry.yaml`, the agent
+  says which look unaffected and why, the user decides; `project-requirements.md` is always listed). The
+  agreed list is what goes into `Doc Checklist`, so the documentation cost of a split is visible to the
+  user before they agree to it. Not mechanically checked beyond the existing Doc Checklist guard.
 - Clarifications are written back to the spec: `templates/current-state.md` Doc Checklist now starts with a
   `docs/project-requirements.md` item, and `guidance/clarifying-checklist.md` maps each Clarifications category to
   the requirements section it belongs in (scope/roles, FR, NFR, edge cases, AC, assumptions). At closeout,
