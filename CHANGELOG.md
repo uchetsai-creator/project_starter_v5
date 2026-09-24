@@ -15,6 +15,12 @@ All notable changes to this framework are documented here. Format loosely follow
 ## [Unreleased]
 
 ### Added
+- Clarifications are written back to the spec: `templates/current-state.md` Doc Checklist now starts with a
+  `docs/project-requirements.md` item, and `guidance/clarifying-checklist.md` maps each Clarifications category to
+  the requirements section it belongs in (scope/roles, FR, NFR, edge cases, AC, assumptions). At closeout,
+  `.githooks/pre-commit` and `adapters/claude/run-verify.sh` require a *checked* `project-requirements` line in the
+  Doc Checklist whenever `## Clarifications` exists (older files without it are not covered). It confirms the box was
+  ticked, not that the spec text is right.
 - Approach Confirmed stage (mandatory): after clarifying questions and before any code, the agent
   must (1) explain to the user, in plain language, how it plans to implement the task, and only
   after that (2) propose the task breakdown, getting the user's reply to each; both are recorded

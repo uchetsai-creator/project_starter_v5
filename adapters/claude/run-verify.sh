@@ -109,6 +109,10 @@ if [ -f "$CONFIG" ]; then
             if printf '%s\n' "$DOC_CHECKLIST_SECTION" | grep -qE '^- \[ \]|\[relevant spec\]'; then
                 ISSUES+=("$CS_PATH Status is Complete but Doc Checklist has an unchecked item (- [ ]) or the unfilled template placeholder (\`[relevant spec]\`). Apply each item and check it off (- [x]) -- see AGENTS.md -> Closing out a task.")
             fi
+            if printf '%s\n' "$CS_CONTENT" | grep -qE '^## Clarifications[[:space:]]*$' \
+                && ! printf '%s\n' "$DOC_CHECKLIST_SECTION" | grep -qiE '^- \[[xX]\].*project-requirements'; then
+                ISSUES+=("$CS_PATH Status is Complete but the Doc Checklist has no checked project-requirements item. Write the confirmed Clarifications answers back into project-requirements.md and check it off -- see guidance/clarifying-checklist.md -> Writing the answers back to the spec.")
+            fi
         fi
     fi
 

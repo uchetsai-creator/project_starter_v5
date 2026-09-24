@@ -528,6 +528,23 @@ if [ -n "$CS_FILE" ]; then
             echo "         task Complete — see AGENTS.md -> Closing out a task."
             PASS=false
         fi
+
+        # ── Clarifications written back to the spec ─────────────────────────
+        # Trigger: Status Complete AND current-state.md has a "## Clarifications" section.
+        # Catches: answers the user gave during clarification that stayed only in
+        # current-state.md (overwritten at the next task) instead of reaching
+        # project-requirements.md, the spec every later task reads. Only checks that the
+        # Doc Checklist has a CHECKED line naming project-requirements — not that the spec
+        # content is right. Older current-state.md files without the section are not covered.
+        if printf '%s\n' "$CS_CONTENT" | grep -qE '^## Clarifications[[:space:]]*$'; then
+            if ! printf '%s\n' "$DOC_CHECKLIST_SECTION" | grep -qiE '^- \[[xX]\].*project-requirements'; then
+                echo "  [FAIL] current-state.md Status is Complete but the Doc Checklist has no checked"
+                echo "         \`project-requirements\` item — write the confirmed Clarifications answers back into"
+                echo "         project-requirements.md and check that line off (guidance/clarifying-checklist.md ->"
+                echo "         Writing the answers back to the spec)."
+                PASS=false
+            fi
+        fi
     fi
 
     # ── Clarifying Questions Asked guard ────────────────────────────────────

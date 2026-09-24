@@ -42,6 +42,26 @@ coverage taxonomy GitHub Spec Kit's `/speckit.clarify` scans, adapted to this fr
 - Terminology & conventions: "你們平常怎麼稱呼這些東西？有沒有要沿用的既有寫法？"
 - Acceptance criteria: "怎樣才算做完？你會怎麼驗收？有沒有可以測試的具體條件？"
 
+## Writing the answers back to the spec
+
+`current-state.md` is overwritten at the next task, so the answers must land in
+`docs/project-requirements.md` — the spec every later task reads. Do it once the approach is
+confirmed and before coding, and show the user what you wrote:
+
+| Clarifications category | Goes into project-requirements.md |
+|---|---|
+| Goal & scope, Users & permissions | Goals, Scope (In / Out), Roles |
+| Data, Flow & interaction, Integrations | Functional Requirements (FR-XXX) |
+| Non-functional | Non-Functional Requirements |
+| Edge cases & failure handling | Edge Cases |
+| Acceptance criteria | Acceptance Criteria (AC-XXX) |
+| Constraints & trade-offs, Terminology & conventions | Assumptions |
+
+Categories the user skipped (`N/A — user: ...`) write nothing. The `templates/current-state.md`
+Doc Checklist starts with a `project-requirements.md` line for this; check it off (`- [x]`) once
+the spec is updated. Other docs (architecture, API contracts, ...) are still chosen from
+`document-registry.yaml` `update_trigger` as before.
+
 ## What is enforced
 
 `adapters/claude/pretooluse_scope_guard.py` and `.githooks/pre-commit` block source changes while
@@ -50,3 +70,7 @@ or an `N/A` that is not `N/A — user: <reason>`). The check applies when the fi
 `## Clarifications` section — the template always does; an older `current-state.md` must add it to
 be covered. Like every field here, it confirms the lines were filled, not that the conversation
 really happened.
+
+At closeout (Status Complete), pre-commit and `run-verify.sh` additionally require a **checked**
+`project-requirements` line in the Doc Checklist whenever the file has a `## Clarifications`
+section. That confirms the box was ticked, not that the spec text is correct.

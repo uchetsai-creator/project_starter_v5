@@ -137,14 +137,14 @@ If the user describes a new requirement/feature in conversation that is NOT alre
 Current Task in `docs/current-state.md`, do not silently start implementing and do not
 silently write a task breakdown from your own assumptions. Ask clarifying questions first —
 every category of `guidance/clarifying-checklist.md`, answered by the user (say which look less
-relevant, but only the user may skip one) — then, in this order and
-with the user each time: explain in plain language how you plan to implement it, and only after
-that propose the task breakdown (`docs/current-state.md → Approach`); wait for a reply each time
-(silence is not confirmation), then set `Approach Confirmed` to `Y` — mandatory, no N/A; see
-`guidance/approach-proposal.md`. Only then update `docs/project-plan.md` and set
-`docs/current-state.md → Current Task` before "Starting work." Brevity is a prompt to ask, not to
-guess. When you fill in Current Task, also set `Clarifying Questions Asked` to `Y` or `N/A`
-(pre-scoped, or Checkpoint A applied) — pre-commit blocks a real Task left with it unfilled.
+relevant, but only the user may skip one) — then, in this order and with the user each time: explain
+in plain language how you plan to implement it, and only after that propose the task breakdown
+(`docs/current-state.md → Approach`); wait for a reply each time (silence is not confirmation), then
+set `Approach Confirmed` to `Y` — mandatory, no N/A; see `guidance/approach-proposal.md`. Then write
+the confirmed Clarifications back into `docs/project-requirements.md` (`guidance/clarifying-checklist.md`),
+update `docs/project-plan.md` and set `docs/current-state.md → Current Task` before "Starting work."
+Brevity is a prompt to ask, not to guess. When you fill in Current Task, also set
+`Clarifying Questions Asked` to `Y` or `N/A` (pre-scoped, or Checkpoint A applied) — pre-commit blocks a real Task left with it unfilled.
 
 **Resolve project type before any of the above** if `.project-starter.yml`'s `project_type`
 is missing or still `[your-project-type]` — every downstream step (which docs, which

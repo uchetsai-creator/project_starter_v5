@@ -154,6 +154,7 @@
   at once at the end from memory.
 -->
 
+- [ ] `docs/project-requirements.md` — write the confirmed Clarifications back into the spec (scope/users → Goals, Scope, Roles; data/flow/integrations → Functional Requirements; non-functional → Non-Functional Requirements; edge cases → Edge Cases; done means → Acceptance Criteria AC-XXX; terminology/constraints → Assumptions). Keep this line and check it off once written.
 - [ ] `docs/[relevant spec]` — [what to check / update]
 - [ ] `docs/[relevant spec]` — [what to check / update]
 <!-- Add or remove lines. At task completion, run only what is listed here. -->

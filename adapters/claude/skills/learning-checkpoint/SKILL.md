@@ -109,6 +109,8 @@ Trigger: the task is a new feature, or there is no existing code for it yet.
    同意之後，才提出「這個需求要拆成哪幾個 task、什麼順序、哪些先做、哪些不做？」，因為拆分取決於選定的做法，再等一次回應。
    兩段都寫進 `docs/current-state.md → Approach`（Approach / Alternatives / Risks / Breakdown / Out of scope），
    兩段都確認之後，才把 `Approach Confirmed` 設成 `Y`（可以接一句這次談定了什麼）。沉默不算同意。
+   接著把 Clarifications 的答案寫回 `docs/project-requirements.md`（對應表見 `guidance/clarifying-checklist.md`），
+   給使用者看你寫了什麼，再勾掉 Doc Checklist 的那一行；`current-state.md` 下個任務會被覆蓋，答案不寫回 spec 就會消失。
    這一步決定「先交付什麼、砍掉什麼」，要跟需求的擁有者談；更深的技術細節跟實際要做、要維護的人談。
    有兩方想要不同行為時，在這一步談定，不要等其中一種詮釋已經做完才發現。
    已經在寫 `project-plan.md` 時談過的任務，也要填 `Y — confirmed when project-plan.md was written`，不能跳過欄位。
