@@ -27,16 +27,17 @@
      (existing code) applied instead. Fill this in when Task above stops being a placeholder —
      pre-commit blocks the commit if it's still unfilled at that point. -->
 
-**Approach Confirmed:** [Y / N/A — reason]
-<!-- Y: after the clarifying questions above and BEFORE writing code, you presented the proposed
-     task breakdown + implementation approach (see "Approach" below) to the user, and the user
-     confirmed or adjusted it. Clarifying questions settle WHAT is being built; this settles
-     HOW it is split and implemented — two separate conversations.
-     N/A: single obvious change (one file, no real design choice), or the breakdown and approach
-     were already confirmed when project-plan.md was written. Give the reason after the dash.
-     Fill this in when Task above stops being a placeholder — the PreToolUse scope guard and
-     pre-commit both block source changes while it is unfilled. Like Clarifying Questions Asked,
-     this only checks the field was filled, not that a real conversation happened. -->
+**Approach Confirmed:** [Y — what was agreed]
+<!-- Y: BEFORE writing code you (1) explained to the user, in plain language, how you plan to
+     implement this and why, and (2) once that was agreed, proposed how to split it into tasks —
+     and the user confirmed or adjusted both. Mandatory: there is no N/A, whether the task is
+     new, small, or already scoped. A task discussed while project-plan.md was written: write
+     "Y — confirmed when project-plan.md was written". A small change: "Y — <what you told the
+     user and what they said>". Clarifying questions settle WHAT is being built; this settles
+     HOW it is built and split — a separate conversation. Fill this in when Task above stops
+     being a placeholder — the PreToolUse scope guard and pre-commit both block source changes
+     while it is unfilled. Like Clarifying Questions Asked, this only checks the field was
+     filled, not that a real conversation happened. -->
 
 **Status:** In Progress
 <!-- When done: "Complete — Pending Sprint Doc Sync" -->
@@ -46,19 +47,21 @@
 ## Approach
 
 <!--
-  Fill this in BEFORE writing code, show it to the user, and wait for a reply. Propose, don't
-  decide: the user may split it differently, reorder it, pick another option, or cut scope.
-  Who to discuss what with: the breakdown and order decide what ships first and what gets cut,
-  so agree them with whoever owns the requirement; the technical approach is discussed with
-  the people who will build and maintain it — the requester only needs the trade-offs that
-  change time, risk, or cost.
-  Skip the whole section (Approach Confirmed: N/A) for a single obvious change.
+  Two steps, in this order, both with the user. Propose, don't decide: the user may pick another
+  option, reorder, split differently, or cut scope. Wait for a reply each time; silence is not
+  confirmation.
+  1. Explain the approach in plain language (what will change, why this way, alternatives,
+     risks) — no unexplained jargon; the user must be able to follow it to agree or disagree.
+  2. Only after that is agreed, propose the breakdown — it depends on the chosen approach.
+  Who to discuss what with: the approach and breakdown decide what ships first and what gets
+  cut, so agree them with whoever owns the requirement; deeper technical detail is discussed with
+  the people who will build and maintain it. Set Approach Confirmed to Y after both steps.
 -->
 
-- **Breakdown:** [Tasks in order, each following the size rules in templates/project-plan.md; mark [P] where no dependency]
-- **Approach:** [How this task will be implemented, and why this way]
+- **Approach:** [How this will be implemented and why this way — in terms the user can follow]
 - **Alternatives considered:** [At least one, with the trade-off, wherever there is a real choice]
-- **Risks / unknowns:** [What could be wrong; what to try first (spike) before committing to the plan]
+- **Risks / unknowns:** [What could go wrong; what to try first (spike) before committing to the plan]
+- **Breakdown:** [Tasks in order, each following the size rules in templates/project-plan.md; mark [P] where no dependency]
 - **Out of scope:** [What this task deliberately does not do]
 
 ---

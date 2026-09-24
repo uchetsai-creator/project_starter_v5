@@ -893,9 +893,9 @@ python3 orchestrator.py --dry-run
      this list that runs *before* a tool call instead of after. It denies `Edit` / `Write` /
      `MultiEdit` / `NotebookEdit` on any source-like path (not `docs/`, not a framework file)
      whenever `docs/current-state.md` has no scoped `Current Task` or an unfilled/invalid
-     `Clarifying Questions Asked` field (or `Approach Confirmed` field, when the file has one —
-     the proposed breakdown and approach must be shown to the user before code is written;
-     see `guidance/approach-proposal.md`). `.githooks/pre-commit`'s "Unscoped source-change guard"
+     `Clarifying Questions Asked` field (or an `Approach Confirmed` that is not `Y`, when the file
+     has that field — the approach must be explained to the user and the breakdown proposed and
+     confirmed before code is written, no N/A; see `guidance/approach-proposal.md`). `.githooks/pre-commit`'s "Unscoped source-change guard"
      enforces the same rule at commit time as a backstop — this is what actually stops the
      write from happening in the first place instead of only catching it after the fact. Like
      every other gate here, it's optional: without it, "ask before implementing" (AGENTS.md ->
@@ -1356,7 +1356,7 @@ Any AI tool (Claude Code / other / manual)
  [specs/*.md staged]     changelog.md also staged?   ← audit trail (warn)
  [current-state.md + Status:Complete]  Closeout filled? ← closeout (block)
  [current-state.md + real Task]  Clarifying Questions Asked filled? ← Checkpoint B audit trail (block)
- [current-state.md + real Task]  Approach Confirmed filled (if the field exists)? ← breakdown/approach shown to the user (block)
+ [current-state.md + real Task]  Approach Confirmed = Y (if the field exists)? ← approach explained, breakdown confirmed (block)
  [spec-facing doc staged] no Sprint/Task refs         ← writing audience (block)
  [spec_code_* set in .project-starter.yml]
    [spec contract or configured src/ staged]  verify_spec_code.py ← spec↔code drift (block)

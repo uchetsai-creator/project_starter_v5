@@ -219,6 +219,7 @@ _APPROACH_PLACEHOLDER = _SCOPED_Y + "\n**Approach Confirmed:** [Y / N/A — reas
 _APPROACH_INVALID = _SCOPED_Y + "\n**Approach Confirmed:** N\n"
 _APPROACH_Y = _SCOPED_Y + "\n**Approach Confirmed:** Y\n"
 _APPROACH_NA = _SCOPED_Y + "\n**Approach Confirmed:** N/A — single obvious change\n"
+_APPROACH_Y_REASON = _SCOPED_Y + "\n**Approach Confirmed:** Y — approach A chosen; split DB / BE / FE\n"
 
 
 def test_approach_field_absent_is_allowed(tmp_path):
@@ -248,8 +249,15 @@ def test_approach_y_is_allowed(tmp_path):
     assert decision == "allow"
 
 
-def test_approach_na_with_reason_is_allowed(tmp_path):
+def test_approach_na_is_denied_because_the_discussion_is_mandatory(tmp_path):
     project = _write_project(tmp_path, current_state=_APPROACH_NA)
+    decision, reason = guard.decide(_payload("Write", "src/app.py"), str(project))
+    assert decision == "deny"
+    assert "no N/A" in reason
+
+
+def test_approach_y_with_what_was_agreed_is_allowed(tmp_path):
+    project = _write_project(tmp_path, current_state=_APPROACH_Y_REASON)
     decision, _ = guard.decide(_payload("Write", "src/app.py"), str(project))
     assert decision == "allow"
 

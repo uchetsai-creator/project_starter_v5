@@ -1,8 +1,8 @@
 """Tests for the Approach Confirmed guard in .githooks/pre-commit.
 
 Clarifying Questions Asked settles WHAT is being built. Approach Confirmed records that the
-proposed task breakdown and implementation approach were then shown to the user and
-confirmed or adjusted BEFORE any code was written (AGENTS.md -> New requirement from the
+approach was explained to the user and the task breakdown proposed and confirmed BEFORE any
+code was written; it accepts Y only (no N/A -- the discussion is mandatory) (AGENTS.md -> New requirement from the
 user, Learning Checkpoint B item 2). The guard only applies when current-state.md has the
 field, so a current-state.md that predates it is not blocked.
 
@@ -22,7 +22,7 @@ HOOK = REPO_ROOT / ".githooks" / "pre-commit"
 _BASH = find_posix_bash()
 pytestmark = pytest.mark.skipif(_BASH is None, reason="bash not found on PATH")
 
-_MESSAGE = "Approach Confirmed is still a placeholder or not Y/N/A"
+_MESSAGE = "Approach Confirmed is still a placeholder or not Y"
 
 
 def _make_repo(tmp_path: Path, current_state_body: str, staged_source: bool = False) -> Path:
@@ -92,8 +92,14 @@ def test_y_passes(tmp_path):
     assert result.returncode == 0
 
 
-def test_na_with_reason_passes(tmp_path):
+def test_na_is_rejected_because_the_discussion_is_mandatory(tmp_path):
     result = _run_hook(_make_repo(tmp_path, _state("N/A — single obvious change")))
+    assert _MESSAGE in result.stdout
+    assert result.returncode == 1
+
+
+def test_y_with_what_was_agreed_passes(tmp_path):
+    result = _run_hook(_make_repo(tmp_path, _state("Y — confirmed when project-plan.md was written")))
     assert _MESSAGE not in result.stdout
     assert result.returncode == 0
 
@@ -112,7 +118,7 @@ def test_staged_source_with_unfilled_approach_blocks_commit(tmp_path):
     """The unscoped-source guard also checks the field, so it cannot be skipped by
     leaving current-state.md out of the commit."""
     result = _run_hook(_make_repo(tmp_path, _state("[Y / N/A — reason]"), staged_source=True))
-    assert "Source files staged but Approach Confirmed is unfilled" in result.stdout
+    assert "Source files staged but Approach Confirmed is unfilled or not Y" in result.stdout
     assert result.returncode == 1
 
 

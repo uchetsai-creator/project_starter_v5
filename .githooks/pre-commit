@@ -104,12 +104,13 @@ _cqa_value_is_valid() {
     printf '%s' "$value" | grep -qiE '^(Y|N/A)([^A-Za-z]|$)'
 }
 
-# Same vocabulary check for "**Approach Confirmed:**" (Y or N/A). Only called when the
+# Vocabulary check for "**Approach Confirmed:**": Y only (optionally followed by what was
+# agreed) -- the discussion with the user is mandatory, so N/A is not accepted. Only called when the
 # field exists in current-state.md, so a current-state.md that predates the field is not
 # blocked; the template always includes it, so new projects are checked from task one.
 _approach_value_is_valid() {
     value=$(printf '%s' "$1" | sed 's/^\*\*Approach Confirmed:\*\*[[:space:]]*//')
-    printf '%s' "$value" | grep -qiE '^(Y|N/A)([^A-Za-z]|$)'
+    printf '%s' "$value" | grep -qiE '^Y([^A-Za-z]|$)'
 }
 
 # ── Registry schema ───────────────────────────────────────────────────────────
@@ -386,8 +387,8 @@ if [ -n "$SOURCE_STAGED" ]; then
         fi
         SCOPE_AC=$(printf '%s\n' "$SCOPE_CS_CONTENT" | grep -E '^\*\*Approach Confirmed:\*\*' | head -1 || true)
         if [ -n "$SCOPE_AC" ] && { printf '%s\n' "$SCOPE_AC" | grep -qE '\[' || ! _approach_value_is_valid "$SCOPE_AC"; }; then
-            echo "  [FAIL] Source files staged but Approach Confirmed is unfilled or not Y/N/A in $CS_PATH."
-            echo "         Present the proposed breakdown and approach to the user, then set it to Y or N/A — see AGENTS.md -> New requirement from the user."
+            echo "  [FAIL] Source files staged but Approach Confirmed is unfilled or not Y in $CS_PATH."
+            echo "         Explain the approach to the user, then propose the breakdown; once both are confirmed set it to Y (mandatory, no N/A) — see AGENTS.md -> New requirement from the user."
             PASS=false
         fi
     fi
@@ -515,8 +516,8 @@ if [ -n "$CS_FILE" ]; then
         # Approach Confirmed: only checked when the field exists (see _approach_value_is_valid).
         CS_AC=$(printf '%s\n' "$CS_CONTENT" | grep -E '^\*\*Approach Confirmed:\*\*' | head -1 || true)
         if [ -n "$CS_AC" ] && { printf '%s\n' "$CS_AC" | grep -qE '\[' || ! _approach_value_is_valid "$CS_AC"; }; then
-            echo "  [FAIL] current-state.md has a real Current Task but Approach Confirmed is still a placeholder or not Y/N/A"
-            echo "         Set it to Y (breakdown + approach shown to the user and confirmed) or N/A (single obvious change / already confirmed in project-plan.md) — see AGENTS.md -> New requirement from the user."
+            echo "  [FAIL] current-state.md has a real Current Task but Approach Confirmed is still a placeholder or not Y"
+            echo "         Set it to Y once the approach was explained to the user and the breakdown confirmed (mandatory, no N/A; for a task already discussed write \"Y — confirmed when project-plan.md was written\") — see AGENTS.md -> New requirement from the user."
             PASS=false
         fi
     fi

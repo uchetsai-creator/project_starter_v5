@@ -74,7 +74,7 @@ if [ -f "$CS" ]; then
         else
             AC_LINE=$(grep -E '^\*\*Approach Confirmed:\*\*' "$CS" 2>/dev/null | head -1)
             if [ -n "$AC_LINE" ] && echo "$AC_LINE" | grep -qE '\['; then
-                MSG="docs/current-state.md has a real Current Task but Approach Confirmed is unfilled -- before writing code, present the proposed task breakdown and implementation approach (current-state.md -> Approach) to the user, wait for them to confirm or adjust it, then set it to Y (or N/A for a single obvious change). The PreToolUse scope guard and pre-commit block source changes until this is set."
+                MSG="docs/current-state.md has a real Current Task but Approach Confirmed is unfilled -- before writing code, explain to the user in plain language how you plan to implement it, then propose the task breakdown (current-state.md -> Approach), and wait for them to confirm or adjust each. The discussion is mandatory -- there is no N/A. Then set it to Y. The PreToolUse scope guard and pre-commit block source changes until this is set."
             fi
         fi
     fi

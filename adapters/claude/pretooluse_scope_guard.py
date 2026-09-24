@@ -2,8 +2,8 @@
 """PreToolUse hook: blocks Edit / Write / MultiEdit / NotebookEdit on source-like files
 until docs/current-state.md has a real, scoped Current Task with Clarifying Questions
 Asked filled in (Y or N/A) and -- when current-state.md has that field -- Approach
-Confirmed filled in (Y or N/A): the proposed breakdown and implementation approach were
-shown to the user before any code was written.
+Confirmed set to Y (mandatory, no N/A): the implementation approach was explained to the
+user and the task breakdown proposed and confirmed before any code was written.
 
 This is the mechanical counterpart to .githooks/pre-commit's "Unscoped source-change
 guard": that one catches an unscoped implementation at commit time (after the fact);
@@ -107,6 +107,12 @@ def _cqa_is_valid(value: str) -> bool:
     return bool(re.match(r"(?i)^(Y|N/A)([^a-z]|$)", value.strip()))
 
 
+def _approach_is_valid(value: str) -> bool:
+    """Approach Confirmed accepts Y only (optionally followed by what was agreed): the
+    discussion with the user is mandatory, so there is no N/A."""
+    return bool(re.match(r"(?i)^Y([^a-z]|$)", value.strip()))
+
+
 def decide(payload: dict, cwd: str) -> tuple[str, str]:
     """Pure decision function, separated from stdin/stdout plumbing so it's unit
     testable without spawning a subprocess for every case."""
@@ -187,14 +193,15 @@ def decide(payload: dict, cwd: str) -> tuple[str, str]:
     # whose current-state.md predates it keep working; a freshly copied template always has
     # it (as a placeholder), so new projects are gated from the first task.
     ac_match = re.search(r"^\*\*Approach Confirmed:\*\*\s*(.*)$", cs_content, re.MULTILINE)
-    if ac_match is not None and not _cqa_is_valid(ac_match.group(1).strip()):
+    if ac_match is not None and not _approach_is_valid(ac_match.group(1).strip()):
         return "deny", (
             f"{docs_path}/current-state.md has a scoped Current Task, but Approach "
-            f"Confirmed is not Y or N/A yet, and this would write to a source file "
+            f"Confirmed is not Y yet, and this would write to a source file "
             f"({rel_path}). Clarifying questions settle WHAT is being built; before "
-            "coding, present the proposed task breakdown and implementation approach "
-            "(current-state.md -> Approach), wait for the user to confirm or adjust it, "
-            "then set that field -- see AGENTS.md -> New requirement from the user."
+            "coding, explain to the user in plain language how you plan to implement it, "
+            "then propose the task breakdown (current-state.md -> Approach), and wait for "
+            "them to confirm or adjust each. The discussion is mandatory -- there is no "
+            "N/A. Then set that field to Y -- see AGENTS.md -> New requirement from the user."
         )
 
     return "allow", "current-state.md is scoped"

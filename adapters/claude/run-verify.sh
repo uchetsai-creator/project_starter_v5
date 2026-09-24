@@ -79,8 +79,8 @@ if [ -f "$CONFIG" ]; then
             CS_AC=$(printf '%s\n' "$CS_CONTENT" | grep -E '^\*\*Approach Confirmed:\*\*' | head -1 || true)
             AC_VALUE=$(printf '%s' "$CS_AC" | sed 's/^\*\*Approach Confirmed:\*\*[[:space:]]*//')
             if [ -n "$CS_AC" ] && { printf '%s\n' "$CS_AC" | grep -qE '\[' \
-                || ! printf '%s' "$AC_VALUE" | grep -qiE '^(Y|N/A)([^A-Za-z]|$)'; }; then
-                ISSUES+=("$CS_PATH has a real Current Task but Approach Confirmed is still a placeholder or not Y/N/A. Present the proposed breakdown and approach to the user, then set it to Y or N/A -- see AGENTS.md -> New requirement from the user.")
+                || ! printf '%s' "$AC_VALUE" | grep -qiE '^Y([^A-Za-z]|$)'; }; then
+                ISSUES+=("$CS_PATH has a real Current Task but Approach Confirmed is still a placeholder or not Y. Explain the approach to the user, propose the breakdown, and once both are confirmed set it to Y (mandatory, no N/A) -- see AGENTS.md -> New requirement from the user.")
             fi
         fi
 
