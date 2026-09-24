@@ -15,6 +15,9 @@ All notable changes to this framework are documented here. Format loosely follow
 ## [Unreleased]
 
 ### Added
+- `build-context.py` prints each candidate document's `update_trigger` (`update when: ...`) under it in
+  `.ai/AI_CONTEXT.md`, so the breakdown discussion can compare the approach with it without opening
+  `document-registry.yaml`. Golden/snapshot files for build-context were regenerated (only those lines added).
 - The breakdown discussion now covers everything a task changes, not only spec docs: `templates/current-state.md →
   Approach` has five impact lines — `Docs to update`, `Tests to add/update` (names the AC-/FR- ids each test
   covers, or `N/A — user: <reason>`), `Dependencies`, `Config / CI / deploy`, `Per-module docs`. The document
@@ -97,6 +100,15 @@ All notable changes to this framework are documented here. Format loosely follow
   `test_init_py.py`.
 
 ### Fixed
+- 22 `update_trigger` texts in `document-registry.yaml` named only part of what the document's template holds, so
+  comparing a task with the trigger alone missed real updates. Examples: `test-plan` only said "strategy, tool, or CI
+  gate" although new AC/FR tests go into its Test Scope; `project-requirements` omitted scope, roles, non-functional
+  requirements, edge cases and assumptions (where the Clarifications answers are written back); `dependencies` only
+  covered libraries although the template also records external services and infrastructure; `api-contract` omitted
+  error codes and validation rules; `logging-spec` omitted a new module's naming/log file. Also widened: cli-contract,
+  pipeline-contract, llm-contract, model-contract, service-catalog, mobile-contract, data-model, frontend, database,
+  topology, public-api, rag-contract, mcp-contract, release-guide, compatibility-matrix, business-process,
+  business-objects, runbook.
 - `templates/sprint-sync.md` Step 4 now runs `verify_acceptance.py` (it was in `workflow-registry.yaml`'s `sprint-end`
   but missing from the sync steps) and no longer says "All four must reach PASS" for a list of six/seven.
 - 17 test files across `tests/unit/` and `tests/contract/` each

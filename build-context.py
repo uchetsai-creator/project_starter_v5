@@ -82,6 +82,7 @@ def build_context(project_root: Path, task_type_override: str | None = None) -> 
             "key":      key,
             "path":     f"{docs_path}/{meta['path']}",
             "purpose":  meta.get("purpose", ""),
+            "trigger":  meta.get("update_trigger", ""),
             "priority": meta.get("context_priority", "medium"),
         }
         if status == "required":
@@ -123,12 +124,16 @@ def _render(ctx: dict) -> str:
     ]
     for e in ctx["required"]:
         lines.append(f"- {e['path']}   # {e['purpose']}")
+        if e.get("trigger"):
+            lines.append(f"    update when: {e['trigger']}")
 
     if ctx["if_present"]:
         lines.append("")
         lines.append("## Read (If Present)")
         for e in ctx["if_present"]:
             lines.append(f"- {e['path']}   # {e['purpose']}")
+            if e.get("trigger"):
+                lines.append(f"    update when: {e['trigger']}")
 
     if ctx["skipped"]:
         lines.append("")

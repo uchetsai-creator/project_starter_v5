@@ -4,17 +4,27 @@ Generated: {{TIMESTAMP}}
 ## Read (Required)
 - docs/current-state.md   # Active task: goal, steps, and required context
 - docs/project-requirements.md   # Functional requirements (FR-XXX), acceptance criteria (AC-XXX), scope, roles, and non-functional requirements
+    update when: feature added, removed, or acceptance criteria changed; scope, roles, non-functional requirements, edge cases, or assumptions changed
 - docs/architecture/topology.md   # Infrastructure resource topology and environment promotion path
+    update when: infrastructure resource or environment-promotion changes; secrets/credential sources or known constraints changed
 - docs/specs/runbook.md   # Health check commands, rollback procedures, and incident response steps
+    update when: health check command or rollback procedure changed; incident-response steps changed, including for a new resource type
 - docs/specs/drift-policy.md   # Detection cadence, remediation SLA, exempt resources, and approval gate
+    update when: detection cadence, SLA, or exempt resources changed
 - docs/specs/research.md   # Technology decisions and resolved NEEDS CLARIFICATION items
+    update when: technology decision made or clarification resolved
 - docs/specs/quickstart.md   # Prerequisites, environment setup, startup commands, and verification steps
+    update when: prerequisites, setup steps, or verification steps changed
 - docs/specs/test-plan.md   # Testing strategy, tool choices, test levels, CI gate, and test environment
+    update when: testing strategy, tool, or CI gate changed; test scope (tests added for a new FR/AC), test environment, or test data strategy changed
 - docs/specs/test-report.md   # Actual test results, coverage, bugs found, and known gaps
+    update when: test run completed or coverage baseline changed
 
 ## Read (If Present)
 - docs/specs/glossary.md   # Domain terms and abbreviations used across documents
+    update when: domain term added or definition updated
 - docs/specs/dependencies.md   # Third-party libraries, versions, licences, and update policy
+    update when: third-party library, external service, or infrastructure component added, removed, or version changed; external-service fallback behaviour changed
 
 ## Skip
 - docs/architecture/architecture.md

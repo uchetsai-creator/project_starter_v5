@@ -48,7 +48,7 @@ documents:
     pdf_chapter: plan
     audience: internal
     required_sections: ["Functional Requirements", "Acceptance Criteria"]
-    update_trigger: "feature added, removed, or acceptance criteria changed"
+    update_trigger: "feature added, removed, or acceptance criteria changed; scope, roles, non-functional requirements, edge cases, or assumptions changed"
 
   # ── Architecture ──────────────────────────────────────────────────────────────
 
@@ -99,7 +99,7 @@ documents:
     pdf_chapter: design
     audience: external
     required_sections: [Stack, "Page / Screen Structure"]
-    update_trigger: "pages, components, or stack changes"
+    update_trigger: "pages, components, or stack changes; data-fetching or state-management approach, or shared UI standards changed"
 
   database:
     file: database.md
@@ -115,7 +115,7 @@ documents:
     pdf_chapter: design
     audience: external
     required_sections: ["Database Engine", "Main Entities"]
-    update_trigger: "schema or entity changes"
+    update_trigger: "schema or entity changes; database engine, key relationships, or constraints changed"
 
   deployment:
     file: deployment.md
@@ -163,7 +163,7 @@ documents:
     pdf_chapter: design
     audience: external
     required_sections: []
-    update_trigger: "infrastructure resource or environment-promotion changes"
+    update_trigger: "infrastructure resource or environment-promotion changes; secrets/credential sources or known constraints changed"
 
   # ── Specs ─────────────────────────────────────────────────────────────────────
 
@@ -182,7 +182,7 @@ documents:
     pdf_chapter: design
     audience: internal
     required_sections: []
-    update_trigger: "endpoint added, removed, or schema changed"
+    update_trigger: "endpoint added, removed, or schema changed; error codes, validation rules, or WebSocket/GraphQL/gRPC interfaces changed"
 
   cli-contract:
     file: cli-contract.md
@@ -197,7 +197,7 @@ documents:
     pdf_chapter: design
     audience: internal
     required_sections: []
-    update_trigger: "subcommand, flag, or output format changed"
+    update_trigger: "subcommand, flag, or output format changed; exit codes, config file format, or environment variables changed"
 
   public-api:
     file: public-api.md
@@ -212,7 +212,7 @@ documents:
     pdf_chapter: design
     audience: internal
     required_sections: []
-    update_trigger: "public function, class, or type changed"
+    update_trigger: "public function, class, or type changed; public constant added or removed, or a symbol deprecated or removed"
 
   pipeline-contract:
     file: pipeline-contract.md
@@ -228,7 +228,7 @@ documents:
     pdf_chapter: design
     audience: external
     required_sections: []
-    update_trigger: "stage input/output format or naming rule changed"
+    update_trigger: "stage input/output format or naming rule changed; file paths or error-handling policy changed"
 
   pipeline-debug:
     file: pipeline-debug.md
@@ -260,7 +260,7 @@ documents:
     pdf_chapter: design
     audience: internal
     required_sections: ["System Prompt"]
-    update_trigger: "model, system prompt, or parameter changed"
+    update_trigger: "model, system prompt, or parameter changed; tool schemas, context-window strategy, streaming, or retry/fallback behaviour changed"
 
   prompt-library:
     file: prompt-library.md
@@ -338,7 +338,7 @@ documents:
     pdf_chapter: design
     audience: internal
     required_sections: []
-    update_trigger: "retrieval source, chunking strategy, or embedding model changed"
+    update_trigger: "retrieval source, chunking strategy, or embedding model changed; vector store, retrieval flow, or context-injection format changed"
 
   mcp-contract:
     file: mcp-contract.md
@@ -353,7 +353,7 @@ documents:
     pdf_chapter: design
     audience: internal
     required_sections: []
-    update_trigger: "MCP server tool schema or policy changed"
+    update_trigger: "MCP server tool schema or policy changed; a connected server added or removed"
 
   service-catalog:
     file: service-catalog.md
@@ -368,7 +368,7 @@ documents:
     pdf_chapter: design
     audience: internal
     required_sections: []
-    update_trigger: "service added, removed, or port/owner changed"
+    update_trigger: "service added, removed, or port/owner changed; base URL or key service dependencies changed"
 
   service-contract:
     file: service-contract.md
@@ -413,7 +413,7 @@ documents:
     pdf_chapter: design
     audience: internal
     required_sections: [Input, "Output Format"]
-    update_trigger: "input feature schema, output format, or threshold changed"
+    update_trigger: "input feature schema, output format, or threshold changed; model version, training data requirements, or retraining policy changed"
 
   experiment-log:
     file: experiment-log.md
@@ -443,7 +443,7 @@ documents:
     pdf_chapter: deployment
     audience: internal
     required_sections: [Versioning]
-    update_trigger: "versioning policy or publish process changed"
+    update_trigger: "versioning policy or publish process changed; changelog format or deprecation policy changed"
 
   compatibility-matrix:
     file: compatibility-matrix.md
@@ -458,7 +458,7 @@ documents:
     pdf_chapter: deployment
     audience: internal
     required_sections: []
-    update_trigger: "new runtime version tested or support status changed"
+    update_trigger: "new runtime version tested or support status changed; peer dependency ranges or platform/OS support changed"
 
   permissions:
     file: permissions.md
@@ -491,7 +491,7 @@ documents:
     pdf_chapter: design
     audience: internal
     required_sections: []
-    update_trigger: "entity, relationship, index, or state machine changed"
+    update_trigger: "entity, relationship, index, or state machine changed; migration plan or main query patterns changed"
 
   logging-spec:
     file: logging-spec.md
@@ -507,7 +507,7 @@ documents:
     pdf_chapter: deployment
     audience: internal
     required_sections: []
-    update_trigger: "log format, required log points, or trace propagation changed"
+    update_trigger: "log format, required log points, or trace propagation changed; a new module that needs its own module name or log file"
 
   research:
     file: research.md
@@ -554,7 +554,7 @@ documents:
     pdf_chapter: deployment
     audience: internal
     required_sections: []
-    update_trigger: "health check command or rollback procedure changed"
+    update_trigger: "health check command or rollback procedure changed; incident-response steps changed, including for a new resource type"
 
   drift-policy:
     file: drift-policy.md
@@ -585,7 +585,7 @@ documents:
     pdf_chapter: design
     audience: internal
     required_sections: []
-    update_trigger: "screen added, removed, or navigation structure changed"
+    update_trigger: "screen added, removed, or navigation structure changed; deep links, OS permissions, push notification payloads, or store metadata changed"
 
   test-plan:
     file: test-plan.md
@@ -601,7 +601,7 @@ documents:
     pdf_chapter: test
     audience: internal
     required_sections: ["Testing Strategy"]
-    update_trigger: "testing strategy, tool, or CI gate changed"
+    update_trigger: "testing strategy, tool, or CI gate changed; test scope (tests added for a new FR/AC), test environment, or test data strategy changed"
 
   test-report:
     file: test-report.md
@@ -647,7 +647,7 @@ documents:
     pdf_chapter: build
     audience: internal
     required_sections: []
-    update_trigger: "third-party library added, removed, or version changed"
+    update_trigger: "third-party library, external service, or infrastructure component added, removed, or version changed; external-service fallback behaviour changed"
 
   # ── Business ──────────────────────────────────────────────────────────────────
 
@@ -665,7 +665,7 @@ documents:
     pdf_chapter: introduction
     audience: internal
     required_sections: []
-    update_trigger: "workflow step or decision point changed"
+    update_trigger: "workflow step or decision point changed; responsible role, exception, or pain point changed"
 
   business-objects:
     file: business-objects.md
@@ -681,7 +681,7 @@ documents:
     pdf_chapter: introduction
     audience: internal
     required_sections: []
-    update_trigger: "business entity added or relationship changed"
+    update_trigger: "business entity added or relationship changed; lifecycle states or associated business rules changed"
 
   business-rules:
     file: business-rules.md

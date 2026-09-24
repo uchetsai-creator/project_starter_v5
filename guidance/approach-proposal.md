@@ -44,7 +44,9 @@ The breakdown depends on the chosen approach, so it comes second.
        to this project type, **not** filtered by the current task's type. The default `.ai/AI_CONTEXT.md`
        is filtered by the *current* task's type, but a requirement spans several tasks of different
        types (a schema task, an API task, a UI task) — filtering by one of them hides docs the others need.
-     - Compare the approach with each candidate's `update_trigger` in `document-registry.yaml` (e.g.
+     - `build-context.py` prints each candidate's `update_trigger` on an `update when:` line under it
+       (the text comes from `document-registry.yaml`).
+     - Compare the approach with that trigger (e.g.
        architecture: "system components or data-flow changes") and say whether it is hit. Also name the
        candidates you consider NOT affected and why — the user decides; you never silently drop one.
      - A document that does not exist yet but should (e.g. `permissions.md` when roles are added) is
