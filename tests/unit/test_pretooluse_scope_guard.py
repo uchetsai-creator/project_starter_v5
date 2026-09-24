@@ -273,3 +273,85 @@ def test_approach_check_respects_enforcement_off(tmp_path):
     project = _write_project_with_enforcement(tmp_path, "off", current_state=_APPROACH_PLACEHOLDER)
     decision, _ = guard.decide(_payload("Write", "src/app.py"), str(project))
     assert decision == "allow"
+
+
+# --- Clarifications: the USER answers every category; the agent never decides scope. Only
+# gates when current-state.md has a `## Clarifications` section. ---
+
+_CATS = [
+    "Goal & scope", "Users & permissions", "Data", "Flow & interaction",
+    "Edge cases & failure handling",
+    "Non-functional (performance, security, reliability, compliance)",
+    "Integrations & external dependencies", "Constraints & trade-offs",
+    "Terminology & conventions", "Acceptance criteria (done means)",
+]
+
+
+def _clar_state(overrides: dict | None = None, default: str = "answered by the user") -> str:
+    lines = [f"- **{c}:** {(overrides or {}).get(c, default)}" for c in _CATS]
+    return _SCOPED_Y + "\n## Clarifications\n\n" + "\n".join(lines) + "\n\n## Approach\n"
+
+
+def test_clarifications_section_absent_is_allowed(tmp_path):
+    """current-state.md files that predate the section keep working."""
+    project = _write_project(tmp_path, current_state=_SCOPED_Y)
+    decision, _ = guard.decide(_payload("Write", "src/app.py"), str(project))
+    assert decision == "allow"
+
+
+def test_clarifications_all_answered_is_allowed(tmp_path):
+    project = _write_project(tmp_path, current_state=_clar_state())
+    decision, _ = guard.decide(_payload("Write", "src/app.py"), str(project))
+    assert decision == "allow"
+
+
+def test_clarifications_placeholder_is_denied_and_names_the_category(tmp_path):
+    project = _write_project(tmp_path, current_state=_clar_state({"Data": "[ask the user]"}))
+    decision, reason = guard.decide(_payload("Write", "src/app.py"), str(project))
+    assert decision == "deny"
+    assert "Data" in reason
+    assert "only the user may skip" in reason
+
+
+def test_clarifications_empty_answer_is_denied(tmp_path):
+    project = _write_project(tmp_path, current_state=_clar_state({"Users & permissions": ""}))
+    decision, reason = guard.decide(_payload("Write", "src/app.py"), str(project))
+    assert decision == "deny"
+    assert "Users & permissions" in reason
+
+
+def test_clarifications_agent_written_na_is_denied(tmp_path):
+    """The agent may not decide a category is out of scope; N/A must say the user did."""
+    project = _write_project(tmp_path, current_state=_clar_state({"Data": "N/A — not relevant"}))
+    decision, reason = guard.decide(_payload("Write", "src/app.py"), str(project))
+    assert decision == "deny"
+    assert "N/A — user" in reason
+
+
+def test_clarifications_user_na_with_reason_is_allowed(tmp_path):
+    project = _write_project(
+        tmp_path, current_state=_clar_state({"Data": "N/A — user: no data is touched"}),
+    )
+    decision, _ = guard.decide(_payload("Write", "src/app.py"), str(project))
+    assert decision == "allow"
+
+
+def test_clarifications_user_na_without_reason_is_denied(tmp_path):
+    project = _write_project(tmp_path, current_state=_clar_state({"Data": "N/A — user:"}))
+    decision, _ = guard.decide(_payload("Write", "src/app.py"), str(project))
+    assert decision == "deny"
+
+
+def test_clarifications_section_with_no_categories_is_denied(tmp_path):
+    project = _write_project(
+        tmp_path, current_state=_SCOPED_Y + "\n## Clarifications\n\nnothing here\n\n## Approach\n",
+    )
+    decision, _ = guard.decide(_payload("Write", "src/app.py"), str(project))
+    assert decision == "deny"
+
+
+def test_clarifications_unanswered_still_allows_doc_edits(tmp_path):
+    """Answers are recorded in docs/current-state.md itself, so docs must stay editable."""
+    project = _write_project(tmp_path, current_state=_clar_state({"Data": "[ask the user]"}))
+    decision, _ = guard.decide(_payload("Edit", "docs/current-state.md"), str(project))
+    assert decision == "allow"

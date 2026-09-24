@@ -107,6 +107,33 @@ def _cqa_is_valid(value: str) -> bool:
     return bool(re.match(r"(?i)^(Y|N/A)([^a-z]|$)", value.strip()))
 
 
+def unanswered_clarifications(cs_content: str):
+    """Return None when current-state.md has no `## Clarifications` section (older files are
+    not covered), else the list of categories the user has not answered. Answered means not
+    empty, not the `[ask the user]` placeholder, and -- if N/A -- written as
+    `N/A — user: <reason>` (only the user may skip a category; the agent may not)."""
+    m = re.search(r"^## Clarifications[ \t]*$", cs_content, re.MULTILINE)
+    if m is None:
+        return None
+    rest = cs_content[m.end():]
+    nxt = re.search(r"^## ", rest, re.MULTILINE)
+    section = rest[: nxt.start()] if nxt else rest
+    missing, found = [], 0
+    for line in section.splitlines():
+        lm = re.match(r"^- \*\*(.+?):\*\*[ \t]*(.*)$", line)
+        if not lm:
+            continue
+        found += 1
+        name, value = lm.group(1), lm.group(2).strip()
+        if not value or value.lower().startswith("[ask the user"):
+            missing.append(name)
+        elif re.match(r"(?i)^N/A", value) and not re.match(r"(?i)^N/A\s*[—–-]+\s*user\s*:\s*\S", value):
+            missing.append(f"{name} (N/A must be written as 'N/A — user: <their reason>')")
+    if not found:
+        return ["(no categories listed -- restore the Clarifications checklist)"]
+    return missing
+
+
 def _approach_is_valid(value: str) -> bool:
     """Approach Confirmed accepts Y only (optionally followed by what was agreed): the
     discussion with the user is mandatory, so there is no N/A."""
@@ -187,6 +214,17 @@ def decide(payload: dict, cwd: str) -> tuple[str, str]:
             f"Questions Asked is not Y or N/A yet, and this would write to a source "
             f"file ({rel_path}). Confirm scope with the user, then set that field "
             "before implementing -- see AGENTS.md -> New requirement from the user."
+        )
+
+    # Clarifications: the user must have answered every category (only when the section exists).
+    unanswered = unanswered_clarifications(cs_content)
+    if unanswered:
+        return "deny", (
+            f"{docs_path}/current-state.md -> Clarifications still has unanswered categories "
+            f"({'; '.join(unanswered)}), and this would write to a source file ({rel_path}). "
+            "Ask the user every category (guidance/clarifying-checklist.md); you may say which "
+            "look less relevant, but only the user may skip one, recorded as "
+            "'N/A — user: <reason>'."
         )
 
     # Approach Confirmed only gates once the field exists in current-state.md, so projects

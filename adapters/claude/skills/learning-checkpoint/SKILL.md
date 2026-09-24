@@ -99,7 +99,11 @@ fixed it.
 
 Trigger: the task is a new feature, or there is no existing code for it yet.
 
-1. **Clarify the requirement** — "有沒有隱含的邊界情況？什麼情況算做完（驗收標準）？"
+1. **Clarify the requirement — walk the user through every category of `guidance/clarifying-checklist.md`**
+   （目標與範圍、使用者與權限、資料、流程、邊界與失敗、非功能、整合、限制與取捨、名詞與慣例、驗收標準）。
+   每一類都要問、由使用者回答，逐類問到問完，不設題數上限；把 `Q → A` 記進 `docs/current-state.md → Clarifications`。
+   覺得某一類比較不相關，可以說出來並講理由，但**只有使用者能決定跳過**，記成 `N/A — user: <理由>`；
+   不可以替使用者寫 N/A、留空，或用自己的假設填。全部回答完，才能把 `Clarifying Questions Asked` 設成 `Y`。
 2. **Discuss the approach, then the breakdown, with the user before writing code** (use Plan Mode) — **一定要跟使用者談，沒有 N/A**。
    先用使用者聽得懂的話解釋「打算怎麼實作？為什麼選這個做法，還有哪些替代方案、各自的取捨、可能踩到什麼坑？」，等他回應、同意或調整；
    同意之後，才提出「這個需求要拆成哪幾個 task、什麼順序、哪些先做、哪些不做？」，因為拆分取決於選定的做法，再等一次回應。

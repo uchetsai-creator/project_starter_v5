@@ -893,8 +893,8 @@ python3 orchestrator.py --dry-run
      this list that runs *before* a tool call instead of after. It denies `Edit` / `Write` /
      `MultiEdit` / `NotebookEdit` on any source-like path (not `docs/`, not a framework file)
      whenever `docs/current-state.md` has no scoped `Current Task` or an unfilled/invalid
-     `Clarifying Questions Asked` field (or an `Approach Confirmed` that is not `Y`, when the file
-     has that field — the approach must be explained to the user and the breakdown proposed and
+     `Clarifying Questions Asked` field, a `Clarifications` category the user has not answered, or
+     (when the file has those) an `Approach Confirmed` that is not `Y` (the file has that field — the approach must be explained to the user and the breakdown proposed and
      confirmed before code is written, no N/A; see `guidance/approach-proposal.md`). `.githooks/pre-commit`'s "Unscoped source-change guard"
      enforces the same rule at commit time as a backstop — this is what actually stops the
      write from happening in the first place instead of only catching it after the fact. Like

@@ -75,6 +75,25 @@ if [ -f "$CONFIG" ]; then
                 || ! printf '%s' "$CQA_VALUE" | grep -qiE '^(Y|N/A)([^A-Za-z]|$)'; then
                 ISSUES+=("$CS_PATH has a real Current Task but Clarifying Questions Asked is missing, still a placeholder, or not Y/N/A. Set it to Y or N/A -- see AGENTS.md -> New requirement from the user.")
             fi
+            CLAR_MISSING=$(printf '%s\n' "$CS_CONTENT" | awk '
+                /^## Clarifications[ \t]*$/ { p = 1; sec = 1; next }
+                /^## / { p = 0 }
+                p && /^- \*\*.*:\*\*/ {
+                    found = 1
+                    line = $0
+                    name = line; sub(/^- \*\*/, "", name); sub(/:\*\*.*$/, "", name)
+                    val = substr(line, length("- **") + length(name) + length(":**") + 1)
+                    sub(/^[ \t]+/, "", val); sub(/[ \t]+$/, "", val)
+                    bad = 0
+                    if (val == "" || tolower(substr(val, 1, 13)) == "[ask the user") bad = 1
+                    else if (tolower(substr(val, 1, 3)) == "n/a" && val !~ /^[Nn]\/[Aa][ \t]*(—|–|-)+[ \t]*[Uu]ser[ \t]*:[ \t]*[^ \t]/) bad = 1
+                    if (bad) print name
+                }
+                END { if (sec && !found) print "(no categories listed)" }
+            ' | paste -sd ';' - || true)
+            if [ -n "$CLAR_MISSING" ]; then
+                ISSUES+=("$CS_PATH has a real Current Task but Clarifications has unanswered categories: $CLAR_MISSING. Ask the user every category (guidance/clarifying-checklist.md); only the user may skip one, as 'N/A — user: <reason>' -- see AGENTS.md -> New requirement from the user.")
+            fi
             # Approach Confirmed: only checked when the field exists (older current-state.md files skip it).
             CS_AC=$(printf '%s\n' "$CS_CONTENT" | grep -E '^\*\*Approach Confirmed:\*\*' | head -1 || true)
             AC_VALUE=$(printf '%s' "$CS_AC" | sed 's/^\*\*Approach Confirmed:\*\*[[:space:]]*//')

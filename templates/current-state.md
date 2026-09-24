@@ -21,10 +21,9 @@
      Leave as [task-type] placeholder if unknown — script falls back to all Required docs. -->
 
 **Clarifying Questions Asked:** [Y / N/A — reason]
-<!-- Y: this task started from a new user requirement and scope/edge-case/acceptance-criteria
-     questions were asked before implementing (AGENTS.md -> New requirement from the user /
-     Learning Checkpoint B). N/A: task was already scoped in project-plan.md, or Checkpoint A
-     (existing code) applied instead. Fill this in when Task above stops being a placeholder —
+<!-- Y: the user answered every category in "Clarifications" below before implementing
+     (AGENTS.md -> New requirement from the user / Learning Checkpoint B). N/A: task was already
+     scoped in project-plan.md, or Checkpoint A (existing code) applied instead. Fill this in when Task above stops being a placeholder —
      pre-commit blocks the commit if it's still unfilled at that point. -->
 
 **Approach Confirmed:** [Y — what was agreed]
@@ -41,6 +40,31 @@
 
 **Status:** In Progress
 <!-- When done: "Complete — Pending Sprint Doc Sync" -->
+
+---
+
+## Clarifications
+
+<!--
+  The USER answers every line below — you do not decide which categories matter for this task.
+  Walk the user through each category (questions to start from: guidance/clarifying-checklist.md),
+  one category at a time, with as many questions as it takes, and record `Q → A` in the user's own
+  words. If a category looks less relevant, SAY SO and give your reason, but still ask — only the
+  user may skip it, recorded as `N/A — user: <their reason>`. Replace `[ask the user]` only with
+  what the user actually answered. Set Clarifying Questions Asked to Y only when every line is
+  answered. This checks the lines are filled, not that a real conversation happened.
+-->
+
+- **Goal & scope:** [ask the user]
+- **Users & permissions:** [ask the user]
+- **Data:** [ask the user]
+- **Flow & interaction:** [ask the user]
+- **Edge cases & failure handling:** [ask the user]
+- **Non-functional (performance, security, reliability, compliance):** [ask the user]
+- **Integrations & external dependencies:** [ask the user]
+- **Constraints & trade-offs:** [ask the user]
+- **Terminology & conventions:** [ask the user]
+- **Acceptance criteria (done means):** [ask the user]
 
 ---
 

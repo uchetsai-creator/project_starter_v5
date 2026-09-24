@@ -29,6 +29,19 @@ All notable changes to this framework are documented here. Format loosely follow
   `guidance/learning-checkpoints/common.md` (Checkpoint A item 2, Checkpoint B item 2) and its
   `learning-checkpoint` SKILL.md copy point to it. Like Clarifying Questions Asked, the mechanical
   check confirms the field was filled, not that the conversation happened.
+- Fixed clarifying checklist, decided by the user rather than the agent: before implementing, the
+  agent must walk the user through every category of the new `guidance/clarifying-checklist.md`
+  (goal & scope, users & permissions, data, flow & interaction, edge cases & failure handling,
+  non-functional, integrations, constraints & trade-offs, terminology & conventions, acceptance
+  criteria — adapted from the coverage taxonomy GitHub Spec Kit's `/speckit.clarify` scans), one
+  category at a time with no cap on the number of questions, and record `Q → A` in the new
+  `docs/current-state.md → Clarifications` section. The agent may say a category looks less
+  relevant and why, but only the user may skip it, written as `N/A — user: <reason>`; the agent
+  never decides scope. `adapters/claude/pretooluse_scope_guard.py`, `.githooks/pre-commit`
+  (unscoped-source and real-Task guards) and `run-verify.sh` check that every category is answered
+  — when the file has the `## Clarifications` section, so an older `current-state.md` must add it to
+  be covered. Like the other fields, this confirms the lines were filled, not that the conversation
+  happened.
 - Framework-update check: `.project-starter.yml` gained two new optional fields,
   `framework_commit` (the project_starter_v5 SHA a project was scaffolded/last synced
   from — set automatically by `init.py`) and `framework_repo_url` (override for a fork or

@@ -16,8 +16,8 @@ of them. When a task pressures you to bend one of these, stop and ask instead of
   you're at it") — that is a second requirement, not a blanket license; ask which files/
   callers are actually in scope before touching anything beyond the original fix
 - **Unscoped New Requirement** — a new feature/requirement not yet in `docs/current-state.md`:
-  ask scope, edge cases, acceptance criteria, then explain the approach and propose the task
-  breakdown, with the user's confirmation each time, before implementing; never guess (see below)
+  walk the user through the fixed question checklist, then explain the approach and propose the
+  task breakdown, with their confirmation each time, before implementing; never guess (see below)
 - **Type gates documents** — the declared project type decides which documents are required
   vs N/A; never create an N/A document "just in case"
 - **No internal references in spec-facing docs** — no task numbers (Task 22), no sprint
@@ -136,15 +136,15 @@ everything needed to start work and to close out the task when done.
 If the user describes a new requirement/feature in conversation that is NOT already a scoped
 Current Task in `docs/current-state.md`, do not silently start implementing and do not
 silently write a task breakdown from your own assumptions. Ask clarifying questions first —
-scope, edge cases, acceptance criteria (see Learning Checkpoint B below) — then, in this order and
+every category of `guidance/clarifying-checklist.md`, answered by the user (say which look less
+relevant, but only the user may skip one) — then, in this order and
 with the user each time: explain in plain language how you plan to implement it, and only after
 that propose the task breakdown (`docs/current-state.md → Approach`); wait for a reply each time
 (silence is not confirmation), then set `Approach Confirmed` to `Y` — mandatory, no N/A; see
 `guidance/approach-proposal.md`. Only then update `docs/project-plan.md` and set
-`docs/current-state.md → Current Task` before "Starting work." A one-line request is rarely a
-fully-scoped task; treat brevity as a prompt to ask, not to guess. When you fill in Current Task,
-also set `Clarifying Questions Asked` to `Y` or `N/A` (pre-scoped, or Checkpoint A applied) —
-pre-commit blocks a real Task left with this field (or `Approach Confirmed`) unfilled.
+`docs/current-state.md → Current Task` before "Starting work." Brevity is a prompt to ask, not to
+guess. When you fill in Current Task, also set `Clarifying Questions Asked` to `Y` or `N/A`
+(pre-scoped, or Checkpoint A applied) — pre-commit blocks a real Task left with it unfilled.
 
 **Resolve project type before any of the above** if `.project-starter.yml`'s `project_type`
 is missing or still `[your-project-type]` — every downstream step (which docs, which
