@@ -75,6 +75,13 @@ if [ -f "$CONFIG" ]; then
                 || ! printf '%s' "$CQA_VALUE" | grep -qiE '^(Y|N/A)([^A-Za-z]|$)'; then
                 ISSUES+=("$CS_PATH has a real Current Task but Clarifying Questions Asked is missing, still a placeholder, or not Y/N/A. Set it to Y or N/A -- see AGENTS.md -> New requirement from the user.")
             fi
+            # Approach Confirmed: only checked when the field exists (older current-state.md files skip it).
+            CS_AC=$(printf '%s\n' "$CS_CONTENT" | grep -E '^\*\*Approach Confirmed:\*\*' | head -1 || true)
+            AC_VALUE=$(printf '%s' "$CS_AC" | sed 's/^\*\*Approach Confirmed:\*\*[[:space:]]*//')
+            if [ -n "$CS_AC" ] && { printf '%s\n' "$CS_AC" | grep -qE '\[' \
+                || ! printf '%s' "$AC_VALUE" | grep -qiE '^(Y|N/A)([^A-Za-z]|$)'; }; then
+                ISSUES+=("$CS_PATH has a real Current Task but Approach Confirmed is still a placeholder or not Y/N/A. Present the proposed breakdown and approach to the user, then set it to Y or N/A -- see AGENTS.md -> New requirement from the user.")
+            fi
         fi
 
         CS_STATUS=$(printf '%s\n' "$CS_CONTENT" | grep -iE '^\*\*Status:\*\*' | head -1 || true)

@@ -15,6 +15,18 @@ All notable changes to this framework are documented here. Format loosely follow
 ## [Unreleased]
 
 ### Added
+- Approach Confirmed stage: after clarifying questions and before any code, the agent now
+  proposes the task breakdown and implementation approach (`docs/current-state.md → Approach`:
+  breakdown, approach, alternatives considered, risks / unknowns, out of scope), shows it to
+  the user, and waits for confirmation. Clarifying questions settle *what* is built; this settles
+  *how it is split and implemented*. `templates/current-state.md` gained a `Approach Confirmed`
+  field (Y / N/A) and an `Approach` section; `adapters/claude/pretooluse_scope_guard.py`,
+  `.githooks/pre-commit` (unscoped-source and real-Task guards), `run-verify.sh` and
+  `session-start-hook.sh` check the field — only when it exists in `current-state.md`, so files
+  that predate it keep working. Rules and rationale in the new `guidance/approach-proposal.md`;
+  `AGENTS.md`, `guidance/learning-checkpoints/common.md` (Checkpoint A item 2, Checkpoint B
+  item 2) and its `learning-checkpoint` SKILL.md copy point to it. Like Clarifying Questions
+  Asked, the mechanical check confirms the field was filled, not that the conversation happened.
 - Framework-update check: `.project-starter.yml` gained two new optional fields,
   `framework_commit` (the project_starter_v5 SHA a project was scaffolded/last synced
   from — set automatically by `init.py`) and `framework_repo_url` (override for a fork or

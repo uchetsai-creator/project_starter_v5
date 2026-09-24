@@ -210,3 +210,58 @@ def test_end_to_end_denies_unscoped_source_write(tmp_path):
     assert result.returncode == 0
     out = json.loads(result.stdout)
     assert out["hookSpecificOutput"]["permissionDecision"] == "deny"
+
+
+# --- Approach Confirmed: the proposed breakdown/approach must be shown to the user
+# before code is written. Only gates once the field exists in current-state.md. ---
+
+_APPROACH_PLACEHOLDER = _SCOPED_Y + "\n**Approach Confirmed:** [Y / N/A — reason]\n"
+_APPROACH_INVALID = _SCOPED_Y + "\n**Approach Confirmed:** N\n"
+_APPROACH_Y = _SCOPED_Y + "\n**Approach Confirmed:** Y\n"
+_APPROACH_NA = _SCOPED_Y + "\n**Approach Confirmed:** N/A — single obvious change\n"
+
+
+def test_approach_field_absent_is_allowed(tmp_path):
+    """current-state.md files that predate the field keep working."""
+    project = _write_project(tmp_path, current_state=_SCOPED_Y)
+    decision, _ = guard.decide(_payload("Write", "src/app.py"), str(project))
+    assert decision == "allow"
+
+
+def test_approach_placeholder_is_denied(tmp_path):
+    project = _write_project(tmp_path, current_state=_APPROACH_PLACEHOLDER)
+    decision, reason = guard.decide(_payload("Write", "src/app.py"), str(project))
+    assert decision == "deny"
+    assert "Approach Confirmed" in reason
+
+
+def test_approach_invalid_value_is_denied(tmp_path):
+    project = _write_project(tmp_path, current_state=_APPROACH_INVALID)
+    decision, reason = guard.decide(_payload("Write", "src/app.py"), str(project))
+    assert decision == "deny"
+    assert "Approach Confirmed" in reason
+
+
+def test_approach_y_is_allowed(tmp_path):
+    project = _write_project(tmp_path, current_state=_APPROACH_Y)
+    decision, _ = guard.decide(_payload("Write", "src/app.py"), str(project))
+    assert decision == "allow"
+
+
+def test_approach_na_with_reason_is_allowed(tmp_path):
+    project = _write_project(tmp_path, current_state=_APPROACH_NA)
+    decision, _ = guard.decide(_payload("Write", "src/app.py"), str(project))
+    assert decision == "allow"
+
+
+def test_approach_unfilled_still_allows_doc_edits(tmp_path):
+    """The proposal itself lives in docs/current-state.md, so editing docs must stay possible."""
+    project = _write_project(tmp_path, current_state=_APPROACH_PLACEHOLDER)
+    decision, _ = guard.decide(_payload("Edit", "docs/current-state.md"), str(project))
+    assert decision == "allow"
+
+
+def test_approach_check_respects_enforcement_off(tmp_path):
+    project = _write_project_with_enforcement(tmp_path, "off", current_state=_APPROACH_PLACEHOLDER)
+    decision, _ = guard.decide(_payload("Write", "src/app.py"), str(project))
+    assert decision == "allow"

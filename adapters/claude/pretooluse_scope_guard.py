@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """PreToolUse hook: blocks Edit / Write / MultiEdit / NotebookEdit on source-like files
 until docs/current-state.md has a real, scoped Current Task with Clarifying Questions
-Asked filled in (Y or N/A).
+Asked filled in (Y or N/A) and -- when current-state.md has that field -- Approach
+Confirmed filled in (Y or N/A): the proposed breakdown and implementation approach were
+shown to the user before any code was written.
 
 This is the mechanical counterpart to .githooks/pre-commit's "Unscoped source-change
 guard": that one catches an unscoped implementation at commit time (after the fact);
@@ -179,6 +181,20 @@ def decide(payload: dict, cwd: str) -> tuple[str, str]:
             f"Questions Asked is not Y or N/A yet, and this would write to a source "
             f"file ({rel_path}). Confirm scope with the user, then set that field "
             "before implementing -- see AGENTS.md -> New requirement from the user."
+        )
+
+    # Approach Confirmed only gates once the field exists in current-state.md, so projects
+    # whose current-state.md predates it keep working; a freshly copied template always has
+    # it (as a placeholder), so new projects are gated from the first task.
+    ac_match = re.search(r"^\*\*Approach Confirmed:\*\*\s*(.*)$", cs_content, re.MULTILINE)
+    if ac_match is not None and not _cqa_is_valid(ac_match.group(1).strip()):
+        return "deny", (
+            f"{docs_path}/current-state.md has a scoped Current Task, but Approach "
+            f"Confirmed is not Y or N/A yet, and this would write to a source file "
+            f"({rel_path}). Clarifying questions settle WHAT is being built; before "
+            "coding, present the proposed task breakdown and implementation approach "
+            "(current-state.md -> Approach), wait for the user to confirm or adjust it, "
+            "then set that field -- see AGENTS.md -> New requirement from the user."
         )
 
     return "allow", "current-state.md is scoped"

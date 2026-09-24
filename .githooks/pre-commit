@@ -104,6 +104,14 @@ _cqa_value_is_valid() {
     printf '%s' "$value" | grep -qiE '^(Y|N/A)([^A-Za-z]|$)'
 }
 
+# Same vocabulary check for "**Approach Confirmed:**" (Y or N/A). Only called when the
+# field exists in current-state.md, so a current-state.md that predates the field is not
+# blocked; the template always includes it, so new projects are checked from task one.
+_approach_value_is_valid() {
+    value=$(printf '%s' "$1" | sed 's/^\*\*Approach Confirmed:\*\*[[:space:]]*//')
+    printf '%s' "$value" | grep -qiE '^(Y|N/A)([^A-Za-z]|$)'
+}
+
 # ── Registry schema ───────────────────────────────────────────────────────────
 # Trigger: always (registry is the shared dependency of all validators)
 # Catches: malformed project type (webapp vs web-app), missing required fields, bad values
@@ -376,6 +384,12 @@ if [ -n "$SOURCE_STAGED" ]; then
             echo "         Set it to Y or N/A before committing — see AGENTS.md -> New requirement from the user."
             PASS=false
         fi
+        SCOPE_AC=$(printf '%s\n' "$SCOPE_CS_CONTENT" | grep -E '^\*\*Approach Confirmed:\*\*' | head -1 || true)
+        if [ -n "$SCOPE_AC" ] && { printf '%s\n' "$SCOPE_AC" | grep -qE '\[' || ! _approach_value_is_valid "$SCOPE_AC"; }; then
+            echo "  [FAIL] Source files staged but Approach Confirmed is unfilled or not Y/N/A in $CS_PATH."
+            echo "         Present the proposed breakdown and approach to the user, then set it to Y or N/A — see AGENTS.md -> New requirement from the user."
+            PASS=false
+        fi
     fi
 fi
 
@@ -496,6 +510,13 @@ if [ -n "$CS_FILE" ]; then
         if [ -z "$CS_CQA" ] || printf '%s\n' "$CS_CQA" | grep -qE '\[' || ! _cqa_value_is_valid "$CS_CQA"; then
             echo "  [FAIL] current-state.md has a real Current Task but Clarifying Questions Asked is missing, still a placeholder, or not Y/N/A"
             echo "         Set it to Y (asked before implementing) or N/A (pre-scoped task / Checkpoint A applied) — see AGENTS.md -> New requirement from the user."
+            PASS=false
+        fi
+        # Approach Confirmed: only checked when the field exists (see _approach_value_is_valid).
+        CS_AC=$(printf '%s\n' "$CS_CONTENT" | grep -E '^\*\*Approach Confirmed:\*\*' | head -1 || true)
+        if [ -n "$CS_AC" ] && { printf '%s\n' "$CS_AC" | grep -qE '\[' || ! _approach_value_is_valid "$CS_AC"; }; then
+            echo "  [FAIL] current-state.md has a real Current Task but Approach Confirmed is still a placeholder or not Y/N/A"
+            echo "         Set it to Y (breakdown + approach shown to the user and confirmed) or N/A (single obvious change / already confirmed in project-plan.md) — see AGENTS.md -> New requirement from the user."
             PASS=false
         fi
     fi

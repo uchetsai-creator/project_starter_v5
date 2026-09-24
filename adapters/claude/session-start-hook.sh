@@ -71,6 +71,11 @@ if [ -f "$CS" ]; then
         CQA_LINE=$(grep -E '^\*\*Clarifying Questions Asked:\*\*' "$CS" 2>/dev/null | head -1)
         if [ -z "$CQA_LINE" ] || echo "$CQA_LINE" | grep -qE '\['; then
             MSG="docs/current-state.md has a real Current Task but Clarifying Questions Asked is unfilled -- set it to Y (asked before implementing) or N/A (pre-scoped task / Checkpoint A applied) once confirmed. pre-commit blocks the commit until this is set."
+        else
+            AC_LINE=$(grep -E '^\*\*Approach Confirmed:\*\*' "$CS" 2>/dev/null | head -1)
+            if [ -n "$AC_LINE" ] && echo "$AC_LINE" | grep -qE '\['; then
+                MSG="docs/current-state.md has a real Current Task but Approach Confirmed is unfilled -- before writing code, present the proposed task breakdown and implementation approach (current-state.md -> Approach) to the user, wait for them to confirm or adjust it, then set it to Y (or N/A for a single obvious change). The PreToolUse scope guard and pre-commit block source changes until this is set."
+            fi
         fi
     fi
 

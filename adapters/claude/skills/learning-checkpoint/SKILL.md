@@ -14,9 +14,11 @@ conversational — they depend on the agent choosing to follow this file. If
 `adapters/claude/pretooluse_scope_guard.py` is wired into `.claude/settings.json`'s
 `PreToolUse` hook, the same "ask before implementing" rule is also enforced mechanically:
 it blocks `Edit`/`Write`/`MultiEdit`/`NotebookEdit` on source files until `current-state.md`
-has a scoped `Current Task` and a filled `Clarifying Questions Asked` field. That hook is a
+has a scoped `Current Task` and a filled `Clarifying Questions Asked` field (and, when the
+file has it, a filled `Approach Confirmed` field — Checkpoint B item 2). That hook is a
 backstop, not a replacement for actually running the checkpoints below — it can't tell
-whether real questions were asked, only whether the field was filled in.
+whether real questions were asked or a real breakdown/approach was discussed, only whether
+the fields were filled in.
 
 That mechanical backstop is either always-on or fully absent, by default — no per-session
 choice. `.project-starter.yml`'s `checkpoint_enforcement: session-prompt` adds a third
@@ -71,6 +73,9 @@ business meaning — that part is still yours to answer in items 1-4 below.
 
 1. **Read the current state** — "這個功能/模組目前怎麼運作？資料怎麼流進來、處理、流出去？"
 2. **Locate the change** — "這個改動該放在哪個檔案/層？為什麼是這裡？有沒有現成 pattern 可以照抄？"
+   如果改動會碰到不只一個檔案／一層，或放的位置有不只一個合理選項，先把打算的做法與替代方案寫進
+   `docs/current-state.md → Approach`、跟使用者確認後再動手（同 Checkpoint B item 2）；
+   單一明顯的改動可以把 `Approach Confirmed` 填 `N/A — 原因`。
    如果找到現成 pattern，講出它的名字（Adapter / Strategy / Factory / Template Method /
    Registry...），不只是說「跟著抄」——這個名字才是以後看到類似形狀時能認出來的線索。
    叫不出名字也沒關係，但要講清楚「抄的是什麼結構」，而不是抄哪一行程式碼。
@@ -95,7 +100,12 @@ fixed it.
 Trigger: the task is a new feature, or there is no existing code for it yet.
 
 1. **Clarify the requirement** — "有沒有隱含的邊界情況？什麼情況算做完（驗收標準）？"
-2. **Discuss the design before writing code** (use Plan Mode) — "打算怎麼實作？為什麼選這個做法，還有哪些替代方案、各自的取捨？"
+2. **Discuss the breakdown and design before writing code** (use Plan Mode) — first "這個需求打算拆成哪幾個 task、什麼順序、哪些先做？哪些不做？"，再問 "打算怎麼實作？為什麼選這個做法，還有哪些替代方案、各自的取捨？"
+   把提案寫進 `docs/current-state.md → Approach`（Breakdown / Approach / Alternatives considered / Risks / Out of scope），
+   給使用者看，等他確認或調整之後，才把 `Approach Confirmed` 設成 `Y`。拆分與順序決定「先交付什麼、砍掉什麼」，
+   要跟需求的擁有者談定；技術做法跟實際要做、要維護的人談，需求方只需要知道取捨帶來的時程、風險、成本影響。
+   有兩方想要不同行為時，在這一步就要談定，不要等其中一種詮釋已經做完才發現。單一明顯的小改動（一個檔案、沒有真正的
+   設計選擇）可以填 `N/A — 原因`，不用硬做這一步。
    接著問一句具體的：「這個問題的形狀符不符合某個已知 design pattern（Strategy / Factory /
    Adapter / Observer / Template Method / Registry...）？」如果符合，講出名字並說明為什麼適用；
    如果不符合、或符合但現在不值得上（例如只有一個實作、沒有第二個計畫），也講清楚為什麼不用
