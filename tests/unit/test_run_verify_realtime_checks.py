@@ -365,3 +365,26 @@ def test_docs_to_update_line_absent_does_not_produce_nudge(tmp_path):
     body = "**Task:** Build the order API\n\n**Clarifying Questions Asked:** Y\n\n**Status:** In Progress\n"
     result = _run(_make_repo(tmp_path, current_state_body=body))
     assert result.stdout.strip() == ""
+
+
+def test_tests_impact_line_without_ids_produces_nudge(tmp_path):
+    body = _docs_state("project-requirements.md") + "- **Tests to add/update:** some unit tests\n"
+    ctx = _nudge_context(_run(_make_repo(tmp_path, current_state_body=body)))
+    assert "Tests to add/update" in ctx
+
+
+def test_other_impact_line_placeholder_produces_nudge(tmp_path):
+    body = _docs_state("project-requirements.md") + "- **Dependencies:** [none yet]\n"
+    ctx = _nudge_context(_run(_make_repo(tmp_path, current_state_body=body)))
+    assert "Dependencies" in ctx
+
+
+def test_all_impact_lines_filled_does_not_produce_nudge(tmp_path):
+    body = (
+        _docs_state("project-requirements.md")
+        + "- **Tests to add/update:** covers AC-012\n- **Dependencies:** none\n"
+        "- **Config / CI / deploy:** none\n- **Per-module docs:** none\n"
+    )
+    result = _run(_make_repo(tmp_path, current_state_body=body))
+    assert result.returncode == 0
+    assert result.stdout.strip() == ""

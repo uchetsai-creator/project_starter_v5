@@ -134,16 +134,31 @@ def unanswered_clarifications(cs_content: str):
     return missing
 
 
-def docs_to_update_unfilled(cs_content: str) -> bool:
-    """True when current-state.md has a `- **Docs to update:**` line (Approach section) that is
-    empty, still the `[...]` placeholder, or does not name project-requirements.md (always on the
-    list -- the Clarifications answers are written back into it). False when the line does not
-    exist, so older current-state.md files are not covered."""
-    m = re.search(r"^- \*\*Docs to update:\*\*[ \t]*(.*)$", cs_content, re.MULTILINE)
-    if m is None:
-        return False
-    value = m.group(1).strip()
-    return not value or value.startswith("[") or "project-requirements" not in value.lower()
+IMPACT_FIELDS = ("Docs to update", "Tests to add/update", "Dependencies", "Config / CI / deploy", "Per-module docs")
+
+
+def unfilled_impact_fields(cs_content: str) -> list:
+    """Approach lines agreed with the user when the breakdown is proposed: everything each task
+    changes besides code. A line that does not exist is not checked (older current-state.md files
+    are not covered). An existing line must not be empty or the `[...]` placeholder; Docs to update
+    must name project-requirements.md (always on the list); Tests to add/update must name the AC-/FR-
+    ids each test covers, or be `N/A — user: <reason>` (only the user may skip)."""
+    problems = []
+    for name in IMPACT_FIELDS:
+        m = re.search(r"^- \*\*" + re.escape(name) + r":\*\*[ \t]*(.*)$", cs_content, re.MULTILINE)
+        if m is None:
+            continue
+        value = m.group(1).strip()
+        if not value or value.startswith("["):
+            problems.append(name)
+        elif name == "Docs to update" and "project-requirements" not in value.lower():
+            problems.append(name + " (must name project-requirements.md)")
+        elif name == "Tests to add/update" and not (
+            re.search(r"\b(AC|FR)-[A-Za-z0-9]+", value)
+            or re.match(r"(?i)^N/A\s*[—–-]+\s*user\s*:\s*\S", value)
+        ):
+            problems.append(name + " (name the AC-/FR- ids each test covers, or 'N/A — user: <reason>')")
+    return problems
 
 
 def _approach_is_valid(value: str) -> bool:
@@ -254,14 +269,16 @@ def decide(payload: dict, cwd: str) -> tuple[str, str]:
             "N/A. Then set that field to Y -- see AGENTS.md -> New requirement from the user."
         )
 
-    if docs_to_update_unfilled(cs_content):
+    impact = unfilled_impact_fields(cs_content)
+    if impact:
         return "deny", (
-            f"{docs_path}/current-state.md -> Approach -> Docs to update is unfilled or does not "
-            f"list project-requirements.md, and this would write to a source file ({rel_path}). "
-            "When you propose the breakdown, also list which spec docs each task updates "
-            "(candidates from .ai/AI_CONTEXT.md, matched against update_trigger in "
-            "document-registry.yaml; project-requirements.md is always on the list), agree the "
-            "list with the user, and write it there -- see guidance/approach-proposal.md."
+            f"{docs_path}/current-state.md -> Approach has unfilled impact lines: {'; '.join(impact)}, "
+            f"and this would write to a source file ({rel_path}). When you propose the breakdown, also "
+            "agree with the user what each task changes besides code: spec docs (Docs to update -- "
+            "candidates from `python3 build-context.py --task-type sprint-end`, matched against "
+            "update_trigger in document-registry.yaml; project-requirements.md is always on the list), "
+            "tests, dependencies, config/CI/deploy, and per-module docs -- see "
+            "guidance/approach-proposal.md."
         )
 
     return "allow", "current-state.md is scoped"

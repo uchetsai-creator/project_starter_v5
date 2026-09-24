@@ -139,7 +139,7 @@ silently write a task breakdown from your own assumptions. Ask clarifying questi
 every category of `guidance/clarifying-checklist.md`, answered by the user (say which look less
 relevant, but only the user may skip one) — then, in this order and with the user each time: explain
 in plain language how you plan to implement it, and only after that propose the task breakdown
-and the spec docs each task updates (`docs/current-state.md → Approach`); wait for a reply each time (silence is not confirmation), then
+and what each task changes besides code — docs, tests, dependencies, config (`docs/current-state.md → Approach`); wait for a reply each time (silence is not confirmation), then
 set `Approach Confirmed` to `Y` — mandatory, no N/A; see `guidance/approach-proposal.md`. Then write
 the confirmed Clarifications back into `docs/project-requirements.md` (`guidance/clarifying-checklist.md`),
 update `docs/project-plan.md` and set `docs/current-state.md → Current Task` before "Starting work."
@@ -168,7 +168,7 @@ current-state.md is a state machine with two fields:
 - **Next Task** → pre-filled when current task was set up; becomes the new Current Task on closeout
 
 **When setting up a new Current Task** (not at closeout):
-- Write the user-confirmed `Approach → Docs to update` into `docs/current-state.md → Doc Checklist`.
+- Write the user-confirmed `Approach → Docs to update` into `docs/current-state.md → Doc Checklist`; the tests / dependencies / config items become steps.
 - Do not re-open AGENTS.md at task closeout — the filtered list in current-state.md is sufficient.
 - If the task adds or removes files, add any ASCII file-tree diagrams in README.md (or equivalent docs) to the Doc Checklist — update the tree to reflect the new layout.
 - If the task goal involves debugging a failure or investigating unexpected output, add the relevant debug guide to Required Context:

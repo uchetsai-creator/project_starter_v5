@@ -403,3 +403,51 @@ def test_docs_to_update_unfilled_still_allows_doc_edits(tmp_path):
     project = _write_project(tmp_path, current_state=_docs_state("[placeholder]"))
     decision, _ = guard.decide(_payload("Edit", "docs/current-state.md"), str(project))
     assert decision == "allow"
+
+
+# --- The other Approach impact lines: tests, dependencies, config / CI / deploy, per-module docs ---
+
+def _impact_state(extra: str) -> str:
+    return _docs_state("project-requirements.md, api-contract.md") + extra
+
+
+def test_tests_line_placeholder_is_denied(tmp_path):
+    project = _write_project(tmp_path, current_state=_impact_state("- **Tests to add/update:** [per task]\n"))
+    decision, reason = guard.decide(_payload("Write", "src/app.py"), str(project))
+    assert decision == "deny"
+    assert "Tests to add/update" in reason
+
+
+def test_tests_line_without_ids_is_denied(tmp_path):
+    project = _write_project(tmp_path, current_state=_impact_state("- **Tests to add/update:** some unit tests\n"))
+    decision, reason = guard.decide(_payload("Write", "src/app.py"), str(project))
+    assert decision == "deny"
+    assert "AC-/FR-" in reason
+
+
+def test_tests_line_naming_ids_is_allowed(tmp_path):
+    project = _write_project(tmp_path, current_state=_impact_state("- **Tests to add/update:** test_export covers AC-012\n"))
+    decision, _ = guard.decide(_payload("Write", "src/app.py"), str(project))
+    assert decision == "allow"
+
+
+def _sub(tmp_path, name):
+    d = tmp_path / name
+    d.mkdir()
+    return d
+
+
+def test_tests_line_user_na_is_allowed_but_agent_na_is_denied(tmp_path):
+    ok = _write_project(_sub(tmp_path, "a"), current_state=_impact_state("- **Tests to add/update:** N/A — user: docs only\n"))
+    assert guard.decide(_payload("Write", "src/app.py"), str(ok))[0] == "allow"
+    bad = _write_project(_sub(tmp_path, "b"), current_state=_impact_state("- **Tests to add/update:** N/A — not needed\n"))
+    assert guard.decide(_payload("Write", "src/app.py"), str(bad))[0] == "deny"
+
+
+def test_other_impact_lines_placeholder_is_denied_and_none_is_allowed(tmp_path):
+    for i, field in enumerate(("Dependencies", "Config / CI / deploy", "Per-module docs")):
+        bad = _write_project(_sub(tmp_path, f"bad{i}"), current_state=_impact_state(f"- **{field}:** [x]\n"))
+        decision, reason = guard.decide(_payload("Write", "src/app.py"), str(bad))
+        assert decision == "deny" and field in reason
+        ok = _write_project(_sub(tmp_path, f"ok{i}"), current_state=_impact_state(f"- **{field}:** none\n"))
+        assert guard.decide(_payload("Write", "src/app.py"), str(ok))[0] == "allow"

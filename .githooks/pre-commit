@@ -113,17 +113,28 @@ _approach_value_is_valid() {
     printf '%s' "$value" | grep -qiE '^Y([^A-Za-z]|$)'
 }
 
-# Succeeds (exit 0) when current-state.md's "- **Docs to update:**" line (Approach section) is still a
-# placeholder, empty, or does not name project-requirements.md (always on the list -- the
-# Clarifications answers are written back into it). Fails (exit 1) when it is filled OR when the
-# line does not exist (older files are not covered). $1 = file content.
-_docs_to_update_unfilled() {
-    du_line=$(printf '%s\n' "$1" | grep -E '^- \*\*Docs to update:\*\*' | head -1 || true)
-    [ -z "$du_line" ] && return 1
-    du_value=$(printf '%s' "$du_line" | sed 's/^- \*\*Docs to update:\*\*[[:space:]]*//; s/[[:space:]]*$//')
-    case "$du_value" in ""|"["*) return 0 ;; esac
-    printf '%s' "$du_value" | grep -qi 'project-requirements' || return 0
-    return 1
+# Lists the Approach impact lines in current-state.md that are not filled in: everything each task
+# changes besides code, agreed with the user when the breakdown is proposed. A line that does not
+# exist is not checked (older files are not covered). An existing line must not be empty or the
+# "[...]" placeholder; Docs to update must name project-requirements.md; Tests to add/update must
+# name the AC-/FR- ids each test covers, or be "N/A — user: <reason>". $1 = file content.
+_impact_unfilled() {
+    for f in "Docs to update" "Tests to add/update" "Dependencies" "Config / CI / deploy" "Per-module docs"; do
+        line=$(printf '%s\n' "$1" | awk -v p="- **$f:**" 'index($0, p) == 1 { print; exit }')
+        [ -z "$line" ] && continue
+        value=${line#"- **$f:**"}
+        value=$(printf '%s' "$value" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
+        case "$value" in
+            ""|"["*) echo "$f"; continue ;;
+        esac
+        if [ "$f" = "Docs to update" ]; then
+            printf '%s' "$value" | grep -qi 'project-requirements' || echo "$f (must name project-requirements.md)"
+        elif [ "$f" = "Tests to add/update" ]; then
+            printf '%s' "$value" | grep -qE '(AC|FR)-[A-Za-z0-9]+' \
+                || printf '%s' "$value" | grep -qiE '^N/A[[:space:]]*(—|–|-)+[[:space:]]*user[[:space:]]*:[[:space:]]*[^[:space:]]' \
+                || echo "$f (name the AC-/FR- ids each test covers, or 'N/A — user: <reason>')"
+        fi
+    done
 }
 
 # Lists the categories in current-state.md's "## Clarifications" section the user has not
@@ -378,9 +389,10 @@ if [ -n "$SOURCE_STAGED" ]; then
             echo "         Explain the approach to the user, then propose the breakdown; once both are confirmed set it to Y (mandatory, no N/A) — see AGENTS.md -> New requirement from the user."
             PASS=false
         fi
-        if _docs_to_update_unfilled "$SCOPE_CS_CONTENT"; then
-            echo "  [FAIL] Source files staged but Approach -> Docs to update is unfilled or does not list project-requirements.md in $CS_PATH."
-            echo "         Agree with the user which spec docs each task updates (guidance/approach-proposal.md) and write the list there — see AGENTS.md -> New requirement from the user."
+        SCOPE_IMPACT=$(_impact_unfilled "$SCOPE_CS_CONTENT" | paste -sd ';' - || true)
+        if [ -n "$SCOPE_IMPACT" ]; then
+            echo "  [FAIL] Source files staged but Approach impact lines are unfilled in $CS_PATH: $SCOPE_IMPACT"
+            echo "         Agree with the user what each task changes besides code — docs, tests, dependencies, config, per-module docs (guidance/approach-proposal.md) — see AGENTS.md -> New requirement from the user."
             PASS=false
         fi
     fi
@@ -535,9 +547,10 @@ if [ -n "$CS_FILE" ]; then
             echo "         Set it to Y once the approach was explained to the user and the breakdown confirmed (mandatory, no N/A; for a task already discussed write \"Y — confirmed when project-plan.md was written\") — see AGENTS.md -> New requirement from the user."
             PASS=false
         fi
-        if _docs_to_update_unfilled "$CS_CONTENT"; then
-            echo "  [FAIL] current-state.md has a real Current Task but Approach -> Docs to update is unfilled or does not list project-requirements.md"
-            echo "         Agree with the user which spec docs each task updates (guidance/approach-proposal.md) and write the list there — see AGENTS.md -> New requirement from the user."
+        CS_IMPACT=$(_impact_unfilled "$CS_CONTENT" | paste -sd ';' - || true)
+        if [ -n "$CS_IMPACT" ]; then
+            echo "  [FAIL] current-state.md has a real Current Task but Approach impact lines are unfilled: $CS_IMPACT"
+            echo "         Agree with the user what each task changes besides code — docs, tests, dependencies, config, per-module docs (guidance/approach-proposal.md) — see AGENTS.md -> New requirement from the user."
             PASS=false
         fi
     fi

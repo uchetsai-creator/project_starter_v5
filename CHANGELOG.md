@@ -15,6 +15,15 @@ All notable changes to this framework are documented here. Format loosely follow
 ## [Unreleased]
 
 ### Added
+- The breakdown discussion now covers everything a task changes, not only spec docs: `templates/current-state.md →
+  Approach` has five impact lines — `Docs to update`, `Tests to add/update` (names the AC-/FR- ids each test
+  covers, or `N/A — user: <reason>`), `Dependencies`, `Config / CI / deploy`, `Per-module docs`. The document
+  candidates come from `build-context.py --task-type sprint-end` (every doc for the project type, not filtered by
+  one task's type, since a requirement spans several task types) and must also list docs that should exist but
+  do not yet. The scope guard, `.githooks/pre-commit` (both source guards) and `run-verify.sh` block while an
+  existing impact line is empty/placeholder, `Docs to update` omits project-requirements.md, or `Tests to
+  add/update` names no id. Only lines that exist are checked; it checks the lines were written, not that the user
+  agreed. Supersedes the single `Docs to update` guard.
 - CI backstop for the requirement gate: `templates/ci/github-actions-verify.yml` gains a "Run pre-push requirement
   gate" step that feeds `.githooks/pre-push` the PR head commit and base branch, so `git push --no-verify` cannot
   bypass it (pair it with branch protection, see README.md).

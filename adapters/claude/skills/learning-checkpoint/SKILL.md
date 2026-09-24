@@ -107,9 +107,12 @@ Trigger: the task is a new feature, or there is no existing code for it yet.
 2. **Discuss the approach, then the breakdown, with the user before writing code** (use Plan Mode) — **一定要跟使用者談，沒有 N/A**。
    先用使用者聽得懂的話解釋「打算怎麼實作？為什麼選這個做法，還有哪些替代方案、各自的取捨、可能踩到什麼坑？」，等他回應、同意或調整；
    同意之後，才提出「這個需求要拆成哪幾個 task、什麼順序、哪些先做、哪些不做？」，因為拆分取決於選定的做法，再等一次回應。
-   拆分時一併列出「每個 task 會更新哪些 spec 文件、為什麼」：從 `.ai/AI_CONTEXT.md` 的候選清單出發，逐一對照
-   `document-registry.yaml` 的 `update_trigger`，說明哪些會被動到、哪些覺得不受影響（理由），由使用者決定；
-   `project-requirements.md` 一定在清單上。談定的清單就是之後寫進 Doc Checklist 的內容（`Approach → Docs to update`）。
+   拆分時一併列出「每個 task 除了程式碼還會動到什麼」，寫進 Approach 的五行：`Docs to update`（要更新哪些 spec 文件、為什麼）、
+   `Tests to add/update`（要新增／修改哪些測試、各對應哪個 AC-/FR- 編號）、`Dependencies`（套件與依賴檔）、
+   `Config / CI / deploy`（設定、migration、CI、部署檔）、`Per-module docs`（模組 flow／log 檔、索引表、README 檔案樹）。
+   文件的候選清單用 `python3 build-context.py --task-type sprint-end`（不受當前任務類型過濾，因為一個 requirement 會跨好幾種 task），
+   逐一對照 `document-registry.yaml` 的 `update_trigger`，說明哪些會被動到、哪些覺得不受影響（理由），還沒存在但該建立的文件也要列，
+   由使用者決定；`project-requirements.md` 一定在清單上。談定的文件清單就是之後寫進 Doc Checklist 的內容，其餘幾行變成對應 task 的步驟。
    兩段都寫進 `docs/current-state.md → Approach`（Approach / Alternatives / Risks / Breakdown / Out of scope），
    兩段都確認之後，才把 `Approach Confirmed` 設成 `Y`（可以接一句這次談定了什麼）。沉默不算同意。
    接著把 Clarifications 的答案寫回 `docs/project-requirements.md`（對應表見 `guidance/clarifying-checklist.md`），

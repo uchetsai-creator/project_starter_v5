@@ -1,8 +1,9 @@
-"""Tests for the Approach -> Docs to update guard in .githooks/pre-commit.
+"""Tests for the Approach impact-lines guard in .githooks/pre-commit.
 
-When the breakdown is proposed, the docs each task updates are agreed with the user and written to
-"- **Docs to update:**" in current-state.md's Approach section. It must be filled and name
-project-requirements.md (always on the list). Only applies when the line exists, so older files
+When the breakdown is proposed, everything each task changes besides code is agreed with the user and
+written to lines in current-state.md's Approach section: Docs to update (must name
+project-requirements.md), Tests to add/update (must name AC-/FR- ids or be "N/A — user: <reason>"),
+Dependencies, Config / CI / deploy, Per-module docs. Only lines that exist are checked, so older files
 are not blocked. Runs the real bash script against a minimal isolated git repo.
 """
 import subprocess
@@ -18,7 +19,7 @@ HOOK = REPO_ROOT / ".githooks" / "pre-commit"
 _BASH = find_posix_bash()
 pytestmark = pytest.mark.skipif(_BASH is None, reason="bash not found on PATH")
 
-_MESSAGE = "Docs to update is unfilled or does not list project-requirements.md"
+_MESSAGE = "Approach impact lines are unfilled"
 
 
 def _state(value: str | None, task: str = "Build the order API") -> str:
@@ -97,5 +98,68 @@ def test_staged_source_with_unfilled_list_blocks_commit(tmp_path):
     """The unscoped-source guard also checks it, so leaving current-state.md out of the
     commit is not a way around agreeing the docs with the user."""
     result = _run_hook(_make_repo(tmp_path, _state("[placeholder]"), staged_source=True))
-    assert "Source files staged but Approach -> Docs to update is unfilled" in result.stdout
+    assert "Source files staged but Approach impact lines are unfilled" in result.stdout
     assert result.returncode == 1
+
+
+# --- The other impact lines: tests, dependencies, config, per-module docs ---
+
+def _lines(extra: str = "") -> str:
+    return (
+        "## Current Task\n\n**Task:** Build the order API\n\n**Clarifying Questions Asked:** Y\n\n"
+        "## Approach\n\n- **Docs to update:** project-requirements.md, api-contract.md\n"
+        + extra
+    )
+
+
+def _tests_state(value: str) -> str:
+    return _lines(f"- **Tests to add/update:** {value}\n")
+
+
+def test_tests_placeholder_blocks_commit(tmp_path):
+    result = _run_hook(_make_repo(tmp_path, _tests_state("[Per task: which tests]")))
+    assert _MESSAGE in result.stdout and "Tests to add/update" in result.stdout
+    assert result.returncode == 1
+
+
+def test_tests_without_ac_or_fr_ids_blocks_commit(tmp_path):
+    result = _run_hook(_make_repo(tmp_path, _tests_state("add some unit tests")))
+    assert "Tests to add/update (name the AC-/FR- ids" in result.stdout
+    assert result.returncode == 1
+
+
+def test_tests_naming_ac_ids_passes(tmp_path):
+    result = _run_hook(_make_repo(tmp_path, _tests_state("task 1: test_export_403 covers AC-012")))
+    assert _MESSAGE not in result.stdout
+    assert result.returncode == 0
+
+
+def test_tests_user_na_with_reason_passes(tmp_path):
+    result = _run_hook(_make_repo(tmp_path, _tests_state("N/A — user: docs-only change")))
+    assert _MESSAGE not in result.stdout
+    assert result.returncode == 0
+
+
+def test_tests_agent_written_na_blocks_commit(tmp_path):
+    result = _run_hook(_make_repo(tmp_path, _tests_state("N/A — not needed")))
+    assert _MESSAGE in result.stdout
+    assert result.returncode == 1
+
+
+@pytest.mark.parametrize("field", ["Dependencies", "Config / CI / deploy", "Per-module docs"])
+def test_other_impact_lines_must_be_filled(tmp_path, field):
+    result = _run_hook(_make_repo(tmp_path, _lines(f"- **{field}:** [placeholder]\n")))
+    assert _MESSAGE in result.stdout and field in result.stdout
+    assert result.returncode == 1
+
+
+@pytest.mark.parametrize("field", ["Dependencies", "Config / CI / deploy", "Per-module docs"])
+def test_other_impact_lines_accept_none(tmp_path, field):
+    result = _run_hook(_make_repo(tmp_path, _lines(f"- **{field}:** none\n")))
+    assert _MESSAGE not in result.stdout
+    assert result.returncode == 0
+
+
+def test_several_unfilled_lines_are_all_listed(tmp_path):
+    result = _run_hook(_make_repo(tmp_path, _lines("- **Dependencies:** [x]\n- **Per-module docs:** [y]\n")))
+    assert "Dependencies" in result.stdout and "Per-module docs" in result.stdout

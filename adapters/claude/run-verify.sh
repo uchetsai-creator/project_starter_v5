@@ -39,6 +39,26 @@ run_validator() {
     printf ']\n'
 } > "logs/verify-${STAMP}.json" 2>/dev/null || true
 
+# Approach impact lines that are not filled in (same rules as .githooks/pre-commit's helper).
+_impact_unfilled() {
+    for f in "Docs to update" "Tests to add/update" "Dependencies" "Config / CI / deploy" "Per-module docs"; do
+        line=$(printf '%s\n' "$1" | awk -v p="- **$f:**" 'index($0, p) == 1 { print; exit }')
+        [ -z "$line" ] && continue
+        value=${line#"- **$f:**"}
+        value=$(printf '%s' "$value" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
+        case "$value" in
+            ""|"["*) echo "$f"; continue ;;
+        esac
+        if [ "$f" = "Docs to update" ]; then
+            printf '%s' "$value" | grep -qi 'project-requirements' || echo "$f (must name project-requirements.md)"
+        elif [ "$f" = "Tests to add/update" ]; then
+            printf '%s' "$value" | grep -qE '(AC|FR)-[A-Za-z0-9]+' \
+                || printf '%s' "$value" | grep -qiE '^N/A[[:space:]]*(—|–|-)+[[:space:]]*user[[:space:]]*:[[:space:]]*[^[:space:]]' \
+                || echo "$f (name the AC-/FR- ids each test covers, or 'N/A — user: <reason>')"
+        fi
+    done
+}
+
 # ── Real-time gate checks (no git commit dependency) ───────────────────────
 # project_type_confirmed / Clarifying Questions Asked / Doc Checklist completeness /
 # Sprint Documentation Sync / verify_docs+logs+tests+content --strict failures are
@@ -101,12 +121,11 @@ if [ -f "$CONFIG" ]; then
                 || ! printf '%s' "$AC_VALUE" | grep -qiE '^Y([^A-Za-z]|$)'; }; then
                 ISSUES+=("$CS_PATH has a real Current Task but Approach Confirmed is still a placeholder or not Y. Explain the approach to the user, propose the breakdown, and once both are confirmed set it to Y (mandatory, no N/A) -- see AGENTS.md -> New requirement from the user.")
             fi
-            # Docs to update: only checked when the line exists; must name project-requirements.md.
-            DU_LINE=$(printf '%s\n' "$CS_CONTENT" | grep -E '^- \*\*Docs to update:\*\*' | head -1 || true)
-            DU_VALUE=$(printf '%s' "$DU_LINE" | sed 's/^- \*\*Docs to update:\*\*[[:space:]]*//; s/[[:space:]]*$//')
-            if [ -n "$DU_LINE" ] && { [ -z "$DU_VALUE" ] || printf '%s' "$DU_VALUE" | grep -qE '^\[' \
-                || ! printf '%s' "$DU_VALUE" | grep -qi 'project-requirements'; }; then
-                ISSUES+=("$CS_PATH has a real Current Task but Approach -> Docs to update is unfilled or does not list project-requirements.md. Agree with the user which spec docs each task updates (guidance/approach-proposal.md) -- see AGENTS.md -> New requirement from the user.")
+            # Approach impact lines (docs, tests, dependencies, config, per-module docs): only the lines
+            # that exist are checked -- see _impact_unfilled above.
+            CS_IMPACT=$(_impact_unfilled "$CS_CONTENT" | paste -sd ';' - || true)
+            if [ -n "$CS_IMPACT" ]; then
+                ISSUES+=("$CS_PATH has a real Current Task but Approach impact lines are unfilled: $CS_IMPACT. Agree with the user what each task changes besides code (docs, tests, dependencies, config, per-module docs) -- see guidance/approach-proposal.md.")
             fi
         fi
 
