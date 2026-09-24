@@ -483,7 +483,7 @@ def run_audit(project_types: list[str], docs_path: str, only: str | None = None)
     ac_ids = declared_ac_ids(docs_path)
 
     scoped = only is not None
-    if scoped:
+    if only is not None:
         only_fr, only_ac, bad = parse_only(only)
         if not (only_fr or only_ac) and not bad:
             all_issues.append('--only lists no requirement ids (expected e.g. FR-012,AC-012)')
