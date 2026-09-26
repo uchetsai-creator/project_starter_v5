@@ -207,11 +207,36 @@ def _build_pairs(removed: list[dict], added: list[dict]) -> list[dict]:
     ]
 
 
+_VERDICT_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'verdicts': {
+            'type': 'array',
+            'items': {
+                'type': 'object',
+                'properties': {
+                    'spec_field': {'type': 'string'},
+                    'code_field': {'type': 'string'},
+                    'verdict': {'type': 'string', 'enum': ['likely_same', 'different', 'uncertain']},
+                    'reasoning': {'type': 'string'},
+                },
+                'required': ['spec_field', 'code_field', 'verdict', 'reasoning'],
+                'additionalProperties': False,
+            },
+        },
+    },
+    'required': ['verdicts'],
+    'additionalProperties': False,
+}
+
+
 def _ask_llm(client, item_label: str, pairs: list[dict]) -> tuple[list[dict], dict]:
     """Send field-name pairs to Claude and parse verdicts from the response.
 
-    Returns (verdicts, usage) — usage is {} on failure so the caller never accounts
-    for tokens on a call that didn't actually happen.
+    The reply format is enforced by structured outputs (_VERDICT_SCHEMA) rather than
+    by asking for JSON in the prompt. Returns (verdicts, usage) — usage is {} only when
+    the request itself failed; a completed call's tokens are always reported, even if
+    its reply turns out to be unusable.
     """
     pairs_text = '\n'.join(
         f"  - spec: {p['spec_field']}: {p['spec_type'] or '(no type)'}  "
@@ -223,17 +248,9 @@ def _ask_llm(client, item_label: str, pairs: list[dict]) -> tuple[list[dict], di
         "the structural validator flagged these field name differences:\n\n"
         f"{pairs_text}\n\n"
         "For each pair, decide if the spec field and code field represent the "
-        "SAME concept (renamed/refactored) or DIFFERENT concepts.\n\n"
-        "Respond with a JSON array, one object per pair, in the same order:\n"
-        "[\n"
-        "  {\n"
-        '    "spec_field": "<name>",\n'
-        '    "code_field": "<name>",\n'
-        '    "verdict": "likely_same" | "different" | "uncertain",\n'
-        '    "reasoning": "<one sentence>"\n'
-        "  }\n"
-        "]\n\n"
-        "Return only valid JSON — no markdown fences, no extra text."
+        "SAME concept (renamed/refactored) or DIFFERENT concepts. Use 'uncertain' "
+        "when the names alone are not enough to tell. Return one verdict per pair, "
+        "in the same order, with a one-sentence reasoning."
     )
 
     try:
@@ -241,16 +258,27 @@ def _ask_llm(client, item_label: str, pairs: list[dict]) -> tuple[list[dict], di
             model=_SEMANTIC_MODEL,
             max_tokens=1024,
             messages=[{'role': 'user', 'content': prompt}],
+            output_config={'format': {'type': 'json_schema', 'schema': _VERDICT_SCHEMA}},
         )
-        raw = response.content[0].text.strip()
-        llm_results = json.loads(raw)
-        usage = {
-            'input_tokens': getattr(response.usage, 'input_tokens', 0),
-            'output_tokens': getattr(response.usage, 'output_tokens', 0),
-        }
     except Exception as exc:  # noqa: BLE001
         print(f"[WARN] Semantic LLM call failed for '{item_label}': {exc}")
         return [], {}
+
+    usage = {
+        'input_tokens': getattr(response.usage, 'input_tokens', 0),
+        'output_tokens': getattr(response.usage, 'output_tokens', 0),
+    }
+    if response.stop_reason != 'end_turn':
+        # max_tokens -> reply cut off mid-JSON; refusal -> no verdicts at all.
+        print(f"[WARN] Semantic LLM call for '{item_label}' stopped early "
+              f"(stop_reason={response.stop_reason}) — skipping this item.")
+        return [], usage
+    try:
+        text = next(b.text for b in response.content if b.type == 'text')
+        llm_results = json.loads(text)['verdicts']
+    except (StopIteration, ValueError, KeyError) as exc:
+        print(f"[WARN] Semantic LLM reply for '{item_label}' could not be read: {exc}")
+        return [], usage
 
     verdicts = []
     for i, lr in enumerate(llm_results):
@@ -398,11 +426,13 @@ if __name__ == '__main__':
 
     class _MockContent:
         def __init__(self, text):
+            self.type = 'text'
             self.text = text
 
     class _MockResponse:
         def __init__(self, text, in_tok, out_tok):
             self.content = [_MockContent(text)]
+            self.stop_reason = 'end_turn'
             self.usage = SimpleNamespace(input_tokens=in_tok, output_tokens=out_tok)
 
     class _MockMessages:
@@ -413,9 +443,9 @@ if __name__ == '__main__':
 
         def create(self, **kwargs):  # noqa: ARG002
             self.calls += 1
-            verdict_json = json.dumps([
+            verdict_json = json.dumps({'verdicts': [
                 {'spec_field': 'x', 'code_field': 'y', 'verdict': 'likely_same', 'reasoning': 'r'},
-            ])
+            ]})
             return _MockResponse(verdict_json, self._in_tok, self._out_tok)
 
     class _MockClient:
