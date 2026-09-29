@@ -41,7 +41,7 @@ _SKILL_DIRS = [
     "retrofit-existing-project",
     "code-quality-check",
     "module-completion-check",
-    "sprint-doc-sync",
+    "milestone-doc-sync",
     "learning-checkpoint",
     "task-closeout",
     "research-decision-log",

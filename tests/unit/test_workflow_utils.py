@@ -50,21 +50,21 @@ def test_reads_bracketed_real_value(tmp_path):
 def test_override_wins_over_everything(tmp_path):
     f = tmp_path / "current-state.md"
     f.write_text("**Task Type:** bug-fix\n")
-    cfg = {"task_type": "sprint-end"}
+    cfg = {"task_type": "milestone-end"}
     assert _resolve_task_type(cfg, f, "feature") == "feature"
 
 
 def test_current_state_wins_over_yml(tmp_path):
     f = tmp_path / "current-state.md"
     f.write_text("**Task Type:** pipeline-stage\n")
-    cfg = {"task_type": "sprint-end"}
+    cfg = {"task_type": "milestone-end"}
     assert _resolve_task_type(cfg, f, None) == "pipeline-stage"
 
 
 def test_yml_fallback_when_no_state(tmp_path):
     f = tmp_path / "current-state.md"  # does not exist
-    cfg = {"task_type": "sprint-end"}
-    assert _resolve_task_type(cfg, f, None) == "sprint-end"
+    cfg = {"task_type": "milestone-end"}
+    assert _resolve_task_type(cfg, f, None) == "milestone-end"
 
 
 def test_all_none_returns_none(tmp_path):

@@ -16,7 +16,7 @@ no gap. The point is a personal roster of patterns you can recognize on sight, b
 across tasks instead of forgotten between them.
 
 **Review cadence** — every 3rd entry, stop and re-read the previous ones before
-continuing (same trigger count `sprint-change-log.md` uses for Sprint Documentation
+continuing (same trigger count `milestone-change-log.md` uses for Milestone Documentation
 Sync, applied here to recall instead of doc sync). Pick one older entry, and check
 whether you can now explain it without looking at the notes. Mark it below if you can.
 

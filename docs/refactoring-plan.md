@@ -30,7 +30,7 @@ Derived from `docs/architecture-analysis.md`. Addresses Problems 1–5 in three 
 
 ## ✅ Phase 2 — Workflow State Extraction (Complete)
 
-**Goal:** Extract the task-state machine (current-state.md, sprint-change-log.md, task-log.md update rules) from AGENTS.md prose into a structured `workflow-state.yaml`. AI agents read the YAML instead of parsing natural-language rules.
+**Goal:** Extract the task-state machine (current-state.md, milestone-change-log.md, task-log.md update rules) from AGENTS.md prose into a structured `workflow-state.yaml`. AI agents read the YAML instead of parsing natural-language rules.
 
 **Status:** `workflow-registry.yaml` exists at the repo root and captures workflow step definitions. The `workflow-state.yaml` task-lifecycle state machine is tracked as **ROADMAP Phase 64** (`replaces_for` registry field) where remaining work lives.
 
@@ -47,7 +47,7 @@ Derived from `docs/architecture-analysis.md`. Addresses Problems 1–5 in three 
 
 ### Migration strategy
 
-1. Extract closeout rules, Doc Checklist trigger table, and sprint-sync procedure from AGENTS.md
+1. Extract closeout rules, Doc Checklist trigger table, and milestone-sync procedure from AGENTS.md
 2. Encode them in `workflow-state.yaml`
 3. Update `build-context.py` to include relevant workflow rules in `.ai/AI_CONTEXT.md`
 4. Manually test one full task cycle (start → closeout) with the new files before removing AGENTS.md prose

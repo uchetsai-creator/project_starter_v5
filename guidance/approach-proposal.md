@@ -40,7 +40,7 @@ The breakdown depends on the chosen approach, so it comes second.
 - **Impact lines** — for each task, everything it changes besides code, so the user sees the full cost of
   the split before agreeing to it. Five lines in `current-state.md → Approach`, all filled with the user:
   1. **Docs to update** — which spec documents change and why.
-     - Candidates: `python3 build-context.py --task-type sprint-end`. That is every document that applies
+     - Candidates: `python3 build-context.py --task-type milestone-end`. That is every document that applies
        to this project type, **not** filtered by the current task's type. The default `.ai/AI_CONTEXT.md`
        is filtered by the *current* task's type, but a requirement spans several tasks of different
        types (a schema task, an API task, a UI task) — filtering by one of them hides docs the others need.
@@ -64,7 +64,7 @@ The breakdown depends on the chosen approach, so it comes second.
   5. **Per-module docs** — modules that need a new or changed flow file and log file, index tables
      (`business-objects`, `business-process`, `prompt-library`) to update, README file trees when files
      are added or removed; or `none`. `verify_module_docs.py` and `verify_index_coverage.py` catch these
-     only at Sprint Documentation Sync; naming them up front avoids finding out later.
+     only at Milestone Documentation Sync; naming them up front avoids finding out later.
 - **Out of scope** — what this task deliberately does not do
 
 Wait for the user's reply again. Update the section to match what was agreed — including the impact

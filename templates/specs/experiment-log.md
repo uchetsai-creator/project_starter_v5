@@ -5,7 +5,7 @@
   Purpose: Records each training experiment — hypothesis, config, results, and decision.
            One entry per experiment run. Newest entry at the top.
   Update when: A training run is completed.
-  This is NOT a sprint-change-log. sprint-change-log tracks code changes; this tracks model behaviour.
+  This is NOT a milestone-change-log. milestone-change-log tracks code changes; this tracks model behaviour.
 -->
 
 ## Log Format

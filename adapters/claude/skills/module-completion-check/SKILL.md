@@ -31,9 +31,9 @@ Creating these files mid-module causes repeated read/write cycles during review.
        generates its own diagram file (named by title slug). All are picked up automatically
        by build_pdf.py — no extra configuration needed.
     4. Rebuild the PDF only if ANY of the following conditions are met:
-       - This is a Sprint Documentation Sync (always rebuild at sprint end), OR
+       - This is a Milestone Documentation Sync (always rebuild at milestone end), OR
        - 3 or more diagram blocks (plantuml) have changed since the last PDF build.
-       If neither condition is met, skip the PDF rebuild — it will happen at sprint end.
+       If neither condition is met, skip the PDF rebuild — it will happen at milestone end.
 
        When rebuilding:
        `python3 docs/script/generators/build_pdf.py docs --lang en -o docs/project-documentation-en.pdf`

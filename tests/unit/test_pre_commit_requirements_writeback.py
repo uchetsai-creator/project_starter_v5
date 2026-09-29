@@ -29,7 +29,7 @@ def _state(checklist: str, clarifications: bool = True) -> str:
     body = (
         "## Current Task\n\n**Task:** Build the order API\n\n"
         "**Clarifying Questions Asked:** Y\n\n"
-        "**Status:** Complete — Pending Sprint Doc Sync\n\n"
+        "**Status:** Complete — Pending Milestone Doc Sync\n\n"
     )
     if clarifications:
         body += "## Clarifications\n\n- **Goal & scope:** orders API for staff\n\n"
@@ -97,7 +97,7 @@ def test_section_absent_is_not_covered(tmp_path):
 
 def test_in_progress_task_is_not_checked(tmp_path):
     body = _state("- [ ] `docs/project-requirements.md` — write back\n").replace(
-        "Complete — Pending Sprint Doc Sync", "In Progress")
+        "Complete — Pending Milestone Doc Sync", "In Progress")
     result = _run_hook(_make_repo(tmp_path, body))
     assert _MESSAGE not in result.stdout
     assert result.returncode == 0

@@ -46,7 +46,7 @@ Claude-facing Skills, and 2 agent adapters (Claude, Codex) as of this revision.
   `.ai/AI_CONTEXT.md`: an ordered list of exactly which docs to read for this task, so the agent
   doesn't infer scope from `AGENTS.md` prose
 - `workflow-registry.yaml` — the single source for task_type → validator sequence (`feature`,
-  `pipeline-stage`, `bug-fix`, `sprint-end`, `eval-run`, `iac-change`, `default`); orchestrator.py
+  `pipeline-stage`, `bug-fix`, `milestone-end`, `eval-run`, `iac-change`, `default`); orchestrator.py
   injects `--project-type` automatically and conditionally adds `--semantic`-adjacent gates
   (spec↔code, security, prose) only when their config keys are set in `.project-starter.yml`
 
@@ -77,7 +77,7 @@ to the sequence by `orchestrator.py` only when configured:
   `workflow-registry.yaml` as `--semantic`
 - `verify_prose.py` — Vale wrapper for prose-quality (vague wording, prose-form placeholders)
 
-**Framework self-check / support tools** — run at sprint end or on demand:
+**Framework self-check / support tools** — run at milestone end or on demand:
 - `verify_framework.py` — internal consistency of the framework itself
 - `diagnose_spec.py` — classifies verify output → project-level vs framework-level gaps
   (rule-based: does the template already have the section — deliberately not an LLM call,
@@ -272,7 +272,7 @@ note bottom of vreg : Added after this diagram's\nprior revision -- catches malf
   unconfirmed. Confirmed working end-to-end against a real git repo (field `false` blocks with the
   right message, `true` and field-absent both pass silently), not just unit-tested in isolation.
 - **A technology decision made mid-conversation had no path into `research.md` except a human
-  or the agent remembering, or the periodic `sprint-doc-sync` checklist item catching it later**
+  or the agent remembering, or the periodic `milestone-doc-sync` checklist item catching it later**
   — closed with two different mechanisms for two different moments, not one mechanism forced to
   cover both:
   - **The brand-new-project moment is deterministic** — `session-start-hook.sh` already checked
@@ -327,20 +327,20 @@ note bottom of vreg : Added after this diagram's\nprior revision -- catches malf
   https://code.claude.com/docs/en/hooks). Deliberately kept non-blocking, matching this hook's
   existing design — a second informational layer for what the one blocking, commit-independent
   gate (`pretooluse_scope_guard.py`) doesn't cover, not a new hard gate.
-- **`sprint-change-log.md`'s 3-entry Sprint Documentation Sync trigger was pure convention — no
-  hook or CI verified it actually happened.** The count trigger itself (AGENTS.md -> Sprint
+- **`milestone-change-log.md`'s 3-entry Milestone Documentation Sync trigger was pure convention — no
+  hook or CI verified it actually happened.** The count trigger itself (AGENTS.md -> Milestone
   Documentation Sync: 3 entries at `Status: Pending documentation synchronization` → run
-  `templates/sprint-sync.md`) was already documented, and the `sprint-doc-sync` Skill nudges
+  `templates/milestone-sync.md`) was already documented, and the `milestone-doc-sync` Skill nudges
   Claude toward it by description match — but nothing blocked the Pending backlog from growing
   past 3, 4, 10 indefinitely if the nudge was ignored or the Skill never triggered. A new
-  `.githooks/pre-commit` guard reads `sprint-change-log.md` directly (working-tree state, not
+  `.githooks/pre-commit` guard reads `milestone-change-log.md` directly (working-tree state, not
   staged — same approach as the `project_type_confirmed` guard, since what matters is whether the
   fix landed on disk, not which commit did it) and blocks every commit once the Pending count is
   `>= 3`, until sync marks entries `Documentation synchronized`. Mirrored into `run-verify.sh` as
   a fourth non-blocking Stop-hook check alongside the three above, for the same infrequent-commit
   reason. Surfaced during the same conversation that produced the file-count-threshold-to-direct-
   check redesign above — asking "what else here is convention-only, not actually enforced"
-  surfaced this gap too, once the discussion moved from "commit" to "sprint" as the relevant unit.
+  surfaced this gap too, once the discussion moved from "commit" to "milestone" as the relevant unit.
 - **The four working-tree Stop-hook checks above still missed the heaviest gates: `verify_docs
   --content`, `verify_logs`, `verify_tests`, `verify_content` `--strict` failures** — these only
   ever surfaced at `git commit` too. The fix cost nothing extra to run: `run-verify.sh` already
@@ -401,9 +401,9 @@ note bottom of vreg : Added after this diagram's\nprior revision -- catches malf
 - **`--semantic` / `--llm-review` / `--ai-draft` are opt-in by design (see the header comments in
   `verify_spec_code.py` / `verify_security.py` / `workflow-registry.yaml`), but nothing ever
   surfaced that they exist at the moment they'd actually be useful — purely on the human to
-  remember.** Closed the same way Sprint Documentation Sync's 3-entry trigger works (a cheap,
+  remember.** Closed the same way Milestone Documentation Sync's 3-entry trigger works (a cheap,
   already-computed signal decides whether to nudge), for two of the three (`--ai-draft`'s closest
-  analog, the self-improving loop's Step 4 decision gate in `templates/sprint-sync.md`, already
+  analog, the self-improving loop's Step 4 decision gate in `templates/milestone-sync.md`, already
   existed before this). `verify_security.py`'s version was straightforward: its trigger signal
   already exists in the tool's own output with no invention needed — `print_report()` now prints a
   non-blocking `[TIP]` suggesting `--llm-review` whenever the scan finds at least one `medium`+
@@ -472,19 +472,19 @@ note bottom of vreg : Added after this diagram's\nprior revision -- catches malf
   protection.** Surfaced by actually using the framework as intended: implementing a real feature
   against `api-contract.md`, and noticing the spec kept growing with per-task planning content
   instead of staying a clean description of the current contract. `audience` in
-  `document-registry.yaml` was never a statement about whether task/sprint narrative is
+  `document-registry.yaml` was never a statement about whether task/milestone narrative is
   acceptable — it only ever meant "is this included in the generated stakeholder PDF." The two
-  concerns had been conflated: `current-state.md`'s Steps section and `sprint-change-log.md` are
+  concerns had been conflated: `current-state.md`'s Steps section and `milestone-change-log.md` are
   deliberately *not* in the registry at all — that's where per-task planning and historical
   implementation notes belong — so every document that *is* registered, `internal` or `external`
   alike, should carry none of that. Fixed by reading every document's `path` from
   `document-registry.yaml` dynamically at guard time (same `_load_yaml()` import pattern already
   used for `_resolve_spec_code_bindings()`) instead of a second, hand-maintained list of
   "spec-facing" filenames that had silently fallen out of sync with the registry's own audience
-  field. Confirmed against a real repo: a `Sprint 3` / `Task 42` reference in `api-contract.md`
+  field. Confirmed against a real repo: a `Milestone 3` / `Task 42` reference in `api-contract.md`
   now blocks the commit (previously invisible to this guard entirely); `architecture.md`
   (`audience: external`, the guard's original scope) still blocks the same way; `current-state.md`
-  and `sprint-change-log.md` — deliberately absent from the registry — are confirmed still exempt,
+  and `milestone-change-log.md` — deliberately absent from the registry — are confirmed still exempt,
   since flagging them would break the very place this content is supposed to live.
 - **The registry-driven rewrite above silently dropped coverage for `modules/[module]/[module]-
   module-data-flow.md` — a real regression, caught before it shipped, not after.** The old
@@ -530,7 +530,7 @@ Two adapters exist, both consumed by `orchestrator.py --adapter <name>`:
 
 | Adapter | Output | Mechanism |
 |---|---|---|
-| `claude` | `adapters/claude/start-task.md` template, rendered with the current workflow snapshot | `.claude/skills/` (7 Skills: code-quality-check, learning-checkpoint, module-completion-check, research-decision-log, retrofit-existing-project, sprint-doc-sync, task-closeout — copied into new projects by `init.py`); `pretooluse_scope_guard.py` (blocks edits outside the scoped Current Task); `session-start-hook.sh` / `stop-hook.sh` (session boundary hooks); `learning_log_nudge.py` |
+| `claude` | `adapters/claude/start-task.md` template, rendered with the current workflow snapshot | `.claude/skills/` (7 Skills: code-quality-check, learning-checkpoint, module-completion-check, research-decision-log, retrofit-existing-project, milestone-doc-sync, task-closeout — copied into new projects by `init.py`); `pretooluse_scope_guard.py` (blocks edits outside the scoped Current Task); `session-start-hook.sh` / `stop-hook.sh` (session boundary hooks); `learning_log_nudge.py` |
 | `codex` | `adapters/codex/task-instructions.md` | `setup.md` for one-time environment setup |
 
 `orchestrator.py` embeds both adapters' templates directly (`_ADAPTER_TEMPLATES`) so `--adapter`
@@ -595,7 +595,7 @@ heading exist) is itself the design decision worth defending, not a gap to fill 
 **Constraint, same as `--semantic` / `--llm-review`:** `--ai-draft` must never appear in
 `workflow-registry.yaml` or a pre-commit sequence — it makes real LLM calls, its output is
 non-deterministic, and `diagnose_spec.py` / `propose_framework_fix.py` aren't wired into
-`workflow-registry.yaml` at all today (sprint-end / on-demand tools only), so this is a
+`workflow-registry.yaml` at all today (milestone-end / on-demand tools only), so this is a
 docs-level constraint rather than one currently enforced by a config check the way the other
 two are.
 

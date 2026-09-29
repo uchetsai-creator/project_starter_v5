@@ -16,8 +16,8 @@ _SKILL_SOURCES = {
         REPO_ROOT / "templates/design-pattern-check.md",
     REPO_ROOT / "adapters/claude/skills/module-completion-check/SKILL.md":
         REPO_ROOT / "templates/module-completion.md",
-    REPO_ROOT / "adapters/claude/skills/sprint-doc-sync/SKILL.md":
-        REPO_ROOT / "templates/sprint-sync.md",
+    REPO_ROOT / "adapters/claude/skills/milestone-doc-sync/SKILL.md":
+        REPO_ROOT / "templates/milestone-sync.md",
     REPO_ROOT / "adapters/claude/skills/learning-checkpoint/SKILL.md":
         REPO_ROOT / "guidance/learning-checkpoints/common.md",
     REPO_ROOT / "adapters/claude/skills/task-closeout/SKILL.md":

@@ -61,7 +61,7 @@ _impact_unfilled() {
 
 # ── Real-time gate checks (no git commit dependency) ───────────────────────
 # project_type_confirmed / Clarifying Questions Asked / Doc Checklist completeness /
-# Sprint Documentation Sync / verify_docs+logs+tests+content --strict failures are
+# Milestone Documentation Sync / verify_docs+logs+tests+content --strict failures are
 # also enforced by .githooks/pre-commit, but ONLY at `git commit` — a workflow that
 # pulls once, does a long stretch of local work, then pushes/merges once at the end
 # may go a very long time without committing, so those gates would barely ever run.
@@ -142,16 +142,16 @@ if [ -f "$CONFIG" ]; then
         fi
     fi
 
-    # Sprint Documentation Sync -- also enforced by .githooks/pre-push (blocking on a push
+    # Milestone Documentation Sync -- also enforced by .githooks/pre-push (blocking on a push
     # to a gated branch, same >= 3 threshold), mirrored here as an early warning for
     # the same reason as the three checks above: a long stretch without a commit or push
     # means this would otherwise stay invisible until the next push finally happens.
-    SPRINT_LOG="${DOCS_PATH}/sprint-change-log.md"
-    if [ -f "$SPRINT_LOG" ]; then
-        PENDING_COUNT=$(grep -cE '^\*\*Status:\*\* Pending documentation synchronization' "$SPRINT_LOG" || true)
+    MILESTONE_LOG="${DOCS_PATH}/milestone-change-log.md"
+    if [ -f "$MILESTONE_LOG" ]; then
+        PENDING_COUNT=$(grep -cE '^\*\*Status:\*\* Pending documentation synchronization' "$MILESTONE_LOG" || true)
         PENDING_COUNT=${PENDING_COUNT:-0}
         if [ "$PENDING_COUNT" -ge 3 ]; then
-            ISSUES+=("$SPRINT_LOG has $PENDING_COUNT entries at 'Pending documentation synchronization' (threshold: 3). Run Sprint Documentation Sync (templates/sprint-sync.md) -- see AGENTS.md -> Sprint Documentation Sync.")
+            ISSUES+=("$MILESTONE_LOG has $PENDING_COUNT entries at 'Pending documentation synchronization' (threshold: 3). Run Milestone Documentation Sync (templates/milestone-sync.md) -- see AGENTS.md -> Milestone Documentation Sync.")
         fi
     fi
 fi

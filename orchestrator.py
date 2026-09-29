@@ -8,7 +8,7 @@ internally, and writes .ai/WORKFLOW.md so AI agents follow a deterministic plan.
 
 Usage:
   python3 orchestrator.py
-  python3 orchestrator.py --task-type sprint-end
+  python3 orchestrator.py --task-type milestone-end
   python3 orchestrator.py --dry-run
 
 Agent-adapter output (.claude/commands/start-task.md, .codex/setup.md +

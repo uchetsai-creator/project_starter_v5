@@ -19,7 +19,7 @@ Purpose:
 Single source of truth for every service in the system — purpose, owner, port, base URL,
 and inter-service dependencies. The dependency graph diagram shows how services connect.
 
-Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Milestone Documentation Sync):
 * A service is added, removed, or renamed
 * Ownership, port, or base URL changes
 * A major dependency relationship changes
@@ -36,7 +36,7 @@ authentication, and resilience policy (timeout / retry / circuit breaker).
 Async event schemas belong in event-catalog.md, not here. service-contract.md
 may reference event-catalog.md entries but does not duplicate them.
 
-Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Milestone Documentation Sync):
 * A REST contract between services changes (endpoint, request/response format, auth)
 * A resilience policy changes (timeout, retry, circuit breaker)
 
@@ -52,7 +52,7 @@ Decoupled from service-contract.md (synchronous REST) and api-contract.md (exter
 Create when: the system introduces asynchronous messaging between services.
 Load when: adding or changing an event type, or auditing async contracts.
 
-Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Milestone Documentation Sync):
 * A new event type is added or retired
 * A payload schema changes (field added, removed, or type changed)
 * A publisher or subscriber changes
@@ -70,7 +70,7 @@ Describes the full specification for every externally-facing API endpoint and re
 Default format assumes REST as the primary protocol. If the project also uses
 WebSocket, Socket.IO, GraphQL, or gRPC — add a section for each protocol.
 
-Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Milestone Documentation Sync):
 * New endpoints are added
 * New WebSocket / Socket.IO events are added or changed
 * Request/response/payload format changes
@@ -80,7 +80,7 @@ Update when (if listed in current-state.md → Doc Checklist, update at task lev
 ### permissions.md
 **Applies to: Web App, Microservices**
 
-Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Milestone Documentation Sync):
 * New roles are added
 * Permission matrix changes
 * New endpoints are added to API contract
@@ -121,7 +121,7 @@ Purpose:
 Describe frontend structure — stack, page structure, component strategy, API hook strategy.
 Includes a component block for the frontend module structure diagram.
 
-Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Milestone Documentation Sync):
 * Frontend stack, page structure, or component strategy changes
 
 After updating, regenerate component diagram:
@@ -168,7 +168,7 @@ Location: `docs/business/[process-name]-process.md`
 
 Files matching `*-process.md` are automatically included in the PDF.
 
-Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Milestone Documentation Sync):
 * The business workflow, decision points, or exceptions change
 
 After updating, regenerate activity diagram:
@@ -198,7 +198,7 @@ Location: `docs/business/[object-name]-object.md`
 
 Files matching `*-object.md` are automatically included in the PDF.
 
-Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Milestone Documentation Sync):
 * The business entity's description, ownership, or lifecycle changes
 * Status transitions or responsible roles change
 
@@ -214,6 +214,6 @@ Describe business constraints and policies — approval rules, validation rules,
 notification rules, audit rules. Each rule must declare its Enforcement Layer.
 Only Hardcoded constraints belong here.
 
-Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Milestone Documentation Sync):
 * Business rules change
 * A constraint moves from Seeded default to Hardcoded (or vice versa)

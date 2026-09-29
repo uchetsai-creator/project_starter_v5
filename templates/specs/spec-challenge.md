@@ -3,7 +3,7 @@
 <!--
   Process template — QA Simulation prompt.
   Complements spec-review.md: spec-review.md scores what is written; spec-challenge.md finds what is missing.
-  Load at sprint end, after spec-review.md PASS.
+  Load at milestone end, after spec-review.md PASS.
   Not a project document — do not include in PDF output.
 
   Usage:

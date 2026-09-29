@@ -2,7 +2,7 @@
 """
 verify_framework.py — Internal consistency audit for the project_starter_v5 framework.
 
-Checks that file references, token budget, document matrix, sprint-sync checklist,
+Checks that file references, token budget, document matrix, milestone-sync checklist,
 document-purposes coverage, cross-references, type completeness, script type
 synchronization, and registry ↔ matrix sync are all in sync.
 Run after each Phase before merging.
@@ -27,7 +27,7 @@ FRAMEWORK_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 
 AGENTS_MD       = FRAMEWORK_ROOT / "AGENTS.md"
 DOCUMENT_MATRIX = FRAMEWORK_ROOT / "templates/init/document-matrix.md"
-SPRINT_SYNC     = FRAMEWORK_ROOT / "templates/sprint-sync.md"
+MILESTONE_SYNC     = FRAMEWORK_ROOT / "templates/milestone-sync.md"
 TEMPLATES_DIR   = FRAMEWORK_ROOT / "templates"
 PURPOSES_DIR    = FRAMEWORK_ROOT / "guidance" / "document-purposes"
 
@@ -68,21 +68,21 @@ TEMPLATE_MATRIX_EXEMPT = {
     # across all 9 types is intentional, not a gap.
     "specs/glossary.md",
     "specs/dependencies.md",
-    # spec-review.md and spec-challenge.md are process templates (sprint-end LLM prompts),
+    # spec-review.md and spec-challenge.md are process templates (milestone-end LLM prompts),
     # not project documents — they are intentionally absent from the document matrix.
     "specs/spec-review.md",
     "specs/spec-challenge.md",
 }
 
-# Documents legitimately absent from sprint-sync (debug guides and per-run logs
-# are updated on demand, not on a sprint cadence).
-SPRINT_SYNC_EXEMPT = {
+# Documents legitimately absent from milestone-sync (debug guides and per-run logs
+# are updated on demand, not on a milestone cadence).
+MILESTONE_SYNC_EXEMPT = {
     "pipeline-debug.md",
     "llm-debug.md",
     "experiment-log.md",
     "eval-log.md",
     # glossary.md and dependencies.md are always-optional utilities created on demand,
-    # same rationale as their TEMPLATE_MATRIX_EXEMPT entry above — not gated by sprint
+    # same rationale as their TEMPLATE_MATRIX_EXEMPT entry above — not gated by milestone
     # cadence either.
     "glossary.md",
     "dependencies.md",
@@ -272,11 +272,11 @@ def check_matrix_templates(matrix: dict) -> list[dict]:
     return issues
 
 
-def check_sprint_sync_coverage(matrix: dict) -> list[dict]:
-    """Check 4: Every non-exempt R/O doc in the matrix has a sprint-sync checklist item."""
-    content = read_text(SPRINT_SYNC)
+def check_milestone_sync_coverage(matrix: dict) -> list[dict]:
+    """Check 4: Every non-exempt R/O doc in the matrix has a milestone-sync checklist item."""
+    content = read_text(MILESTONE_SYNC)
     if not content:
-        return [_issue("sprint-sync", "error", f"sprint-sync.md not found at {SPRINT_SYNC}")]
+        return [_issue("milestone-sync", "error", f"milestone-sync.md not found at {MILESTONE_SYNC}")]
 
     mentioned: set[str] = set()
     for line in content.splitlines():
@@ -287,17 +287,17 @@ def check_sprint_sync_coverage(matrix: dict) -> list[dict]:
 
     issues = []
     for doc_name, row in matrix.items():
-        if doc_name in SPRINT_SYNC_EXEMPT:
+        if doc_name in MILESTONE_SYNC_EXEMPT:
             continue
         if not any(v in ("R", "O") for v in row.values()):
             continue
         if doc_name not in mentioned:
-            issues.append(_issue("sprint-sync", "warn",
-                                 f"`{doc_name}` is R/O for at least one type but has no sprint-sync checklist item"))
+            issues.append(_issue("milestone-sync", "warn",
+                                 f"`{doc_name}` is R/O for at least one type but has no milestone-sync checklist item"))
 
     if not issues:
-        return [_issue("sprint-sync", "pass",
-                       "All non-exempt R/O documents have sprint-sync checklist items")]
+        return [_issue("milestone-sync", "pass",
+                       "All non-exempt R/O documents have milestone-sync checklist items")]
     return issues
 
 
@@ -713,7 +713,7 @@ CHECK_ORDER = [
     "stale-pointer",
     "token-budget",
     "matrix-templates",
-    "sprint-sync",
+    "milestone-sync",
     "purposes-coverage",
     "cross-ref",
     "type-completeness",
@@ -730,7 +730,7 @@ CHECK_LABELS = {
     "stale-pointer":        "Stale pointer check          (AGENTS.md .md file refs)",
     "token-budget":         "Token budget check           (AGENTS.md <= 200 lines)",
     "matrix-templates":     "Matrix <-> template consistency",
-    "sprint-sync":          "Sprint-sync coverage",
+    "milestone-sync":          "Milestone-sync coverage",
     "purposes-coverage":    "Per-type purposes coverage   (Required docs only)",
     "cross-ref":            "Cross-reference integrity    (document-purposes → templates)",
     "type-completeness":    "Type completeness            (init file + purposes file per type)",
@@ -824,7 +824,7 @@ def main():
     all_issues += check_stale_pointers()
     all_issues += check_token_budget()
     all_issues += check_matrix_templates(matrix)
-    all_issues += check_sprint_sync_coverage(matrix)
+    all_issues += check_milestone_sync_coverage(matrix)
     all_issues += check_purposes_coverage(matrix)
     all_issues += check_cross_references(matrix)
     all_issues += check_type_completeness()

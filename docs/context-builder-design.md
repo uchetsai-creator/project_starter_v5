@@ -9,7 +9,7 @@ Implements Phase 1 of `docs/refactoring-plan.md`. Replaces the multi-step AI sta
 AI agents currently resolve required context by:
 1. Reading `AGENTS.md` (~190 lines) to learn startup rules
 2. Reading `docs/current-state.md` for the current task
-3. Inferring which documents to load via the Quick filter guide in `templates/sprint-sync.md`
+3. Inferring which documents to load via the Quick filter guide in `templates/milestone-sync.md`
 
 This costs tokens on every task startup and produces inconsistent results across AI tools. `build-context.py` makes the inference deterministic and tool-agnostic.
 
@@ -31,7 +31,7 @@ This costs tokens on every task startup and produces inconsistent results across
 | `feature` | New feature implementation | architecture.md, backend.md, data-model.md, api-contract.md |
 | `pipeline-stage` | Data/ML pipeline stage | pipeline-contract.md, pipeline-debug.md, data-model.md |
 | `bug-fix` | Bug investigation and fix | current-state.md, relevant module flow, debug guide |
-| `sprint-end` | Sprint documentation sync | All required docs for type |
+| `milestone-end` | Milestone documentation sync | All required docs for type |
 | `eval-run` | LLM evaluation run | eval-spec.md, eval-log.md, llm-contract.md |
 | `iac-change` | Infrastructure change | topology.md, runbook.md, drift-policy.md |
 
@@ -118,7 +118,7 @@ Required/Optional/N/A status is derived at runtime: a type in `required_for` →
 |---|---|---|
 | AGENTS.md (full read) | ~190 | ~2 800 |
 | current-state.md | ~60 | ~900 |
-| Quick filter guide (sprint-sync.md extract) | ~40 | ~600 |
+| Quick filter guide (milestone-sync.md extract) | ~40 | ~600 |
 | **Total (current)** | **~290** | **~4 300** |
 
 | Post-Phase-1 startup sequence | Lines loaded | Estimated tokens |
@@ -139,7 +139,7 @@ Required/Optional/N/A status is derived at runtime: a type in `required_for` →
 python3 build-context.py
 
 # Override task type:
-python3 build-context.py --task-type sprint-end
+python3 build-context.py --task-type milestone-end
 
 # Preview without writing:
 python3 build-context.py --dry-run

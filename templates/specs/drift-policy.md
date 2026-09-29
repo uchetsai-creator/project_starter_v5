@@ -76,7 +76,7 @@ terraform plan -detailed-exitcode
 |---|---|---|
 | Critical | IAM policy, security group, network ACL | Remediate within 2 hours |
 | High | Compute, database, storage | Remediate within 24 hours |
-| Medium | Tags, minor config | Remediate within next sprint |
+| Medium | Tags, minor config | Remediate within next milestone |
 | Low | Auto-scaling count, managed service minor version | No action required (see Allowed Drift Sources) |
 
 ---

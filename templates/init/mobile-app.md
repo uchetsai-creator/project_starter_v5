@@ -124,7 +124,7 @@ Creates `docs/codebase-map.md` entries for each screen module.
 python3 docs/script/validators/verify_docs.py --project-type mobile-app
 ```
 
-Fix any Missing Required items before beginning sprint work.
+Fix any Missing Required items before beginning milestone work.
 
 **Optional utility documents (create on demand, any time):**
 - `docs/specs/glossary.md` — if the app introduces domain-specific screen names, navigation patterns, or business terms that the team (including designers and QA) needs to align on. Create from `templates/specs/glossary.md`.

@@ -19,7 +19,7 @@ Purpose:
 Documents every subcommand, flag, positional argument, output format, exit code, and
 stdin/stdout contract. This is the CLI equivalent of api-contract.md.
 
-Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Milestone Documentation Sync):
 * A subcommand is added or removed
 * A flag or argument is added, renamed, or removed
 * Output format (stdout schema) changes
@@ -80,7 +80,7 @@ Location: `docs/business/[process-name]-process.md`
 
 Files matching `*-process.md` are automatically included in the PDF.
 
-Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Milestone Documentation Sync):
 * The business workflow, decision points, or exceptions change
 
 After updating, regenerate activity diagram:
@@ -97,6 +97,6 @@ Only Hardcoded constraints belong here — a Seeded default (a config file's own
 changeable by the user without a rebuild) belongs in `cli-contract.md`'s config file schema
 section instead, not here. CLI Tool has no permissions.md to route it to.
 
-Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Milestone Documentation Sync):
 * Business rules change
 * A constraint moves from default to hardcoded (or vice versa)

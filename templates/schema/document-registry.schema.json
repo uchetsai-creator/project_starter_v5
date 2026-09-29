@@ -69,7 +69,7 @@
     "audience": {
       "type": "string",
       "enum": ["internal", "external"],
-      "description": "external = no task/sprint refs allowed in this document"
+      "description": "external = no task/milestone refs allowed in this document"
     },
     "required_sections": {
       "type": "array",

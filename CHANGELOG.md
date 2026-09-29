@@ -21,7 +21,7 @@ All notable changes to this framework are documented here. Format loosely follow
 - The breakdown discussion now covers everything a task changes, not only spec docs: `templates/current-state.md →
   Approach` has five impact lines — `Docs to update`, `Tests to add/update` (names the AC-/FR- ids each test
   covers, or `N/A — user: <reason>`), `Dependencies`, `Config / CI / deploy`, `Per-module docs`. The document
-  candidates come from `build-context.py --task-type sprint-end` (every doc for the project type, not filtered by
+  candidates come from `build-context.py --task-type milestone-end` (every doc for the project type, not filtered by
   one task's type, since a requirement spans several task types) and must also list docs that should exist but
   do not yet. The scope guard, `.githooks/pre-commit` (both source guards) and `run-verify.sh` block while an
   existing impact line is empty/placeholder, `Docs to update` omits project-requirements.md, or `Tests to
@@ -109,7 +109,7 @@ All notable changes to this framework are documented here. Format loosely follow
   pipeline-contract, llm-contract, model-contract, service-catalog, mobile-contract, data-model, frontend, database,
   topology, public-api, rag-contract, mcp-contract, release-guide, compatibility-matrix, business-process,
   business-objects, runbook.
-- `templates/sprint-sync.md` Step 4 now runs `verify_acceptance.py` (it was in `workflow-registry.yaml`'s `sprint-end`
+- `templates/milestone-sync.md` Step 4 now runs `verify_acceptance.py` (it was in `workflow-registry.yaml`'s `milestone-end`
   but missing from the sync steps) and no longer says "All four must reach PASS" for a list of six/seven.
 - 17 test files across `tests/unit/` and `tests/contract/` each
   `sys.path.insert(0, .../_spec_code_adapters)` to import a same-named detector module
@@ -160,9 +160,9 @@ All notable changes to this framework are documented here. Format loosely follow
     confirmed by running each file's own test suite after the change, not assumed.
 
 ### Changed
-- Sprint Documentation Sync guard (>= 3 Pending entries, plus the `sprint_sync_stale_days` age fallback) moved from
+- Milestone Documentation Sync guard (>= 3 Pending entries, plus the `milestone_sync_stale_days` age fallback) moved from
   `.githooks/pre-commit` to `.githooks/pre-push`: a Pending backlog is a handover problem, so a push to a gated
-  branch is blocked (other branches only warn) while commits stay free. The `sprint_sync_stale_days` value check
+  branch is blocked (other branches only warn) while commits stay free. The `milestone_sync_stale_days` value check
   stays in pre-commit so a config typo still fails early. `run-verify.sh` keeps mirroring it as a non-blocking nudge.
 - `templates/script/framework/agent_pipeline.py`'s `_default_caller()` rewired off a
   hand-rolled `subprocess.run(['claude', '-p', '--output-format', 'json'])` call with
@@ -253,7 +253,7 @@ All notable changes to this framework are documented here. Format loosely follow
   — never Required/Optional, never PDF-exported, never checked by a validator. Also tracks a
   personal design-pattern roster (every pattern named or considered-and-rejected at Checkpoint
   A/B/C) and prompts a re-check of an older entry every 3rd entry, mirroring the count-based
-  trigger `sprint-change-log.md` already uses for Sprint Documentation Sync. Added to
+  trigger `milestone-change-log.md` already uses for Milestone Documentation Sync. Added to
   `pretooluse_scope_guard.py`'s `NON_SOURCE_NAMES` and `.githooks/pre-commit`'s
   `NON_SOURCE_REGEX` so appending an entry doesn't require a scoped `Current Task`, same as the
   other two root guidance files. `guidance/learning-checkpoints/common.md` (and its
@@ -324,7 +324,7 @@ All notable changes to this framework are documented here. Format loosely follow
   `_verify_common.py`'s placeholder regex already catches). Independent of `verify_docs.py` /
   `verify_content.py` — those check fill quality, this checks writing quality on top of that.
   Opt-in via `prose_scan_enabled: true` in `.project-starter.yml` (no separate path needed, reuses
-  `docs_path`); wired into `.githooks/pre-commit` and the `sprint-end` sequence in
+  `docs_path`); wired into `.githooks/pre-commit` and the `milestone-end` sequence in
   `workflow-registry.yaml`. Same opt-in/`[TIP]`/graceful-missing-tool pattern as the other two SAST
   gates above.
 - New `.pre-commit-config.yaml` — optional alternative to `cp .githooks/pre-commit
@@ -481,7 +481,7 @@ All notable changes to this framework are documented here. Format loosely follow
   belonged to a properly-scoped task) get blocked. Discovered by actually running a task's
   full closeout end-to-end through real `git commit`, not just reading the instructions.
   Fix documented: commit source + docs first (Current Task still showing the just-finished
-  task, `Status: Complete — Pending Sprint Doc Sync`), then promote in a second, docs-only
+  task, `Status: Complete — Pending Milestone Doc Sync`), then promote in a second, docs-only
   commit. A docs-only task can still do the whole closeout, including the promotion, in one
   commit — the gap only bites when source files outside `docs/` are staged alongside it.
 
@@ -584,7 +584,7 @@ All notable changes to this framework are documented here. Format loosely follow
 ### Added
 - Claude Skills (`SKILL.md`) for five procedural workflows previously only reachable by
   manually following AGENTS.md's file-load instructions: `retrofit-existing-project`,
-  `code-quality-check`, `module-completion-check`, `sprint-doc-sync`, `learning-checkpoint`
+  `code-quality-check`, `module-completion-check`, `milestone-doc-sync`, `learning-checkpoint`
   (shipped under `adapters/claude/skills/`, optional copy into a project's `.claude/skills/`).
   Plus a framework-repo-only skill, `add-framework-adapter`, for contributors extending
   `verify_spec_code.py` itself (lives in this repo's own `.claude/skills/`, never shipped).
@@ -676,7 +676,7 @@ All notable changes to this framework are documented here. Format loosely follow
 - `verify_framework.py`'s matrix↔template consistency check used a hardcoded `/` path
   separator, producing false-positive `[WARN]`s for `spec-review.md`/`spec-challenge.md` on
   Windows (backslash paths never matched the forward-slash exempt set).
-- `templates/sprint-sync.md`'s Document Update Checklist was missing a real trigger item for
+- `templates/milestone-sync.md`'s Document Update Checklist was missing a real trigger item for
   `project-requirements.md`, and incorrectly missing an exemption for `glossary.md` /
   `dependencies.md` (on-demand utility docs, same rationale as their existing
   `TEMPLATE_MATRIX_EXEMPT` entry) — both caused permanent `[WARN]`s in

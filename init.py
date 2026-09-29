@@ -10,8 +10,8 @@ the copy list by hand in two languages.
 Usage:
   python3 init.py <type> <dest>
 
-Valid types: web-app | cli-tool | library | data-pipeline | ml-pipeline
-             microservices | llm-app | iac | mobile-app
+Valid types: web-app (actively maintained) | cli-tool, library, data-pipeline,
+             ml-pipeline, microservices, llm-app, iac, mobile-app (Experimental)
 """
 
 from __future__ import annotations
@@ -59,8 +59,8 @@ _PROJECT_STARTER_YML = """\
 # Do not rename this file.
 
 project_type: {project_type}
-# Valid values: web-app | cli-tool | library | data-pipeline | ml-pipeline
-#               microservices | llm-app | iac | mobile-app
+# Valid values: web-app (actively maintained) | cli-tool, library, data-pipeline,
+#               ml-pipeline, microservices, llm-app, iac, mobile-app (Experimental)
 
 docs_path: docs/
 
@@ -73,7 +73,7 @@ doc_profile: full
 
 task_type:
 # Optional. Filters .ai/AI_CONTEXT.md to task-relevant documents.
-# Valid values: feature | pipeline-stage | bug-fix | sprint-end | eval-run | iac-change
+# Valid values: feature | pipeline-stage | bug-fix | milestone-end | eval-run | iac-change
 
 spec_code_adapter:
 spec_code_spec:
@@ -93,12 +93,12 @@ test_command:
 # `npm test` | `go test ./...`. When set, .githooks/pre-commit actually runs it on every
 # commit and blocks if it exits non-zero. Leave blank to skip this gate.
 
-sprint_sync_stale_days:
-# Optional. Age-based fallback for the Sprint Documentation Sync guard: that guard's
-# main trigger is a count (3 Pending entries in docs/sprint-change-log.md), which a
+milestone_sync_stale_days:
+# Optional. Age-based fallback for the Milestone Documentation Sync guard: that guard's
+# main trigger is a count (3 Pending entries in docs/milestone-change-log.md), which a
 # low-volume/solo project may never reach. When set, a push to main/master is also blocked once the
 # oldest Pending entry's **Date:** field is at least this many days old. Leave blank to
-# skip this fallback (default). Example: sprint_sync_stale_days: 14
+# skip this fallback (default). Example: milestone_sync_stale_days: 14
 
 checkpoint_enforcement:
 # Optional (unset | session-prompt | off). Controls how strictly
@@ -146,6 +146,12 @@ def init_project(project_type: str, dest: Path) -> None:
 
     script_dir = Path(__file__).resolve().parent
     print(f"=== project_starter_v5 init: {project_type} -> {dest} ===\n")
+    if project_type != "web-app":
+        print(
+            f"[NOTE] '{project_type}' is Experimental — web-app is the only type with a "
+            "fully worked-out task-breakdown convention (see README.md -> Project "
+            "Initialization). Usable, but expect rougher edges.\n"
+        )
     dest.mkdir(parents=True, exist_ok=True)
 
     for name in _ROOT_FILES:

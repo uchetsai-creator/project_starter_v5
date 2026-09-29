@@ -1,7 +1,7 @@
 """Tests for the real-time gate checks in adapters/claude/run-verify.sh.
 
 project_type_confirmed / Clarifying Questions Asked / Doc Checklist completeness /
-Sprint Documentation Sync / verify_docs+logs+tests+content --strict failures are also
+Milestone Documentation Sync / verify_docs+logs+tests+content --strict failures are also
 enforced by .githooks/pre-commit, but only at `git commit`. A workflow that pulls
 once, does a long stretch of local work, then pushes/merges once at the end may go a
 very long time without committing -- those gates would barely ever run. This surfaces
@@ -72,7 +72,7 @@ def _make_repo(
     *,
     project_type_confirmed_false: bool = False,
     current_state_body: str | None = None,
-    sprint_log_body: str | None = None,
+    milestone_log_body: str | None = None,
     validator_scripts: dict[str, str] | None = None,
 ) -> Path:
     """Minimal repo satisfying run-verify.sh's own early-exit preconditions
@@ -98,8 +98,8 @@ def _make_repo(
     if current_state_body is not None:
         (repo / "docs" / "current-state.md").write_text(current_state_body, encoding="utf-8")
 
-    if sprint_log_body is not None:
-        (repo / "docs" / "sprint-change-log.md").write_text(sprint_log_body, encoding="utf-8")
+    if milestone_log_body is not None:
+        (repo / "docs" / "milestone-change-log.md").write_text(milestone_log_body, encoding="utf-8")
 
     return repo
 
@@ -179,7 +179,7 @@ def test_complete_with_unchecked_doc_checklist_produces_nudge(tmp_path):
         current_state_body=(
             "**Task:** Build the order API\n\n"
             "**Clarifying Questions Asked:** Y\n\n"
-            "**Status:** Complete — Pending Sprint Doc Sync\n\n"
+            "**Status:** Complete — Pending Milestone Doc Sync\n\n"
             "## Doc Checklist (this task only)\n\n"
             "- [ ] `docs/architecture/architecture.md` — check if diagram needs updating\n"
             + _CLOSEOUT_FOOTER
@@ -197,7 +197,7 @@ def test_complete_with_all_checked_does_not_trigger_doc_checklist_nudge(tmp_path
         current_state_body=(
             "**Task:** Build the order API\n\n"
             "**Clarifying Questions Asked:** Y\n\n"
-            "**Status:** Complete — Pending Sprint Doc Sync\n\n"
+            "**Status:** Complete — Pending Milestone Doc Sync\n\n"
             "## Doc Checklist (this task only)\n\n"
             "- [x] `docs/architecture/architecture.md` — no changes needed\n"
             + _CLOSEOUT_FOOTER
@@ -225,32 +225,32 @@ def test_multiple_issues_combined_in_one_nudge(tmp_path):
     assert "Clarifying Questions Asked" in ctx
 
 
-def test_three_pending_sprint_entries_produces_nudge(tmp_path):
-    body = "# Sprint Change Log\n\n" + "".join(
+def test_three_pending_milestone_entries_produces_nudge(tmp_path):
+    body = "# Milestone Change Log\n\n" + "".join(
         f"### Task: {n}\n**Status:** Pending documentation synchronization\n---\n\n"
         for n in ("A", "B", "C")
     )
-    repo = _make_repo(tmp_path, sprint_log_body=body)
+    repo = _make_repo(tmp_path, milestone_log_body=body)
     result = _run(repo)
     assert result.returncode == 0
     ctx = _nudge_context(result)
-    assert "Sprint Documentation Sync" in ctx
+    assert "Milestone Documentation Sync" in ctx
     assert "3 entries" in ctx
 
 
-def test_two_pending_sprint_entries_does_not_trigger_nudge(tmp_path):
-    body = "# Sprint Change Log\n\n" + "".join(
+def test_two_pending_milestone_entries_does_not_trigger_nudge(tmp_path):
+    body = "# Milestone Change Log\n\n" + "".join(
         f"### Task: {n}\n**Status:** Pending documentation synchronization\n---\n\n"
         for n in ("A", "B")
     )
-    repo = _make_repo(tmp_path, sprint_log_body=body)
+    repo = _make_repo(tmp_path, milestone_log_body=body)
     result = _run(repo)
     assert result.returncode == 0
     assert result.stdout.strip() == ""
 
 
-def test_no_sprint_change_log_does_not_crash(tmp_path):
-    repo = _make_repo(tmp_path, sprint_log_body=None)
+def test_no_milestone_change_log_does_not_crash(tmp_path):
+    repo = _make_repo(tmp_path, milestone_log_body=None)
     result = _run(repo)
     assert result.returncode == 0
     assert result.stdout.strip() == ""

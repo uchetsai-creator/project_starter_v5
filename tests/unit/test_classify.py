@@ -31,17 +31,17 @@ def test_skip_when_type_not_in_either():
 
 
 # ---------------------------------------------------------------------------
-# sprint-end promotes optional → required
+# milestone-end promotes optional → required
 # ---------------------------------------------------------------------------
 
-def test_sprint_end_promotes_optional_to_required():
+def test_milestone_end_promotes_optional_to_required():
     meta = {"required_for": [], "optional_for": ["data-pipeline"]}
-    assert _classify("doc", meta, "data-pipeline", "sprint-end") == "required"
+    assert _classify("doc", meta, "data-pipeline", "milestone-end") == "required"
 
 
-def test_sprint_end_keeps_required_as_required():
+def test_milestone_end_keeps_required_as_required():
     meta = {"required_for": ["data-pipeline"], "optional_for": []}
-    assert _classify("doc", meta, "data-pipeline", "sprint-end") == "required"
+    assert _classify("doc", meta, "data-pipeline", "milestone-end") == "required"
 
 
 # ---------------------------------------------------------------------------

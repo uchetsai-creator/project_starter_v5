@@ -20,7 +20,7 @@ Field-by-field schema — entities, fields, types, indexes, and state machines (
 Conceptual entity/relationship overview belongs in architecture/database.md; this file is the
 implementation-level detail underneath it.
 
-Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Milestone Documentation Sync):
 * Schema changes
 * New entities are added
 * Relationships change
@@ -41,7 +41,7 @@ Default format assumes REST as the primary protocol. If the project also uses
 WebSocket, Socket.IO, GraphQL, gRPC, or CLI — add a section for each protocol.
 Do not omit a protocol because it was not in the original template.
 
-Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Milestone Documentation Sync):
 * New endpoints are added
 * New WebSocket / Socket.IO events are added or changed
 * Request/response/payload format changes
@@ -51,7 +51,7 @@ Update when (if listed in current-state.md → Doc Checklist, update at task lev
 ### permissions.md
 **Applies to: Web App, Microservices**
 
-Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Milestone Documentation Sync):
 * New roles are added
 * Permission matrix changes
 * New endpoints are added to API contract
@@ -94,7 +94,7 @@ Use the actual layer names from the codebase — do not assume Controller/Servic
 For pipeline projects: describe the pipeline stack and stage layering pattern instead.
 Includes a component block for the backend module structure diagram.
 
-Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Milestone Documentation Sync):
 * Backend layering, stack, or module pattern changes
 
 After updating, regenerate component diagram:
@@ -108,7 +108,7 @@ Purpose:
 Describe frontend structure — stack, page structure, component strategy, API hook strategy.
 Includes a component block for the frontend module structure diagram.
 
-Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Milestone Documentation Sync):
 * Frontend stack, page structure, or component strategy changes
 
 After updating, regenerate component diagram:
@@ -123,7 +123,7 @@ Describe database structure at the conceptual level — main entities, main rela
 important constraints. Not a field-by-field schema; that level of detail belongs in
 docs/specs/data-model.md.
 
-Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Milestone Documentation Sync):
 * Main entities or relationships change
 
 ### deployment.md
@@ -135,7 +135,7 @@ build/deploy flow, and deployment topology. Includes Cache Policy section for an
 caching layer. The Deployment Diagram component block shows which service runs where
 and how they connect in the actual deployment environment.
 
-Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Milestone Documentation Sync):
 * Services, env vars, or build/deploy flow changes
 * Deployment topology changes (new service, new hosting platform, new network path)
 * A caching layer is added or its TTL / invalidation strategy changes
@@ -174,7 +174,7 @@ Examples: `order-create-process.md`, `order-cancel-process.md`
 
 Files matching `*-process.md` are automatically included in the PDF.
 
-Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Milestone Documentation Sync):
 * The business workflow, decision points, or exceptions change
 * A step's access prerequisite changes — update the Prerequisites column, not just a footnote
 
@@ -213,7 +213,7 @@ Examples: `order-object.md`, `inventory-object.md`
 
 Files matching `*-object.md` are automatically included in the PDF.
 
-Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Milestone Documentation Sync):
 * The business entity's description, ownership, or lifecycle changes
 * Status transitions or responsible roles change
 
@@ -231,7 +231,7 @@ notification rules, audit rules. Each rule must declare its Enforcement Layer.
 Only Hardcoded constraints belong here — Seeded defaults belong in permissions.md,
 not here, since they can change without a deployment.
 
-Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Milestone Documentation Sync):
 * Business rules change
 * A constraint moves from Seeded default to Hardcoded (or vice versa) — move the
   entry between business-rules.md and permissions.md accordingly

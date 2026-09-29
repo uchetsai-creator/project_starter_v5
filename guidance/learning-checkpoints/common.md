@@ -1,7 +1,7 @@
 # Learning Checkpoints — Common
 
 Applies to every project type. Triggers happen every task, independent of doc/validator
-timing (see Sprint Documentation Sync) — this is about live discussion in the session,
+timing (see Milestone Documentation Sync) — this is about live discussion in the session,
 not a file that gets written and synced later.
 
 **Claude Code note:** Checkpoint A's "ask, don't guess" step and Checkpoint B's item 1 are
@@ -105,7 +105,7 @@ Trigger: the task is a new feature, or there is no existing code for it yet.
    拆分時一併列出「每個 task 除了程式碼還會動到什麼」，寫進 Approach 的五行：`Docs to update`（要更新哪些 spec 文件、為什麼）、
    `Tests to add/update`（要新增／修改哪些測試、各對應哪個 AC-/FR- 編號）、`Dependencies`（套件與依賴檔）、
    `Config / CI / deploy`（設定、migration、CI、部署檔）、`Per-module docs`（模組 flow／log 檔、索引表、README 檔案樹）。
-   文件的候選清單用 `python3 build-context.py --task-type sprint-end`（不受當前任務類型過濾，因為一個 requirement 會跨好幾種 task），
+   文件的候選清單用 `python3 build-context.py --task-type milestone-end`（不受當前任務類型過濾，因為一個 requirement 會跨好幾種 task），
    逐一對照 `document-registry.yaml` 的 `update_trigger`，說明哪些會被動到、哪些覺得不受影響（理由），還沒存在但該建立的文件也要列，
    由使用者決定；`project-requirements.md` 一定在清單上。談定的文件清單就是之後寫進 Doc Checklist 的內容，其餘幾行變成對應 task 的步驟。
    兩段都寫進 `docs/current-state.md → Approach`（Approach / Alternatives / Risks / Breakdown / Out of scope），
@@ -156,7 +156,7 @@ Trigger: the task is a new feature, or there is no existing code for it yet.
    actual review step, not this checkpoint.
 
 This checkpoint happens every task regardless of A/B/0 — it is what actually gets
-internalized, separate from whether the doc sync happens now or at sprint end.
+internalized, separate from whether the doc sync happens now or at milestone end.
 
 **Escalation for item 3** — if the answer is "not sure" or reveals a gap (a log point
 was skipped, or you can't tell without checking), don't just take the conversational

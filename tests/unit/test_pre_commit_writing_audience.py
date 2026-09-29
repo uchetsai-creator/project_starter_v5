@@ -5,8 +5,8 @@ pipeline-contract.md, research.md, quickstart.md, architecture/*.md, module data
 files) -- `audience` in document-registry.yaml only ever meant "is this in the generated
 PDF for stakeholders," never "is per-task planning narrative acceptable here." Every
 document registered in document-registry.yaml describes the system's *current* state;
-current-state.md's Steps section and sprint-change-log.md are deliberately NOT in the
-registry -- that's where task/sprint narrative actually belongs. The guard now reads
+current-state.md's Steps section and milestone-change-log.md are deliberately NOT in the
+registry -- that's where task/milestone narrative actually belongs. The guard now reads
 every document's path from document-registry.yaml dynamically (single source of truth)
 instead of a second hardcoded list, so `audience: internal` contract docs like
 api-contract.md are covered too.
@@ -66,7 +66,7 @@ def test_task_reference_in_internal_contract_doc_now_blocks(tmp_path):
     is now caught."""
     repo = _make_repo(
         tmp_path, "specs/api-contract.md",
-        "## GET /orders/{id}\nImplemented in Sprint 3, see Task 42 for the plan.\n",
+        "## GET /orders/{id}\nImplemented in Milestone 3, see Task 42 for the plan.\n",
     )
     result = _run_hook(repo)
     assert "Writing Audience violations" in result.stdout
@@ -79,7 +79,7 @@ def test_task_reference_in_external_doc_still_blocks(tmp_path):
     audience: external) -- must still work after switching to the registry-driven list."""
     repo = _make_repo(
         tmp_path, "architecture/architecture.md",
-        "## Components\nAdded in Sprint 2 (Task 10).\n",
+        "## Components\nAdded in Milestone 2 (Task 10).\n",
     )
     result = _run_hook(repo)
     assert "Writing Audience violations" in result.stdout
@@ -105,7 +105,7 @@ def test_per_module_data_flow_file_still_blocks(tmp_path):
     must work for a name never seen at registry-authoring time."""
     repo = _make_repo(
         tmp_path, "modules/orders/orders-module-data-flow.md",
-        "## Overview\nImplemented in Sprint 4, see Task 55.\n",
+        "## Overview\nImplemented in Milestone 4, see Task 55.\n",
     )
     result = _run_hook(repo)
     assert "Writing Audience violations" in result.stdout
@@ -116,7 +116,7 @@ def test_per_module_data_flow_file_still_blocks(tmp_path):
 def test_module_data_flow_index_file_still_blocks(tmp_path):
     repo = _make_repo(
         tmp_path, "modules/module-data-flow.md",
-        "| orders | Sprint 4, Task 55 |\n",
+        "| orders | Milestone 4, Task 55 |\n",
     )
     result = _run_hook(repo)
     assert "Writing Audience violations" in result.stdout
@@ -142,7 +142,7 @@ def test_clean_per_module_data_flow_file_does_not_block(tmp_path):
 def test_per_module_flow_file_blocks(tmp_path):
     repo = _make_repo(
         tmp_path, "modules/orders/orders-flow.md",
-        "## Overview\nAdded in Sprint 5, Task 60.\n",
+        "## Overview\nAdded in Milestone 5, Task 60.\n",
     )
     result = _run_hook(repo)
     assert "Writing Audience violations" in result.stdout
@@ -162,7 +162,7 @@ def test_per_business_object_file_blocks(tmp_path):
 def test_per_business_process_file_blocks(tmp_path):
     repo = _make_repo(
         tmp_path, "business/checkout-process.md",
-        "# Checkout process\n(S2) implemented.\n",
+        "# Checkout process\n(M2) implemented.\n",
     )
     result = _run_hook(repo)
     assert "Writing Audience violations" in result.stdout
@@ -172,7 +172,7 @@ def test_per_business_process_file_blocks(tmp_path):
 def test_per_prompt_file_blocks(tmp_path):
     repo = _make_repo(
         tmp_path, "specs/prompts/summarize-prompt.md",
-        "# Prompt\nSprint 6, Task 62.\n",
+        "# Prompt\nMilestone 6, Task 62.\n",
     )
     result = _run_hook(repo)
     assert "Writing Audience violations" in result.stdout
@@ -194,7 +194,7 @@ def test_a_file_matching_both_registry_and_pattern_is_not_reported_twice(tmp_pat
     per-item ".*-process.md$" pattern -- must be deduped, not reported twice."""
     repo = _make_repo(
         tmp_path, "business/business-process.md",
-        "# Business Process Index\nSprint 7, Task 70.\n",
+        "# Business Process Index\nMilestone 7, Task 70.\n",
     )
     result = _run_hook(repo)
     assert result.stdout.count("business-process.md:") == 1
@@ -202,23 +202,23 @@ def test_a_file_matching_both_registry_and_pattern_is_not_reported_twice(tmp_pat
 
 def test_current_state_md_is_not_covered_by_this_guard(tmp_path):
     """current-state.md is deliberately NOT in document-registry.yaml -- its own Steps
-    section is where per-task Sprint/Task references belong. Must never be flagged.
+    section is where per-task Milestone/Task references belong. Must never be flagged.
     (Clarifying Questions Asked is filled in so the *other*, unrelated pre-commit guard
     that checks it doesn't also fail this fixture for a reason unrelated to this test.)"""
     repo = _make_repo(
         tmp_path, "current-state.md",
-        "**Task:** x\n\n**Clarifying Questions Asked:** Y\n\n## Steps\n- [ ] Step 1 (Sprint 3, Task 42)\n",
+        "**Task:** x\n\n**Clarifying Questions Asked:** Y\n\n## Steps\n- [ ] Step 1 (Milestone 3, Task 42)\n",
     )
     result = _run_hook(repo)
     assert "Writing Audience" not in result.stdout
     assert result.returncode == 0
 
 
-def test_sprint_change_log_is_not_covered_by_this_guard(tmp_path):
-    """sprint-change-log.md is deliberately NOT in document-registry.yaml -- it IS the
-    historical record; Sprint/Task references there are the whole point, not a leak."""
+def test_milestone_change_log_is_not_covered_by_this_guard(tmp_path):
+    """milestone-change-log.md is deliberately NOT in document-registry.yaml -- it IS the
+    historical record; Milestone/Task references there are the whole point, not a leak."""
     repo = _make_repo(
-        tmp_path, "sprint-change-log.md",
+        tmp_path, "milestone-change-log.md",
         "### Task: A\n**Status:** Pending documentation synchronization\n",
     )
     result = _run_hook(repo)
@@ -240,7 +240,7 @@ def test_missing_document_registry_does_not_crash(tmp_path):
     )
     docs = repo / "docs" / "specs"
     docs.mkdir(parents=True)
-    (docs / "api-contract.md").write_text("Sprint 3, Task 42\n", encoding="utf-8")
+    (docs / "api-contract.md").write_text("Milestone 3, Task 42\n", encoding="utf-8")
     subprocess.run(["git", "add", "."], cwd=repo, check=True)
 
     result = _run_hook(repo)

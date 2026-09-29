@@ -3,7 +3,7 @@
 <!--
   Index file. Do not load this file during task work — load common + your type's file instead.
   Per-task doc updates are driven by current-state.md → Doc Checklist (filtered at task setup).
-  The full Document Update Checklist lives in templates/sprint-sync.md and runs at sprint end.
+  The full Document Update Checklist lives in templates/milestone-sync.md and runs at milestone end.
 -->
 
 ## How to use this file

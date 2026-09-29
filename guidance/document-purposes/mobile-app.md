@@ -27,7 +27,7 @@ and App Store / Google Play metadata.
 Load when: adding a new screen, changing navigation structure, adding an OS permission, or
 modifying push notification payloads.
 
-Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Milestone Documentation Sync):
 * A new screen is added or an existing screen is removed or renamed
 * Navigation graph changes (new stack, tab, or modal added)
 * A new deep-link route is defined or an existing one changes

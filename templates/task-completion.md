@@ -1,8 +1,8 @@
 # Task Completion
 
-**Workflow: Task completed → minimal writes only. Sprint completed → synchronize all documentation.**
+**Workflow: Task completed → minimal writes only. Milestone completed → synchronize all documentation.**
 
-Do NOT update changelog.md, project-plan.md, codebase-map.md, or any spec/architecture/business document after a single task — defer to Sprint Documentation Sync.
+Do NOT update changelog.md, project-plan.md, codebase-map.md, or any spec/architecture/business document after a single task — defer to Milestone Documentation Sync.
 
 ## Mandatory post-task steps (every task)
 
@@ -10,7 +10,7 @@ Do NOT update changelog.md, project-plan.md, codebase-map.md, or any spec/archit
    a. Apply each item in `docs/current-state.md → Doc Checklist` — update the listed doc files now.
       These are the only doc updates that happen at task level. Do not open the full Document Update Checklist in AGENTS.md.
    b. In `docs/current-state.md`, while Current Task is still the old task:
-      - Set **Status** to `Complete — Pending Sprint Doc Sync`
+      - Set **Status** to `Complete — Pending Milestone Doc Sync`
       - Mark completed steps `[x]`
    c. Now promote Next Task → Current Task:
       - Copy **Next Task** → **Current Task** (name, goal)
@@ -28,7 +28,7 @@ Do NOT update changelog.md, project-plan.md, codebase-map.md, or any spec/archit
    > task, staging source files from the task that just finished will be blocked, even
    > though they belonged to a properly-scoped task. If the task touched any file outside
    > `docs/`, commit everything through 1b first (source + doc changes, with Current Task
-   > still showing the just-finished task and `Status: Complete — Pending Sprint Doc
+   > still showing the just-finished task and `Status: Complete — Pending Milestone Doc
    > Sync`), *then* apply 1c as its own follow-up commit that only touches
    > `docs/current-state.md`. A docs-only task (no source files touched) can still do the
    > whole block — including 1c — in one commit.
@@ -53,11 +53,11 @@ For validation / guard logic: verify that invalid input is correctly rejected.
 - ❌ "All checks passed on clean data" alone is not sufficient
 - ✅ "Fed invalid data → check correctly returned failure"
 
-3. **Add one entry to `docs/sprint-change-log.md`** (1 edit):
+3. **Add one entry to `docs/milestone-change-log.md`** (1 edit):
    - Implementation summary, technical impact flags (Architecture/DB/API/Deployment/Module flow), potential documentation updates.
    - Status: **Pending documentation synchronization**
    - Insert chronologically — append after the last existing entry, not at the top.
 
 4. **Write one row to `docs/task-log.md`** (1 edit):
 
-`| [date] | [task] | [files changed] | [command run] | ✅/❌ [result] | current-state ✅ | sprint-log ✅ |`
+`| [date] | [task] | [files changed] | [command run] | ✅/❌ [result] | current-state ✅ | milestone-log ✅ |`

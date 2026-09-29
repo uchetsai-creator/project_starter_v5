@@ -194,7 +194,7 @@ SPEC_CODE_BINDINGS=""
 SECURITY_SCAN_SRC=""
 PROSE_SCAN_ENABLED=""
 TEST_COMMAND=""
-SPRINT_SYNC_STALE_DAYS=""
+MILESTONE_SYNC_STALE_DAYS=""
 
 if [ -f "$CONFIG" ]; then
     PROJECT_TYPE=$(grep '^project_type:' "$CONFIG" | sed 's/project_type:[[:space:]]*//' | tr -d "\"' ")
@@ -243,7 +243,7 @@ except Exception:
     # as-is (just trimmed of leading whitespace after the YAML key) instead of
     # stripping characters that could be part of the command itself.
     TEST_COMMAND=$(grep '^test_command:' "$CONFIG" | sed -E 's/^test_command:[[:space:]]*//') || true
-    SPRINT_SYNC_STALE_DAYS=$(grep '^sprint_sync_stale_days:' "$CONFIG" | sed 's/sprint_sync_stale_days:[[:space:]]*//' | tr -d "\"' ") || true
+    MILESTONE_SYNC_STALE_DAYS=$(grep '^milestone_sync_stale_days:' "$CONFIG" | sed 's/milestone_sync_stale_days:[[:space:]]*//' | tr -d "\"' ") || true
 fi
 
 # ── spec_code_adapter value guard (legacy single trio) ────────────────────────
@@ -292,12 +292,12 @@ if [ -n "$SPEC_CODE_BINDINGS" ]; then
     done <<< "$SPEC_CODE_BINDINGS"
 fi
 
-# ── sprint_sync_stale_days value guard ────────────────────────────────────────
+# ── milestone_sync_stale_days value guard ────────────────────────────────────────
 # Catches: a non-numeric value (typo, or "2 weeks" instead of a day count) — checked
 # immediately so a bad config value fails clearly at commit time instead of the
 # age-based fallback below silently never firing.
-if [ -n "$SPRINT_SYNC_STALE_DAYS" ] && ! echo "$SPRINT_SYNC_STALE_DAYS" | grep -qE '^[0-9]+$'; then
-    echo "[FAIL] pre-commit: sprint_sync_stale_days '$SPRINT_SYNC_STALE_DAYS' is not a positive integer."
+if [ -n "$MILESTONE_SYNC_STALE_DAYS" ] && ! echo "$MILESTONE_SYNC_STALE_DAYS" | grep -qE '^[0-9]+$'; then
+    echo "[FAIL] pre-commit: milestone_sync_stale_days '$MILESTONE_SYNC_STALE_DAYS' is not a positive integer."
     echo "    Fix the value in .project-starter.yml (a day count, e.g. 14) or leave it blank to disable the fallback."
     exit 1
 fi
@@ -338,10 +338,10 @@ if [ -f "$CONFIG" ] && grep -qE '^project_type_confirmed:[[:space:]]*false' "$CO
     PASS=false
 fi
 
-# ── Sprint Documentation Sync ─────────────────────────────────────────────────────
+# ── Milestone Documentation Sync ─────────────────────────────────────────────────────
 # Not checked at commit time: a Pending backlog is a handover problem, so .githooks/pre-push
 # blocks it on a push to a gated branch (main/master) and only warns elsewhere. Committing stays
-# free so work can be saved while sync is pending. (The sprint_sync_stale_days value check above
+# free so work can be saved while sync is pending. (The milestone_sync_stale_days value check above
 # stays here — a malformed config value should fail as early as possible.)
 
 # ── Unscoped source-change guard ───────────────────────────────────────────────
@@ -558,14 +558,14 @@ fi
 
 # ── Writing Audience violations ────────────────────────────────────────────────
 # Trigger: any document registered in document-registry.yaml staged.
-# Catches: sprint/task references written into any spec document, not just the
+# Catches: milestone/task references written into any spec document, not just the
 # `audience: external` (stakeholder-facing) ones this used to be hardcoded to. The
 # `audience` field only ever meant "is this in the generated PDF for stakeholders" —
 # it was never a statement that `audience: internal` docs (api-contract.md,
 # data-model.md, project-requirements.md, ...) are fine to carry per-task planning
 # narrative. That distinction doesn't exist: document-registry.yaml only lists
 # documents describing the system's *current* state; current-state.md's Steps
-# section (this task's plan) and sprint-change-log.md (the historical record) are
+# section (this task's plan) and milestone-change-log.md (the historical record) are
 # deliberately NOT in the registry — exactly where that content belongs instead.
 # Every registered document's path is read dynamically (single source of truth,
 # same _load_yaml() import pattern as _resolve_spec_code_bindings() above) rather
@@ -633,7 +633,7 @@ if [ -n "$SPEC_FACING_STAGED" ]; then
     while IFS= read -r file; do
         [ -z "$file" ] && continue
         VIOLATIONS=$(_content_at "$file" \
-            | grep -nE 'Sprint [0-9]+|Task [0-9]+|\(S[0-9]+\)' || true)
+            | grep -nE 'Milestone [0-9]+|Task [0-9]+|\(M[0-9]+\)' || true)
         if [ -n "$VIOLATIONS" ]; then
             if [ "$FOUND_VIOLATIONS" = false ]; then
                 echo "  [FAIL] Writing Audience violations in spec-facing documents:"

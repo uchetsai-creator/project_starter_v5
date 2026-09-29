@@ -21,7 +21,7 @@
 #   related:          closely related document keys (without .md)
 #   pdf:              true | false — include in generated PDF
 #   pdf_chapter:      introduction | plan | design | build | test | deployment | null
-#   audience:         internal | external — external = no task/sprint refs allowed
+#   audience:         internal | external — external = no task/milestone refs allowed
 #   required_sections: section headings verify_content.py must find filled
 #   update_trigger:   when to update this document
 #
@@ -40,7 +40,7 @@ documents:
     required_for: [web-app, cli-tool, library, data-pipeline, ml-pipeline, microservices, llm-app, iac, mobile-app]
     optional_for: []
     context_priority: high
-    task_types: [feature, sprint-end]
+    task_types: [feature, milestone-end]
     purpose: "Functional requirements (FR-XXX), acceptance criteria (AC-XXX), scope, roles, and non-functional requirements"
     used_by: [context-builder, validator, pdf]
     related: [test-plan, test-report, business-rules]

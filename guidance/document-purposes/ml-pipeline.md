@@ -21,7 +21,7 @@ what it produces as output, naming conventions, lifecycle (archive / retain / ov
 and how each stage handles errors.
 The Cross-Stage Consistency Check table is the authoritative record of verified stage boundaries.
 
-Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Milestone Documentation Sync):
 * A stage's input path, format, or naming convention changes
 * A stage's output path, format, or lifecycle changes
 * A stage's error / skip handling policy changes
@@ -49,7 +49,7 @@ Defines what a trained model accepts as input (feature schema), what it produces
 (prediction format), and what quality thresholds it must meet before being promoted to production.
 This is the authoritative contract between the training pipeline and the serving layer.
 
-Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Milestone Documentation Sync):
 * Input feature schema changes (field added, removed, or type changed)
 * Output format changes
 * Production thresholds change
@@ -62,7 +62,7 @@ Update when (if listed in current-state.md → Doc Checklist, update at task lev
 Purpose:
 Records each training experiment — hypothesis, configuration, results, and decision.
 One entry per completed experiment run. Newest entry at the top.
-Not a sprint-change-log (which tracks code changes); this tracks model behaviour across runs.
+Not a milestone-change-log (which tracks code changes); this tracks model behaviour across runs.
 
 Update when:
 * A training run is completed — add one entry with hypothesis, config, results, and decision.
@@ -101,5 +101,5 @@ Purpose:
 Describe data quality rules and validation constraints enforced in code.
 Each rule must declare its Enforcement Layer.
 
-Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Milestone Documentation Sync):
 * Data quality rules or validation constraints change

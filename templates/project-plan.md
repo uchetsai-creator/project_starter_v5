@@ -9,7 +9,7 @@
      effect of the rules, not the rule itself. If a task fits the rules but clearly
      isn't half-day-sized, that means a step or file was undercounted — recheck it,
      don't override the rules with a gut-feel estimate.
-  4. Group tasks into sprints — a sprint is a logical chunk of work, typically 3-5 tasks
+  4. Group tasks into milestones — a milestone is a logical chunk of work, typically 3-5 tasks
 
   Task size rules (apply these to decide where to split, in this order):
   - One-sentence intent: you should be able to state the task's goal in one sentence
@@ -37,22 +37,22 @@
 
   Parallel marker [P]: mark a task [P] when it has no dependency on any other
   not-yet-completed task in the plan (e.g. two unrelated INF tasks, or DB tasks for two
-  different features in the same sprint). This framework executes one Current Task at a
+  different features in the same milestone). This framework executes one Current Task at a
   time, so [P] does not mean "run simultaneously" — it means "not blocked, safe to pull
   forward out of order if priorities shift." Do not mark a task [P] if it depends on
   another layer in the same vertical slice (e.g. BE depending on its own DB task).
 
   Code quality tasks (added by code-quality-check.md) use the prefix [CODE QUALITY]
-  and are inserted at the end of the current sprint when found.
+  and are inserted at the end of the current milestone when found.
   After completing [CODE QUALITY] tasks, review all remaining tasks and update any
   that reference changed function names, module interfaces, or file paths.
 -->
 
 ---
 
-## Sprint 1: Shared Foundation
+## Milestone 1: Shared Foundation
 
-Tasks in this sprint:
+Tasks in this milestone:
 - Task 1: INF [Foundation Name]
 
 ### Task 1: INF [Foundation Name]
@@ -100,9 +100,9 @@ Tasks in this sprint:
 
 ---
 
-## Sprint 2: [Feature A]
+## Milestone 2: [Feature A]
 
-Tasks in this sprint:
+Tasks in this milestone:
 - Task 2: DB [Feature A] Schema
 - Task 3: BE [Feature A]
 - Task 4: FE [Feature A]
@@ -179,8 +179,8 @@ Tasks in this sprint:
 
 <!--
   Insert [CODE QUALITY] tasks here if Medium/Low issues were found during code-quality-check.md.
-  Complete these before starting Sprint 3.
-  After completing, review Sprint 3+ tasks and update any affected function names or file paths.
+  Complete these before starting Milestone 3.
+  After completing, review Milestone 3+ tasks and update any affected function names or file paths.
 
   Format:
   ### Task N: [CODE QUALITY] [Area]: [Recommendation]
@@ -196,9 +196,9 @@ Tasks in this sprint:
 
 ---
 
-## Sprint 3: [Feature B]
+## Milestone 3: [Feature B]
 
-Tasks in this sprint:
+Tasks in this milestone:
 - Task 5: DB [Feature B] Schema
 - Task 6: BE [Feature B]
 - Task 7: FE [Feature B]

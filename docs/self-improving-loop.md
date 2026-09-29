@@ -54,7 +54,7 @@ diagnose_spec.py --round 2
 | 2 | Re-classify → open PRs for new gaps; log remaining to `logs/framework-gaps.md` |
 | 3+ | Not allowed — check `logs/framework-gaps.md` and fix manually |
 
-### Running the loop (sprint end, optional)
+### Running the loop (milestone end, optional)
 
 ```bash
 # Round 1 — diagnose and open PRs

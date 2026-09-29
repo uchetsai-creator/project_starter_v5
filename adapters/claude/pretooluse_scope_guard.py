@@ -275,7 +275,7 @@ def decide(payload: dict, cwd: str) -> tuple[str, str]:
             f"{docs_path}/current-state.md -> Approach has unfilled impact lines: {'; '.join(impact)}, "
             f"and this would write to a source file ({rel_path}). When you propose the breakdown, also "
             "agree with the user what each task changes besides code: spec docs (Docs to update -- "
-            "candidates from `python3 build-context.py --task-type sprint-end`, matched against "
+            "candidates from `python3 build-context.py --task-type milestone-end`, matched against "
             "update_trigger in document-registry.yaml; project-requirements.md is always on the list), "
             "tests, dependencies, config/CI/deploy, and per-module docs -- see "
             "guidance/approach-proposal.md."

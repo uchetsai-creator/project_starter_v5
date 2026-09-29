@@ -12,7 +12,7 @@
 ### research.md
 **Applies to: All project types**
 
-Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Milestone Documentation Sync):
 * New technology decisions are made
 * NEEDS CLARIFICATION items are resolved
 * Architecture decisions change
@@ -26,7 +26,7 @@ Purpose:
 Step-by-step guide for setting up and running the project locally.
 Covers prerequisites, environment variables, startup commands, and verification steps.
 
-Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Milestone Documentation Sync):
 * Setup steps change
 * New prerequisites are added
 * Verification steps change
@@ -42,7 +42,7 @@ Purpose:
 Describes the testing strategy — what will be tested, at which levels, with which tools, and what the CI gate requires.
 Actual test results go in test-report.md.
 
-Update when (defer to Sprint Documentation Sync):
+Update when (defer to Milestone Documentation Sync):
 * Testing strategy, tool choices, or test levels change
 * CI gate configuration changes
 * Test environment changes
@@ -56,7 +56,7 @@ Records the actual results of each test run — pass/fail counts, coverage, know
 For Data Pipeline / ML Pipeline: records GE checkpoint results, dbt schema test counts, E2E pipeline task results, and fault injection (break-kit) outcomes.
 This file describes WHAT was found, not the plan; the plan lives in test-plan.md.
 
-Update when (defer to Sprint Documentation Sync):
+Update when (defer to Milestone Documentation Sync):
 * A new test run is completed
 * Bugs are found and fixed
 * Coverage changes significantly
@@ -74,7 +74,7 @@ Create when: the project's domain vocabulary is non-trivial — e.g., the team d
 or a concept appears in multiple specs without a single authoritative definition.
 Do not create it just because a project exists — only create when there are actual terms to define.
 
-Update when (defer to Sprint Documentation Sync):
+Update when (defer to Milestone Documentation Sync):
 * A new domain term is introduced or an existing definition changes
 
 ### specs/dependencies.md
@@ -89,7 +89,7 @@ version constraints and the policy for when and how to upgrade.
 Create when: the project has non-trivial version constraints (e.g., locked to a specific major version
 due to a breaking change), or when multiple team members need to agree on an upgrade cadence.
 
-Update when (defer to Sprint Documentation Sync):
+Update when (defer to Milestone Documentation Sync):
 * A dependency is upgraded or a constraint is added
 * A known incompatibility is discovered or resolved
 
@@ -104,7 +104,7 @@ Logger instantiation pattern is documented here in a language/framework-agnostic
 use whatever the project's logging library provides.
 All modules must follow this spec.
 
-Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Milestone Documentation Sync):
 * New modules are added (add one line to the Module Naming Convention table)
 * Log format changes
 * Logger instantiation pattern changes
@@ -125,7 +125,7 @@ Describe system component overview and data flow.
 Contains a ```plantuml component diagram block rendered automatically by build_pdf.py.
 Component type is a free-form label — use whatever best describes the component's role.
 
-Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Milestone Documentation Sync):
 * New components are added
 * Data flows change
 * Integration changes
@@ -214,10 +214,10 @@ Purpose:
 Single source of truth for what the project must do — functional requirements (FR-XXX),
 acceptance criteria (AC-XXX), scope boundaries, roles, non-functional requirements, and edge cases.
 `verify_acceptance.py` reads this file to extract FR-XXX IDs and cross-references them against
-`test-plan.md` (coverage) and `test-report.md` (results). A sprint cannot close out unless every
+`test-plan.md` (coverage) and `test-report.md` (results). A milestone cannot close out unless every
 FR-XXX is covered in the test plan and the test report shows ✅ Pass.
 
-Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Milestone Documentation Sync):
 * A new feature or requirement is added — add an FR-XXX entry
 * An acceptance criterion changes — update the matching AC-XXX entry
 * Scope boundaries or roles change
@@ -258,18 +258,18 @@ codebase that has no prior documentation. Extracted from AGENTS.md to keep AGENT
 Load when: retrofitting an existing project for the first time. Never needed otherwise.
 Update when: the retrofit procedure changes.
 
-### sprint-sync.md
+### milestone-sync.md
 **Applies to: All project types**
 
 Purpose:
-Sprint-end Document Update Checklist and Sprint Documentation Sync procedure. Kept separate
-from AGENTS.md so it is never loaded during normal task work — only at sprint end.
+Milestone-end Document Update Checklist and Milestone Documentation Sync procedure. Kept separate
+from AGENTS.md so it is never loaded during normal task work — only at milestone end.
 Contains the full checklist with type filter, pre-filter quick-guide, per-item trigger conditions,
 diagram regeneration commands, and consistency checks.
 
-Load when: Sprint Documentation Sync runs (sprint end or when sprint-change-log.md has enough Pending entries).
+Load when: Milestone Documentation Sync runs (milestone end or when milestone-change-log.md has enough Pending entries).
 During normal task work, use only the filtered `Doc Checklist` in `current-state.md` instead.
-Update when: a new document type is added that needs a sprint-end check.
+Update when: a new document type is added that needs a milestone-end check.
 
 ### current-state.md
 Purpose:
@@ -285,15 +285,15 @@ Contains:
 - Doc Checklist (filtered per-task list of documents to check at completion)
 
 Update when:
-* Task starts — fill in Current Task, Required Context, Steps, Next Task; use the inline quick-filter guide in the current-state.md template to populate Doc Checklist (no other file needed for standard task types; load sprint-sync.md only for edge cases not covered by the guide)
-* Task completes — apply Doc Checklist items, set Status to "Complete — Pending Sprint Doc Sync", mark steps [x], promote Next Task to Current Task, set Status to "In Progress" for new task
+* Task starts — fill in Current Task, Required Context, Steps, Next Task; use the inline quick-filter guide in the current-state.md template to populate Doc Checklist (no other file needed for standard task types; load milestone-sync.md only for edge cases not covered by the guide)
+* Task completes — apply Doc Checklist items, set Status to "Complete — Pending Milestone Doc Sync", mark steps [x], promote Next Task to Current Task, set Status to "In Progress" for new task
 
 ### changelog.md
 Purpose:
-Completed task history. Updated during Sprint Documentation Sync — not after every task.
+Completed task history. Updated during Milestone Documentation Sync — not after every task.
 
 Update when:
-* Sprint Documentation Sync runs — move completed task summaries here from sprint-change-log.md
+* Milestone Documentation Sync runs — move completed task summaries here from milestone-change-log.md
 
 ### task-log.md
 Purpose:
@@ -303,13 +303,13 @@ This forces all post-task steps to be completed before reporting done.
 Prevents AI from reporting completion without actual execution or without updating docs.
 
 Format:
-`| date | task | files changed | verification | ✅/❌ result | plan | changelog | current-state | sprint-log |`
+`| date | task | files changed | verification | ✅/❌ result | plan | changelog | current-state | milestone-log |`
 
 Column meanings:
 - **plan** ✅ — project-plan.md row marked complete
-- **changelog** ✅ — sprint-change-log.md entry added with Status: Pending documentation synchronization
+- **changelog** ✅ — milestone-change-log.md entry added with Status: Pending documentation synchronization
 - **current-state** ✅ — current-state.md updated (Status set, steps marked, Next Task promoted)
-- **sprint-log** ✅ — sprint-change-log.md entry confirms the task is in the pending sync queue
+- **milestone-log** ✅ — milestone-change-log.md entry confirms the task is in the pending sync queue
 
 All checklist columns must be ✅ before the row can be written.
 Result must confirm the feature works — not just "no errors":
@@ -323,19 +323,19 @@ For validation / guard logic: also verify that invalid input is rejected.
 Update when:
 * Any task is completed — AI writes one row after completing ALL mandatory post-task steps
 
-### sprint-change-log.md
+### milestone-change-log.md
 Purpose:
-Lightweight record of implementation changes during a sprint. Acts as memory between
-development tasks and sprint-level documentation synchronization. The AI adds one entry
+Lightweight record of implementation changes during a milestone. Acts as memory between
+development tasks and milestone-level documentation synchronization. The AI adds one entry
 here per completed task instead of immediately updating all spec/architecture documents.
-At sprint end, run Sprint Documentation Sync (see AGENTS.md) to process all Pending entries.
+At milestone end, run Milestone Documentation Sync (see AGENTS.md) to process all Pending entries.
 
 Format: one entry per task with implementation summary, technical impact flags
 (Architecture/DB/API/Deployment/Module flow), potential documentation updates, and status.
 
 Update when:
 * Any task is completed — AI adds one entry with Status: Pending documentation synchronization
-* Sprint Documentation Sync runs — AI updates Status to: Documentation synchronized — [date]
+* Milestone Documentation Sync runs — AI updates Status to: Documentation synchronized — [date]
 
 ### codebase-map.md
 Purpose:
@@ -346,12 +346,12 @@ Also serves as the project overview section in the PDF — a page structure comp
 is injected here so readers get a visual of the frontend structure before diving into the file listing.
 
 Update when:
-* Sprint Documentation Sync runs — add files touched during the sprint, refresh tree view
+* Milestone Documentation Sync runs — add files touched during the milestone, refresh tree view
 * Re-run `python3 docs/script/scanners/scan_codebase.py <src_dir> --project-type <type> --update docs/codebase-map.md`
   to refresh the tree view and coverage summary
 * Frontend page/screen structure changes — update the component block in this file
 
-Do not update after every task — defer to Sprint Documentation Sync.
+Do not update after every task — defer to Milestone Documentation Sync.
 
 Do not scan the entire repository to regenerate this file. Update incrementally, one task at a time.
 

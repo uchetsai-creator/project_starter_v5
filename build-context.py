@@ -7,7 +7,7 @@ and writes .ai/AI_CONTEXT.md listing exactly which files the AI must read.
 
 Usage:
   python3 build-context.py
-  python3 build-context.py --task-type sprint-end
+  python3 build-context.py --task-type milestone-end
   python3 build-context.py --dry-run
 """
 
@@ -41,7 +41,7 @@ def _classify(doc_key: str, meta: dict, project_type: str, task_type: str | None
     if is_optional:
         if task_type is None:
             return "if_present"
-        if task_type == "sprint-end":
+        if task_type == "milestone-end":
             return "required"
         doc_task_types = meta.get("task_types")
         if doc_task_types is None:

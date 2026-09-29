@@ -35,11 +35,11 @@ Update when: the module completion procedure changes (logging rules, PDF rebuild
 ### task-completion.md
 
 Purpose:
-Full mandatory post-task steps: Doc Checklist application, verification table, sprint-change-log entry,
+Full mandatory post-task steps: Doc Checklist application, verification table, milestone-change-log entry,
 task-log row. Extracted from AGENTS.md to keep the mandatory startup payload lean.
 
 Load when: the inline Closeout summary in `docs/current-state.md` is insufficient — e.g., unfamiliar
-with the verification table or the exact sprint-change-log entry format.
+with the verification table or the exact milestone-change-log entry format.
 For standard closeouts, the Closeout section in current-state.md is sufficient.
 Update when: the post-task procedure changes.
 
@@ -59,9 +59,9 @@ Runs the following checks on every commit:
 - `verify_content.py` — spec content quality
 
 `verify_acceptance.py` (Phase 85 — FR-XXX → test plan → test report traceability) is
-**not** in this list — it runs at sprint end only (`workflow-registry.yaml`'s `sprint-end`
-entry, see `templates/sprint-sync.md`), not on every commit. Checking full requirement
-traceability mid-sprint, before all FRs have test-report entries, would block normal work.
+**not** in this list — it runs at milestone end only (`workflow-registry.yaml`'s `milestone-end`
+entry, see `templates/milestone-sync.md`), not on every commit. Checking full requirement
+traceability mid-milestone, before all FRs have test-report entries, would block normal work.
 
 **Test suite execution** (conditional — only when `test_command` is set in
 `.project-starter.yml`): actually runs the configured command (e.g. `pytest -q`) and blocks
@@ -71,9 +71,9 @@ entirely when unset (default — matches prior behavior).
 **Process checks** (5 rules — Phase 21):
 - `verify_framework.py` — framework file integrity
 - AGENTS.md token budget — keeps startup context below limit
-- Changelog audit trail — sprint-change-log entry required before commit
+- Changelog audit trail — milestone-change-log entry required before commit
 - Closeout completeness — current-state.md must be properly closed out
-- Writing Audience violations — no task/sprint refs in spec-facing documents
+- Writing Audience violations — no task/milestone refs in spec-facing documents
 
 **Spec ↔ code drift** (conditional — only when `spec_code_adapter`/`spec_code_spec`/`spec_code_src`
 are set in `.project-starter.yml`): `verify_spec_code.py` runs whenever the spec contract document
@@ -112,7 +112,7 @@ If neither is set, all Required documents for the project type are listed.
 
 ```bash
 python3 build-context.py                          # generate for current task
-python3 build-context.py --task-type sprint-end   # override task type
+python3 build-context.py --task-type milestone-end   # override task type
 python3 build-context.py --dry-run                # preview without writing
 ```
 
@@ -136,7 +136,7 @@ validator sequencing from AGENTS.md.
 
 ```bash
 python3 orchestrator.py                          # generate workflow + context for current task
-python3 orchestrator.py --task-type sprint-end   # override task type
+python3 orchestrator.py --task-type milestone-end   # override task type
 python3 orchestrator.py --dry-run                # preview WORKFLOW.md without writing
 ```
 
@@ -232,7 +232,7 @@ type/path flags do not need to be passed on every manual invocation.
 ```yaml
 project_type: data-pipeline
 docs_path: docs/
-task_type:          # optional: feature | pipeline-stage | bug-fix | sprint-end | eval-run | iac-change
+task_type:          # optional: feature | pipeline-stage | bug-fix | milestone-end | eval-run | iac-change
 
 spec_code_adapter:   # optional, all three required together — enables the spec ↔ code drift gate
 spec_code_spec:      # e.g. fastapi / docs/specs/api-contract.md / src/ — see README.md → Spec ↔ Code Validator
@@ -251,7 +251,7 @@ files — documents that exist in docs/ but are N/A for the declared type, or ar
 matrix at all. Works in any project that copied the framework's scripts; has no runtime
 dependency on the template files (matrix is hardcoded at implementation time).
 
-Run after retrofitting, after Sprint Documentation Sync, or any time you want to confirm
+Run after retrofitting, after Milestone Documentation Sync, or any time you want to confirm
 the project's docs/ folder matches what the declared type requires.
 
 ```bash
@@ -266,7 +266,7 @@ Output statuses: Present · Missing Required · Missing Optional · — N/A · O
 
 `--content` adds per-document fill score: placeholder detection, required section presence,
 fill ratio (non-placeholder content lines / total content lines). Summary line: "Spec fill: N / M
-documents fully filled". Use at sprint end before spec-review.md to identify which documents
+documents fully filled". Use at milestone end before spec-review.md to identify which documents
 need the LLM Judge rubric.
 
 Update when: a new document is added to the framework and its Required/Optional/N/A status
@@ -284,7 +284,7 @@ Module Naming Convention) and documents trace_id for types that need request tra
 and no raw print/console.log statements. Per-type addenda: pipeline row count field (data-pipeline, ml-pipeline),
 LLM call log fields (llm-app).
 
-Run at sprint end as part of the quality gate (step 4 of Sprint Documentation Sync).
+Run at milestone end as part of the quality gate (step 4 of Milestone Documentation Sync).
 Also runs automatically on `git commit` if `docs/script/validators/verify_logs.py` is present.
 
 ```bash
@@ -323,7 +323,7 @@ Type-specific extensions (layered on top, not web-biased):
 * data-pipeline, ml-pipeline: `## Contract Tests` section must have ≥ 1 real result (✅ / ❌)
 * llm-app: `eval-log.md` latest data row must show ✅ in the Pass? column
 
-Run at sprint end as part of the quality gate (after verify_tests, before verify_content).
+Run at milestone end as part of the quality gate (after verify_tests, before verify_content).
 
 ```bash
 python3 docs/script/validators/verify_acceptance.py --project-type web-app
@@ -344,7 +344,7 @@ test count > 0, overall pass/fail status recorded, Results by Module populated w
 For Data Pipeline and ML Pipeline: also checks that the Contract Tests (quality gate) section
 and Fault Injection Tests section are non-empty.
 
-Run at sprint end as part of the quality gate (step 4 of Sprint Documentation Sync).
+Run at milestone end as part of the quality gate (step 4 of Milestone Documentation Sync).
 Also runs automatically on `git commit` if `docs/script/validators/verify_tests.py` is present.
 
 ```bash
@@ -419,7 +419,7 @@ IaC / DevOps:
 Mobile App:
 - `mobile-contract.md` — ≥1 screen defined with non-placeholder title; Navigation structure described
 
-Run at sprint end as part of the quality gate (step 4 of Sprint Documentation Sync).
+Run at milestone end as part of the quality gate (step 4 of Milestone Documentation Sync).
 Also runs automatically on `git commit` if `docs/script/validators/verify_content.py` is present.
 
 ```bash
@@ -439,8 +439,8 @@ Update when: a new project type is added, or per-document quality rules change.
 **Applies to: All project types**
 
 Purpose:
-Prompt template for LLM-as-a-Judge spec quality review. Load at sprint end for any Required
-spec document that was updated during the sprint (especially those with [WARN] or [FAIL] from
+Prompt template for LLM-as-a-Judge spec quality review. Load at milestone end for any Required
+spec document that was updated during the milestone (especially those with [WARN] or [FAIL] from
 `verify_docs.py --content`). Scores the spec on five criteria (1–5 each) and returns a
 structured PASS/FAIL verdict with evidence.
 
@@ -465,7 +465,7 @@ QA engineer and solution architect, generating a list of Unresolved Questions th
 not answer. Questions are classified Critical / Major / Minor. The process iterates until a
 round produces zero Critical questions.
 
-Load when: sprint end, after spec-review.md PASS for a document. Run against each Required
+Load when: milestone end, after spec-review.md PASS for a document. Run against each Required
 spec document that passed Spec Review.
 Never load during normal task work.
 Record final round count in `docs/specs/test-report.md → Spec Challenge` section.
@@ -527,7 +527,7 @@ sections filled with real values — not placeholders — for the declared modul
 - **Shared Utility** — plantuml class block with real methods; `Used by` table ≥ 1 real row
 
 Called internally by `verify_content.py` for the module flow section of the quality gate.
-For source-code coverage checks, run directly with `--src`. See `templates/sprint-sync.md → Step 4`.
+For source-code coverage checks, run directly with `--src`. See `templates/milestone-sync.md → Step 4`.
 
 ```bash
 # Coverage + quality (cross-reference against source code):
@@ -607,7 +607,7 @@ Eleven checks performed:
 1. **Stale pointer** — every `.md` reference in AGENTS.md resolves to an existing file
 2. **Token budget** — AGENTS.md is ≤ 200 lines
 3. **Matrix ↔ template** — every matrix row has a template file; every template has a matrix row
-4. **Sprint-sync coverage** — every non-exempt R/O document has a sprint-sync checklist item
+4. **Milestone-sync coverage** — every non-exempt R/O document has a milestone-sync checklist item
 5. **Purposes coverage** — every Required document appears in the matching document-purposes file
 6. **Cross-reference integrity** — every `### X.md` header in document-purposes-*.md has a template file
 7. **Type completeness** — every type slug in AGENTS.md's init table has an init file and is registered in PURPOSES_FILES

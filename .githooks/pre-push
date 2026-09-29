@@ -12,11 +12,14 @@
 #       Complete                        -> runs verify_acceptance.py --only <Requirement IDs> --strict
 #       Descoped — user: <reason>       -> accepted (only the user may abandon a requirement)
 #       anything else / placeholder     -> not accepted
-#  2. Sprint Documentation Sync — docs/sprint-change-log.md. >= 3 entries at
-#     "Status: Pending documentation synchronization" means templates/sprint-sync.md has not been
-#     run; with sprint_sync_stale_days set in .project-starter.yml, the OLDEST Pending entry being
-#     that many days old also counts. (Moved here from pre-commit: a backlog is a handover problem,
-#     not a reason to stop saving work.)
+#  2. Milestone Documentation Sync — docs/milestone-change-log.md. templates/milestone-sync.md has
+#     not been run if any of these hold: >= 3 entries at "Status: Pending documentation
+#     synchronization" (bounds drift within one oversized Requirement); >= 1 such entry AND the
+#     current Requirement Status is Complete (a Requirement is a semantic boundary that exists for
+#     every project type, so it must never ship half-synced just because its own Breakdown had
+#     fewer than 3 tasks); or, with milestone_sync_stale_days set in .project-starter.yml, the OLDEST
+#     Pending entry being that many days old. (Moved here from pre-commit: a backlog is a handover
+#     problem, not a reason to stop saving work.)
 #
 # Pushes to a gated branch (default: main master; override with push_gate_branches in
 # .project-starter.yml, e.g. "main release") are BLOCKED on any problem. Pushes to other branches
@@ -40,19 +43,19 @@ CONFIG=".project-starter.yml"
 PROJECT_TYPE=""
 DOCS_PATH="docs"
 GATE_BRANCHES="main master"
-SPRINT_SYNC_STALE_DAYS=""
+MILESTONE_SYNC_STALE_DAYS=""
 if [ -f "$CONFIG" ]; then
     PROJECT_TYPE=$(grep '^project_type:' "$CONFIG" | sed 's/project_type:[[:space:]]*//' | tr -d "\"' " || true)
     DOCS_CANDIDATE=$(grep '^docs_path:' "$CONFIG" | sed 's/docs_path:[[:space:]]*//' | tr -d "\"' /" || true)
     [ -n "$DOCS_CANDIDATE" ] && DOCS_PATH="$DOCS_CANDIDATE"
     GATE_CANDIDATE=$(grep '^push_gate_branches:' "$CONFIG" | sed 's/push_gate_branches:[[:space:]]*//' | tr -d "\"'" | tr ',' ' ' || true)
     [ -n "$(printf '%s' "$GATE_CANDIDATE" | tr -d ' ')" ] && GATE_BRANCHES="$GATE_CANDIDATE"
-    SPRINT_SYNC_STALE_DAYS=$(grep '^sprint_sync_stale_days:' "$CONFIG" | sed 's/sprint_sync_stale_days:[[:space:]]*//' | tr -d "\"' " || true)
+    MILESTONE_SYNC_STALE_DAYS=$(grep '^milestone_sync_stale_days:' "$CONFIG" | sed 's/milestone_sync_stale_days:[[:space:]]*//' | tr -d "\"' " || true)
 fi
 case "$PROJECT_TYPE" in ""|"["*) exit 0 ;; esac
 
 CS_PATH="${DOCS_PATH}/current-state.md"
-SPRINT_LOG_PATH="${DOCS_PATH}/sprint-change-log.md"
+MILESTONE_LOG_PATH="${DOCS_PATH}/milestone-change-log.md"
 ZERO="0000000000000000000000000000000000000000"
 EXIT=0
 
@@ -88,19 +91,30 @@ _requirement_problems() {
     fi
 }
 
-# Prints one line per problem with the Sprint Documentation Sync backlog ($1 = sprint-change-log.md
-# content). Prints nothing when there is no log, or nothing is overdue.
-_sprint_problems() {
+# Prints one line per problem with the Milestone Documentation Sync backlog ($1 = milestone-change-log.md
+# content, $2 = Requirement Status value from current-state.md, may be empty). Prints nothing when
+# there is no log, or nothing is overdue.
+#
+# Two independent triggers, whichever fires first:
+#   - count: 3+ pending entries — bounds drift within a single oversized Requirement.
+#   - requirement-complete: the current Requirement just finished, with >=1 pending entry — a
+#     semantic boundary that exists for every project type (unlike a DB/BE/FE "layer", which only
+#     web-app has), so a finished Requirement is never left half-synced just because its own
+#     Breakdown had fewer than 3 tasks.
+_milestone_problems() {
     log="$1"
+    req_status="$2"
     [ -z "$log" ] && return 0
     pending=$(printf '%s\n' "$log" | grep -cE '^\*\*Status:\*\* Pending documentation synchronization' || true)
     pending=${pending:-0}
-    if [ -n "$SPRINT_SYNC_STALE_DAYS" ] && ! printf '%s' "$SPRINT_SYNC_STALE_DAYS" | grep -qE '^[0-9]+$'; then
-        echo "sprint_sync_stale_days '$SPRINT_SYNC_STALE_DAYS' in .project-starter.yml is not a positive integer."
+    if [ -n "$MILESTONE_SYNC_STALE_DAYS" ] && ! printf '%s' "$MILESTONE_SYNC_STALE_DAYS" | grep -qE '^[0-9]+$'; then
+        echo "milestone_sync_stale_days '$MILESTONE_SYNC_STALE_DAYS' in .project-starter.yml is not a positive integer."
     fi
     if [ "$pending" -ge 3 ]; then
-        echo "${DOCS_PATH}/sprint-change-log.md has $pending entries at 'Pending documentation synchronization' (threshold: 3) — run Sprint Documentation Sync (templates/sprint-sync.md) first."
-    elif [ "$pending" -ge 1 ] && printf '%s' "$SPRINT_SYNC_STALE_DAYS" | grep -qE '^[0-9]+$'; then
+        echo "${DOCS_PATH}/milestone-change-log.md has $pending entries at 'Pending documentation synchronization' (threshold: 3) — run Milestone Documentation Sync (templates/milestone-sync.md) first."
+    elif [ "$pending" -ge 1 ] && printf '%s' "$req_status" | grep -qE '^Complete([^A-Za-z]|$)'; then
+        echo "${DOCS_PATH}/milestone-change-log.md has $pending pending entry(ies) and Requirement Status is Complete — run Milestone Documentation Sync (templates/milestone-sync.md) before this Requirement ships."
+    elif [ "$pending" -ge 1 ] && printf '%s' "$MILESTONE_SYNC_STALE_DAYS" | grep -qE '^[0-9]+$'; then
         oldest=$(printf '%s\n' "$log" | awk '
             /^\*\*Date:\*\*/ { d=$0 }
             /^\*\*Status:\*\* Pending documentation synchronization/ { print d; exit }
@@ -118,8 +132,8 @@ else:
 " "$oldest" 2>/dev/null || true)
             age="${age//$'\r'/}"
             age="${age:--1}"
-            if [ "$age" -ge "$SPRINT_SYNC_STALE_DAYS" ]; then
-                echo "${DOCS_PATH}/sprint-change-log.md has $pending pending entry(ies), the oldest dated $oldest ($age days old, threshold: $SPRINT_SYNC_STALE_DAYS days) — run Sprint Documentation Sync (templates/sprint-sync.md) first."
+            if [ "$age" -ge "$MILESTONE_SYNC_STALE_DAYS" ]; then
+                echo "${DOCS_PATH}/milestone-change-log.md has $pending pending entry(ies), the oldest dated $oldest ($age days old, threshold: $MILESTONE_SYNC_STALE_DAYS days) — run Milestone Documentation Sync (templates/milestone-sync.md) first."
             fi
         fi
     fi
@@ -133,8 +147,9 @@ while read -r local_ref local_sha remote_ref remote_sha; do
     for b in $GATE_BRANCHES; do [ "$branch" = "$b" ] && gated=1; done
 
     content=$(git show "${local_sha}:${CS_PATH}" 2>/dev/null || true)
-    sprint_log=$(git show "${local_sha}:${SPRINT_LOG_PATH}" 2>/dev/null || true)
-    problems=$( { [ -n "$content" ] && _requirement_problems "$content"; _sprint_problems "$sprint_log"; } || true)
+    milestone_log=$(git show "${local_sha}:${MILESTONE_LOG_PATH}" 2>/dev/null || true)
+    req_status=$(printf '%s\n' "$content" | grep -E '^\*\*Requirement Status:\*\*' | head -1 | sed 's/^\*\*Requirement Status:\*\*[[:space:]]*//; s/[[:space:]]*$//' || true)
+    problems=$( { [ -n "$content" ] && _requirement_problems "$content"; _milestone_problems "$milestone_log" "$req_status"; } || true)
     [ -z "$problems" ] && continue
 
     if [ "$gated" -eq 1 ]; then tag="[FAIL]"; else tag="[WARN]"; fi
@@ -153,7 +168,7 @@ done
 if [ "$EXIT" -ne 0 ]; then
     echo ""
     echo "[FAIL] pre-push: push blocked. A requirement must be Complete and verified (or Descoped by the user), and"
-    echo "       Sprint Documentation Sync up to date, before work goes to a gated branch. Push a work-in-progress"
+    echo "       Milestone Documentation Sync up to date, before work goes to a gated branch. Push a work-in-progress"
     echo "       branch instead, or fix the above."
 fi
 exit "$EXIT"

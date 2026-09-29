@@ -43,7 +43,7 @@
 21. Create docs/specs/test-report.md from templates/specs/test-report.md (fill in after first test run).
 22. Create docs/project-plan.md from templates/project-plan.md.
 23. Create docs/task-log.md from templates/task-log.md.
-24. Create docs/sprint-change-log.md from templates/sprint-change-log.md.
+24. Create docs/milestone-change-log.md from templates/milestone-change-log.md.
 25. Create docs/current-state.md from templates/current-state.md. Run `python3 build-context.py`
     now (steps 1-2 already put `.project-starter.yml` + `document-registry.yaml` in place) to
     fill in its Doc Checklist section.

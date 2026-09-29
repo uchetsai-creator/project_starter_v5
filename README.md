@@ -113,8 +113,8 @@ a human's own decision.
    ```bash
    python3 init.py <type> /path/to/your-project
    ```
-   Valid types: `web-app` | `cli-tool` | `library` | `data-pipeline` | `ml-pipeline` |
-   `microservices` | `llm-app` | `iac` | `mobile-app`
+   Valid types: `web-app` (actively maintained) | `cli-tool` | `library` | `data-pipeline` |
+   `ml-pipeline` | `microservices` | `llm-app` | `iac` | `mobile-app` (Experimental)
 
    This copies all required framework files, writes a pre-filled `.project-starter.yml`, writes
    `CLAUDE.md` (`@AGENTS.md` — see Agent Adapters below) if it doesn't already exist, writes or
@@ -257,7 +257,7 @@ project_starter/                     ← this repo (template only)
 │   │                                   Claude Code + Codex today — see Agent Adapters below)
 │   ├── claude/
 │   │   ├── start-task.md           ← slash command template (copy to .claude/commands/ in your project)
-│   │   ├── run-verify.sh           ← Claude Code Stop-hook script: writes validator --json output to logs/verify-{timestamp}.json, plus real-time project_type_confirmed / Clarifying Questions Asked / Doc Checklist / Sprint Documentation Sync checks and the same --json output's --strict pass/fail for verify_docs/logs/tests/content
+│   │   ├── run-verify.sh           ← Claude Code Stop-hook script: writes validator --json output to logs/verify-{timestamp}.json, plus real-time project_type_confirmed / Clarifying Questions Asked / Doc Checklist / Milestone Documentation Sync checks and the same --json output's --strict pass/fail for verify_docs/logs/tests/content
 │   │   ├── stop-hook.sh            ← writes session boundary to logs/telemetry/task-run.json on Claude Code session end
 │   │   ├── session-start-hook.sh   ← non-blocking nudge: re-checks current-state.md scoping state fresh every session, a brand-new-project nudge toward research.md when both Task and research.md are still unscoped, a spec-drift nudge when a Required Context file was committed more recently than current-state.md itself, (if `checkpoint_enforcement: session-prompt`) asks once per session whether to turn pretooluse_scope_guard.py's block on for that session, and (if `.project-starter.yml`'s `framework_commit` is set) runs check_framework_update.py and surfaces its nudge if project_starter_v5 has updates upstream
 │   │   ├── check_framework_update.py ← compares .project-starter.yml's framework_commit against project_starter_v5's upstream HEAD via `git ls-remote`; opt-in (blank framework_commit skips it) and silent on any failure — see session-start-hook.sh and Framework update check below
@@ -271,7 +271,7 @@ project_starter/                     ← this repo (template only)
 │   │       ├── code-quality-check/SKILL.md
 │   │       ├── design-pattern-check/SKILL.md
 │   │       ├── module-completion-check/SKILL.md
-│   │       ├── sprint-doc-sync/SKILL.md
+│   │       ├── milestone-doc-sync/SKILL.md
 │   │       ├── learning-checkpoint/SKILL.md
 │   │       ├── task-closeout/SKILL.md
 │   │       └── research-decision-log/SKILL.md
@@ -330,12 +330,12 @@ project_starter/                     ← this repo (template only)
 │       └── mobile-app.md
 └── templates/
     ├── project-requirements.md      ← project scope, goals, edge cases, acceptance criteria
-    ├── project-plan.md              ← sprint/task breakdown per feature
+    ├── project-plan.md              ← milestone/task breakdown per feature
     ├── current-state.md             ← the active task
-    ├── sprint-sync.md               ← sprint-end Document Update Checklist (load only at sprint end)
+    ├── milestone-sync.md               ← milestone-end Document Update Checklist (load only at milestone end)
     ├── changelog.md                 ← completed task history
     ├── task-log.md                  ← task verification log (AI writes one row per completed task)
-    ├── sprint-change-log.md         ← implementation changes this sprint (doc sync deferred to sprint end)
+    ├── milestone-change-log.md         ← implementation changes this milestone (doc sync deferred to milestone end)
     ├── codebase-map.md              ← package vs. custom code, by layer; includes project tree
     │
     ├── init/                        ← per-type project initialization sequences (load only the one that matches)
@@ -531,7 +531,7 @@ new_project/
     ├── current-state.md
     ├── changelog.md
     ├── task-log.md
-    ├── sprint-change-log.md
+    ├── milestone-change-log.md
     ├── codebase-map.md
     ├── specs/ architecture/ modules/ script/{validators,generators,scanners}/    ← vary by type (see below)
 ```
@@ -550,6 +550,13 @@ new_project/
 > `.codex/task-instructions.md`) is generated into your project automatically by running plain
 > `orchestrator.py` — from nothing more than the files listed above; no `adapters/` directory
 > needs to exist in your project.
+
+> **Web App is the actively-maintained project type.** It is the only type with a fully
+> worked-out task-breakdown convention in `templates/project-plan.md` (the DB → BE → FE
+> vertical slice). The other 8 types below are **Experimental**: they are usable (document
+> matrix, validators, and skills all cover them), but conventions that assume web-app's
+> layering — like a per-type task-breakdown pattern — have not been built out for them yet.
+> Expect rougher edges; file an issue or contribute a fix if you hit one.
 
 The `docs/specs/`, `docs/architecture/`, and `docs/modules/` contents differ per project type:
 
@@ -575,7 +582,7 @@ docs/modules/
     └── log-[module].md
 ```
 
-### CLI Tool
+### CLI Tool (Experimental)
 
 ```
 docs/specs/
@@ -590,7 +597,7 @@ docs/modules/
     └── [module]-module-data-flow.md
 ```
 
-### Library / SDK
+### Library / SDK (Experimental)
 
 ```
 docs/specs/
@@ -604,7 +611,7 @@ docs/modules/
     └── [module]-module-data-flow.md
 ```
 
-### Data Pipeline
+### Data Pipeline (Experimental)
 
 ```
 docs/specs/
@@ -618,7 +625,7 @@ docs/modules/
     └── [stage]-module-data-flow.md
 ```
 
-### ML Pipeline
+### ML Pipeline (Experimental)
 
 ```
 docs/specs/
@@ -632,7 +639,7 @@ docs/modules/
     └── [stage]-module-data-flow.md
 ```
 
-### Microservices
+### Microservices (Experimental)
 
 Each service has its own `docs/` following the Web App structure above.
 At the system level, add:
@@ -646,7 +653,7 @@ docs/architecture/
 └── deployment.md                                           ← cross-service deployment topology
 ```
 
-### AI / LLM Application
+### AI / LLM Application (Experimental)
 
 ```
 docs/specs/
@@ -702,8 +709,8 @@ task. AI tools read this file instead of inferring context from scratch on every
 # Generate context for the current task:
 python3 build-context.py
 
-# Override task type (sprint-end shows all Required docs):
-python3 build-context.py --task-type sprint-end
+# Override task type (milestone-end shows all Required docs):
+python3 build-context.py --task-type milestone-end
 
 # Preview without writing:
 python3 build-context.py --dry-run
@@ -738,7 +745,7 @@ Generated: 2026-07-18T10:00:00
 
 `.ai/` is gitignored — generated context is not committed. Regenerate it whenever the task changes.
 
-**Task types:** `feature` · `pipeline-stage` · `bug-fix` · `sprint-end` · `eval-run` · `iac-change`
+**Task types:** `feature` · `pipeline-stage` · `bug-fix` · `milestone-end` · `eval-run` · `iac-change`
 
 See `docs/context-builder-design.md` for the full algorithm and token reduction analysis.
 
@@ -755,7 +762,7 @@ and workflow always reflect the same project type and task type.
 python3 orchestrator.py
 
 # Override task type:
-python3 orchestrator.py --task-type sprint-end
+python3 orchestrator.py --task-type milestone-end
 
 # Preview WORKFLOW.md without writing:
 python3 orchestrator.py --dry-run
@@ -865,7 +872,7 @@ python3 orchestrator.py --dry-run
      `verify_tests.py` / `verify_content.py` with `--json` and writes the combined output to
      `logs/verify-{timestamp}.json`, so you can see validator results without running them by hand.
      Also re-checks `project_type_confirmed`, `Clarifying Questions Asked`, Doc Checklist
-     completeness, Sprint Documentation Sync's Pending-count threshold, and now the same
+     completeness, Milestone Documentation Sync's Pending-count threshold, and now the same
      `--strict` pass/fail those four validators would compute — parsed out of the `--json` output
      already captured above, since `--strict` only changes the exit code, never the JSON content,
      so nothing extra needs to run. All of this is the same set of checks `.githooks/pre-commit`
@@ -918,15 +925,15 @@ python3 orchestrator.py --dry-run
      placeholder (`` `docs/[relevant spec]` ``) — reusing the checklist's own checkbox state
      directly rather than adding a separate summary field a task could just as easily mark "done"
      without the items underneath actually being checked off.
-   - `.githooks/pre-push`'s **Sprint Documentation Sync guard** (moved from pre-commit — a backlog is a
+   - `.githooks/pre-push`'s **Milestone Documentation Sync guard** (moved from pre-commit — a backlog is a
      handover problem, so commits stay free) — same gap for the count trigger
-     in AGENTS.md -> Sprint Documentation Sync: nothing verified the Pending backlog in
-     `sprint-change-log.md` was actually synced once it hit 3 entries, so it could grow
-     indefinitely with no mechanical backstop, only the `sprint-doc-sync` Skill's nudge. This
+     in AGENTS.md -> Milestone Documentation Sync: nothing verified the Pending backlog in
+     `milestone-change-log.md` was actually synced once it hit 3 entries, so it could grow
+     indefinitely with no mechanical backstop, only the `milestone-doc-sync` Skill's nudge. This
      guard blocks a push to a gated branch (`main`/`master`) once 3 (or more) entries are at `Status: Pending documentation
-     synchronization` (other branches only warn), until Sprint Documentation Sync (`templates/sprint-sync.md`) marks them
+     synchronization` (other branches only warn), until Milestone Documentation Sync (`templates/milestone-sync.md`) marks them
      `Documentation synchronized`. The count trigger alone still has a gap for a low-volume/solo
-     project that never accumulates 3 Pending entries — `sprint_sync_stale_days` in
+     project that never accumulates 3 Pending entries — `milestone_sync_stale_days` in
      `.project-starter.yml` closes it: when set, the same guard also blocks once the *oldest*
      Pending entry's `**Date:**` field is at least that many days old, regardless of count. Opt-in
      — leave it blank to keep count-only behavior. `adapters/claude/run-verify.sh` mirrors this
@@ -949,7 +956,7 @@ python3 orchestrator.py --dry-run
    | `code-quality-check` | a requested code/architecture review, or Learning Checkpoint A's escalation |
    | `design-pattern-check` | opt-in only — `code-quality-check` asks whether to include it (Fast or Deep mode), or the user explicitly requests a design-pattern review; never runs unasked |
    | `module-completion-check` | a module just reached 100% complete |
-   | `sprint-doc-sync` | `sprint-change-log.md` reaches 3 pending-sync entries |
+   | `milestone-doc-sync` | `milestone-change-log.md` reaches 3 pending-sync entries |
    | `learning-checkpoint` | before implementing any task (Checkpoints 0/A/B/C) |
    | `task-closeout` | end of every task, when current-state.md's inline Closeout section isn't enough detail on its own (full verification table, or the commit-sequencing note for promoting Next Task → Current Task) |
    | `research-decision-log` | a technology decision surfaces in conversation — explicit ("let's go with X") or implicit (comparing libraries and landing on one, a schema choice with stated rationale, a resolved `NEEDS CLARIFICATION`); drafts a `research.md` entry and asks before writing it, never writes without approval |
@@ -961,7 +968,7 @@ python3 orchestrator.py --dry-run
    `tests/contract/test_skill_contracts.py` guards eight of these nine `SKILL.md` bodies
    against drifting from their canonical source docs (`templates/init/retrofit.md`,
    `code-quality-check.md`, `templates/design-pattern-check.md`, `templates/module-completion.md`,
-   `templates/sprint-sync.md`, `guidance/learning-checkpoints/common.md`,
+   `templates/milestone-sync.md`, `guidance/learning-checkpoints/common.md`,
    `templates/task-completion.md`, `docs/contributing-adapters.md`), the same pattern
    `test_agent_adapter_templates.py` already uses for the slash-command templates above.
    `research-decision-log` has no canonical source doc to mirror — it doesn't wrap an existing
@@ -1190,7 +1197,7 @@ re-requires exactly the documents `lite` deferred; there is no migration step.
 
 `verify_module_docs.py` audits module flow file coverage and quality — checking that every module in `docs/modules/` has a complete `*-module-flow.md` and, for pipeline stages, a `*-module-data-flow.md`.
 
-This script is a **contributor tool**: run it manually before opening a PR, not at every commit. It is intentionally excluded from the pre-commit gate because it is slow and produces noisy output on work-in-progress modules. `templates/module-completion.md` and `templates/sprint-sync.md` do call it, but only at the two event-triggered points where a module (or the whole sprint) is actually supposed to be finished — not per-task.
+This script is a **contributor tool**: run it manually before opening a PR, not at every commit. It is intentionally excluded from the pre-commit gate because it is slow and produces noisy output on work-in-progress modules. `templates/module-completion.md` and `templates/milestone-sync.md` do call it, but only at the two event-triggered points where a module (or the whole milestone) is actually supposed to be finished — not per-task.
 
 ```bash
 python3 docs/script/validators/verify_module_docs.py --docs docs/
@@ -1230,7 +1237,7 @@ python3 docs/script/validators/verify_index_coverage.py --docs docs/ --strict
 
 ## Framework maintenance
 
-`verify_framework.py` audits the framework's own internal consistency. Run it after any framework update, or any time you modify `document-registry.yaml`, AGENTS.md, document-matrix.md, sprint-sync.md, or any document-purposes file.
+`verify_framework.py` audits the framework's own internal consistency. Run it after any framework update, or any time you modify `document-registry.yaml`, AGENTS.md, document-matrix.md, milestone-sync.md, or any document-purposes file.
 
 **Adding a new document:** edit `document-registry.yaml` only — `verify_docs.py` and `verify_content.py` derive their document lists from it automatically. Also update `templates/init/document-matrix.md` (human-readable copy) and the relevant `guidance/document-purposes/*.md` file.
 
@@ -1247,7 +1254,7 @@ python3 templates/script/framework/verify_framework.py --json     # machine-read
 | Stale pointer | Every `.md` reference in AGENTS.md resolves to an existing file |
 | Token budget | AGENTS.md is ≤ 200 lines |
 | Matrix ↔ template | Every matrix row has a template file; every template has a matrix row |
-| Sprint-sync coverage | Every non-exempt R/O document has a sprint-sync checklist item |
+| Milestone-sync coverage | Every non-exempt R/O document has a milestone-sync checklist item |
 | Purposes coverage | Every Required document appears in the matching document-purposes file |
 | Cross-reference integrity | Every `### X.md` header in guidance/document-purposes/*.md has a template file |
 | Type completeness | Every type slug in AGENTS.md's init table has a matching init file and document-purposes file |
@@ -1353,14 +1360,14 @@ Any AI tool (Claude Code / other / manual)
    — unlike verify_tests.py above, which only checks that test-report.md is filled in
         ↓
  [project_type_confirmed: false in .project-starter.yml]  confirmed yet? ← detect_type.py guess audit (block)
- [pre-push · sprint-change-log.md: >= 3 entries Pending documentation synchronization]
-   Sprint Documentation Sync run yet? ← Pending-count threshold (block a push to main/master)
+ [pre-push · milestone-change-log.md: >= 3 entries Pending documentation synchronization]
+   Milestone Documentation Sync run yet? ← Pending-count threshold (block a push to main/master)
  [AGENTS.md staged]      line count ≤ 200            ← token budget (block)
  [specs/*.md staged]     changelog.md also staged?   ← audit trail (warn)
  [current-state.md + Status:Complete]  Closeout filled? ← closeout (block)
  [current-state.md + real Task]  Clarifying Questions Asked filled? ← Checkpoint B audit trail (block)
  [current-state.md + real Task]  Approach Confirmed = Y (if the field exists)? ← approach explained, breakdown confirmed (block)
- [spec-facing doc staged] no Sprint/Task refs         ← writing audience (block)
+ [spec-facing doc staged] no Milestone/Task refs         ← writing audience (block)
  [spec_code_* set in .project-starter.yml]
    [spec contract or configured src/ staged]  verify_spec_code.py ← spec↔code drift (block)
  [security_scan_src set in .project-starter.yml]
@@ -1374,19 +1381,19 @@ Any AI tool (Claude Code / other / manual)
 Optional fast-feedback (Claude Code only, Stop hook — adapters/claude/run-verify.sh):
  same four validators → logs/verify-{timestamp}.json (visibility only, non-blocking)
  + re-checks project_type_confirmed / Clarifying Questions Asked / Doc Checklist /
-   Sprint Documentation Sync / the four validators' --strict pass-fail against the
+   Milestone Documentation Sync / the four validators' --strict pass-fail against the
    working tree — same checks as above, surfaced every session instead of only at
    git commit (see Verification → "Running the same checks in CI" for the CI-side
    version of this same idea)
 ```
 
 **Writing Audience violations** checks every document listed in `document-registry.yaml` for
-`Sprint N` / `Task N` / `(SN)` references, not just the `audience: external` (stakeholder-facing)
+`Milestone N` / `Task N` / `(SN)` references, not just the `audience: external` (stakeholder-facing)
 subset it used to be hardcoded to — `audience` only ever meant "is this in the generated PDF,"
 never "is per-task planning narrative okay to leave here." Reads each document's `path` from the
 registry dynamically (same `_load_yaml()` import pattern as the `spec_code_bindings` resolution
 above) instead of a second hardcoded list that could drift from it. `current-state.md`'s Steps
-section and `sprint-change-log.md` are deliberately **not** in the registry — that's where
+section and `milestone-change-log.md` are deliberately **not** in the registry — that's where
 per-task planning and historical implementation notes actually belong; every document that *is*
 registered (`api-contract.md`, `data-model.md`, `project-requirements.md`, and everything else,
 `internal` or `external` alike) should only ever describe the system's current state.
@@ -1439,7 +1446,7 @@ jobs:
 The last step is what makes the requirement gate un-skippable: `git push --no-verify` bypasses the local
 `pre-push` hook, but not a required CI check on the PR into `main`. It reads `current-state.md` at the PR head
 and blocks while the requirement is `In Progress`, when `Complete` but `verify_acceptance.py --only` fails, or
-while Sprint Documentation Sync is overdue.
+while Milestone Documentation Sync is overdue.
 **Deliberately not auto-installed by `--init`, unlike the pre-commit hook.** A local hook only ever
 affects the person who installed it; a GitHub Actions workflow runs on *every* contributor's PR the
 moment it's merged, whether or not they use this framework or agreed to it — a decision for
@@ -1452,8 +1459,8 @@ target repo's Settings → Branches → Branch protection rules.
 
 `verify_acceptance.py` (FR-XXX → test plan → test report traceability) is **not** part of
 `.githooks/pre-commit` — checking full requirement traceability on every commit would block
-normal mid-sprint work before all FRs have test-report entries. It runs at sprint end instead,
-via the `sprint-end` entry in `workflow-registry.yaml` (see `templates/sprint-sync.md`, Step 4),
+normal mid-milestone work before all FRs have test-report entries. It runs at milestone end instead,
+via the `milestone-end` entry in `workflow-registry.yaml` (see `templates/milestone-sync.md`, Step 4),
 and **per requirement at push time** via `.githooks/pre-push`:
 
 - `docs/current-state.md` has `Requirement IDs` (the FR-/AC- ids one requirement added) and
@@ -2248,7 +2255,7 @@ setting needed (it scans `docs_path`, which is always set). When set, the pre-co
 any commit touching a `.md` file under `docs_path`. When unset, the hook prints a non-blocking
 `[TIP]` the first time a `.md` file under `docs_path` is staged.
 
-Also wired into the `sprint-end` sequence in `workflow-registry.yaml` (not every task type — this
+Also wired into the `milestone-end` sequence in `workflow-registry.yaml` (not every task type — this
 is a prose-quality convergence check, not a per-commit gate the way pre-commit's own `.md`-staged
 trigger is).
 

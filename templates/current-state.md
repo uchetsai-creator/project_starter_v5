@@ -16,7 +16,7 @@
 **Goal:** [What this task needs to achieve]
 
 **Task Type:** [task-type]
-<!-- Valid values: feature | pipeline-stage | bug-fix | sprint-end | eval-run | iac-change
+<!-- Valid values: feature | pipeline-stage | bug-fix | milestone-end | eval-run | iac-change
      Used by build-context.py to filter .ai/AI_CONTEXT.md to relevant documents.
      Leave as [task-type] placeholder if unknown — script falls back to all Required docs. -->
 
@@ -50,7 +50,7 @@
      field are not covered. -->
 
 **Status:** In Progress
-<!-- When done: "Complete — Pending Sprint Doc Sync" -->
+<!-- When done: "Complete — Pending Milestone Doc Sync" -->
 
 ---
 
@@ -99,7 +99,7 @@
 - **Alternatives considered:** [At least one, with the trade-off, wherever there is a real choice]
 - **Risks / unknowns:** [What could go wrong; what to try first (spike) before committing to the plan]
 - **Breakdown:** [Tasks in order, each following the size rules in templates/project-plan.md; mark [P] where no dependency]
-- **Docs to update:** [Per task: which spec docs change and why (candidates: `python3 build-context.py --task-type sprint-end` = every doc for this project type, unfiltered by task type; matched against `update_trigger` in document-registry.yaml; project-requirements.md always). Also name candidates ruled out and why. The user confirms; it becomes the Doc Checklist]
+- **Docs to update:** [Per task: which spec docs change and why (candidates: `python3 build-context.py --task-type milestone-end` = every doc for this project type, unfiltered by task type; matched against `update_trigger` in document-registry.yaml; project-requirements.md always). Also name candidates ruled out and why. The user confirms; it becomes the Doc Checklist]
 - **Tests to add/update:** [Per task: which tests, and which AC-/FR- id each covers — or `N/A — user: <reason>`]
 - **Dependencies:** [Packages added / removed / upgraded and the manifest or lockfile touched, plus docs/specs/dependencies.md — or `none`]
 - **Config / CI / deploy:** [Env vars, config files, migrations, CI, Docker/deploy files touched — or `none`]
@@ -182,7 +182,7 @@
 ## Closeout (when all Steps and Verify are done)
 
 - **Requirement Status**: when this was the LAST task in Approach → Breakdown, set `Requirement Status` → `Complete` (fill `Requirement IDs`); otherwise leave it `In Progress`. `git push` to main/master then verifies that requirement.
-- **Doc Checklist + current-state.md** (1 edit): apply Doc Checklist items above; set Status → `Complete — Pending Sprint Doc Sync`; mark steps `[x]`; promote Next Task → Current Task; update Required Context + Doc Checklist for new task; set Status → `In Progress`
+- **Doc Checklist + current-state.md** (1 edit): apply Doc Checklist items above; set Status → `Complete — Pending Milestone Doc Sync`; mark steps `[x]`; promote Next Task → Current Task; update Required Context + Doc Checklist for new task; set Status → `In Progress`
   If this task touched any file outside `docs/`, commit *before* promoting Next Task →
   Current Task, then promote in its own docs-only commit — see `templates/task-completion.md`
   step 1 for why (the pre-commit source-change guard reads this file's state at commit time).
@@ -192,8 +192,8 @@
 - **Log verification**: `python3 docs/script/validators/verify_logs.py --project-type TYPE --strict` — Verdict: ___
 - **Test report verification**: `python3 docs/script/validators/verify_tests.py --project-type TYPE --strict` — Verdict: ___
 - **Content quality verification**: `python3 docs/script/validators/verify_content.py --project-type TYPE --strict` — Verdict: ___
-- **sprint-change-log.md**: append one entry — implementation summary, impact flags (Architecture/DB/API/Deployment/Module flow), status `Pending documentation synchronization`
-  Then count entries at that status. **At 3, run Sprint Documentation Sync (`templates/sprint-sync.md`) now, before starting the next task** — this is a count trigger, not a calendar one; do not wait for a "sprint end."
+- **milestone-change-log.md**: append one entry — implementation summary, impact flags (Architecture/DB/API/Deployment/Module flow), status `Pending documentation synchronization`
+  Then count entries at that status. **At 3, run Milestone Documentation Sync (`templates/milestone-sync.md`) now, before starting the next task** — this is a count trigger, not a calendar one; do not wait for a "milestone end."
   ENFORCED: `.githooks/pre-push` blocks a push to main/master once the Pending count reaches 3, until sync marks entries `Documentation synchronized`. Commits are not blocked.
 - **task-log.md**: write one row — all columns must be ✅ before writing
 

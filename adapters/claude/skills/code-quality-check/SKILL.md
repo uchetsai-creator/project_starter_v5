@@ -172,7 +172,7 @@ Never infer missing behavior.
 **Why only High blocks:** the goal of this review is to make the codebase healthier over
 time, not to reach a perfect state before continuing. A change that clearly improves code
 health should not be held up chasing every Medium/Low/Nit item — that's why only High
-blocks Step 2; Medium/Low get queued for the current sprint instead of blocking now, and
+blocks Step 2; Medium/Low get queued for the current milestone instead of blocking now, and
 Nit isn't queued at all. If you (the user) disagree with a finding's severity or validity,
 that's a discussion, not something to accept silently — downgrade or drop it together, with
 the reason recorded, rather than the review being the final word by default.
@@ -205,7 +205,7 @@ Use when:
 
 Do not fix now.
 
-Append to the current sprint in project-plan.md.
+Append to the current milestone in project-plan.md.
 
 ---
 
@@ -218,7 +218,7 @@ Minor issues:
 - Documentation mismatch
 - Minor consistency improvements
 
-Append to the current sprint.
+Append to the current milestone.
 
 ---
 
@@ -846,10 +846,10 @@ Severity: **High** if LLM output reaches a DB write or code execution path witho
 
 **Eval coverage for prompt changes**
 
-Every prompt added or modified in this sprint must have a corresponding test case in `eval-spec.md`. Prompt changes without eval coverage make regressions invisible until production.
+Every prompt added or modified in this milestone must have a corresponding test case in `eval-spec.md`. Prompt changes without eval coverage make regressions invisible until production.
 
 Check:
-- For each prompt added or modified this sprint: does `eval-spec.md` have at least one test case that exercises the new or changed behavior?
+- For each prompt added or modified this milestone: does `eval-spec.md` have at least one test case that exercises the new or changed behavior?
 - Does `eval-log.md` contain an entry from a run after the change was made?
 
 Severity: **Medium** if a modified prompt has no covering test case in `eval-spec.md`. **High** if a prompt was changed with no eval run performed after the change.
@@ -865,7 +865,7 @@ No API keys, passwords, tokens, or account numbers may appear in `.tf` files, He
 Check:
 - Do any `.tf`, `.yaml`, or values files contain string literals in `password`, `secret`, `token`, or `key` fields?
 - Are sensitive variables passed via `var.xxx` referencing a secrets manager data source, rather than hardcoded in `terraform.tfvars` or CI env vars?
-- Does `git log` for this sprint contain any diff that added a secret literal (even if since removed)?
+- Does `git log` for this milestone contain any diff that added a secret literal (even if since removed)?
 
 Severity: **High** — hardcoded credentials are a critical security finding regardless of repository visibility or whether the value appears to be a placeholder.
 
@@ -893,7 +893,7 @@ Check:
 - Are exempt resources listed in `drift-policy.md → Exempt Resources` with a justification?
 - Does the detection cadence in `drift-policy.md` match what the CI/CD job or scheduled run actually executes?
 
-Severity: **Medium** if a resource is in the inventory but not in the detection scope. **High** if a new resource was added this sprint and drift detection coverage was not updated to include it.
+Severity: **Medium** if a resource is in the inventory but not in the detection scope. **High** if a new resource was added this milestone and drift detection coverage was not updated to include it.
 
 ---
 
@@ -994,7 +994,7 @@ code with no existing ownership/review record.
 
 ## Medium / Low
 
-Append each finding to the END of the current sprint in:
+Append each finding to the END of the current milestone in:
 
 docs/project-plan.md
 
@@ -1012,7 +1012,7 @@ Do NOT:
 
 - Reorder existing tasks
 - Rewrite completed tasks
-- Modify future sprints
+- Modify future milestones
 
 Append only.
 
@@ -1025,6 +1025,6 @@ The review is complete only when:
 - No High severity findings remain.
 - Every finding includes evidence.
 - No speculative findings exist.
-- Medium/Low findings are appended to the current sprint. Nits are not — they're visibility only.
+- Medium/Low findings are appended to the current milestone. Nits are not — they're visibility only.
 - Documentation has not started before High findings are resolved.
 - Only files related to confirmed findings have been modified.

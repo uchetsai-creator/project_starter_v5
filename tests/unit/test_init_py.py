@@ -31,7 +31,7 @@ _SKILL_DIRS = [
     "retrofit-existing-project",
     "code-quality-check",
     "module-completion-check",
-    "sprint-doc-sync",
+    "milestone-doc-sync",
     "learning-checkpoint",
     "task-closeout",
     "research-decision-log",
@@ -128,7 +128,7 @@ def test_init_py_copies_templates_dir_referenced_by_agents_md(tmp_path):
         "templates/codebase-map.md",
         "templates/task-completion.md",
         "templates/module-completion.md",
-        "templates/sprint-sync.md",
+        "templates/milestone-sync.md",
     ):
         assert (dest / rel).exists(), f"missing {rel} after init.py"
 

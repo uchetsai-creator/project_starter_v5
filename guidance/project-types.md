@@ -5,17 +5,22 @@ combination. Not needed during normal task work (AGENTS.md's short version is en
 
 ## Supported Types
 
+`web-app` is the actively-maintained type — the only one with a fully worked-out
+task-breakdown convention (see AGENTS.md → Project Type). The other 8 below are
+**Experimental**: usable (document matrix, validators, and skills all cover them), but
+conventions that assume web-app's DB/BE/FE layering have not been built out for them yet.
+
 | Type | Description |
 |---|---|
 | **Web App** | Backend + optional frontend, HTTP/GraphQL API, user auth, persistent DB |
-| **CLI Tool** | Command-line interface, subcommands, flags, stdin/stdout; no persistent server |
-| **Library / SDK** | Reusable package published to a registry; callers import it; no deployment |
-| **Data Pipeline** | ETL/ELT batch or streaming; data in → data out; no user-facing API |
-| **ML Pipeline** | Training → evaluation → serving; model artifact is the primary output |
-| **Microservices** | Multiple independently deployed services communicating via API or events |
-| **AI / LLM Application** | Chatbot, copilot, or agent built on a foundation model; prompt-driven, no model training |
-| **IaC / DevOps** | Infrastructure-as-Code or DevOps tooling; Terraform, Pulumi, Ansible, Helm; resource topology, runbooks, drift policy |
-| **Mobile App** | Native or cross-platform mobile app (React Native, Flutter, iOS/Swift, Android/Kotlin); screen-based, app-store distributed |
+| **CLI Tool** (Experimental) | Command-line interface, subcommands, flags, stdin/stdout; no persistent server |
+| **Library / SDK** (Experimental) | Reusable package published to a registry; callers import it; no deployment |
+| **Data Pipeline** (Experimental) | ETL/ELT batch or streaming; data in → data out; no user-facing API |
+| **ML Pipeline** (Experimental) | Training → evaluation → serving; model artifact is the primary output |
+| **Microservices** (Experimental) | Multiple independently deployed services communicating via API or events |
+| **AI / LLM Application** (Experimental) | Chatbot, copilot, or agent built on a foundation model; prompt-driven, no model training |
+| **IaC / DevOps** (Experimental) | Infrastructure-as-Code or DevOps tooling; Terraform, Pulumi, Ansible, Helm; resource topology, runbooks, drift policy |
+| **Mobile App** (Experimental) | Native or cross-platform mobile app (React Native, Flutter, iOS/Swift, Android/Kotlin); screen-based, app-store distributed |
 
 ## Common Hybrid Combinations
 

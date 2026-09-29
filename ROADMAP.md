@@ -27,7 +27,7 @@ project_starter_v5 started as a Web App framework. This roadmap tracks the expan
 | `specs/cli-contract.md` | CLI Tool | `api-contract.md` |
 | `specs/public-api.md` | Library / SDK | `api-contract.md` |
 | `specs/model-contract.md` | ML Pipeline | — |
-| `specs/experiment-log.md` | ML Pipeline | `sprint-change-log.md` (per experiment) |
+| `specs/experiment-log.md` | ML Pipeline | `milestone-change-log.md` (per experiment) |
 | `specs/service-catalog.md` | Microservices | — |
 | `specs/service-contract.md` | Microservices | `api-contract.md` (inter-service) |
 | `specs/release-guide.md` | Library / SDK, CLI Tool | `deployment.md` |
@@ -53,7 +53,7 @@ All 7 init files verified against `document-matrix.md`. Gaps fixed:
 
 ## Phase 2 — Per-Type Document Update Checklist ✅ Complete
 
-The Document Update Checklist in sprint-sync.md lists all documents. When a project declares itself as CLI or Library, many checklist items are not applicable, but the agent still has to read and skip them.
+The Document Update Checklist in milestone-sync.md lists all documents. When a project declares itself as CLI or Library, many checklist items are not applicable, but the agent still has to read and skip them.
 
 **Goal:** Gate checklist items by project type so agents only evaluate relevant items.
 
@@ -61,7 +61,7 @@ The Document Update Checklist in sprint-sync.md lists all documents. When a proj
 
 | Change | Effect |
 |---|---|
-| Added project-type skip table at the top of the checklist in `sprint-sync.md` | Agents look up their type once and skip non-applicable groups entirely |
+| Added project-type skip table at the top of the checklist in `milestone-sync.md` | Agents look up their type once and skip non-applicable groups entirely |
 | Tagged all 34 checklist items with `[Types: ...]` | Every item is scannable without reading its full trigger condition |
 | `[Types: All]` sentinel for universal items | Avoids enumerating 7 types for items that always apply |
 | Mixed / Hybrid type instruction in the skip table | Hybrid projects take the union without loading extra files |
@@ -116,10 +116,10 @@ AI agents load AGENTS.md on every task setup. As the framework grows, this cost 
 |---|---|
 | Extract document matrix → `init/document-matrix.md` | 33 lines removed from every AGENTS.md load |
 | Extract retrofit procedure → `init/retrofit.md` | 88 lines removed from every AGENTS.md load |
-| Fix stale Doc Checklist reference (pointed to AGENTS.md; checklist was in sprint-sync.md) | Eliminates double-file load on every task setup |
-| Current-state.md template: inline quick-filter guide covers standard task types without loading sprint-sync.md | Most task setups need zero extra file loads |
+| Fix stale Doc Checklist reference (pointed to AGENTS.md; checklist was in milestone-sync.md) | Eliminates double-file load on every task setup |
+| Current-state.md template: inline quick-filter guide covers standard task types without loading milestone-sync.md | Most task setups need zero extra file loads |
 | Fix stale references in README.md and document-purposes.md (document-matrix location, retrofit location, Doc Checklist source) | Prevents agents following incorrect file-load paths |
-| Per-type sprint-sync checklist (Phase 2): type filter table + `[Types: ...]` tags on all checklist items | CLI project sprint sync skips LLM/ML items without reading them |
+| Per-type milestone-sync checklist (Phase 2): type filter table + `[Types: ...]` tags on all checklist items | CLI project milestone sync skips LLM/ML items without reading them |
 | Split `document-purposes.md` (822 lines) into `document-purposes-common.md` + 7 per-type files | CLI project loads ~330 lines instead of 822; Web App loads ~450 instead of 822 |
 | `document-purposes.md` converted to a short index (type → file lookup table) | Agents never load the full monolith — always load only what applies |
 | Updated `AGENTS.md` reference to point to common + per-type files | Reference path is correct; no stale pointers |
@@ -162,11 +162,11 @@ These were the only PDF-included templates without plantuml blocks. Both are aut
 | `specs/event-catalog.md` | New template: event inventory table, per-event payload schema + example JSON, retention/dead-letter policy, schema evolution rules, PlantUML pub-sub sequence diagram, cross-service consistency rules |
 | `init/document-matrix.md` | Added `event-catalog.md`: Optional (⚠️) for Microservices, N/A for all other types |
 | `init/microservices.md` | Added conditional Step 5: create event-catalog.md when system uses async messaging |
-| `docs/templates/sprint-sync.md` | Added checklist item for `docs/specs/event-catalog.md [Types: Microservices]`; clarified service-contract.md item to not duplicate async schemas |
+| `docs/templates/milestone-sync.md` | Added checklist item for `docs/specs/event-catalog.md [Types: Microservices]`; clarified service-contract.md item to not duplicate async schemas |
 | `document-purposes-microservices.md` | Added `event-catalog.md` entry with purpose, load guidance, and update triggers; updated service-contract.md description to reflect sync-only scope |
 | `docs/templates/script/verify_docs.py` | Added `event-catalog.md` to MATRIX (O for Microservices) and FILE_LOCATIONS |
 
-**Token impact:** zero — AGENTS.md unchanged. All additions are in load-on-demand files (init, sprint-sync, document-purposes).
+**Token impact:** zero — AGENTS.md unchanged. All additions are in load-on-demand files (init, milestone-sync, document-purposes).
 
 Note: Event-Driven is treated as a variant of Microservices (not a new top-level type) because it shares all the same architecture and spec documents; only the inter-service communication pattern differs.
 
@@ -190,7 +190,7 @@ Note: Event-Driven is treated as a variant of Microservices (not a new top-level
 | `init/document-matrix.md` | Added Mobile App column (10th); added `mobile-contract.md` row (✅ Mobile App only) |
 | `document-purposes.md` | Added `Mobile App → document-purposes-mobile-app.md` entry |
 | `document-purposes-mobile-app.md` | New per-type file: mobile-contract.md, distribution.md (mobile section), compatibility-matrix.md, frontend.md (mobile section), architecture.md note, logging-spec.md note |
-| `sprint-sync.md` | Added Mobile App row to type filter; added quick-filter row; added `mobile-contract.md` checklist item `[Types: Mobile App]` |
+| `milestone-sync.md` | Added Mobile App row to type filter; added quick-filter row; added `mobile-contract.md` checklist item `[Types: Mobile App]` |
 | `scan_codebase.py` | Added `mobile-app` to `MODULE_VOCAB` ("Screen"); `guess_type()` classifies navigation/components/widgets as Shared, else Screen |
 | `verify_docs.py` | Added `mobile-app` to `VALID_TYPES`; extended all MATRIX tuples to 9 columns; added `mobile-contract.md` row |
 
@@ -218,7 +218,7 @@ Infrastructure-as-Code projects (Terraform, Pulumi, Ansible, Helm charts) have a
 | `init/document-matrix.md` | Added IaC / DevOps column (9th); added topology.md / runbook.md / drift-policy.md rows |
 | `document-purposes.md` | Added `IaC / DevOps → document-purposes-iac.md` entry |
 | `document-purposes-iac.md` | New per-type file: topology.md, runbook.md, drift-policy.md with update triggers |
-| `sprint-sync.md` | Added IaC row to type filter; added quick-filter row; added 3 checklist items `[Types: IaC / DevOps]` |
+| `milestone-sync.md` | Added IaC row to type filter; added quick-filter row; added 3 checklist items `[Types: IaC / DevOps]` |
 | `scan_codebase.py` | Added `iac` to `MODULE_VOCAB`; IaC branch in `guess_type()`: `modules/`/`.terraform` → Shared, else Resource Group |
 | `verify_docs.py` | Added `iac` to `VALID_TYPES`; extended all MATRIX tuples to 8 columns; added topology/runbook/drift-policy rows |
 
@@ -237,7 +237,7 @@ Phase 5 eliminated most redundant file loads during normal task work. The remain
 | File | Change |
 |---|---|
 | `templates/module-completion.md` | New file: full Module Completion Check procedure extracted from `AGENTS.md`; load only when a module is confirmed 100% complete |
-| `templates/task-completion.md` | New file: mandatory post-task steps (Doc Checklist, verification table, sprint-change-log entry, task-log row) extracted from `AGENTS.md`; referenced via a single pointer line in current-state.md |
+| `templates/task-completion.md` | New file: mandatory post-task steps (Doc Checklist, verification table, milestone-change-log entry, task-log row) extracted from `AGENTS.md`; referenced via a single pointer line in current-state.md |
 | `AGENTS.md` | Replaced Module Completion Check (~40 lines) and Task Completion (~50 lines) with single-line load pointers; updated "closing out" reference to point to Closeout section in current-state.md |
 | `docs/templates/current-state.md` | Added inline **Closeout** section (4 bullet points) so standard closeouts need zero extra file loads |
 | `document-purposes-common.md` | Added entries for `module-completion.md` and `task-completion.md` |
@@ -317,7 +317,7 @@ The script reads the required/optional/N/A mapping from a hardcoded matrix in th
 
 ## Phase 13 — Framework Integrity Audit: verify_framework.py ✅ Complete
 
-As the framework grows across phases, file references, document-matrix entries, sprint-sync checklist items,
+As the framework grows across phases, file references, document-matrix entries, milestone-sync checklist items,
 and load-on-demand pointers in AGENTS.md can drift out of sync. There is currently no automated way to
 detect a stale pointer, a matrix row without a matching template file, or a checklist item for a document
 that no longer exists. The "token discipline" principle from Phase 10 also needs enforcement — without a
@@ -334,7 +334,7 @@ Run at the end of every Phase before merging.
 | `docs/templates/script/verify_framework.py` | New script — 6 checks, `--strict` CI gate, `--json` output |
 | `README.md` | Added "Framework maintenance" section with usage and check table |
 | `document-purposes-common.md` | Added `verify_framework.py` entry under Scripts section |
-| `docs/templates/sprint-sync.md` | Added missing `eval-spec.md` checklist item `[Types: AI / LLM App]` (surfaced by the audit) |
+| `docs/templates/milestone-sync.md` | Added missing `eval-spec.md` checklist item `[Types: AI / LLM App]` (surfaced by the audit) |
 
 **Checks implemented:**
 
@@ -343,7 +343,7 @@ Run at the end of every Phase before merging.
 | Stale pointer | Every `.md` reference in AGENTS.md resolves to an existing file in the framework |
 | Token budget | AGENTS.md is ≤ 200 lines |
 | Matrix ↔ template | Every matrix row has a template file; every template has a matrix row (exempt: supplementary templates) |
-| Sprint-sync coverage | Every non-exempt R/O document has a sprint-sync checklist item |
+| Milestone-sync coverage | Every non-exempt R/O document has a milestone-sync checklist item |
 | Purposes coverage | Every Required document appears in the matching document-purposes file (Required-only — Optional docs may live in a sibling type file) |
 | Cross-reference integrity | Every `### X.md` section header in document-purposes-*.md has a corresponding template file |
 
@@ -419,7 +419,7 @@ The `flows/` directory (formerly `modules/`) was renamed in Phase 1, but 7 init 
 
 ## Phase 15 — Universal Testing Coverage ✅ Complete
 
-While writing concrete test-plan.md and test-report.md files for a data-pipeline POC project, it became apparent that test-plan.md and test-report.md were completely absent from the framework's enforcement layer: not in `document-matrix.md`, not in `verify_docs.py`, not in any of the 9 init files, not in `sprint-sync.md`, and not in `document-purposes-common.md`. The root cause was that they were listed in `verify_framework.py`'s `TEMPLATE_MATRIX_EXEMPT` set — suppressing the matrix check rather than fixing the omission. Every project type needs a test plan and a test report.
+While writing concrete test-plan.md and test-report.md files for a data-pipeline POC project, it became apparent that test-plan.md and test-report.md were completely absent from the framework's enforcement layer: not in `document-matrix.md`, not in `verify_docs.py`, not in any of the 9 init files, not in `milestone-sync.md`, and not in `document-purposes-common.md`. The root cause was that they were listed in `verify_framework.py`'s `TEMPLATE_MATRIX_EXEMPT` set — suppressing the matrix check rather than fixing the omission. Every project type needs a test plan and a test report.
 
 **Goal:** Add test-plan.md and test-report.md to all framework enforcement files so they are Required for all 9 project types.
 
@@ -431,7 +431,7 @@ While writing concrete test-plan.md and test-report.md files for a data-pipeline
 | `docs/templates/script/verify_docs.py` | Added both to `MATRIX` (`'R'` for all 9 types) and `FILE_LOCATIONS` (`'specs'`) |
 | `docs/templates/script/verify_framework.py` | Removed `specs/test-plan.md` and `specs/test-report.md` from `TEMPLATE_MATRIX_EXEMPT` |
 | `docs/templates/specs/test-plan.md` | Added **IaC / DevOps** and **Mobile App** rows to the per-type guide table |
-| `docs/templates/sprint-sync.md` | Added two `[Types: All]` checklist items for test-plan.md and test-report.md |
+| `docs/templates/milestone-sync.md` | Added two `[Types: All]` checklist items for test-plan.md and test-report.md |
 | `document-purposes-common.md` | Added `specs/test-plan.md` and `specs/test-report.md` entries (Applies to: All project types) |
 | `docs/templates/init/web-app.md` | Added steps 19–20 (test-plan.md, test-report.md); renumbered tail |
 | `docs/templates/init/cli-tool.md` | Added steps 16–17; renumbered tail |
@@ -458,7 +458,7 @@ Also during this phase: created concrete test-plan.md, test-report.md, and pipel
 
 | File | Change |
 |---|---|
-| `docs/templates/script/pdf_allowlist.py` | Removed `task-log.md` and `sprint-change-log.md` from allowlist — dev-process logs, not spec content |
+| `docs/templates/script/pdf_allowlist.py` | Removed `task-log.md` and `milestone-change-log.md` from allowlist — dev-process logs, not spec content |
 | `docs/templates/script/build_pdf.py` | Added `--content spec\|full` flag — `spec` omits Plan and Test chapters, producing a clean system specification PDF for stakeholder handoff; output filename auto-derives (`project-spec-{lang}.pdf` vs `project-documentation-{lang}.pdf`) |
 | `docs/templates/script/build_pdf.py` | Fixed `VALID_PROJECT_TYPES` — `iac` and `mobile-app` were missing, causing `--project-type iac` to exit with an error |
 | `docs/templates/script/build_pdf.py` | Added `script/.gitignore` to exclude `plantuml.jar`, `__pycache__/`, `.pdf_build_cache/` |
@@ -511,11 +511,11 @@ Per-type addenda are listed inside the template (e.g. Data Pipeline adds Idempot
 
 | File | Change |
 |---|---|
-| `docs/templates/sprint-sync.md` | Add pre-closeout step: "Run spec-review.md against all Required spec documents. Resolve all FAIL items before closing sprint." |
+| `docs/templates/milestone-sync.md` | Add pre-closeout step: "Run spec-review.md against all Required spec documents. Resolve all FAIL items before closing milestone." |
 | `document-purposes-common.md` | Add `specs/spec-review.md` entry: purpose, when to load, what to do with FAIL output |
 | `docs/templates/init/document-matrix.md` | `spec-review.md` marked as a process template (exempt from matrix — not a project document) |
 
-**Token impact:** zero — AGENTS.md unchanged. Template is load-on-demand at sprint end.
+**Token impact:** zero — AGENTS.md unchanged. Template is load-on-demand at milestone end.
 
 ---
 
@@ -554,7 +554,7 @@ LLM Judge (Phase 18) scores what is written. Spec Challenge finds what is missin
 
 | File | Change |
 |---|---|
-| `docs/templates/sprint-sync.md` | Add step after spec-review.md: "Run spec-challenge.md. Iterate until no Critical questions remain." |
+| `docs/templates/milestone-sync.md` | Add step after spec-review.md: "Run spec-challenge.md. Iterate until no Critical questions remain." |
 | `document-purposes-common.md` | Add `specs/spec-challenge.md` entry |
 | `docs/templates/specs/test-report.md` | Add `## Spec Challenge` section: rounds run, final unresolved count, sign-off |
 
@@ -632,7 +632,7 @@ Phase 20 covers the verification scripts (docs / logs / tests). Five additional 
 | `AGENTS.md` in staged files | Count lines; fail if > 200 | Token budget drift |
 | Any `specs/*.md` or `architecture/*.md` staged | Check if `changelog.md` is also staged; warn if not | Silent spec changes with no audit trail |
 | `current-state.md` staged | Grep Closeout section for `___` or `<!-- ` | Task "closed" without filling Closeout |
-| Any spec-facing doc staged | Grep for `Sprint \d`, `Task \d+`, `\(S\d+\)` patterns | Writing Audience violations in stakeholder docs |
+| Any spec-facing doc staged | Grep for `Milestone \d`, `Task \d+`, `\(S\d+\)` patterns | Writing Audience violations in stakeholder docs |
 
 All checks run inside the single `.githooks/pre-commit` script from Phase 20 — no new files needed.
 
@@ -728,16 +728,16 @@ Source: auto-generated by diagnose_spec.py. No project content included.
 | File | Change |
 |---|---|
 | `templates/script/diagnose_spec.py` | New: takes spec quality check output → classifies each problem as project-level or framework-level → calls `propose_framework_fix.py` for framework gaps; accepts `--round 1\|2` flag; on round 2 writes remaining gaps to `logs/framework-gaps.md` instead of opening more PRs |
-| `templates/sprint-sync.md` | Add optional sprint-end step: run `diagnose_spec.py --round 1`, merge or skip PRs, then run `--round 2`; stop after round 2 |
+| `templates/milestone-sync.md` | Add optional milestone-end step: run `diagnose_spec.py --round 1`, merge or skip PRs, then run `--round 2`; stop after round 2 |
 | `README.md` | Add "Self-improving loop" section: diagram + iteration limit explanation + how to run `diagnose_spec.py` |
 
 **Token impact:** zero — AGENTS.md unchanged.
 
-> **Canonical reference:** `README.md → Self-improving loop` is the authoritative source for usage commands, PR format, and architecture diagram. This Phase 22 entry is the historical record of the design decision. `templates/sprint-sync.md → Step 7` cross-references README.md for runtime usage.
+> **Canonical reference:** `README.md → Self-improving loop` is the authoritative source for usage commands, PR format, and architecture diagram. This Phase 22 entry is the historical record of the design decision. `templates/milestone-sync.md → Step 7` cross-references README.md for runtime usage.
 
 ---
 
-## Phase 23 — Task / Sprint Quality Gate ✅ Complete
+## Phase 23 — Task / Milestone Quality Gate ✅ Complete
 
 Every task closeout currently only checks whether Required documents exist (`verify_docs.py`). Logs and test execution have no quality gate — they can be missing, empty, or low-quality with no automated catch.
 
@@ -763,7 +763,7 @@ Every task closeout currently only checks whether Required documents exist (`ver
 | File | Change |
 |---|---|
 | `docs/current-state.md` template | Closeout section: add three lines — `verify_docs --content`, `verify_logs`, `verify_tests` — Claude must paste output; git diff shows whether it was done |
-| `docs/templates/sprint-sync.md` | Add sprint-end step: run all three verifiers; record summary in `task-log.md` |
+| `docs/templates/milestone-sync.md` | Add milestone-end step: run all three verifiers; record summary in `task-log.md` |
 | `.githooks/pre-commit` (Phase 21 template) | Add `verify_logs.py` and `verify_tests.py` to pre-commit hook chain |
 | `document-purposes-common.md` | Add entries for `verify_logs.py` and `verify_tests.py` |
 
@@ -930,7 +930,7 @@ Quality    : 3 / 8 existing documents fully filled
 | File | Change |
 |---|---|
 | `.githooks/pre-commit` | Replace `verify_module_docs.py` call with `verify_content.py` call (subsumes it) |
-| `templates/sprint-sync.md` | Update Step 4 quality gate to use `verify_content.py` |
+| `templates/milestone-sync.md` | Update Step 4 quality gate to use `verify_content.py` |
 | `guidance/document-purposes-common.md` | Add `verify_content.py` entry; mark `verify_module_docs.py` as internal |
 | `templates/script/verify_framework.py` | Update Check 10 to validate `verify_content.py` covers all 9 types and all document checkers |
 
@@ -960,7 +960,7 @@ A post-Phase-24 audit found three correctness bugs in `verify_content.py` and se
 | `guidance/document-purposes-common.md` | Pre-commit entry says "three quality verifiers" — update to four and list `verify_content.py` |
 | `guidance/document-purposes-common.md` | `scan_codebase.py` valid types list omits `iac` and `mobile-app` |
 | `build_pdf.py` docstring | Valid types list omits `iac` and `mobile-app` |
-| `templates/sprint-sync.md` Optional block | Clarify that `verify_module_docs.py --src` adds only the source-coverage check; `verify_content.py` already calls it internally |
+| `templates/milestone-sync.md` Optional block | Clarify that `verify_module_docs.py --src` adds only the source-coverage check; `verify_content.py` already calls it internally |
 
 **Token impact:** zero — AGENTS.md unchanged.
 
@@ -1013,7 +1013,7 @@ Fix: replace `SKIP_ROOT` with a direct reference to `SKIP_DIRS`.
 
 `diagnose_spec.py` expects `verify_docs.py --content --json` output (`results[].content.unfilled_sections`). `verify_content.py --json` emits `documents[].issues` instead. Feeding `verify_content.py` output into `diagnose_spec.py` returns zero gaps silently.
 
-Fix: update `diagnose_spec.py` to accept `verify_content.py --json` output (`documents[].issues`); update docstring and `sprint-sync.md` usage example accordingly.
+Fix: update `diagnose_spec.py` to accept `verify_content.py --json` output (`documents[].issues`); update docstring and `milestone-sync.md` usage example accordingly.
 
 **Token impact:** zero — AGENTS.md unchanged.
 
@@ -1042,9 +1042,9 @@ A post-Phase-27 audit found five categories of stale content that slipped throug
 
 ## Phase 29 — AGENTS.md Consolidation ✅ Complete
 
-AGENTS.md has three structural issues that compound as the file approaches the 200-line token budget: a duplicated principles section, a misplaced standalone instruction, and a sprint-sync block whose wording can cause unintended eager file loading.
+AGENTS.md has three structural issues that compound as the file approaches the 200-line token budget: a duplicated principles section, a misplaced standalone instruction, and a milestone-sync block whose wording can cause unintended eager file loading.
 
-**Goal:** Merge the duplicate section, relocate the misplaced line, reword the sprint-sync trigger, and restore token headroom before the next Phase causes a budget violation.
+**Goal:** Merge the duplicate section, relocate the misplaced line, reword the milestone-sync trigger, and restore token headroom before the next Phase causes a budget violation.
 
 ### Changes
 
@@ -1052,7 +1052,7 @@ AGENTS.md has three structural issues that compound as the file approaches the 2
 |---|---|
 | `AGENTS.md` `## Development Principles` + `## Package First` | Merge into a single `## Development Principles` block; add a one-line explanation for each sub-principle currently listed without description (Maintainability First, Glue Code) |
 | `AGENTS.md` "Do not scan repository." | Relocate from its isolated position inside the "If continuing an existing project" paragraph into the **Startup sequence** numbered list as an explicit item, making the context unambiguous |
-| `AGENTS.md` `## Sprint Documentation Sync` | Reword "Load ... now." to conditional form: "Load `templates/sprint-sync.md` only at sprint end — not during normal task work." Eliminates ambiguity about when loading should occur |
+| `AGENTS.md` `## Milestone Documentation Sync` | Reword "Load ... now." to conditional form: "Load `templates/milestone-sync.md` only at milestone end — not during normal task work." Eliminates ambiguity about when loading should occur |
 | `AGENTS.md` | After the above changes, verify total line count; target ≤ 185 lines to maintain a safe buffer below the 200-line limit |
 
 **Token impact:** net reduction — merging the duplicate section removes ~8 lines.
@@ -1071,7 +1071,7 @@ Three supporting files — `code-quality-check.md`, `debug-instrumentation-rules
 |---|---|
 | `code-quality-check.md` `# Required Context` | Replace the hardcoded `docs/architecture/*` path list with a per-type conditional table (Web App / Microservices: full list; CLI Tool / Library: trim to relevant files; IaC: topology + runbook; Data Pipeline: pipeline-contract + pipeline-debug) |
 | `code-quality-check.md` `## Permission Consistency`, `## State Machine Consistency` | Convert plain-text indented lists to Markdown tables — the rest of the file uses tables and these two sections are inconsistent |
-| `code-quality-check.md` `# Sprint Completion` | Remove section — sprint management is out of scope for a code quality checklist; the content belongs in `sprint-sync.md` |
+| `code-quality-check.md` `# Milestone Completion` | Remove section — milestone management is out of scope for a code quality checklist; the content belongs in `milestone-sync.md` |
 | `debug-instrumentation-rules.md` intro | Add per-type applicability matrix at the top: which layer numbers apply to which project types (Layer 11/12/14 are Web App / Mobile App only; IaC / CLI Tool / Library have no application layers) |
 | `debug-instrumentation-rules.md` `### 1. Entry Point` table | Add IaC / DevOps row (`terraform apply` / `ansible-playbook` invocation) and Mobile App row (app launch / deep-link handler) |
 | `templates/specs/spec-review.md` `## Per-type addenda` | Add IaC / DevOps section: topology completeness (all declared resources defined), runbook coverage (all resource types have incident response steps), drift-policy SLA measurability |
@@ -1093,7 +1093,7 @@ Five consistency gaps found across the 9 init files and `retrofit.md`: placehold
 |---|---|
 | All 9 `templates/init/*.md` — `.project-starter.yml` creation step | Replace `project_type: [your-type]` placeholder with the actual type for each init file (e.g. `web-app.md` sets `project_type: web-app`) — the init file already knows the type at authoring time |
 | `templates/init/retrofit.md` Step 1b | Add `--project-type <type>` flag to the `scan_codebase.py` command — currently missing; without it, the scan runs in web-app-fallback mode for retrofit projects of other types |
-| `templates/init/iac.md` | Add explicit steps for `project-plan.md`, `task-log.md`, `sprint-change-log.md`, and `changelog.md` — or add a note explaining these are intentionally omitted for IaC projects and the rationale |
+| `templates/init/iac.md` | Add explicit steps for `project-plan.md`, `task-log.md`, `milestone-change-log.md`, and `changelog.md` — or add a note explaining these are intentionally omitted for IaC projects and the rationale |
 | `templates/init/microservices.md` `## Per-Service Setup` | Add note: when following `web-app.md` steps per service, skip the hook install step and `.project-starter.yml` creation — both are system-level and must be done once at repo root, not per service |
 | All 9 `templates/init/*.md` — pre-commit hook install step | Extract the verbatim-repeated install command (`cp .githooks/pre-commit .git/hooks/pre-commit && chmod +x ...`) into a shared reference block or a cross-reference to `README.md → Verification` to avoid maintaining 9 identical copies |
 
@@ -1139,15 +1139,15 @@ Eleven ambiguities found where process instructions contradict each other, omit 
 | File | Change |
 |---|---|
 | `.project-starter.yml` template + `.githooks/pre-commit` | Add guard comment to the template: "Do not commit with `[your-type]` placeholder." Add a validation check in the pre-commit hook: if `project_type` still matches the placeholder pattern, block the commit with a clear error message |
-| `templates/sprint-sync.md` Step 4 + Step 7 | Resolve WARN / Step-7 ambiguity: add a decision gate after Step 4 — "If any WARN remained after manual triage, proceed to Step 7 (`diagnose_spec.py`). If all issues resolved, skip Step 7." |
-| `templates/sprint-sync.md` Step 4 + Document Update Checklist | Add a note explaining the two-pass design: Step 4 is a pre-check before the doc updates; the Checklist re-runs `verify_content.py` after all updates to confirm fixes landed |
-| `templates/sprint-sync.md` Quick filter guide | Mark as canonical; add a pointer from `templates/current-state.md` template that the quick filter guide lives in `sprint-sync.md` — remove the duplicated copy from `current-state.md` |
+| `templates/milestone-sync.md` Step 4 + Step 7 | Resolve WARN / Step-7 ambiguity: add a decision gate after Step 4 — "If any WARN remained after manual triage, proceed to Step 7 (`diagnose_spec.py`). If all issues resolved, skip Step 7." |
+| `templates/milestone-sync.md` Step 4 + Document Update Checklist | Add a note explaining the two-pass design: Step 4 is a pre-check before the doc updates; the Checklist re-runs `verify_content.py` after all updates to confirm fixes landed |
+| `templates/milestone-sync.md` Quick filter guide | Mark as canonical; add a pointer from `templates/current-state.md` template that the quick filter guide lives in `milestone-sync.md` — remove the duplicated copy from `current-state.md` |
 | `templates/task-completion.md` Step 1c | Add cross-reference note: "`current-state.md → Closeout` omits this step for brevity — the authoritative procedure is here." |
 | `templates/module-completion.md` first line | Change "Run this check after every task" to "Run this check only when a module is confirmed 100% complete — skip otherwise." Aligns with AGENTS.md wording |
 | `templates/current-state.md` `## Closeout` verify commands | Add instruction: "Replace TYPE with the value from `.project-starter.yml → project_type`." (currently `--project-type TYPE` with no explanation of where TYPE comes from) |
 | `templates/task-log.md` + `guidance/document-purposes-common.md` | Add header comment to `task-log.md` describing all column fields including `plan` and `changelog`; update the `document-purposes-common.md → task-log.md` entry to list the current column set |
 | `README.md` + `ROADMAP.md` Phase 20 verification diagram | Align the two architecture diagrams: README.md has the Phase-21-updated version (PostToolUse hook added); annotate the Phase 20 diagram in ROADMAP to note it was extended in Phase 21 |
-| `README.md`, `ROADMAP.md` Phase 22, `templates/sprint-sync.md` Step 7 | Designate `README.md` as canonical for self-improving loop usage; ROADMAP.md Phase 22 is historical record; `sprint-sync.md` Step 7 cross-references README. Align the PR format template across all three locations |
+| `README.md`, `ROADMAP.md` Phase 22, `templates/milestone-sync.md` Step 7 | Designate `README.md` as canonical for self-improving loop usage; ROADMAP.md Phase 22 is historical record; `milestone-sync.md` Step 7 cross-references README. Align the PR format template across all three locations |
 | Per-type `document-purposes-*.md` — `business-process.md` Optional trigger | Expand brief entries (data-pipeline and others) to match the web-app detail level — specify the concrete condition under which `business-process.md` should be created |
 
 **Token impact:** zero — AGENTS.md unchanged.
@@ -1156,7 +1156,7 @@ Eleven ambiguities found where process instructions contradict each other, omit 
 
 ## Phase 34 — Framework Inventory: glossary.md & dependencies.md ✅ Complete
 
-`glossary.md` and `dependencies.md` exist as templates but appear in no init file, no document matrix row, and no sprint-sync checklist item. They are listed in `verify_framework.py`'s `TEMPLATE_MATRIX_EXEMPT` set with no rationale comment. Any project following the framework would not know these templates exist or when to use them.
+`glossary.md` and `dependencies.md` exist as templates but appear in no init file, no document matrix row, and no milestone-sync checklist item. They are listed in `verify_framework.py`'s `TEMPLATE_MATRIX_EXEMPT` set with no rationale comment. Any project following the framework would not know these templates exist or when to use them.
 
 **Goal:** Register both templates in the framework enforcement layer, or document a clear rationale for their exempt status and add discovery guidance so users can find them.
 
@@ -1297,7 +1297,7 @@ Generated: 2026-07-18T10:00:00
 | File | Change |
 |---|---|
 | `build-context.py` (new, repo root) | Script: reads `.project-starter.yml` + `current-state.md`, queries `document-registry.yaml`, writes `.ai/AI_CONTEXT.md` |
-| `.project-starter.yml` schema | Add `task_type` field; valid values derived from module types + task categories (e.g. `pipeline-stage`, `feature`, `bug-fix`, `sprint-end`) |
+| `.project-starter.yml` schema | Add `task_type` field; valid values derived from module types + task categories (e.g. `pipeline-stage`, `feature`, `bug-fix`, `milestone-end`) |
 | `templates/current-state.md` | Add `Task Type:` field to the header block |
 | `.ai/` directory | New directory; add `.ai/` to `.gitignore` — generated context is not committed |
 | `README.md` | Add "Context Builder" section: how to run, output format, how AI tools consume `.ai/AI_CONTEXT.md` |
@@ -1321,7 +1321,7 @@ AGENTS.md currently contains the full document discovery logic: startup sequence
 | `AGENTS.md` `## Current State → Closing out a task` | Keep closeout rules unchanged — context builder does not affect closeout |
 | `AGENTS.md` Doc Checklist quick filter guide | Remove — this logic moves into `build-context.py` task_type → document mapping |
 | `templates/current-state.md` | Remove the embedded quick filter guide comment block; add: "Run `build-context.py` to generate `.ai/AI_CONTEXT.md` before starting." |
-| `templates/sprint-sync.md` | Quick filter guide section: replace with "Run `build-context.py --task-type sprint-end`" — deterministic, no manual filtering |
+| `templates/milestone-sync.md` | Quick filter guide section: replace with "Run `build-context.py --task-type milestone-end`" — deterministic, no manual filtering |
 | `guidance/document-purposes-common.md` | Add note under `.githooks/pre-commit`: context builder runs as part of pre-task setup, not the hook chain |
 
 **Token reduction:** removing the startup discovery logic and quick filter guide from AGENTS.md frees ~30–40 lines, bringing total to ≤ 150 — well below the 200-line budget.
@@ -1367,7 +1367,7 @@ templates/script/
 | `templates/script/framework/` (new dir) | Move `verify_framework.py` here; update README note: not for user projects |
 | `.githooks/pre-commit` | Update script paths to match new subdirectory layout |
 | `guidance/document-purposes-common.md` | Update all `docs/script/` references to new subdirectory paths |
-| `templates/sprint-sync.md` | Update verify script invocation paths |
+| `templates/milestone-sync.md` | Update verify script invocation paths |
 | `templates/current-state.md` | Update verify script invocation paths in Closeout section |
 | `README.md` | Update file tree; add "framework-internal vs user-project scripts" distinction note |
 | `templates/init/*.md` (all init files) | Update script copy instructions to use new subdirectory paths |
@@ -2123,7 +2123,7 @@ topology:
   task_types: [iac-change, bug-fix]
 ```
 
-**Semantics:** when `task_type` is set, `build-context.py` includes a document in `if_present` only if the document's `task_types` list contains the current task type (in addition to the existing `required_for` / `optional_for` filter). Documents with no `task_types` field are always included for their applicable project types. `sprint-end` (task type = None) includes all documents as before.
+**Semantics:** when `task_type` is set, `build-context.py` includes a document in `if_present` only if the document's `task_types` list contains the current task type (in addition to the existing `required_for` / `optional_for` filter). Documents with no `task_types` field are always included for their applicable project types. `milestone-end` (task type = None) includes all documents as before.
 
 ### Changes
 
@@ -2136,7 +2136,7 @@ topology:
 | `templates/script/framework/verify_framework.py` | Add **Check 12** (`task-types-field-sync`): validate that every value in any `task_types` list matches a key in `workflow-registry.yaml`; warn on unknown task type values |
 | `document-purposes-common.md` | Update `build-context.py` entry: note that task-type relevance is now defined in `document-registry.yaml → task_types`, not in the script |
 
-**Backward compatibility:** `build-context.py --task-type sprint-end` behaviour is unchanged (sprint-end still includes all documents). Projects that never set `task_type` are unaffected.
+**Backward compatibility:** `build-context.py --task-type milestone-end` behaviour is unchanged (milestone-end still includes all documents). Projects that never set `task_type` are unaffected.
 
 **Token impact:** zero — AGENTS.md unchanged.
 
@@ -2276,7 +2276,7 @@ Set up the test infrastructure and implement unit tests for all pure functions. 
 
 | File | Functions under test |
 |---|---|
-| `tests/unit/test_classify.py` | `_classify()` from `build-context.py`: required/if_present/skip for all 9 types; hybrid type (`data-pipeline+web-app`); `sprint-end` makes optional → required; `task_types` field filtering (Phase 60) |
+| `tests/unit/test_classify.py` | `_classify()` from `build-context.py`: required/if_present/skip for all 9 types; hybrid type (`data-pipeline+web-app`); `milestone-end` makes optional → required; `task_types` field filtering (Phase 60) |
 | `tests/unit/test_workflow_utils.py` | `_resolve_task_type()`: override wins; current-state field wins over yml; yml fallback; all-None returns None. `_read_task_type_from_current_state()`: parses `**Task Type:** pipeline-stage`; returns None if absent or placeholder |
 | `tests/unit/test_verify_common.py` | `_is_placeholder()`: detects `<!-- TODO -->`, `_TBD_`, `[placeholder]`; passes real content. `_section_body()`: returns body; stops at same-level heading; returns None when absent |
 | `tests/unit/test_orchestrator_render.py` | `_render()` from `orchestrator.py`: output contains validator commands; task label correct |
@@ -2826,7 +2826,7 @@ Make the registry a complete, validated DSL. Every tool reads the same schema; a
   optional_for: [...]           # list of project types where doc is Optional
   context_priority: high|medium|low  # load order in AI_CONTEXT.md
   pdf: true|false               # whether to include in generated PDF
-  audience: internal|external   # external = no task/sprint refs allowed
+  audience: internal|external   # external = no task/milestone refs allowed
   required_sections: [...]      # section headings verify_content.py must find filled
   update_trigger: <string>      # human-readable: when to update this doc
 ```
@@ -2875,7 +2875,7 @@ document-registry.yaml
         ├── verify_registry.py      (new in Phase 79 ✅)
         ├── verify_content.py       (reads required_sections from registry — Phase 80)
         ├── build_pdf.py            (reads pdf: true/false from registry — Phase 80)
-        ├── sprint-sync.md checklist (generated from registry — Phase 80)
+        ├── milestone-sync.md checklist (generated from registry — Phase 80)
         └── orchestrator.py         (reads update_trigger — Phase 80, future)
 ```
 
@@ -2885,13 +2885,13 @@ document-registry.yaml
 |---|---|---|
 | `verify_content.py` | `CONTENT_SECTIONS` hardcoded dict (11 entries) | Remove dict; read `required_sections` list from registry via `_registry.py` |
 | `build_pdf.py` / `pdf_allowlist.py` | Separate allowlist of filenames | Read `pdf: true` entries from registry; remove standalone allowlist |
-| `sprint-sync.md` Document Update Checklist | Hand-written list with `[Types: ...]` tags | Generate checklist rows from registry `required_for` / `optional_for` fields; human edits only the trigger conditions |
+| `milestone-sync.md` Document Update Checklist | Hand-written list with `[Types: ...]` tags | Generate checklist rows from registry `required_for` / `optional_for` fields; human edits only the trigger conditions |
 
 ### New generator script
 
 | File | Purpose |
 |---|---|
-| New: `templates/script/generate_sprint_checklist.py` | Read registry → emit the `sprint-sync.md` Document Update Checklist section in correct `[Types: ...]` format; run at sprint end or whenever the registry changes |
+| New: `templates/script/generate_milestone_checklist.py` | Read registry → emit the `milestone-sync.md` Document Update Checklist section in correct `[Types: ...]` format; run at milestone end or whenever the registry changes |
 
 **Verification:** `pytest tests/ -v` exits 0; `verify_content.py` produces identical output before and after (snapshot test); `build_pdf.py` includes the same files as before (snapshot test); `CONTENT_SECTIONS` dict removed from `verify_content.py`.
 
@@ -3071,7 +3071,7 @@ Type-specific extensions layered on top (no web bias):
 | File | Change |
 |---|---|
 | `templates/script/validators/verify_acceptance.py` | New validator — see checks below |
-| `workflow-registry.yaml` | Add `verify_acceptance.py --strict` to `sprint-end` sequence |
+| `workflow-registry.yaml` | Add `verify_acceptance.py --strict` to `milestone-end` sequence |
 
 ### verify_acceptance.py checks
 

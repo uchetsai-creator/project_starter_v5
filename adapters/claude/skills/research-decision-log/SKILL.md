@@ -6,8 +6,8 @@ description: Use whenever the conversation reaches a technology decision — exp
 # Research Decision Log
 
 The goal is to catch a technology decision at the moment it's made in conversation — not
-at sprint end, when nobody remembers the alternatives that got ruled out. This does not
-replace `sprint-doc-sync`'s own research.md checklist item (a periodic safety net for
+at milestone end, when nobody remembers the alternatives that got ruled out. This does not
+replace `milestone-doc-sync`'s own research.md checklist item (a periodic safety net for
 whatever this Skill missed); it catches most decisions earlier, while the reasoning is
 still fresh.
 
@@ -49,7 +49,7 @@ prompt for your own judgment, not a checklist to pattern-match literally.
 
 - Does not run on its own schedule or poll for decisions — it only fires when a decision
   surfaces in the current conversation.
-- Does not replace the sprint-end checklist item in `sprint-doc-sync` — that is the
+- Does not replace the milestone-end checklist item in `milestone-doc-sync` — that is the
   fallback for whatever this Skill didn't catch, not a duplicate check to skip because
   this Skill exists.
 - Does not fire for the brand-new-project moment — `session-start-hook.sh` already nudges

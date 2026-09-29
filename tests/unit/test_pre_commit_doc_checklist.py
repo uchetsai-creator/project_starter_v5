@@ -65,7 +65,7 @@ def _run_hook(repo: Path) -> subprocess.CompletedProcess:
 
 def test_complete_with_unchecked_item_blocks_commit(tmp_path):
     body = (
-        _HEADER + "**Status:** Complete — Pending Sprint Doc Sync\n\n"
+        _HEADER + "**Status:** Complete — Pending Milestone Doc Sync\n\n"
         "## Doc Checklist (this task only)\n\n"
         "- [x] `docs/specs/api-contract.md` — endpoint added\n"
         "- [ ] `docs/architecture/architecture.md` — check if diagram needs updating\n"
@@ -79,7 +79,7 @@ def test_complete_with_unchecked_item_blocks_commit(tmp_path):
 
 def test_complete_with_raw_template_placeholder_blocks_commit(tmp_path):
     body = (
-        _HEADER + "**Status:** Complete — Pending Sprint Doc Sync\n\n"
+        _HEADER + "**Status:** Complete — Pending Milestone Doc Sync\n\n"
         "## Doc Checklist (this task only)\n\n"
         "- [ ] `docs/[relevant spec]` — [what to check / update]\n"
         + _CLOSEOUT_FOOTER
@@ -92,7 +92,7 @@ def test_complete_with_raw_template_placeholder_blocks_commit(tmp_path):
 
 def test_complete_with_all_items_checked_does_not_block(tmp_path):
     body = (
-        _HEADER + "**Status:** Complete — Pending Sprint Doc Sync\n\n"
+        _HEADER + "**Status:** Complete — Pending Milestone Doc Sync\n\n"
         "## Doc Checklist (this task only)\n\n"
         "- [x] `docs/specs/api-contract.md` — endpoint added\n"
         "- [x] `docs/architecture/architecture.md` — no changes needed\n"

@@ -2,7 +2,7 @@
 
 <!--
   Records the actual results of testing.
-  Generated or updated after each test run / sprint / release.
+  Generated or updated after each test run / milestone / release.
   This file describes WHAT was found, not the plan.
 
   Update when:
@@ -12,7 +12,7 @@
 -->
 
 **Report date:** [YYYY-MM-DD]
-**Sprint / Release:** [Sprint N / v1.0.0]
+**Milestone / Release:** [Milestone N / v1.0.0]
 **Environment:** [Local / CI / Staging]
 
 ---
@@ -194,7 +194,7 @@ Fixture: `[path/to/fixture.csv]` ([N] rows, [description])
 
 | Issue | Severity | Affected module | Workaround | Planned fix |
 |---|---|---|---|---|
-| [Description] | High / Medium / Low | [Module] | [Workaround or none] | [Sprint N / backlog] |
+| [Description] | High / Medium / Low | [Module] | [Workaround or none] | [Milestone N / backlog] |
 
 ---
 
@@ -220,9 +220,9 @@ Lines      : 84.0% ( 1196/1424 )
 ## Spec Review
 
 <!--
-  Record the LLM Judge result for each Required spec document reviewed at sprint end.
+  Record the LLM Judge result for each Required spec document reviewed at milestone end.
   Run via templates/specs/spec-review.md (Phase 18).
-  Leave blank until first sprint-end Spec Review is run.
+  Leave blank until first milestone-end Spec Review is run.
 -->
 
 | Document | Date | Completeness | Ambiguity | Error Coverage | Testability | Consistency | Overall | Verdict |
@@ -234,9 +234,9 @@ Lines      : 84.0% ( 1196/1424 )
 ## Spec Challenge
 
 <!--
-  Record the QA simulation result for each Required spec document challenged at sprint end.
+  Record the QA simulation result for each Required spec document challenged at milestone end.
   Run via templates/specs/spec-challenge.md (Phase 19).
-  Leave blank until first sprint-end Spec Challenge is run.
+  Leave blank until first milestone-end Spec Challenge is run.
 -->
 
 | Document | Rounds run | Final Critical count | Final Major count | Sign-off |

@@ -20,8 +20,8 @@ of them. When a task pressures you to bend one of these, stop and ask instead of
   task breakdown, with their confirmation each time, before implementing; never guess (see below)
 - **Type gates documents** — the declared project type decides which documents are required
   vs N/A; never create an N/A document "just in case"
-- **No internal references in spec-facing docs** — no task numbers (Task 22), no sprint
-  references (Sprint 8, S9); those belong in `changelog.md`, not in documents external
+- **No internal references in spec-facing docs** — no task numbers (Task 22), no milestone
+  references (Milestone 8, S9); those belong in `changelog.md`, not in documents external
   stakeholders read (see Writing Audience below for the full file list)
 
 ---
@@ -113,7 +113,7 @@ Record WHEN a rule changed in `changelog.md` — not in spec documents.
 
 ## Learning Checkpoint
 
-Runs every task, independent of doc/validator sync timing (see Sprint Documentation Sync
+Runs every task, independent of doc/validator sync timing (see Milestone Documentation Sync
 below) — this is live discussion during the task, not a file to write and defer.
 
 - **Unfamiliar technology** (never used before) → run Checkpoint 0 first.
@@ -190,11 +190,15 @@ current-state.md is a state machine with two fields:
 
 ---
 
-## Sprint Documentation Sync
+## Milestone Documentation Sync
 
-> Trigger is a count, not a calendar: after appending a `sprint-change-log.md` entry at
-> Closeout, check how many entries are `Status: Pending documentation synchronization`.
-> At 3, load `templates/sprint-sync.md` and run it now, before starting the next task —
-> do not wait for a "sprint end" that may never arrive in a solo/small project.
-> pre-push blocks a push to main/master once the Pending count reaches 3, until sync marks
+> Two triggers, not a calendar — whichever fires first: after appending a
+> `milestone-change-log.md` entry at Closeout, check (1) how many entries are
+> `Status: Pending documentation synchronization` — at 3, load `templates/milestone-sync.md`
+> and run it now; and (2) whether `current-state.md`'s Requirement Status just became
+> `Complete` — if so and at least 1 entry is still Pending, run it now too, even below 3
+> (a Requirement is a semantic boundary that exists for every project type, so it must
+> never ship half-synced just because its Breakdown had fewer than 3 tasks). Do not wait
+> for a "milestone end" that may never arrive in a solo/small project.
+> pre-push blocks a push to main/master once either trigger fires, until sync marks
 > entries `Documentation synchronized` (commits are not blocked).

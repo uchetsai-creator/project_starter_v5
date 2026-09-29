@@ -5,7 +5,7 @@
 # The orchestrator injects --project-type <type> automatically at runtime.
 # Only add extra flags in `args` (e.g. --content, --strict).
 #
-# Task types: feature | pipeline-stage | bug-fix | sprint-end | eval-run | iac-change
+# Task types: feature | pipeline-stage | bug-fix | milestone-end | eval-run | iac-change
 # If the current task type has no entry, the "default" workflow is used.
 #
 # verify_workflow_registry.py validates this file's own schema (script paths resolve,
@@ -92,7 +92,7 @@ workflows:
         args: [--strict]
         # Requires --src to be passed; skips gracefully if omitted.
 
-  sprint-end:
+  milestone-end:
     validators:
       - script: docs/script/validators/verify_registry.py
         args: []
@@ -119,7 +119,7 @@ workflows:
       - script: docs/script/validators/verify_prose.py
         args: [--strict]
         # Requires --docs to be passed (orchestrator injects it from docs_path when
-        # prose_scan_enabled: true); skips gracefully if omitted. Placed at sprint-end,
+        # prose_scan_enabled: true); skips gracefully if omitted. Placed at milestone-end,
         # not every task type, since it's a prose-quality convergence check, not a
         # per-commit gate the way pre-commit's own trigger (any .md staged) is.
 

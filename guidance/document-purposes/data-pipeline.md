@@ -21,7 +21,7 @@ what it produces as output, naming conventions, lifecycle (archive / retain / ov
 and how each stage handles errors. This is the pipeline equivalent of api-contract.md.
 The Cross-Stage Consistency Check table is the authoritative record of verified stage boundaries.
 
-Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Milestone Documentation Sync):
 * A stage's input path, format, or naming convention changes
 * A stage's output path, format, or lifecycle changes
 * A stage's error / skip handling policy changes
@@ -94,7 +94,7 @@ Location: `docs/business/[process-name]-process.md`
 
 Files matching `*-process.md` are automatically included in the PDF.
 
-Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Milestone Documentation Sync):
 * The business workflow, decision points, or exceptions change
 
 After updating, regenerate activity diagram:
@@ -109,5 +109,5 @@ Purpose:
 Describe data quality rules and validation constraints enforced in code.
 Each rule must declare its Enforcement Layer.
 
-Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Milestone Documentation Sync):
 * Data quality rules or validation constraints change

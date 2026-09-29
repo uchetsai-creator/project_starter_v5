@@ -94,7 +94,7 @@ chunking strategy, embedding model, vector store configuration (similarity metri
 top-K), how retrieved chunks are formatted and injected into the prompt, and failure handling
 when retrieval returns nothing or the vector store is unavailable.
 
-Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Milestone Documentation Sync):
 * A new knowledge source is added or an existing one is changed
 * Chunking strategy or chunk size is changed
 * The embedding model is changed (triggers full re-embedding)
@@ -126,7 +126,7 @@ which tools need user confirmation) and failure handling per scenario.
 Kept separate from llm-contract.md so server connection details can change independently
 of the model config and system prompt.
 
-Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Milestone Documentation Sync):
 * An MCP server is added, removed, or its package version is pinned
 * A tool schema changes (new parameter, renamed field, changed type)
 * Transport changes (stdio → SSE, command args change)

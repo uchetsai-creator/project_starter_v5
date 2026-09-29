@@ -13,11 +13,11 @@
   - Verification  : exact command run to verify correctness
   - Result        : ✅ what worked / ❌ what failed (specific outcome, not "no errors")
   - plan          : ✅ project-plan.md row marked complete
-  - changelog     : ✅ entry added to sprint-change-log.md
+  - changelog     : ✅ entry added to milestone-change-log.md
   - current-state : ✅ current-state.md updated (Status set, steps marked, Next Task promoted)
-  - sprint-log    : ✅ sprint-change-log.md entry added with Status: Pending documentation synchronization
+  - milestone-log    : ✅ milestone-change-log.md entry added with Status: Pending documentation synchronization
 -->
 
-| Date | Task | Files changed | Verification | Result | plan | changelog | current-state | sprint-log |
+| Date | Task | Files changed | Verification | Result | plan | changelog | current-state | milestone-log |
 |---|---|---|---|---|---|---|---|---|
 | [YYYY-MM-DD] | [Task description] | [file paths] | [command run] | ✅ [what worked] / ❌ [what failed] | ✅ | ✅ | ✅ | ✅ |

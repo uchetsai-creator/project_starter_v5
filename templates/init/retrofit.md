@@ -42,6 +42,15 @@ Read and follow `code-quality-check.md`. Do not proceed to Step 2 until the chec
 
 ## Step 2 — Fill in architecture and spec documents (describe what exists)
 
+Documents 1–8 are read directly off the code (schema, routes, config, middleware) — low
+inference, and the user can spot-check each one against its source file in seconds.
+Documents 9–12 require judging *intent* (why a rule exists, why a workflow is shaped this
+way, why a technology was chosen) — the same code can be read two different ways, so these
+need the user's eyes on each individual item, not just a final skim. Confirmation cost
+should track how much was inferred, not be uniform across all twelve.
+
+### 2a — Mechanical documents (draft all, then one combined review)
+
 1. Create `docs/architecture/architecture.md` — describe the actual components and data flows found.
    Then rebuild the diagram: edit the ` ```plantuml ` block, then run `build_pdf.py`.
 2. Create `docs/architecture/backend.md` — describe the actual stack, layering, and module pattern.
@@ -55,10 +64,27 @@ Read and follow `code-quality-check.md`. Do not proceed to Step 2 until the chec
 7. Create `docs/specs/api-contract.md` — fill in from the actual routes and controllers.
 8. Create `docs/specs/permissions.md` — fill in from the actual auth middleware and role logic.
    Then rebuild the use case diagram.
-9. Create `docs/business/business-process.md` — describe the actual business workflows.
-10. Create `docs/business/business-objects.md` — describe the actual business entities.
-11. Create `docs/business/business-rules.md` — describe the actual constraints enforced in code.
-12. Create `docs/specs/research.md` — document the technology choices already made and why (if known).
+
+After drafting all of 1–8, show the user one combined summary (one line per document: what
+it covers, the source files it was read from) and ask them to confirm it matches reality.
+Fix anything they flag before moving to 2b. Do not ask for a per-document sign-off here —
+that turns an easy spot-check into thoughtless clicking-through, which buries the review
+that 2b actually needs.
+
+### 2b — Inferred documents (confirm one item at a time before finalizing)
+
+9. Draft `docs/business/business-process.md` — describe the actual business workflows.
+10. Draft `docs/business/business-objects.md` — describe the actual business entities.
+11. Draft `docs/business/business-rules.md` — describe the actual constraints enforced in code.
+12. Draft `docs/specs/research.md` — document the technology choices already made and why (if known).
+
+Every individual rule, process step, object, or decision drafted in 9–12 is inference, not
+transcription — mark it `[NEEDS CONFIRMATION]` inline as you write it. Then walk the user
+through them one at a time (or in small batches of clearly related items), each with the
+code it was inferred from, and get one of: confirm, edit, or reject. Only clear the
+`[NEEDS CONFIRMATION]` marker once the user has actually responded to that item — an
+inference nobody looked at does not belong in these documents. Do not proceed to Step 3
+while any `[NEEDS CONFIRMATION]` marker remains in 9–12.
 
 ---
 

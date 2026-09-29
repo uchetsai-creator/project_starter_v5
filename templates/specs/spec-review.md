@@ -2,13 +2,13 @@
 
 <!--
   Process template — LLM Judge prompt for spec quality review.
-  Load at sprint end BEFORE closing the sprint.
+  Load at milestone end BEFORE closing the milestone.
   Not a project document — do not include in PDF output.
 
   Usage:
   1. Load this file.
   2. Paste the target spec document below the divider.
-  3. Run. Review all FAIL items before closing the sprint.
+  3. Run. Review all FAIL items before closing the milestone.
 -->
 
 ---
@@ -136,7 +136,7 @@ Fill in the following template after reviewing the spec:
 
 Overall: [sum / max] — PASS / FAIL
 
-### Issues to resolve before sprint close
+### Issues to resolve before milestone close
 [List each FAIL criterion with specific line references and what is missing.
 Leave blank if PASS.]
 ```

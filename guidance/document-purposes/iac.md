@@ -28,7 +28,7 @@ This file replaces `architecture.md` for IaC projects — do not create architec
 
 Load when: adding a resource, changing network topology, or auditing what exists.
 
-Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Milestone Documentation Sync):
 * A new region, VPC, subnet, service, or storage resource is added or removed
 * Environment promotion path changes
 * Network topology, peering, or routing changes
@@ -51,7 +51,7 @@ common Terraform operations. Also documents on-call escalation paths.
 
 Load when: responding to an incident or onboarding a new team member.
 
-Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Milestone Documentation Sync):
 * A new resource type is added (add a response section)
 * Health check commands change
 * Rollback procedures change
@@ -69,7 +69,7 @@ environment, remediation SLA by severity, and the approval gate for manual chang
 
 Load when: investigating drift alerts, onboarding new team members, or auditing compliance.
 
-Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Sprint Documentation Sync):
+Update when (if listed in current-state.md → Doc Checklist, update at task level; otherwise defer to Milestone Documentation Sync):
 * Detection cadence or tooling changes
 * A new resource type is added to drift scope
 * Remediation SLA changes

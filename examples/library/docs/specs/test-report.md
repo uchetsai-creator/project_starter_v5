@@ -16,4 +16,4 @@ All tests passing. 98% line coverage on the last CI run (`v1.2.0`).
 ## Known Gaps
 
 - No dedicated fuzz-testing job yet for deeply nested (>50 levels) documents; tracked for
-  a future sprint.
+  a future milestone.
