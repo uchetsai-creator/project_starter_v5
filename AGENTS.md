@@ -192,13 +192,5 @@ current-state.md is a state machine with two fields:
 
 ## Milestone Documentation Sync
 
-> Two triggers, not a calendar — whichever fires first: after appending a
-> `milestone-change-log.md` entry at Closeout, check (1) how many entries are
-> `Status: Pending documentation synchronization` — at 3, load `templates/milestone-sync.md`
-> and run it now; and (2) whether `current-state.md`'s Requirement Status just became
-> `Complete` — if so and at least 1 entry is still Pending, run it now too, even below 3
-> (a Requirement is a semantic boundary that exists for every project type, so it must
-> never ship half-synced just because its Breakdown had fewer than 3 tasks). Do not wait
-> for a "milestone end" that may never arrive in a solo/small project.
-> pre-push blocks a push to main/master once either trigger fires, until sync marks
-> entries `Documentation synchronized` (commits are not blocked).
+> Two triggers, whichever fires first, checked after appending a `milestone-change-log.md` entry at Closeout: (1) `Status: Pending documentation synchronization` count reaches 3 — load `templates/milestone-sync.md` and run it now; (2) Requirement Status in `current-state.md` just became `Complete` with >=1 entry still Pending — run it now too, even below 3 (a Requirement is a semantic boundary for every project type; never ship half-synced for a Breakdown with <3 tasks).
+> Don't wait for a "milestone end" that may never arrive in a solo/small project. pre-push blocks main/master until sync marks entries `Documentation synchronized` (commits stay free).
