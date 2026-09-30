@@ -35,11 +35,20 @@
 ## Functional Requirements
 
 <!-- FR ID format: FR-<ALPHANUM> where ALPHANUM is one or more uppercase letters and/or digits.
-     Examples: FR-001, FR-A01, FR-I03, FR-D02. Both pure-numeric and letter-prefixed IDs are valid. -->
+     Examples: FR-001, FR-A01, FR-I03, FR-D02. Both pure-numeric and letter-prefixed IDs are valid.
 
-* **FR-001**: [What the system MUST do]
-* **FR-002**: [What the system MUST do]
-* **FR-A01**: [What the system MUST do — example of letter-prefixed FR ID]
+     Requirement text follows EARS (Easy Approach to Requirements Syntax) — pick the pattern
+     that matches the requirement, don't force every line into "WHEN...SHALL":
+       Ubiquitous        — THE SYSTEM SHALL [response] (always true, no trigger/condition)
+       Event-driven      — WHEN [trigger/event], THE SYSTEM SHALL [response]
+       State-driven      — WHILE [state/condition], THE SYSTEM SHALL [response]
+       Unwanted behavior — IF [trigger], THEN THE SYSTEM SHALL [response]
+       Optional feature  — WHERE [feature is included], THE SYSTEM SHALL [response]
+     "SHALL" = mandatory (same weight as the old "MUST"); reserve "SHOULD" for non-binding intent. -->
+
+* **FR-001**: WHEN [trigger/event occurs], THE SYSTEM SHALL [expected response]
+* **FR-002**: WHILE [state/condition holds], THE SYSTEM SHALL [expected response]
+* **FR-A01**: IF [unwanted trigger occurs], THEN THE SYSTEM SHALL [expected response] — example of letter-prefixed FR ID
 * **FR-003**: [NEEDS CLARIFICATION: describe what is unclear]
 
 ---
