@@ -225,23 +225,22 @@ def test_multiple_issues_combined_in_one_nudge(tmp_path):
     assert "Clarifying Questions Asked" in ctx
 
 
-def test_three_pending_milestone_entries_produces_nudge(tmp_path):
-    body = "# Milestone Change Log\n\n" + "".join(
-        f"### Task: {n}\n**Status:** Pending documentation synchronization\n---\n\n"
-        for n in ("A", "B", "C")
-    )
+def test_layer_pending_milestone_entry_produces_nudge(tmp_path):
+    """No count threshold -- one DB/BE/FE-prefixed Pending entry already represents a full
+    layer of the Requirement's Breakdown (web-app is this fixture's default project_type)."""
+    body = "# Milestone Change Log\n\n### Task: DB [Feature A] Schema\n**Status:** Pending documentation synchronization\n---\n\n"
     repo = _make_repo(tmp_path, milestone_log_body=body)
     result = _run(repo)
     assert result.returncode == 0
     ctx = _nudge_context(result)
     assert "Milestone Documentation Sync" in ctx
-    assert "3 entries" in ctx
+    assert "layer task" in ctx
 
 
-def test_two_pending_milestone_entries_does_not_trigger_nudge(tmp_path):
+def test_non_layer_pending_milestone_entries_do_not_trigger_nudge(tmp_path):
     body = "# Milestone Change Log\n\n" + "".join(
         f"### Task: {n}\n**Status:** Pending documentation synchronization\n---\n\n"
-        for n in ("A", "B")
+        for n in ("INF Foundation", "Fix typo")
     )
     repo = _make_repo(tmp_path, milestone_log_body=body)
     result = _run(repo)

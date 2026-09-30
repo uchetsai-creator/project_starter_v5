@@ -7,10 +7,13 @@
 
   Trigger, not calendar: run Milestone Documentation Sync (see AGENTS.md) as soon as
   EITHER holds, regardless of how many days that took:
-    - 3 entries below are Status: Pending documentation synchronization, or
+    - (web-app only) an entry below is Status: Pending documentation synchronization AND
+      its Task name carries a DB / BE / FE layer prefix — one such task already
+      represents a full layer of a Requirement's Breakdown, so a single entry is enough;
+      no count threshold, or
     - the current Requirement in current-state.md is set to Complete and at least 1
-      entry below is still Pending (a Requirement must never ship half-synced just
-      because its own Breakdown had fewer than 3 tasks).
+      entry below is still Pending (a Requirement must never ship half-synced — this
+      applies to every project type, unlike the layer trigger above).
   "Milestone end" is not a fixed time boundary in a solo/small project; these two
   triggers are. After appending an entry below, check both conditions — if either is
   met, run Milestone Documentation Sync before starting the next task, not after.

@@ -94,11 +94,12 @@ test_command:
 # commit and blocks if it exits non-zero. Leave blank to skip this gate.
 
 milestone_sync_stale_days:
-# Optional. Age-based fallback for the Milestone Documentation Sync guard: that guard's
-# main trigger is a count (3 Pending entries in docs/milestone-change-log.md), which a
-# low-volume/solo project may never reach. When set, a push to main/master is also blocked once the
-# oldest Pending entry's **Date:** field is at least this many days old. Leave blank to
-# skip this fallback (default). Example: milestone_sync_stale_days: 14
+# Optional. Age-based fallback for the Milestone Documentation Sync guard: that guard's two
+# triggers are (web-app only) a Pending entry whose Task name carries a DB/BE/FE prefix, and
+# Requirement Status becoming Complete with >=1 Pending entry — a non-web-app project, or one
+# stuck In Progress, may never hit either. When set, a push to main/master is also blocked
+# once the oldest Pending entry's **Date:** field is at least this many days old. Leave blank
+# to skip this fallback (default). Example: milestone_sync_stale_days: 14
 
 checkpoint_enforcement:
 # Optional (unset | session-prompt | off). Controls how strictly

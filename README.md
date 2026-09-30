@@ -872,7 +872,7 @@ python3 orchestrator.py --dry-run
      `verify_tests.py` / `verify_content.py` with `--json` and writes the combined output to
      `logs/verify-{timestamp}.json`, so you can see validator results without running them by hand.
      Also re-checks `project_type_confirmed`, `Clarifying Questions Asked`, Doc Checklist
-     completeness, Milestone Documentation Sync's Pending-count threshold, and now the same
+     completeness, Milestone Documentation Sync's two triggers, and now the same
      `--strict` pass/fail those four validators would compute — parsed out of the `--json` output
      already captured above, since `--strict` only changes the exit code, never the JSON content,
      so nothing extra needs to run. All of this is the same set of checks `.githooks/pre-commit`
@@ -926,17 +926,18 @@ python3 orchestrator.py --dry-run
      directly rather than adding a separate summary field a task could just as easily mark "done"
      without the items underneath actually being checked off.
    - `.githooks/pre-push`'s **Milestone Documentation Sync guard** (moved from pre-commit — a backlog is a
-     handover problem, so commits stay free) — same gap for the count trigger
+     handover problem, so commits stay free) — same gap for the two triggers
      in AGENTS.md -> Milestone Documentation Sync: nothing verified the Pending backlog in
-     `milestone-change-log.md` was actually synced once it hit 3 entries, so it could grow
+     `milestone-change-log.md` was actually synced once either fired, so it could grow
      indefinitely with no mechanical backstop, only the `milestone-doc-sync` Skill's nudge. This
-     guard blocks a push to a gated branch (`main`/`master`) once 3 (or more) entries are at `Status: Pending documentation
-     synchronization` (other branches only warn), until Milestone Documentation Sync (`templates/milestone-sync.md`) marks them
-     `Documentation synchronized`. The count trigger alone still has a gap for a low-volume/solo
-     project that never accumulates 3 Pending entries — `milestone_sync_stale_days` in
+     guard blocks a push to a gated branch (`main`/`master`) once (web-app only) a `Status: Pending documentation
+     synchronization` entry's Task name carries a DB/BE/FE prefix, or the current Requirement becomes `Complete`
+     with an entry still Pending (other branches only warn), until Milestone Documentation Sync (`templates/milestone-sync.md`) marks them
+     `Documentation synchronized`. These two triggers alone still have a gap for a non-web-app or
+     long-In-Progress project that hits neither — `milestone_sync_stale_days` in
      `.project-starter.yml` closes it: when set, the same guard also blocks once the *oldest*
-     Pending entry's `**Date:**` field is at least that many days old, regardless of count. Opt-in
-     — leave it blank to keep count-only behavior. `adapters/claude/run-verify.sh` mirrors this
+     Pending entry's `**Date:**` field is at least that many days old, regardless of the other two
+     triggers. Opt-in — leave it blank to skip this fallback. `adapters/claude/run-verify.sh` mirrors this
      (and the two guards above) as a non-blocking Stop-hook nudge — see the fast-feedback bullet
      below for why a git-commit-only gate isn't enough on its own for a workflow with infrequent
      commits.
@@ -956,7 +957,7 @@ python3 orchestrator.py --dry-run
    | `code-quality-check` | a requested code/architecture review, or Learning Checkpoint A's escalation |
    | `design-pattern-check` | opt-in only — `code-quality-check` asks whether to include it (Fast or Deep mode), or the user explicitly requests a design-pattern review; never runs unasked |
    | `module-completion-check` | a module just reached 100% complete |
-   | `milestone-doc-sync` | `milestone-change-log.md` reaches 3 pending-sync entries |
+   | `milestone-doc-sync` | `milestone-change-log.md` has a DB/BE/FE-prefixed pending-sync entry (web-app), or the current Requirement completes with one still pending |
    | `learning-checkpoint` | before implementing any task (Checkpoints 0/A/B/C) |
    | `task-closeout` | end of every task, when current-state.md's inline Closeout section isn't enough detail on its own (full verification table, or the commit-sequencing note for promoting Next Task → Current Task) |
    | `research-decision-log` | a technology decision surfaces in conversation — explicit ("let's go with X") or implicit (comparing libraries and landing on one, a schema choice with stated rationale, a resolved `NEEDS CLARIFICATION`); drafts a `research.md` entry and asks before writing it, never writes without approval |
@@ -1360,8 +1361,8 @@ Any AI tool (Claude Code / other / manual)
    — unlike verify_tests.py above, which only checks that test-report.md is filled in
         ↓
  [project_type_confirmed: false in .project-starter.yml]  confirmed yet? ← detect_type.py guess audit (block)
- [pre-push · milestone-change-log.md: >= 3 entries Pending documentation synchronization]
-   Milestone Documentation Sync run yet? ← Pending-count threshold (block a push to main/master)
+ [pre-push · milestone-change-log.md: DB/BE/FE-prefixed entry Pending (web-app), or Requirement Complete with one Pending]
+   Milestone Documentation Sync run yet? ← layer/requirement trigger (block a push to main/master)
  [AGENTS.md staged]      line count ≤ 200            ← token budget (block)
  [specs/*.md staged]     changelog.md also staged?   ← audit trail (warn)
  [current-state.md + Status:Complete]  Closeout filled? ← closeout (block)

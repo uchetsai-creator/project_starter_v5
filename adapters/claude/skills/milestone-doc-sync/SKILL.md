@@ -1,14 +1,14 @@
 ---
 name: milestone-doc-sync
-description: Use as soon as EITHER holds — docs/milestone-change-log.md accumulates 3 entries at "Status: Pending documentation synchronization" (count-triggered, not calendar-triggered), OR the current Requirement in current-state.md is set to Complete with at least 1 entry still Pending. Runs the full milestone-end documentation sync: per-document update checklist, a six-verifier quality gate, spec review, spec challenge, and PDF rebuild. Do NOT use for routine per-task doc updates — current-state.md's Doc Checklist already covers those.
+description: Use as soon as EITHER holds — (web-app only) docs/milestone-change-log.md has a "Status: Pending documentation synchronization" entry whose Task name carries a DB/BE/FE prefix, OR the current Requirement in current-state.md is set to Complete with at least 1 entry still Pending. Runs the full milestone-end documentation sync: per-document update checklist, a six-verifier quality gate, spec review, spec challenge, and PDF rebuild. Do NOT use for routine per-task doc updates — current-state.md's Doc Checklist already covers those.
 ---
 
 # Milestone Documentation Sync
 
 <!--
   Read this file as soon as EITHER holds — not on a calendar/milestone-boundary basis:
-    - docs/milestone-change-log.md has 3 entries at Status: Pending documentation
-      synchronization, or
+    - (web-app only) docs/milestone-change-log.md has an entry at Status: Pending
+      documentation synchronization whose Task name carries a DB/BE/FE prefix, or
     - the current Requirement in current-state.md is set to Complete and at least 1
       entry is still Pending.
   Do NOT load this file during normal task work otherwise — the Doc Checklist in
@@ -16,14 +16,16 @@ description: Use as soon as EITHER holds — docs/milestone-change-log.md accumu
 -->
 
 Run as soon as EITHER holds, whichever comes first:
-- `docs/milestone-change-log.md` has 3 entries at **Status: Pending documentation
-  synchronization** — count-triggered, not calendar-triggered. A solo/small project may
-  never hit a natural "milestone end"; waiting for one risks the Pending backlog growing
-  indefinitely.
+- (web-app only) `docs/milestone-change-log.md` has an entry at **Status: Pending
+  documentation synchronization** whose Task name carries a **DB / BE / FE** prefix — one
+  such task already represents a full layer of a Requirement's Breakdown (see
+  `templates/project-plan.md`'s DB/BE/FE-per-Feature convention), so a single entry is
+  enough; there is no count threshold to wait for. A solo/small project may never hit a
+  natural "milestone end"; waiting for one risks the Pending backlog growing indefinitely.
 - the current Requirement in `current-state.md` is set to `Complete` and at least 1 entry
   is still Pending — a Requirement is a semantic boundary that exists for every project
-  type (unlike a DB/BE/FE "layer", which only web-app has), so it must never ship
-  half-synced just because its own Breakdown had fewer than 3 tasks.
+  type (unlike a DB/BE/FE layer, which only web-app has), so it must never ship
+  half-synced.
 
 1. Open `docs/milestone-change-log.md`
 2. For each entry with **Status: Pending documentation synchronization**:

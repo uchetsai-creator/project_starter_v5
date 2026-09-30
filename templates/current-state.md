@@ -193,8 +193,8 @@
 - **Test report verification**: `python3 docs/script/validators/verify_tests.py --project-type TYPE --strict` — Verdict: ___
 - **Content quality verification**: `python3 docs/script/validators/verify_content.py --project-type TYPE --strict` — Verdict: ___
 - **milestone-change-log.md**: append one entry — implementation summary, impact flags (Architecture/DB/API/Deployment/Module flow), status `Pending documentation synchronization`
-  Then count entries at that status. **At 3, run Milestone Documentation Sync (`templates/milestone-sync.md`) now, before starting the next task** — this is a count trigger, not a calendar one; do not wait for a "milestone end."
-  ENFORCED: `.githooks/pre-push` blocks a push to main/master once the Pending count reaches 3, until sync marks entries `Documentation synchronized`. Commits are not blocked.
+  Then check: (web-app only) is this entry's Task name DB/BE/FE-prefixed? If so, **run Milestone Documentation Sync (`templates/milestone-sync.md`) now, before starting the next task** — no count needed, one such entry is enough. Also run it now if Requirement Status just became `Complete` with any entry still Pending. Neither is a calendar trigger; do not wait for a "milestone end."
+  ENFORCED: `.githooks/pre-push` blocks a push to main/master on either trigger, until sync marks entries `Documentation synchronized`. Commits are not blocked.
 - **task-log.md**: write one row — all columns must be ✅ before writing
 
 > Need the full verification table or step detail? Load `templates/task-completion.md`.

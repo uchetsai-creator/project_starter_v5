@@ -1,11 +1,13 @@
 """Tests for the Milestone Documentation Sync check in .githooks/pre-push.
 
-templates/milestone-sync.md documents a count trigger: as soon as docs/milestone-change-log.md has 3
-entries at "Status: Pending documentation synchronization", Milestone Documentation Sync should
-run before the next task. Nothing verified that happened, so a backlog could grow forever. The
-check lives at push time (moved from pre-commit): a push to a gated branch (main/master by
-default) is blocked while the backlog is at the threshold or, when milestone_sync_stale_days is
-set, while the OLDEST Pending entry is that old. Other branches only get a warning. The log is
+templates/milestone-sync.md documents two triggers: (1) web-app only -- as soon as
+docs/milestone-change-log.md has an entry at "Status: Pending documentation synchronization"
+whose Task name carries a DB/BE/FE prefix, since a single such task already represents a full
+layer of a Requirement's Breakdown; (2) the current Requirement in current-state.md becomes
+Complete with at least 1 entry still Pending. Nothing verified that happened, so a backlog could
+grow forever. The check lives at push time (moved from pre-commit): a push to a gated branch
+(main/master by default) is blocked while either trigger fires or, when milestone_sync_stale_days
+is set, while the OLDEST Pending entry is that old. Other branches only get a warning. The log is
 read at the pushed commit, not the working tree.
 
 Runs the real bash script via subprocess against a minimal isolated git repo -- skipped if bash
@@ -38,6 +40,7 @@ def _git(repo: Path, *args: str) -> str:
 
 def _make_repo(
     tmp_path: Path, log_body: str | None, extra_config: str = "", cs_body: str | None = None,
+    project_type: str = "web-app",
 ) -> Path:
     repo = tmp_path / "repo"
     repo.mkdir()
@@ -45,7 +48,7 @@ def _make_repo(
     _git(repo, "config", "user.email", "test@example.com")
     _git(repo, "config", "user.name", "Test")
     (repo / ".project-starter.yml").write_text(
-        "project_type: web-app\ndocs_path: docs/\n" + extra_config, encoding="utf-8",
+        f"project_type: {project_type}\ndocs_path: docs/\n" + extra_config, encoding="utf-8",
     )
     docs = repo / "docs"
     docs.mkdir()
@@ -74,32 +77,53 @@ def _days_ago(n: int) -> str:
     return (datetime.now() - timedelta(days=n)).strftime("%Y-%m-%d")
 
 
-def test_three_pending_entries_block_push_to_main(tmp_path):
-    result = _push(_make_repo(tmp_path, _log(*(_PENDING.format(n=n) for n in "ABC"))))
+def test_single_layer_pending_entry_blocks_push_on_web_app(tmp_path):
+    """No count threshold -- one DB/BE/FE-prefixed Pending entry already represents a full
+    layer of the Requirement's Breakdown."""
+    result = _push(_make_repo(tmp_path, _log(_PENDING.format(n="DB [Feature A] Schema"))))
     assert result.returncode == 1
-    assert "3 entries at 'Pending documentation synchronization'" in result.stdout
+    assert "layer task 'DB [Feature A] Schema'" in result.stdout
 
 
-def test_four_pending_entries_still_block(tmp_path):
-    """>= 3, not == 3."""
-    result = _push(_make_repo(tmp_path, _log(*(_PENDING.format(n=n) for n in "ABCD"))))
-    assert result.returncode == 1
-    assert "4 entries at 'Pending documentation synchronization'" in result.stdout
+def test_be_and_fe_prefixes_also_trigger(tmp_path):
+    for prefix in ("BE", "FE"):
+        subdir = tmp_path / prefix
+        subdir.mkdir()
+        result = _push(_make_repo(subdir, _log(_PENDING.format(n=f"{prefix} Order API"))))
+        assert result.returncode == 1
+        assert "layer task" in result.stdout
 
 
-def test_two_pending_entries_do_not_block(tmp_path):
-    result = _push(_make_repo(tmp_path, _log(*(_PENDING.format(n=n) for n in "AB"))))
+def test_non_layer_pending_entries_do_not_block_on_their_own(tmp_path):
+    """INF/MOD-prefixed (or unprefixed) tasks are not a DB/BE/FE 'layer' -- no trigger
+    without Requirement completion or the stale-days fallback, no matter how many pile up."""
+    body = _log(_PENDING.format(n="INF Foundation"), _PENDING.format(n="Fix typo"))
+    result = _push(_make_repo(tmp_path, body))
     assert result.returncode == 0
     assert result.stdout.strip() == ""
 
 
-def test_synced_entries_are_not_counted(tmp_path):
-    body = _log(_SYNCED.format(n="A"), _SYNCED.format(n="B"), _PENDING.format(n="C"), _PENDING.format(n="D"))
+def test_layer_trigger_does_not_apply_outside_web_app(tmp_path):
+    result = _push(_make_repo(tmp_path, _log(_PENDING.format(n="BE Order API")), project_type="cli-tool"))
+    assert result.returncode == 0
+    assert result.stdout.strip() == ""
+
+
+def test_layer_trigger_applies_to_hybrid_types_including_web_app(tmp_path):
+    result = _push(_make_repo(
+        tmp_path, _log(_PENDING.format(n="DB [Feature A] Schema")), project_type="data-pipeline+web-app",
+    ))
+    assert result.returncode == 1
+    assert "layer task" in result.stdout
+
+
+def test_synced_layer_entries_are_not_flagged(tmp_path):
+    body = _log(_SYNCED.format(n="DB [Feature A] Schema"), _SYNCED.format(n="BE [Feature A]"))
     assert _push(_make_repo(tmp_path, body)).returncode == 0
 
 
-def test_backlog_only_warns_on_a_work_branch(tmp_path):
-    result = _push(_make_repo(tmp_path, _log(*(_PENDING.format(n=n) for n in "ABC"))), branch="wip/x")
+def test_layer_trigger_only_warns_on_a_work_branch(tmp_path):
+    result = _push(_make_repo(tmp_path, _log(_PENDING.format(n="DB [Feature A] Schema"))), branch="wip/x")
     assert result.returncode == 0
     assert "[WARN]" in result.stdout
 
@@ -110,8 +134,8 @@ def test_no_milestone_change_log_does_not_block(tmp_path):
 
 def test_backlog_is_read_at_the_pushed_commit_not_the_working_tree(tmp_path):
     """Marking entries synced on disk without committing must not let a backlogged commit through."""
-    repo = _make_repo(tmp_path, _log(*(_PENDING.format(n=n) for n in "ABC")))
-    (repo / "docs" / "milestone-change-log.md").write_text(_log(_SYNCED.format(n="A")), encoding="utf-8")
+    repo = _make_repo(tmp_path, _log(_PENDING.format(n="DB [Feature A] Schema")))
+    (repo / "docs" / "milestone-change-log.md").write_text(_log(_SYNCED.format(n="DB [Feature A] Schema")), encoding="utf-8")
     assert _push(repo).returncode == 1
 
 

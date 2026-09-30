@@ -143,15 +143,35 @@ if [ -f "$CONFIG" ]; then
     fi
 
     # Milestone Documentation Sync -- also enforced by .githooks/pre-push (blocking on a push
-    # to a gated branch, same >= 3 threshold), mirrored here as an early warning for
-    # the same reason as the three checks above: a long stretch without a commit or push
-    # means this would otherwise stay invisible until the next push finally happens.
+    # to a gated branch, same two triggers), mirrored here as an early warning for the same
+    # reason as the checks above: a long stretch without a commit or push means this would
+    # otherwise stay invisible until the next push finally happens.
     MILESTONE_LOG="${DOCS_PATH}/milestone-change-log.md"
     if [ -f "$MILESTONE_LOG" ]; then
-        PENDING_COUNT=$(grep -cE '^\*\*Status:\*\* Pending documentation synchronization' "$MILESTONE_LOG" || true)
+        MILESTONE_CONTENT=$(cat "$MILESTONE_LOG")
+        PENDING_COUNT=$(printf '%s\n' "$MILESTONE_CONTENT" | grep -cE '^\*\*Status:\*\* Pending documentation synchronization' || true)
         PENDING_COUNT=${PENDING_COUNT:-0}
-        if [ "$PENDING_COUNT" -ge 3 ]; then
-            ISSUES+=("$MILESTONE_LOG has $PENDING_COUNT entries at 'Pending documentation synchronization' (threshold: 3). Run Milestone Documentation Sync (templates/milestone-sync.md) -- see AGENTS.md -> Milestone Documentation Sync.")
+        REQ_STATUS=""
+        if [ -n "${CS_CONTENT:-}" ]; then
+            REQ_STATUS=$(printf '%s\n' "$CS_CONTENT" | grep -E '^\*\*Requirement Status:\*\*' | head -1 | sed 's/^\*\*Requirement Status:\*\*[[:space:]]*//; s/[[:space:]]*$//')
+        fi
+        LAYER_TASK=""
+        case "+${TYPE}+" in
+            *"+web-app+"*)
+                LAYER_TASK=$(printf '%s\n' "$MILESTONE_CONTENT" | awk '
+                    /^### Task:/ { task=$0; sub(/^### Task:[[:space:]]*/, "", task); pending=0 }
+                    /^\*\*Status:\*\* Pending documentation synchronization/ { pending=1 }
+                    /^---/ {
+                        if (pending && task ~ /^(DB|BE|FE) /) { print task; exit }
+                        task=""; pending=0
+                    }
+                ')
+                ;;
+        esac
+        if [ "$PENDING_COUNT" -ge 1 ] && printf '%s' "$REQ_STATUS" | grep -qE '^Complete([^A-Za-z]|$)'; then
+            ISSUES+=("$MILESTONE_LOG has $PENDING_COUNT pending entry(ies) and Requirement Status is Complete. Run Milestone Documentation Sync (templates/milestone-sync.md) -- see AGENTS.md -> Milestone Documentation Sync.")
+        elif [ -n "$LAYER_TASK" ]; then
+            ISSUES+=("$MILESTONE_LOG has a Pending entry for layer task '$LAYER_TASK' (DB/BE/FE). Run Milestone Documentation Sync (templates/milestone-sync.md) -- see AGENTS.md -> Milestone Documentation Sync.")
         fi
     fi
 fi

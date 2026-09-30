@@ -13,13 +13,13 @@
 #       Descoped — user: <reason>       -> accepted (only the user may abandon a requirement)
 #       anything else / placeholder     -> not accepted
 #  2. Milestone Documentation Sync — docs/milestone-change-log.md. templates/milestone-sync.md has
-#     not been run if any of these hold: >= 3 entries at "Status: Pending documentation
-#     synchronization" (bounds drift within one oversized Requirement); >= 1 such entry AND the
-#     current Requirement Status is Complete (a Requirement is a semantic boundary that exists for
-#     every project type, so it must never ship half-synced just because its own Breakdown had
-#     fewer than 3 tasks); or, with milestone_sync_stale_days set in .project-starter.yml, the OLDEST
-#     Pending entry being that many days old. (Moved here from pre-commit: a backlog is a handover
-#     problem, not a reason to stop saving work.)
+#     not been run if any of these hold: (web-app only) a Pending entry whose Task name carries a
+#     DB/BE/FE layer prefix — one such task already represents a full layer of a Requirement's
+#     Breakdown, so no count threshold is needed; >= 1 Pending entry AND the current Requirement
+#     Status is Complete (a Requirement is a semantic boundary every project type has, unlike a
+#     DB/BE/FE layer, which only web-app has); or, with milestone_sync_stale_days set in
+#     .project-starter.yml, the OLDEST Pending entry being that many days old. (Moved here from
+#     pre-commit: a backlog is a handover problem, not a reason to stop saving work.)
 #
 # Pushes to a gated branch (default: main master; override with push_gate_branches in
 # .project-starter.yml, e.g. "main release") are BLOCKED on any problem. Pushes to other branches
@@ -92,28 +92,45 @@ _requirement_problems() {
 }
 
 # Prints one line per problem with the Milestone Documentation Sync backlog ($1 = milestone-change-log.md
-# content, $2 = Requirement Status value from current-state.md, may be empty). Prints nothing when
-# there is no log, or nothing is overdue.
+# content, $2 = Requirement Status value from current-state.md, may be empty, $3 = project_type).
+# Prints nothing when there is no log, or nothing is overdue.
 #
-# Two independent triggers, whichever fires first:
-#   - count: 3+ pending entries — bounds drift within a single oversized Requirement.
+# Two triggers, whichever fires first (no count threshold — an arbitrary number was a weaker
+# signal than either of these):
+#   - layer-complete (web-app, or any hybrid declared type including web-app, only): a Pending
+#     entry whose Task name carries a DB/BE/FE prefix — that single task already represents one
+#     full layer of a Requirement's Breakdown (see templates/project-plan.md's DB/BE/FE-per-Feature
+#     convention), so there is no reason to wait for more of them to pile up.
 #   - requirement-complete: the current Requirement just finished, with >=1 pending entry — a
-#     semantic boundary that exists for every project type (unlike a DB/BE/FE "layer", which only
-#     web-app has), so a finished Requirement is never left half-synced just because its own
-#     Breakdown had fewer than 3 tasks.
+#     semantic boundary that exists for every project type (unlike a DB/BE/FE layer, which only
+#     web-app has), so a finished Requirement is never left half-synced.
 _milestone_problems() {
     log="$1"
     req_status="$2"
+    project_type="$3"
     [ -z "$log" ] && return 0
     pending=$(printf '%s\n' "$log" | grep -cE '^\*\*Status:\*\* Pending documentation synchronization' || true)
     pending=${pending:-0}
     if [ -n "$MILESTONE_SYNC_STALE_DAYS" ] && ! printf '%s' "$MILESTONE_SYNC_STALE_DAYS" | grep -qE '^[0-9]+$'; then
         echo "milestone_sync_stale_days '$MILESTONE_SYNC_STALE_DAYS' in .project-starter.yml is not a positive integer."
     fi
-    if [ "$pending" -ge 3 ]; then
-        echo "${DOCS_PATH}/milestone-change-log.md has $pending entries at 'Pending documentation synchronization' (threshold: 3) — run Milestone Documentation Sync (templates/milestone-sync.md) first."
-    elif [ "$pending" -ge 1 ] && printf '%s' "$req_status" | grep -qE '^Complete([^A-Za-z]|$)'; then
+    layer_task=""
+    case "+${project_type}+" in
+        *"+web-app+"*)
+            layer_task=$(printf '%s\n' "$log" | awk '
+                /^### Task:/ { task=$0; sub(/^### Task:[[:space:]]*/, "", task); pending=0 }
+                /^\*\*Status:\*\* Pending documentation synchronization/ { pending=1 }
+                /^---/ {
+                    if (pending && task ~ /^(DB|BE|FE) /) { print task; exit }
+                    task=""; pending=0
+                }
+            ')
+            ;;
+    esac
+    if [ "$pending" -ge 1 ] && printf '%s' "$req_status" | grep -qE '^Complete([^A-Za-z]|$)'; then
         echo "${DOCS_PATH}/milestone-change-log.md has $pending pending entry(ies) and Requirement Status is Complete — run Milestone Documentation Sync (templates/milestone-sync.md) before this Requirement ships."
+    elif [ -n "$layer_task" ]; then
+        echo "${DOCS_PATH}/milestone-change-log.md has a Pending entry for layer task '$layer_task' (DB/BE/FE) — run Milestone Documentation Sync (templates/milestone-sync.md) before starting the next task."
     elif [ "$pending" -ge 1 ] && printf '%s' "$MILESTONE_SYNC_STALE_DAYS" | grep -qE '^[0-9]+$'; then
         oldest=$(printf '%s\n' "$log" | awk '
             /^\*\*Date:\*\*/ { d=$0 }
@@ -149,7 +166,7 @@ while read -r local_ref local_sha remote_ref remote_sha; do
     content=$(git show "${local_sha}:${CS_PATH}" 2>/dev/null || true)
     milestone_log=$(git show "${local_sha}:${MILESTONE_LOG_PATH}" 2>/dev/null || true)
     req_status=$(printf '%s\n' "$content" | grep -E '^\*\*Requirement Status:\*\*' | head -1 | sed 's/^\*\*Requirement Status:\*\*[[:space:]]*//; s/[[:space:]]*$//' || true)
-    problems=$( { [ -n "$content" ] && _requirement_problems "$content"; _milestone_problems "$milestone_log" "$req_status"; } || true)
+    problems=$( { [ -n "$content" ] && _requirement_problems "$content"; _milestone_problems "$milestone_log" "$req_status" "$PROJECT_TYPE"; } || true)
     [ -z "$problems" ] && continue
 
     if [ "$gated" -eq 1 ]; then tag="[FAIL]"; else tag="[WARN]"; fi
