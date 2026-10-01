@@ -9,6 +9,16 @@ The goal is to describe what already exists — not to redesign it. Read the cod
 
 Do not scan the entire repository at once. Work module by module.
 
+> **Non-default `docs_path`** (e.g. this project is a subdirectory of a larger monorepo and
+> its docs can't live at the repo-root `docs/`): set `docs_path` in `.project-starter.yml`
+> to the actual location (e.g. `docs/isbg/`) *before* Step 1, and move `docs/script/`
+> (validators/generators/scanners copied in by `init.py`) to `{docs_path}/script/` as well —
+> it travels with the rest of the docs, not with the root-level framework files
+> (`document-registry.yaml`, `workflow-registry.yaml`, `AGENTS.md`, etc., which always stay
+> at the repo root regardless of `docs_path`). `orchestrator.py` and the `.githooks/`
+> hooks resolve validator paths from `docs_path` at runtime, so once both are moved
+> together nothing further is needed.
+
 ---
 
 ## Step 1 — Understand the system (read before writing anything)
@@ -156,7 +166,12 @@ apply only that, not redo the retrofit from scratch.
 2. Pull or re-clone the latest project_starter_v5 to a local path.
 3. Diff `document-registry.yaml` (new project vs. this project's copy) — new required
    documents, changed `required_sections`, or a document dropped for this project's type
-   are the signal for what to add or update.
+   are the signal for what to add or update. If a document key present in this project's
+   copy is missing upstream, do not treat it as a simple deletion: check upstream's
+   `related:` fields and `CHANGELOG.md` for whether it was renamed or split into multiple
+   new keys. A rename/split means the existing file's content needs to be migrated into
+   the new key(s) (copied, then divided by section if split) before the old file is
+   removed — deleting it outright loses already-confirmed project content.
 4. Diff `templates/script/validators/` and `.githooks/pre-commit` for gates that didn't
    exist at this project's last sync — a new gate silently failing every commit afterward
    is worse than not adopting it yet, so confirm each one with the user before wiring it in.

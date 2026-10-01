@@ -203,6 +203,9 @@ def _render(ctx: dict) -> str:
     task_label = ctx["task_type"] or "unset"
     pt = ctx["project_type"]
 
+    docs_path = (ctx.get("docs_path") or "docs").rstrip("/")
+    current_state_ref = f"{docs_path}/current-state.md"
+
     lines = [
         f"# Workflow Plan — {task_label} / {pt}",
         f"Generated: {now}",
@@ -211,7 +214,7 @@ def _render(ctx: dict) -> str:
         "1. Run `python3 orchestrator.py` → read `.ai/AI_CONTEXT.md` and `.ai/WORKFLOW.md`",
         "",
         "## Implementation",
-        "- Follow Steps in `docs/current-state.md`",
+        f"- Follow Steps in `{current_state_ref}`",
         "",
         "## Post-task validators (run in order)",
     ]
@@ -223,6 +226,12 @@ def _render(ctx: dict) -> str:
         rendered: list[str] = []
         for v in ctx["validators"]:
             script = v.get("script", "")
+            # workflow-registry.yaml's script paths are written relative to the default
+            # docs_path ("docs/") — a project with a customized docs_path (e.g. a monorepo
+            # subproject using "docs/isbg/") moves docs/script/ along with the rest of its
+            # docs, so the generated command needs the same substitution.
+            if docs_path != "docs" and script.startswith("docs/"):
+                script = docs_path + "/" + script[len("docs/"):]
             extra_args = [str(a) for a in v.get("args", [])]
             base_parts = ["python3", script]
             # verify_registry.py validates document-registry.yaml itself,
@@ -266,13 +275,13 @@ def _render(ctx: dict) -> str:
     lines += [
         "",
         "## Closeout",
-        "- Follow Closeout section in `docs/current-state.md`",
+        f"- Follow Closeout section in `{current_state_ref}`",
         "",
     ]
     return "\n".join(lines)
 
 
-def _track_orchestrator_run(project_root: Path, task_name: str) -> None:
+def _track_orchestrator_run(project_root: Path, task_name: str, docs_path: str = "docs") -> None:
     telemetry_dir = project_root / "logs" / "telemetry"
     telemetry_dir.mkdir(parents=True, exist_ok=True)
     state_file = telemetry_dir / ".orchestrator_runs.json"
@@ -288,11 +297,11 @@ def _track_orchestrator_run(project_root: Path, task_name: str) -> None:
 
     # Optional OTel dual-emission (see _otel.py's docstring) — no-ops unconditionally
     # unless opentelemetry-* is installed and OTEL_EXPORTER_OTLP_ENDPOINT is set. _otel.py
-    # lives in docs/script/validators/ in a deployed project, templates/script/validators/
+    # lives in {docs_path}/script/validators/ in a deployed project, templates/script/validators/
     # in this framework repo's own copy — try both, matching wherever this orchestrator.py
     # actually is (a plain sibling-file import won't reach either).
     try:
-        for _candidate in ("docs/script/validators", "templates/script/validators"):
+        for _candidate in (f"{docs_path}/script/validators", "templates/script/validators"):
             _dir = project_root / _candidate
             if _dir.is_dir():
                 sys.path.insert(0, str(_dir))
@@ -421,7 +430,7 @@ def main() -> None:
 
     docs_dir = project_root / ctx["docs_path"]
     task_name = _read_task_name_from_current_state(docs_dir / "current-state.md")
-    _track_orchestrator_run(project_root, task_name)
+    _track_orchestrator_run(project_root, task_name, ctx["docs_path"])
 
     for adapter in adapters_to_run:
         _run_adapter(adapter, project_root, output, dry_run=False)

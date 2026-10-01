@@ -100,6 +100,31 @@ All notable changes to this framework are documented here. Format loosely follow
   `test_init_py.py`.
 
 ### Fixed
+- A customized `docs_path` (e.g. `docs/isbg/` for a monorepo subproject) was only partially respected:
+  - `.githooks/pre-commit` and `.githooks/pre-push` parsed `docs_path` with `tr -d "\"' /"`, which stripped the
+    internal `/` along with surrounding quotes/whitespace — `docs/isbg/` collapsed to the single path segment
+    `docsisbg`, breaking the Current-Task scope guard's `NON_SOURCE_REGEX` and every validator-path lookup derived
+    from it. Fixed to `tr -d "\"' " | sed 's:/*$::'`, which only strips a trailing slash.
+  - Validator scripts (`docs/script/validators/...`, copied in by `init.py`) were looked up at a literal,
+    non-`docs_path`-aware path throughout both hooks and `orchestrator.py`'s rendered `.ai/WORKFLOW.md`, instead of
+    `{docs_path}/script/validators/...` — they only worked by coincidence when `docs_path` was the default `docs/`.
+    `document-registry.yaml`/`workflow-registry.yaml`/`AGENTS.md` etc. are unaffected — those are root-level
+    framework files that always stay at the project root by design, regardless of `docs_path`.
+  - `templates/init/retrofit.md` (and its mirrored `retrofit-existing-project` Skill) now calls out moving
+    `docs/script/` to `{docs_path}/script/` alongside the rest of the docs when setting a non-default `docs_path`.
+  - Covered by `tests/unit/test_docs_path_nested.py`.
+- `templates/init/retrofit.md`'s "Update recheck" Step 3 didn't address a `document-registry.yaml` document key
+  being renamed or split into multiple new keys upstream — only additions/drops/field changes. Now says to check
+  upstream's `related:` fields and `CHANGELOG.md` and migrate the existing file's content into the new key(s)
+  before removing the old one, instead of treating a missing key as a plain deletion.
+- `check_framework_update.py`'s SessionStart nudge treated every upstream change the same regardless of whether
+  `document-registry.yaml` only gained documents or had one renamed/split away. It now does a best-effort diff of
+  `document-registry.yaml`'s top-level document keys between the recorded `framework_commit` and upstream HEAD
+  (via a throwaway shallow `git fetch` of each commit — silently falls back to the original generic nudge if that
+  fetch or parse fails for any reason, e.g. a private repo or a server without SHA1-in-want) and surfaces a
+  distinct "STRUCTURAL update" nudge naming the dropped/renamed key(s) when one disappears, pointing at the
+  updated retrofit.md step above instead of letting the agent delete the corresponding local file outright.
+  Covered by two new cases in `tests/unit/test_check_framework_update.py`.
 - 22 `update_trigger` texts in `document-registry.yaml` named only part of what the document's template holds, so
   comparing a task with the trigger alone missed real updates. Examples: `test-plan` only said "strategy, tool, or CI
   gate" although new AC/FR tests go into its Test Scope; `project-requirements` omitted scope, roles, non-functional

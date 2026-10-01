@@ -108,3 +108,64 @@ def test_default_repo_url_used_when_unset(tmp_path):
     )
     result = _run(tmp_path)
     assert result.returncode == 0
+
+
+def _commit_registry(upstream: Path, documents: dict, message: str) -> str:
+    import yaml
+
+    (upstream / "document-registry.yaml").write_text(
+        yaml.safe_dump({"documents": documents}), encoding="utf-8",
+    )
+    _git("add", ".", cwd=upstream)
+    _git("commit", "-q", "-m", message, cwd=upstream)
+    return subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=upstream, capture_output=True, text=True, check=True,
+    ).stdout.strip()
+
+
+def test_additive_registry_change_produces_plain_nudge(tmp_path):
+    upstream, old_head = _make_upstream_repo(tmp_path)
+    old_head = _commit_registry(upstream, {"project-requirements": {"file": "x.md"}}, "add doc a")
+    new_head = _commit_registry(
+        upstream,
+        {"project-requirements": {"file": "x.md"}, "api-contract": {"file": "y.md"}},
+        "add doc b",
+    )
+
+    (tmp_path / ".project-starter.yml").write_text(
+        f"project_type: web-app\nframework_commit: {old_head}\nframework_repo_url: {upstream}\n",
+        encoding="utf-8",
+    )
+    result = _run(tmp_path)
+    assert result.returncode == 0
+    assert "STRUCTURAL" not in result.stdout
+    assert "AskUserQuestion" in result.stdout
+    assert old_head[:12] in result.stdout
+    assert new_head[:12] in result.stdout
+
+
+def test_removed_registry_key_produces_structural_nudge(tmp_path):
+    upstream, _ = _make_upstream_repo(tmp_path)
+    old_head = _commit_registry(
+        upstream,
+        {"project-requirements": {"file": "x.md"}, "data-model": {"file": "y.md"}},
+        "has data-model",
+    )
+    new_head = _commit_registry(
+        upstream,
+        {"project-requirements": {"file": "x.md"}},
+        "data-model renamed/split away",
+    )
+
+    (tmp_path / ".project-starter.yml").write_text(
+        f"project_type: web-app\nframework_commit: {old_head}\nframework_repo_url: {upstream}\n",
+        encoding="utf-8",
+    )
+    result = _run(tmp_path)
+    assert result.returncode == 0
+    assert "STRUCTURAL" in result.stdout
+    assert "data-model" in result.stdout
+    assert "AskUserQuestion" in result.stdout
+    assert "retrofit-existing-project" in result.stdout
+    assert old_head[:12] in result.stdout
+    assert new_head[:12] in result.stdout

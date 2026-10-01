@@ -46,7 +46,7 @@ GATE_BRANCHES="main master"
 MILESTONE_SYNC_STALE_DAYS=""
 if [ -f "$CONFIG" ]; then
     PROJECT_TYPE=$(grep '^project_type:' "$CONFIG" | sed 's/project_type:[[:space:]]*//' | tr -d "\"' " || true)
-    DOCS_CANDIDATE=$(grep '^docs_path:' "$CONFIG" | sed 's/docs_path:[[:space:]]*//' | tr -d "\"' /" || true)
+    DOCS_CANDIDATE=$(grep '^docs_path:' "$CONFIG" | sed 's/docs_path:[[:space:]]*//' | tr -d "\"' " | sed 's:/*$::' || true)
     [ -n "$DOCS_CANDIDATE" ] && DOCS_PATH="$DOCS_CANDIDATE"
     GATE_CANDIDATE=$(grep '^push_gate_branches:' "$CONFIG" | sed 's/push_gate_branches:[[:space:]]*//' | tr -d "\"'" | tr ',' ' ' || true)
     [ -n "$(printf '%s' "$GATE_CANDIDATE" | tr -d ' ')" ] && GATE_BRANCHES="$GATE_CANDIDATE"
@@ -76,10 +76,10 @@ _requirement_problems() {
     elif printf '%s' "$status" | grep -qE '^Complete([^A-Za-z]|$)'; then
         if [ -z "$ids" ]; then
             echo "Requirement Status is Complete but Requirement IDs is empty — list the FR-XXX / AC-XXX this requirement added (e.g. FR-012, AC-012)."
-        elif [ ! -f "docs/script/validators/verify_acceptance.py" ]; then
-            echo "[WARN-ONLY] docs/script/validators/verify_acceptance.py not found — acceptance check skipped."
+        elif [ ! -f "${DOCS_PATH}/script/validators/verify_acceptance.py" ]; then
+            echo "[WARN-ONLY] ${DOCS_PATH}/script/validators/verify_acceptance.py not found — acceptance check skipped."
         else
-            if ! out=$(python3 docs/script/validators/verify_acceptance.py --project-type "$PROJECT_TYPE" --docs "$DOCS_PATH" --only "$ids" --strict 2>&1); then
+            if ! out=$(python3 ${DOCS_PATH}/script/validators/verify_acceptance.py --project-type "$PROJECT_TYPE" --docs "$DOCS_PATH" --only "$ids" --strict 2>&1); then
                 echo "verify_acceptance.py --only $ids failed:"
                 printf '%s\n' "$out" | sed 's/^/    /'
             fi

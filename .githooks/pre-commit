@@ -198,7 +198,7 @@ MILESTONE_SYNC_STALE_DAYS=""
 
 if [ -f "$CONFIG" ]; then
     PROJECT_TYPE=$(grep '^project_type:' "$CONFIG" | sed 's/project_type:[[:space:]]*//' | tr -d "\"' ")
-    DOCS_CANDIDATE=$(grep '^docs_path:' "$CONFIG" | sed 's/docs_path:[[:space:]]*//' | tr -d "\"' /")
+    DOCS_CANDIDATE=$(grep '^docs_path:' "$CONFIG" | sed 's/docs_path:[[:space:]]*//' | tr -d "\"' " | sed 's:/*$::')
     [ -n "$DOCS_CANDIDATE" ] && DOCS_PATH="$DOCS_CANDIDATE"
     SPEC_CODE_ADAPTER=$(grep '^spec_code_adapter:' "$CONFIG" | sed 's/spec_code_adapter:[[:space:]]*//' | tr -d "\"' ") || true
     SPEC_CODE_SPEC=$(grep '^spec_code_spec:' "$CONFIG" | sed 's/spec_code_spec:[[:space:]]*//' | tr -d "\"' ") || true
@@ -399,32 +399,32 @@ if [ -n "$SOURCE_STAGED" ]; then
 fi
 
 # 1. Document completeness + content quality
-if command -v python3 &>/dev/null && [ -f "docs/script/validators/verify_docs.py" ]; then
+if command -v python3 &>/dev/null && [ -f "${DOCS_PATH}/script/validators/verify_docs.py" ]; then
     echo "  → verify_docs.py --content ..."
-    python3 "docs/script/validators/verify_docs.py" \
+    python3 "${DOCS_PATH}/script/validators/verify_docs.py" \
         --project-type "$PROJECT_TYPE" --docs "$DOCS_PATH" --content --strict 2>&1 || PASS=false
 else
-    echo "  [WARN] docs/script/validators/verify_docs.py not found — skipping"
+    echo "  [WARN] ${DOCS_PATH}/script/validators/verify_docs.py not found — skipping"
 fi
 
 # 2. Log quality
-if [ -f "docs/script/validators/verify_logs.py" ]; then
+if [ -f "${DOCS_PATH}/script/validators/verify_logs.py" ]; then
     echo "  → verify_logs.py ..."
-    python3 "docs/script/validators/verify_logs.py" \
+    python3 "${DOCS_PATH}/script/validators/verify_logs.py" \
         --project-type "$PROJECT_TYPE" --docs "$DOCS_PATH" --strict 2>&1 || PASS=false
 fi
 
 # 3. Test report quality
-if [ -f "docs/script/validators/verify_tests.py" ]; then
+if [ -f "${DOCS_PATH}/script/validators/verify_tests.py" ]; then
     echo "  → verify_tests.py ..."
-    python3 "docs/script/validators/verify_tests.py" \
+    python3 "${DOCS_PATH}/script/validators/verify_tests.py" \
         --project-type "$PROJECT_TYPE" --docs "$DOCS_PATH" --strict 2>&1 || PASS=false
 fi
 
 # 4. Document content quality
-if [ -f "docs/script/validators/verify_content.py" ]; then
+if [ -f "${DOCS_PATH}/script/validators/verify_content.py" ]; then
     echo "  → verify_content.py ..."
-    python3 "docs/script/validators/verify_content.py" \
+    python3 "${DOCS_PATH}/script/validators/verify_content.py" \
         --project-type "$PROJECT_TYPE" --docs "$DOCS_PATH" --strict 2>&1 || PASS=false
 fi
 
@@ -659,13 +659,13 @@ fi
 # pipeline gets both checked, not just whichever was configured first.
 SPEC_CONTRACT_STAGED=$(printf '%s\n' "$STAGED" \
     | grep -E '(pipeline-contract|cli-contract|api-contract|public-api|llm-contract|topology|mobile-contract)\.md$' || true)
-if [ -n "$SPEC_CODE_BINDINGS" ] && [ -f "docs/script/validators/verify_spec_code.py" ]; then
+if [ -n "$SPEC_CODE_BINDINGS" ] && [ -f "${DOCS_PATH}/script/validators/verify_spec_code.py" ]; then
     while IFS=$'\t' read -r B_ADAPTER B_SPEC B_SRC; do
         [ -z "$B_ADAPTER" ] && continue
         SRC_STAGED=$(printf '%s\n' "$STAGED" | grep -F "$B_SRC" || true)
         if [ -n "$SPEC_CONTRACT_STAGED" ] || [ -n "$SRC_STAGED" ]; then
             echo "  → verify_spec_code.py --adapter $B_ADAPTER (spec or src staged) ..."
-            python3 "docs/script/validators/verify_spec_code.py" \
+            python3 "${DOCS_PATH}/script/validators/verify_spec_code.py" \
                 --project-type "$PROJECT_TYPE" \
                 --adapter "$B_ADAPTER" --spec "$B_SPEC" --src "$B_SRC" \
                 --strict 2>&1 || PASS=false
@@ -703,11 +703,11 @@ fi
 # Trigger: any file under the configured security_scan_src tree staged.
 # Requires security_scan_src set in .project-starter.yml — skipped entirely (no check,
 # no noise) when unset, matching the spec<->code gate's opt-in pattern.
-if [ -n "$SECURITY_SCAN_SRC" ] && [ -f "docs/script/validators/verify_security.py" ]; then
+if [ -n "$SECURITY_SCAN_SRC" ] && [ -f "${DOCS_PATH}/script/validators/verify_security.py" ]; then
     SECURITY_SRC_STAGED=$(printf '%s\n' "$STAGED" | grep -F "$SECURITY_SCAN_SRC" || true)
     if [ -n "$SECURITY_SRC_STAGED" ]; then
         echo "  → verify_security.py --src $SECURITY_SCAN_SRC (src staged) ..."
-        python3 "docs/script/validators/verify_security.py" \
+        python3 "${DOCS_PATH}/script/validators/verify_security.py" \
             --project-type "$PROJECT_TYPE" --src "$SECURITY_SCAN_SRC" \
             --strict 2>&1 || PASS=false
     fi
@@ -732,10 +732,10 @@ fi
 # Trigger: any .md file under docs_path staged. Requires prose_scan_enabled: true in
 # .project-starter.yml — skipped entirely (no check, no noise) when unset/false.
 MD_STAGED=$(printf '%s\n' "$STAGED" | grep -E '\.md$' | grep -F "$DOCS_PATH" || true)
-if [ "$PROSE_SCAN_ENABLED" = "true" ] && [ -f "docs/script/validators/verify_prose.py" ]; then
+if [ "$PROSE_SCAN_ENABLED" = "true" ] && [ -f "${DOCS_PATH}/script/validators/verify_prose.py" ]; then
     if [ -n "$MD_STAGED" ]; then
         echo "  → verify_prose.py --docs $DOCS_PATH (*.md staged) ..."
-        python3 "docs/script/validators/verify_prose.py" \
+        python3 "${DOCS_PATH}/script/validators/verify_prose.py" \
             --project-type "$PROJECT_TYPE" --docs "$DOCS_PATH" \
             --strict 2>&1 || PASS=false
     fi
