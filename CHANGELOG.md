@@ -15,6 +15,25 @@ All notable changes to this framework are documented here. Format loosely follow
 ## [Unreleased]
 
 ### Added
+- Type-agnostic decomposition: `guidance/decomposition/common.md` defines one method for every project type —
+  requirement → slices (one behavior an external observer can check from the entry point, with an Independent Test
+  and a priority) → tasks by artifact kind (Contract → State → Logic → Guard → Entry; Guard always its own task) →
+  steps that start with a failing check. `guidance/decomposition/<type>.md` (all 9 types) supplies the nouns:
+  observer, entry point, task prefix per kind, first failing check, typical Guard cases and an example slice.
+  web-app keeps `DB` / `BE` / `FE` prefixes (read by `run-verify.sh` and the Milestone Documentation Sync trigger);
+  other types use `CONTRACT` / `STATE` / `LOGIC` / `ENTRY` / `GUARD`.
+- `templates/project-requirements.md` gains a `## Slices` table; FR and AC entries are grouped under `### SL-n`
+  sub-headings inside their existing sections (ids stay bold, section headings unchanged), and each AC names the
+  FR it checks.
+- `templates/project-plan.md` is organised one milestone per slice, each task carrying a `**Covers:**` line
+  (FR / AC ids) and a first step that writes a failing check; rules for one artifact kind per task and at most
+  three failure cases per Guard task were added, plus a filled example.
+- `verify_acceptance.py` checks plan traceability: every declared FR / AC must appear on some task's `**Covers:**`
+  line, and a `**Covers:**` id must be declared. Opt-in — only once `project-plan.md` has a filled `**Covers:**`
+  line — in both whole-project and `--only` runs, so existing plans and the pre-push gate are unaffected until a
+  project adopts it.
+- `approach-proposal.md`, `current-state.md → Breakdown`, `AGENTS.md`, the retrofit skill / `templates/init/retrofit.md`
+  and README point to the decomposition guidance.
 - `build-context.py` prints each candidate document's `update_trigger` (`update when: ...`) under it in
   `.ai/AI_CONTEXT.md`, so the breakdown discussion can compare the approach with it without opening
   `document-registry.yaml`. Golden/snapshot files for build-context were regenerated (only those lines added).

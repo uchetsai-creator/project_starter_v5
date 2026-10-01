@@ -98,7 +98,7 @@
 - **Approach:** [How this will be implemented and why this way — in terms the user can follow]
 - **Alternatives considered:** [At least one, with the trade-off, wherever there is a real choice]
 - **Risks / unknowns:** [What could go wrong; what to try first (spike) before committing to the plan]
-- **Breakdown:** [Tasks in order, each following the size rules in templates/project-plan.md; mark [P] where no dependency]
+- **Breakdown:** [Slices (SL-n, Independent Test each), then tasks in order per slice — split by artifact kind per guidance/decomposition/common.md and the size rules in templates/project-plan.md; name the FR/AC ids each task covers; mark [P] where no dependency]
 - **Docs to update:** [Per task: which spec docs change and why (candidates: `python3 build-context.py --task-type milestone-end` = every doc for this project type, unfiltered by task type; matched against `update_trigger` in document-registry.yaml; project-requirements.md always). Also name candidates ruled out and why. The user confirms; it becomes the Doc Checklist]
 - **Tests to add/update:** [Per task: which tests, and which AC-/FR- id each covers — or `N/A — user: <reason>`]
 - **Dependencies:** [Packages added / removed / upgraded and the manifest or lockfile touched, plus docs/specs/dependencies.md — or `none`]

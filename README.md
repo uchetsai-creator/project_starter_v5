@@ -317,6 +317,9 @@ project_starter/                     ← this repo (template only)
 │   │   ├── llm-app.md
 │   │   ├── iac.md
 │   │   └── mobile-app.md
+│   ├── decomposition/
+│   │   ├── common.md    ← requirement → slice → task → step method, same for every type
+│   │   └── <type>.md    ← observer, entry point, task prefixes, first failing check per type
 │   └── learning-checkpoints/
 │       ├── common.md    ← unfamiliar-tech / existing-code / new-requirement / review question templates
 │       ├── web-app.md
@@ -522,6 +525,9 @@ new_project/
 │   │   ├── common.md        ← loaded by all types
 │   │   ├── scripts-reference.md ← docs/script/ + adapters/ + diagram-tooling reference (load only when needed)
 │   │   └── <type>.md        ← loaded for your declared type (e.g. web-app.md)
+│   ├── decomposition/
+│   │   ├── common.md        ← how to split a requirement into slices, tasks and steps
+│   │   └── <type>.md        ← the nouns for your declared type
 │   └── learning-checkpoints/
 │       ├── common.md        ← question templates for Checkpoint 0/A/B/C (see AGENTS.md)
 │       └── <type>.md        ← type-specific angle on the same checkpoints
@@ -2384,7 +2390,13 @@ Setting up PlantUML (diagram rendering) and generating the merged spec PDF from 
   to the PDF. `build_pdf.py` imports from it.
 - **Task granularity**: sized by objective rules, not a time guess — states its goal in one
   sentence, max 5 steps (excluding Verify), max 3-4 files touched, and independently
-  completable/verifiable as a single Current Task. DB / BE / FE are always separate tasks.
+  completable/verifiable as a single Current Task. The same decomposition applies to every
+  project type: requirement → slices (one observable behavior each, with an Independent Test) →
+  tasks by artifact kind (Contract / State / Logic / Guard / Entry) → steps that start with a
+  failing check (`guidance/decomposition/common.md`, nouns per type in
+  `guidance/decomposition/[type].md`). Each task names the FR / AC ids it covers on a
+  `**Covers:**` line, and `verify_acceptance.py` flags any declared id no task covers. Web App
+  keeps DB / BE / FE as its task prefixes, always separate tasks.
   A task with no dependency on other pending work may be marked `[P]` (parallel-safe to
   reorder — this framework still executes one Current Task at a time). Planning rules are
   defined in `templates/project-plan.md`.

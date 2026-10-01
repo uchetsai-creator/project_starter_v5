@@ -34,9 +34,12 @@ Wait for the user's reply and adjust before moving on.
 
 The breakdown depends on the chosen approach, so it comes second.
 
-- **Breakdown** — the tasks in order, each within the size rules in `templates/project-plan.md`
-  (one-sentence intent, ≤5 steps, ≤3-4 files, independently verifiable), with `[P]` where a task
-  has no pending dependency
+- **Breakdown** — follow `guidance/decomposition/common.md` with the nouns from
+  `guidance/decomposition/[your-declared-type].md`: split the requirement into slices (one
+  observable behavior each, with an Independent Test), then each slice into tasks by artifact kind
+  (Contract → State → Logic → Guard → Entry, Guard always separate). Each task stays within the size
+  rules in `templates/project-plan.md` (one-sentence intent, ≤5 steps, ≤3-4 files, independently
+  verifiable), names the FR / AC ids it covers, and is marked `[P]` where it has no pending dependency
 - **Impact lines** — for each task, everything it changes besides code, so the user sees the full cost of
   the split before agreeing to it. Five lines in `current-state.md → Approach`, all filled with the user:
   1. **Docs to update** — which spec documents change and why.

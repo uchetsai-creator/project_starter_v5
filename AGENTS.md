@@ -138,7 +138,7 @@ Current Task in `docs/current-state.md`, do not silently start implementing and 
 silently write a task breakdown from your own assumptions. Ask clarifying questions first —
 every category of `guidance/clarifying-checklist.md`, answered by the user (say which look less
 relevant, but only the user may skip one) — then, in this order and with the user each time: explain
-in plain language how you plan to implement it, and only after that propose the task breakdown
+in plain language how you plan to implement it, and only after that propose the task breakdown (method: `guidance/decomposition/common.md` + `guidance/decomposition/[your-declared-type].md`)
 and what each task changes besides code — docs, tests, dependencies, config (`docs/current-state.md → Approach`); wait for a reply each time (silence is not confirmation), then
 set `Approach Confirmed` to `Y` — mandatory, no N/A; see `guidance/approach-proposal.md`. Then write
 the confirmed Clarifications back into `docs/project-requirements.md` (`guidance/clarifying-checklist.md`),

@@ -18,6 +18,12 @@ Acceptance-criteria traceability (AC-XXX): filled AC-XXX entries in project-requ
   (only checked once test-plan.md references at least one AC-XXX — same convention as EC-XXX below);
   with --only it is always checked for the listed ids.
 
+Plan traceability (FR-XXX / AC-XXX → project-plan.md): every declared FR and AC must be named
+  on at least one task's **Covers:** line in project-plan.md, and a **Covers:** line may not name
+  an id that is not declared. Opt-in in both whole-project and scoped runs — only checked once
+  project-plan.md has at least one filled **Covers:** line, so plans written before the convention
+  are unaffected (see guidance/decomposition/common.md).
+
 Scoped run (--only FR-012,AC-012): restricts FR/AC coverage to the listed ids — the ids of one
   requirement — and fails if a listed id is not declared in project-requirements.md. It does NOT
   make test-report.md per-id: the report's Overall status Pass is still whole-project.
@@ -206,6 +212,64 @@ def check_ac_coverage(docs_path: str, ac_ids: list[str], scoped: bool) -> list[s
         f'in ## Test Scope / In Scope (add "AC-{aid}" to the Requirement column)'
         for aid in ac_ids if aid not in covered
     ]
+
+
+_COVERS_LINE = re.compile(r'^\s*\*\*Covers:\*\*(.*)$', re.MULTILINE)
+_HTML_COMMENT = re.compile(r'<!--.*?-->', re.DOTALL)
+_BRACKET_SPAN = re.compile(r'\[[^\[\]]*\]')
+
+
+def plan_covered_ids(docs_path: str) -> tuple[set[str], set[str]]:
+    """(FR ids, AC ids) named on filled **Covers:** lines in project-plan.md. HTML comments
+    (the template's instructions and examples) and bracketed placeholder spans are ignored."""
+    lines = _read_file(os.path.join(docs_path, 'project-plan.md'))
+    if not lines:
+        return set(), set()
+    text = _HTML_COMMENT.sub('', '\n'.join(lines))
+    fr: set[str] = set()
+    ac: set[str] = set()
+    for m in _COVERS_LINE.finditer(text):
+        value = _BRACKET_SPAN.sub('', m.group(1))
+        fr.update(f.group(1) for f in _FR_REF.finditer(value))
+        ac.update(a.group(1) for a in _AC_REF.finditer(value))
+    return fr, ac
+
+
+def check_plan_coverage(
+    docs_path: str,
+    fr_ids: list[str],
+    ac_ids: list[str],
+    declared_fr: list[str],
+    declared_ac: list[str],
+    scoped: bool,
+) -> list[str]:
+    """Every FR / AC in fr_ids / ac_ids must be named on a task's **Covers:** line in
+    project-plan.md. Opt-in: returns nothing until the plan has at least one filled **Covers:**
+    line. In a whole-project run, a **Covers:** id that is not declared in
+    project-requirements.md is also reported (typo or a requirement that was removed)."""
+    covered_fr, covered_ac = plan_covered_ids(docs_path)
+    if not covered_fr and not covered_ac:
+        return []
+    issues = [
+        f'project-plan.md: FR-{fid} declared in project-requirements.md is not covered by any task '
+        f'(add "FR-{fid}" to the **Covers:** line of the task that implements it)'
+        for fid in fr_ids if fid not in covered_fr
+    ]
+    issues += [
+        f'project-plan.md: AC-{aid} declared in project-requirements.md is not covered by any task '
+        f'(add "AC-{aid}" to the **Covers:** line of the task that makes it pass)'
+        for aid in ac_ids if aid not in covered_ac
+    ]
+    if not scoped:
+        issues += [
+            f'project-plan.md: a **Covers:** line names FR-{fid}, which is not declared in project-requirements.md'
+            for fid in sorted(covered_fr - set(declared_fr))
+        ]
+        issues += [
+            f'project-plan.md: a **Covers:** line names AC-{aid}, which is not declared in project-requirements.md'
+            for aid in sorted(covered_ac - set(declared_ac))
+        ]
+    return issues
 
 
 def parse_only(raw: str) -> tuple[list[str], list[str], list[str]]:
@@ -481,6 +545,7 @@ def run_audit(project_types: list[str], docs_path: str, only: str | None = None)
     req_issues, fr_ids = check_requirements(docs_path)
     all_issues += req_issues
     ac_ids = declared_ac_ids(docs_path)
+    declared_fr, declared_ac = list(fr_ids), list(ac_ids)
 
     scoped = only is not None
     if only is not None:
@@ -499,6 +564,7 @@ def run_audit(project_types: list[str], docs_path: str, only: str | None = None)
         ac_ids = [a for a in ac_ids if a in only_ac]
 
     all_issues += check_ac_coverage(docs_path, ac_ids, scoped)
+    all_issues += check_plan_coverage(docs_path, fr_ids, ac_ids, declared_fr, declared_ac, scoped)
 
     for pt in project_types:
         all_issues += check_test_plan(docs_path, pt, fr_ids)
