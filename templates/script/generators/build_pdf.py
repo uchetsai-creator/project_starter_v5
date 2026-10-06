@@ -198,12 +198,11 @@ It is generated automatically from the `docs/` folder and updated whenever a mod
 | Flows | Engineers | Code-level execution flows per module |
 | Project Status | Tech Lead | What has been built and how code is organized |
 
-**Diagrams:** Static images are embedded in each section.
-Click "Open interactive version" to open the live draggable/zoomable version in your browser.
+**Diagrams:** Static images are embedded in each section. This PDF has no clickable interactive links.
 
-**To regenerate this PDF:**
+**To regenerate this PDF:** run `build_pdf.py` from the framework (`templates/script/generators/build_pdf.py`) with the docs directory and language, for example:
 ```
-python3 docs/script/generators/build_pdf.py docs --lang en -o docs/project-documentation-en.pdf
+python3 build_pdf.py <docs_dir> --lang en --name <output-name>
 ```
 """,
         "sections": {
@@ -241,11 +240,11 @@ python3 docs/script/generators/build_pdf.py docs --lang en -o docs/project-docum
 | Flows | 工程師 | 各模組的程式碼層級執行流程 |
 | Project Status | 技術負責人 | 已完成的內容與程式碼組織方式 |
 
-**圖表：** 靜態圖片已嵌入各區塊，點擊「開啟互動版本」可在瀏覽器中查看可拖曳/縮放的版本。
+**圖表：** 靜態圖片已嵌入各區塊，本 PDF 不含可點擊的互動連結。
 
-**重新生成 PDF：**
+**重新生成 PDF：** 使用框架的 `templates/script/generators/build_pdf.py`，指定文件目錄與語言，例如:
 ```
-python3 docs/script/generators/build_pdf.py docs-zh --lang zh -o docs/project-documentation-zh.pdf
+python3 build_pdf.py <docs_dir> --lang zh --name <輸出檔名>
 ```
 """,
         "sections": {
