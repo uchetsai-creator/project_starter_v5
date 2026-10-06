@@ -123,6 +123,12 @@ If any ❌ remain, document those modules before proceeding to Step 4.
 ## Step 4 — Fill in project status documents
 
 1. Create `docs/project-requirements.md` — reconstruct from the actual features that exist. Group them into slices (one observable behavior each — `guidance/decomposition/common.md`, nouns from `guidance/decomposition/[project-type].md`) in `## Slices`, and put each FR / AC under its `### SL-n` sub-heading. Mark anything uncertain as [NEEDS CLARIFICATION].
+   **Form (required, checked by `templates/script/validators/verify_requirements_form.py --docs docs`):**
+   - Every FR states its trigger and response in EARS form (`WHEN / WHILE / IF / WHERE … THE SYSTEM SHALL …`). Rewrite legacy one-line titles such as `使用者登入(LDAP…)` into that form; keep the old wording in the sentence so nothing is lost.
+   - Each slice has at least one scenario written as Given / When / Then, taken from the behaviour the code actually has.
+   - `## User Journeys`: one sub-heading per role task (who, why, steps, result). Draft these from the existing business-process documents and confirm with the user.
+   - `docs/specs/glossary.md`: every abbreviation used in the documents (for example Case, Board, Version, RPN, DFX), one line each.
+   Do not mark the retrofit complete until the validator passes or each remaining failure is listed as a known gap.
 2. Create `docs/specs/test-plan.md` from `templates/specs/test-plan.md` — describe the existing testing strategy, tools, and CI gate. If no tests exist, note it as a gap.
 3. Create `docs/specs/test-report.md` from `templates/specs/test-report.md` — record the results of any existing test run, or fill in Known Issues / Known Gaps if no tests have been run yet.
 4. Create `docs/project-plan.md` — list all modules found. Mark all existing ones as completed. Add any known remaining work as incomplete tasks, one milestone per slice, each task with a `**Covers:**` line naming the FR / AC ids it implements.

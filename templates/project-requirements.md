@@ -32,6 +32,20 @@
 
 ---
 
+## User Journeys
+
+<!-- One sub-heading per role task, end to end: who does it, why, the steps, and the result.
+     This is what a reader needs first to understand what the system is for.
+     verify_requirements_form.py requires at least one sub-heading here. -->
+
+### [Role] — [task they are trying to finish]
+* **Who**: [role]
+* **Goal**: [what they want to achieve and why]
+* **Steps**: 1. [step] 2. [step] 3. [step]
+* **Result**: [what they have at the end]
+
+---
+
 ## Slices
 
 <!-- A slice is one behavior an external observer can check from the system's entry point,
@@ -77,10 +91,17 @@
 * **FR-001**: WHEN [trigger/event occurs], THE SYSTEM SHALL [expected response]
 * **FR-002**: WHILE [state/condition holds], THE SYSTEM SHALL [expected response]
 
+* **Scenario**: [name of the scenario]
+  * **Given** [initial state], **When** [action], **Then** [observable outcome]
+
 ### SL-2 — [Slice behavior]
 
 * **FR-A01**: IF [unwanted trigger occurs], THEN THE SYSTEM SHALL [expected response] — example of letter-prefixed FR ID
 * **FR-003**: [NEEDS CLARIFICATION: describe what is unclear]
+
+<!-- Scenarios: at least one per slice, Given / When / Then, using the same behaviour as the FRs above. -->
+* **Scenario**: [name of the scenario]
+  * **Given** [initial state], **When** [action], **Then** [observable outcome]
 
 ---
 
