@@ -391,6 +391,18 @@ def find_allowed_files(docs_dir, strings, project_type=None, content="full", all
     return result
 
 
+def _plantuml_config_path():
+    """plantuml.cfg with the CJK font settings. Looked up next to this script first (where it
+    ships), then next to the jar. Without it PlantUML falls back to a font with no CJK glyphs and
+    every Chinese label in a diagram is drawn as a box."""
+    for candidate in (os.path.join(_script_dir, 'plantuml.cfg'),
+                      os.path.join(os.path.dirname(PLANTUML_JAR), 'plantuml.cfg')):
+        if os.path.exists(candidate):
+            return candidate
+    print("Warning: plantuml.cfg not found; Chinese labels in diagrams may render as boxes.")
+    return None
+
+
 def render_plantuml_block(puml_text, out_svg_path):
     """Render a PlantUML block to SVG using plantuml.jar.
     Returns True on success, False on failure."""
@@ -405,9 +417,9 @@ def render_plantuml_block(puml_text, out_svg_path):
         tmp_puml = f.name
     try:
         out_svg_dir = os.path.dirname(os.path.abspath(out_svg_path))
-        cfg_path = os.path.join(os.path.dirname(PLANTUML_JAR), 'plantuml.cfg')
         cmd = ['java', '-Dfile.encoding=UTF-8', '-jar', PLANTUML_JAR, '-tsvg', '-o', out_svg_dir]
-        if os.path.exists(cfg_path):
+        cfg_path = _plantuml_config_path()
+        if cfg_path:
             cmd += ['-config', cfg_path]
         cmd.append(tmp_puml)
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=30, encoding="utf-8", errors="replace")
