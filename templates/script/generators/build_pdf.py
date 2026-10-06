@@ -44,9 +44,8 @@ For non-registry scaffold files, add an entry to _STATIC_PDF_ENTRIES in this scr
 Requires: pip install markdown weasyprint cairosvg --break-system-packages
 """
 import argparse
-import hashlib
-from pathlib import Path
 import glob
+import hashlib
 import os
 import re
 import shutil
@@ -54,6 +53,7 @@ import subprocess
 import sys
 import tempfile
 import xml.etree.ElementTree as ET
+from pathlib import Path
 
 import cairosvg
 import markdown
