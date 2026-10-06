@@ -108,6 +108,10 @@ SKIP_DIRS = {
     "coverage", ".pdf_build_cache",
 }
 
+# A nested copy of this starter (e.g. vendored under a product repo) carries this
+# marker file. Its own source is framework code, not product modules, so it is skipped.
+STARTER_MARKER = ".project-starter.yml"
+
 # ---------------------------------------------------------------------------
 # Per-type vocabulary: what to call a non-shared folder
 # ---------------------------------------------------------------------------
@@ -257,6 +261,33 @@ def find_source_folders(src_dir: str, project_type: str | None = None, depth: in
     return folders
 
 
+def find_source_files(src_dir: str, project_type: str | None = None) -> list[dict]:
+    """Return the Python source files directly under src_dir, one module per file.
+
+    For layouts where each module is a single file rather than a folder (e.g. a FastAPI
+    project with one router file per feature under app/api/v1/). Package markers and
+    private files (__init__.py, _helpers.py) are not modules.
+    """
+    src_path = Path(src_dir)
+    if not src_path.exists():
+        print(f"Error: directory not found: {src_dir}")
+        sys.exit(1)
+
+    files: list[dict] = []
+    for entry in sorted(src_path.iterdir()):
+        if not entry.is_file() or entry.suffix != ".py" or entry.name.startswith("_"):
+            continue
+        files.append({
+            "name": entry.stem,
+            "display_name": entry.name,
+            "path": str(entry),
+            "rel": str(entry.relative_to(src_path.parent)),
+            "type": guess_type(entry.stem, project_type),
+            "depth": 1,
+        })
+    return files
+
+
 def _collect(
     src_root: Path, current: Path, project_root: Path,
     project_type: str | None, max_depth: int, cur_depth: int,
@@ -268,6 +299,8 @@ def _collect(
         return
     for entry in entries:
         if not entry.is_dir() or entry.name.startswith(".") or entry.name in SKIP_DIRS:
+            continue
+        if (entry / STARTER_MARKER).is_file():
             continue
         rel_to_src = entry.relative_to(src_root)
         results.append({
@@ -716,6 +749,14 @@ def main():
         dest="output_format",
         help="Output format: text (default) or json",
     )
+    parser.add_argument(
+        "--files",
+        action="store_true",
+        help=(
+            "Treat each Python file directly under src_dir as one module (one router/handler "
+            "file per feature) instead of each subfolder. Tree view is not printed in this mode."
+        ),
+    )
     parser.add_argument("--tree", action="store_true", help="Print tree view with coverage icons")
     parser.add_argument("--coverage", action="store_true", help="Print coverage summary")
     parser.add_argument("--update", metavar="CODEBASE_MAP", help="Update codebase-map.md in place")
@@ -737,10 +778,14 @@ def main():
     # AGENTS.md's hybrid table (the first-listed type is the primary one).
     classify_type = parse_types(project_type)[0] if project_type else None
 
-    folders = find_source_folders(args.src_dir, classify_type, args.depth)
+    if args.files:
+        folders = find_source_files(args.src_dir, classify_type)
+        unscanned = []  # nesting only applies to folders
+    else:
+        folders = find_source_folders(args.src_dir, classify_type, args.depth)
+        unscanned = find_unscanned_nesting(folders, args.depth)
     documented = find_documented_modules(args.docs)
     folders = annotate_folders(folders, documented)
-    unscanned = find_unscanned_nesting(folders, args.depth)
 
     # JSON mode — output and exit
     if args.output_format == "json":
@@ -750,7 +795,7 @@ def main():
     # Default: show both tree and coverage if no specific output flag given
     show_all = not args.tree and not args.coverage and not args.update and not args.scaffold
 
-    if args.tree or show_all:
+    if (args.tree or show_all) and not args.files:
         print(print_tree(args.src_dir, folders, args.docs))
         print()
 
