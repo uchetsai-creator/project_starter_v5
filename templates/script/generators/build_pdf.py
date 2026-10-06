@@ -44,6 +44,7 @@ For non-registry scaffold files, add an entry to _STATIC_PDF_ENTRIES in this scr
 Requires: pip install markdown weasyprint cairosvg --break-system-packages
 """
 import argparse
+import hashlib
 from pathlib import Path
 import glob
 import os
@@ -937,6 +938,28 @@ VALID_PROJECT_TYPES = {
     "ml-pipeline", "microservices", "llm-app", "iac", "mobile-app",
 }
 
+def find_duplicate_content(files):
+    """Groups of files with identical bytes under different names (same path is already deduped)."""
+    by_hash: dict[str, list] = {}
+    for rel, abs_path, _ in files:
+        with open(abs_path, "rb") as f:
+            digest = hashlib.sha256(f.read()).hexdigest()
+        by_hash.setdefault(digest, []).append(rel)
+    return [group for group in by_hash.values() if len(group) > 1]
+
+
+def print_merge_plan(files, duplicate_groups):
+    print(f"Merge plan: {len(files)} file(s)")
+    for rel, _, label in files:
+        print(f"  [{label}] {rel}")
+    if duplicate_groups:
+        print("Duplicate content:")
+        for group in duplicate_groups:
+            print("  " + " = ".join(group))
+    else:
+        print("Duplicate check: none")
+
+
 def parse_args():
     parser = argparse.ArgumentParser(
         description="Merge approved docs/ content into a single PDF.",
@@ -982,6 +1005,13 @@ def parse_args():
         help="full — all chapters; spec — Introduction, Design, Build, Deployment only (default: full)",
     )
 
+    parser.add_argument(
+        "--list",
+        action="store_true",
+        help="Print the merge list and run the duplicate check, then exit without rendering. "
+             "Exit status 1 if duplicates are found.",
+    )
+
     args = parser.parse_args()
 
     project_type = None
@@ -1002,7 +1032,7 @@ def parse_args():
         suffix = "spec" if args.content == "spec" else "documentation"
         output_path = os.path.join(args.docs_dir, f"project-{suffix}-{args.lang}.pdf")
 
-    return args.docs_dir, output_path, args.lang, project_type, args.content
+    return args.docs_dir, output_path, args.lang, project_type, args.content, args.list
 
 
 def main():
@@ -1013,13 +1043,26 @@ def main():
         sys.stdout.reconfigure(encoding="utf-8")
         sys.stderr.reconfigure(encoding="utf-8")
 
-    docs_dir, output_path, lang, project_type, content = parse_args()
+    docs_dir, output_path, lang, project_type, content, list_only = parse_args()
     strings = STRINGS[lang]
-    font_conf = _disable_color_emoji_font()
 
     if not os.path.isdir(docs_dir):
         print(f"Directory not found: {docs_dir}")
         sys.exit(1)
+
+    # Plan first, then check: nothing is rendered until the list is known to be clean
+    allowlist = get_pdf_allowlist(docs_dir)
+    plan = find_allowed_files(docs_dir, strings, project_type, content, allowlist=allowlist)
+    duplicate_groups = find_duplicate_content(plan)
+    print_merge_plan(plan, duplicate_groups)
+    if list_only:
+        sys.exit(1 if duplicate_groups else 0)
+    if duplicate_groups:
+        print("Refusing to merge: the same content appears in more than one file. "
+              "Remove the copy or fix document-registry.yaml / the static allowlist, then rerun.")
+        sys.exit(1)
+
+    font_conf = _disable_color_emoji_font()
 
     png_cache_dir = os.path.join(docs_dir, ".pdf_build_cache")
     if os.path.isdir(png_cache_dir):
@@ -1034,7 +1077,6 @@ def main():
     # Legacy: find manually-generated SVG/HTML pairs (e.g. schema ERD)
     html_svg_pairs = find_html_svg_pairs(docs_dir)
     # New: extract and render all ```plantuml blocks from markdown files
-    allowlist = get_pdf_allowlist(docs_dir)
     plantuml_pairs = find_plantuml_diagrams(docs_dir, png_cache_dir, project_type, content, allowlist=allowlist)
     html_svg_pairs.update(plantuml_pairs)
     print(f"Found {len(html_svg_pairs)} diagram(s): {list(html_svg_pairs.keys())}")

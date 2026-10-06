@@ -98,3 +98,30 @@ def test_filter_sections_still_trims_when_heading_matches(build_pdf):
     md = "# T\n\n## Keep\n\nkeep me\n\n## Drop\n\ndrop me\n"
     out = build_pdf.filter_sections(md, ["## Keep"])
     assert "keep me" in out and "drop me" not in out
+
+
+def test_find_duplicate_content_groups_identical_files_under_different_names(build_pdf, tmp_path):
+    (tmp_path / "a.md").write_text("# Same\n", encoding="utf-8")
+    (tmp_path / "b.md").write_text("# Same\n", encoding="utf-8")
+    (tmp_path / "c.md").write_text("# Other\n", encoding="utf-8")
+    files = [("a.md", str(tmp_path / "a.md"), "1"),
+             ("b.md", str(tmp_path / "b.md"), "1"),
+             ("c.md", str(tmp_path / "c.md"), "1")]
+    groups = build_pdf.find_duplicate_content(files)
+    assert groups == [["a.md", "b.md"]]
+
+
+def test_list_mode_exits_nonzero_on_duplicate_content(build_pdf, tmp_path, monkeypatch, capsys):
+    """--list must report duplicates with exit status 1 and must not render."""
+    (tmp_path / "document-registry.yaml").write_text(_REGISTRY_YAML, encoding="utf-8")
+    (tmp_path / "project-requirements.md").write_text("# Same\n", encoding="utf-8")
+    (tmp_path / "copy.md").write_text("# Same\n", encoding="utf-8")
+    static = build_pdf._STATIC_PDF_ENTRIES + [("introduction", "copy.md", frozenset({"web-app"}))]
+    monkeypatch.setattr(build_pdf, "_STATIC_PDF_ENTRIES", static)
+    monkeypatch.setattr(build_pdf.sys, "argv", ["build_pdf.py", str(tmp_path), "--list",
+                                                "--project-type", "web-app"])
+    with pytest.raises(SystemExit) as exc:
+        build_pdf.main()
+    assert exc.value.code == 1
+    out = capsys.readouterr().out
+    assert "Duplicate content:" in out and "copy.md" in out
