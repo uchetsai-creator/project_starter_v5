@@ -42,7 +42,8 @@ def _write(tmp_path, body, glossary=True):
     (tmp_path / "project-requirements.md").write_text(body, encoding="utf-8")
     if glossary:
         (tmp_path / "specs").mkdir(exist_ok=True)
-        (tmp_path / "specs" / "glossary.md").write_text("# Glossary\n", encoding="utf-8")
+        (tmp_path / "specs" / "glossary.md").write_text(
+            "| term | meaning |\n|---|---|\n| Case | a unit of review |\n", encoding="utf-8")
     return str(tmp_path)
 
 
@@ -95,12 +96,40 @@ Given 已註冊使用者, When 登入, Then 進入首頁
     assert result["checks"]["journeys"]["ok"] is True
 
 
-def test_missing_journeys_and_glossary_fail(tmp_path):
+def test_missing_journeys_fails_but_missing_glossary_is_optional(tmp_path):
     body = GOOD.replace("## User Journeys", "## Notes")
     result = vrf.run(_write(tmp_path, body, glossary=False))
     assert result["checks"]["journeys"]["ok"] is False
+    assert result["checks"]["glossary"]["ok"] is True
+    assert result["checks"]["glossary"]["present"] is False
+    assert result["passed"] is False  # journeys still fail
+
+
+def test_glossary_absent_passes(tmp_path):
+    result = vrf.run(_write(tmp_path, GOOD, glossary=False))
+    assert result["checks"]["glossary"]["ok"] is True
+    assert result["passed"] is True
+
+
+def test_glossary_table_with_terms_passes(tmp_path):
+    result = vrf.run(_write(tmp_path, GOOD))
+    assert result["checks"]["glossary"]["rows"] == 1 and result["checks"]["glossary"]["ok"] is True
+
+
+def test_glossary_with_empty_meaning_fails(tmp_path):
+    body_path = _write(tmp_path, GOOD)
+    (tmp_path / "specs" / "glossary.md").write_text(
+        "| term | meaning |\n|---|---|\n| Case | |\n", encoding="utf-8")
+    result = vrf.run(body_path)
     assert result["checks"]["glossary"]["ok"] is False
-    assert result["passed"] is False
+    assert result["checks"]["glossary"]["bad_rows"][0]["line"] == 3
+
+
+def test_glossary_header_only_fails(tmp_path):
+    body_path = _write(tmp_path, GOOD)
+    (tmp_path / "specs" / "glossary.md").write_text("| term | meaning |\n|---|---|\n", encoding="utf-8")
+    result = vrf.run(body_path)
+    assert result["checks"]["glossary"]["ok"] is False
 
 
 def test_missing_requirements_file_fails(tmp_path):

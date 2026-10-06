@@ -127,7 +127,7 @@ If any ❌ remain, document those modules before proceeding to Step 4.
    - Every FR states its trigger and response in EARS form (`WHEN / WHILE / IF / WHERE … THE SYSTEM SHALL …`). Rewrite legacy one-line titles such as `使用者登入(LDAP…)` into that form; keep the old wording in the sentence so nothing is lost.
    - Each slice has at least one scenario written as Given / When / Then, taken from the behaviour the code actually has.
    - `## User Journeys`: one sub-heading per role task (who, why, steps, result). Draft these from the existing business-process documents and confirm with the user.
-   - `docs/specs/glossary.md`: every abbreviation and domain term used in the documents (for example a role name, a status code, an acronym), one line each.
+   - If the project uses domain terms, abbreviations or role names that readers need explained, create `docs/specs/glossary.md` as a table of term | meaning rows. Skip it otherwise; the validator only checks the format when the file exists.
    Do not mark the retrofit complete until the validator passes or each remaining failure is listed as a known gap.
 2. Create `docs/specs/test-plan.md` from `templates/specs/test-plan.md` — describe the existing testing strategy, tools, and CI gate. If no tests exist, note it as a gap.
 3. Create `docs/specs/test-report.md` from `templates/specs/test-report.md` — record the results of any existing test run, or fill in Known Issues / Known Gaps if no tests have been run yet.

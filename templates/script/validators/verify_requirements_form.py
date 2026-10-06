@@ -14,7 +14,10 @@ Checks:
                 "## 功能需求").
   Journeys      a "## User Journeys" (or "## 使用者旅程") section exists with at least one
                 sub-heading: what each role is trying to do, end to end.
-  Glossary      specs/glossary.md exists (abbreviations used in the documents).
+  Glossary      optional. When specs/glossary.md exists it must be a table with at least one
+                "term | meaning" row and both cells filled. When it is absent the check passes
+                and prints a hint: create it only if the project uses domain terms or
+                abbreviations that readers need explained.
 
 Format rules are checked on the document text. Structure (headings) is matched in English or
 Chinese so the same check works for projects written in either language.
@@ -131,6 +134,34 @@ def check_journeys(lines):
     return found, has_subheading
 
 
+GLOSSARY_ROW = re.compile(r"^\s*\|(.+)\|\s*$")
+
+
+def check_glossary(path: str) -> dict:
+    """Optional file: absent passes; present must have at least one filled term | meaning row."""
+    if not os.path.exists(path):
+        return {"ok": True, "present": False, "path": path, "bad_rows": []}
+    rows, bad = 0, []
+    for lineno, line in enumerate(open(path, encoding="utf-8"), 1):
+        m = GLOSSARY_ROW.match(line)
+        if not m:
+            continue
+        cells = [c.strip() for c in m.group(1).split("|")]
+        if all(set(c) <= set("-: ") for c in cells):
+            continue  # separator row
+        if len(cells) < 2:
+            bad.append({"line": lineno, "text": line.strip()[:80]})
+            continue
+        if cells[0].lower() in ("term", "詞", "術語"):
+            continue  # header row
+        if not cells[0] or not cells[1]:
+            bad.append({"line": lineno, "text": line.strip()[:80]})
+            continue
+        rows += 1
+    ok = rows >= 1 and not bad
+    return {"ok": ok, "present": True, "path": path, "rows": rows, "bad_rows": bad}
+
+
 def run(docs_dir: str) -> dict:
     req_path = os.path.join(docs_dir, "project-requirements.md")
     result = {"file": req_path, "checks": {}, "passed": True}
@@ -162,8 +193,7 @@ def run(docs_dir: str) -> dict:
         "has_subsection": has_sub,
     }
 
-    glossary = os.path.join(docs_dir, "specs", "glossary.md")
-    result["checks"]["glossary"] = {"ok": os.path.exists(glossary), "path": glossary}
+    result["checks"]["glossary"] = check_glossary(os.path.join(docs_dir, "specs", "glossary.md"))
 
     result["passed"] = all(c["ok"] for c in result["checks"].values())
     return result
@@ -188,7 +218,12 @@ def _print(result: dict) -> None:
     print(f"{'PASS' if j['ok'] else 'FAIL'}  Journeys: section {'found' if j['section_found'] else 'missing'}, "
           f"sub-section {'found' if j['has_subsection'] else 'missing'}")
     g = c["glossary"]
-    print(f"{'PASS' if g['ok'] else 'FAIL'}  Glossary: {g['path']} {'exists' if g['ok'] else 'missing'}")
+    if not g["present"]:
+        print("PASS  Glossary: not present (optional). Create specs/glossary.md if the project uses domain terms or abbreviations.")
+    else:
+        print(f"{'PASS' if g['ok'] else 'FAIL'}  Glossary: {g['rows']} term row(s) in {g['path']}")
+        for b in g["bad_rows"]:
+            print(f"        line {b['line']}: needs a term and a meaning: {b['text']}")
 
 
 def main() -> int:
