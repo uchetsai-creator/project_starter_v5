@@ -284,18 +284,19 @@ def _find_scan_script(script_dir: str, docs_dir: str) -> str | None:
 
 
 def scan_modules_from_src(
-    src: str, project_type: str, docs_dir: str, script_dir: str,
+    src: str, project_type: str, docs_dir: str, script_dir: str, files: bool = False,
 ) -> list[dict] | None:
     """Invoke scan_codebase.py --format json; return non-shared module list or None."""
     scan_script = _find_scan_script(script_dir, docs_dir)
     if not scan_script:
         print("  [WARN] scan_codebase.py not found — skipping coverage check", file=sys.stderr)
         return None
+    extra = ['--files'] if files else []
     try:
         result = subprocess.run(
             [sys.executable, scan_script, src,
              '--project-type', project_type, '--format', 'json',
-             '--docs', docs_dir],
+             '--docs', docs_dir, *extra],
             capture_output=True, text=True, timeout=30, encoding='utf-8', errors='replace',
         )
         if result.returncode != 0:
@@ -337,7 +338,8 @@ def find_docs_modules(docs_dir: str) -> list[dict]:
 # Core audit
 # ---------------------------------------------------------------------------
 
-def audit(project_type: str, docs_dir: str, src: str | None, script_dir: str) -> list[dict]:
+def audit(project_type: str, docs_dir: str, src: str | None, script_dir: str,
+          files: bool = False) -> list[dict]:
     """Build per-module result list. Each entry: {name, scan_type, flow_present, module_type,
     quality, issues, flow_file_path, log_present}.
 
@@ -349,7 +351,7 @@ def audit(project_type: str, docs_dir: str, src: str | None, script_dir: str) ->
 
     if src:
         # Coverage mode: use scan_codebase.py to get full module list
-        scan_modules = scan_modules_from_src(src, project_type, docs_dir, script_dir)
+        scan_modules = scan_modules_from_src(src, project_type, docs_dir, script_dir, files)
         if scan_modules is None:
             scan_modules = []
 
@@ -557,6 +559,9 @@ def main() -> None:
     )
     parser.add_argument('--src', default=None, metavar='PATH',
                         help='Source directory to cross-reference via scan_codebase.py')
+    parser.add_argument('--files', action='store_true',
+                        help='With --src: each Python file directly under PATH is one module '
+                             '(see scan_codebase.py --files)')
     parser.add_argument('--docs', default='docs', metavar='PATH',
                         help='Path to docs directory (default: docs)')
     parser.add_argument('--strict', action='store_true',
@@ -578,7 +583,7 @@ def main() -> None:
         print(f"error: docs directory not found: {docs_dir}", file=sys.stderr)
         sys.exit(2)
 
-    results = audit(full_type, docs_dir, args.src, script_dir)
+    results = audit(full_type, docs_dir, args.src, script_dir, args.files)
 
     if not results:
         # In --src coverage mode, "0 modules found" can mean two very different
