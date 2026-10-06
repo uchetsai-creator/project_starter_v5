@@ -15,7 +15,7 @@ staff), see `api-contract.md`.
 ```
 
 **Response:** `201 Created` with `{ "hold_id": "uuid", "expires_at": "ISO8601" }`, or
-`409 Conflict` with `{ "error": "sold_out" }` if capacity is exhausted.
+`409 Conflict` with `{ "error": { "code": "SOLD_OUT", "message": "No capacity remaining for this ticket type", "details": {} } }` if capacity is exhausted.
 
 ### DELETE /internal/holds/:hold_id
 

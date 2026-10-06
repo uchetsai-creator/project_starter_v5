@@ -5,9 +5,9 @@ gate-staff validation devices.
 
 ## Error Response Format
 
-All errors return:
+All errors return the unified envelope:
 ```json
-{ "error": "snake_case_code", "message": "human-readable description" }
+{ "error": { "code": "SNAKE_CASE_CODE", "message": "human-readable description", "details": {} } }
 ```
 
 ## Endpoints
@@ -39,7 +39,7 @@ Purchase one or more tickets for an event.
 | purchased_at | string | ISO 8601 timestamp |
 
 #### Response Body (409)
-`{ "error": "sold_out", "message": "No capacity remaining for this ticket type" }`
+`{ "error": { "code": "SOLD_OUT", "message": "No capacity remaining for this ticket type", "details": {} } }`
 
 ### GET /api/tickets/:id
 
@@ -61,4 +61,4 @@ Mark a ticket as used at the venue gate.
 `{ "ticket_id": "tk_881", "status": "used", "validated_at": "ISO8601" }`
 
 #### Response Body (422)
-`{ "error": "already_used", "message": "Ticket was already scanned" }`
+`{ "error": { "code": "ALREADY_USED", "message": "Ticket was already scanned", "details": {} } }`

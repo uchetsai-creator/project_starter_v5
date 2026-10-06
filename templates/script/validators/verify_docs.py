@@ -24,10 +24,11 @@ from _registry import (
     build_doc_paths,
     build_matrix,
     build_replaces_for,
-    load_registry,
+    docs_dir_from_argv,
+    load_registry_for_docs,
 )
 
-_reg = load_registry()
+_reg = load_registry_for_docs(docs_dir_from_argv())
 MATRIX = build_matrix(_reg)
 LITE_MATRIX = build_matrix(_reg, lite=True)
 DOC_PATHS = build_doc_paths(_reg)

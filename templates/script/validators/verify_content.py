@@ -35,7 +35,8 @@ from _registry import (
     build_required_sections,
     build_type_docs,
     get_universal_docs,
-    load_registry,
+    docs_dir_from_argv,
+    load_registry_for_docs,
 )
 from _verify_common import (
     _append_telemetry,
@@ -48,7 +49,7 @@ from _verify_common import (
     read_doc_profile,
 )
 
-_reg = load_registry()
+_reg = load_registry_for_docs(docs_dir_from_argv())
 TYPE_DOCS: dict[str, list[str]] = build_type_docs(_reg)
 LITE_TYPE_DOCS: dict[str, list[str]] = build_type_docs(_reg, lite=True)
 DOC_PATHS: dict[str, str] = build_doc_paths(_reg)
@@ -459,7 +460,7 @@ def check_service_contract(lines: list[str]) -> list[str]:
 
     has_content = bool(
         re.search(r'(?m)^\|\s*[A-Z]+\s*\|\s*/', text)
-        or re.search(r'\bevent\b|\btopic\b|\bqueue\b|\bmessage\b', text, re.IGNORECASE)
+        or re.search(r'\bevent\b|\btopic\b|\bqueue\b|\bmessage (?:queue|broker|bus)\b', text, re.IGNORECASE)
         or re.search(r'(?m)^#+ *[A-Z][a-zA-Z ]+\s*(→|->|calls?|invokes?|triggers?)', text)
     )
     if not has_content:

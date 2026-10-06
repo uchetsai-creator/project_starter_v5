@@ -33,4 +33,4 @@ out-of-band payment confirmation).
 { "status": "refunded", "reason": "manual override by ops" }
 ```
 
-**Response:** `200 OK` with updated order object, or `422` with `{ "error": "invalid_transition" }`.
+**Response:** `200 OK` with updated order object, or `422` with `{ "error": { "code": "INVALID_TRANSITION", "message": "Status change is not allowed from the current state", "details": {} } }`.

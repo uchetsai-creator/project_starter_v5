@@ -7,6 +7,7 @@ and the framework repo itself (scripts in templates/script/).
 from __future__ import annotations
 
 import re
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -130,6 +131,34 @@ def _parse_registry(text: str) -> dict[str, Any]:
                 documents[current_doc][key] = val
 
     return documents
+
+
+def docs_dir_from_argv(default: str | None = None) -> str | None:
+    """Value of --docs from sys.argv (`--docs X` or `--docs=X`), read before argparse runs.
+
+    Module-level constants in validators are built at import time, so the registry has to be
+    chosen before main() parses arguments.
+    """
+    argv = sys.argv[1:]
+    for i, arg in enumerate(argv):
+        if arg == "--docs" and i + 1 < len(argv):
+            return argv[i + 1]
+        if arg.startswith("--docs="):
+            return arg.split("=", 1)[1]
+    return default
+
+
+def load_registry_for_docs(docs_dir: str | None = None) -> dict[str, Any]:
+    """Load the registry that sits next to the docs being checked, then fall back to the default lookup.
+
+    Without this, running from the repo root with --docs docs/isbg looked for the registry in the
+    cwd and failed with FileNotFoundError.
+    """
+    if docs_dir:
+        candidate = Path(docs_dir) / 'document-registry.yaml'
+        if candidate.exists():
+            return load_registry(candidate)
+    return load_registry()
 
 
 def load_registry(path: Path | None = None) -> dict[str, Any]:
