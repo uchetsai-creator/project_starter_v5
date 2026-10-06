@@ -2,7 +2,11 @@
 
 ## Error Response Format
 
-All errors return `{ "error": "message", "code": "ERROR_CODE" }`.
+All errors return the unified envelope:
+
+```json
+{ "error": { "code": "ERROR_CODE", "message": "human-readable description", "details": {} } }
+```
 
 ## Endpoints
 

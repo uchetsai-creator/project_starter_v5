@@ -243,6 +243,18 @@ All errors use a unified format:
 }
 ```
 
+
+**Framework-generated errors must use the same envelope.** Most frameworks produce their own error bodies for cases the application code never reaches: unknown routes (404), request validation failures (400/422), and plain HTTP exceptions raised with a string detail. Each of these is a separate path, and a default handler produces a different shape. Register handlers for all of them, not only for the application's own error class, and check each one against this format:
+
+| Source | Required handling |
+|---|---|
+| Application error class | Map to `error.code` from the Error Code Catalogue |
+| Framework HTTP exception (e.g. FastAPI `HTTPException`, Express `next(createError(...))`) | Wrap the status and message in the same envelope; derive `code` from the message if it is a constant, otherwise use `HTTP_<status>` |
+| Request validation (e.g. FastAPI `RequestValidationError`) | `code: VALIDATION_ERROR` with the field errors in `details` |
+| Unhandled exception | `code: INTERNAL_ERROR` plus `details.request_id`; log the stack trace |
+
+If a client library already reads a different key (for example `detail`), keep that key and add `error` next to it during migration, then remove the old key in a versioned change.
+
 ---
 
 ## Error Code Catalogue

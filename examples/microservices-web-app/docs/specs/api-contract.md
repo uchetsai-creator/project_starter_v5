@@ -4,9 +4,9 @@ Public REST API for `order-service`. Used by external clients and the admin-ui.
 
 ## Error Response Format
 
-All errors return:
+All errors return the unified envelope:
 ```json
-{ "error": "snake_case_code", "message": "human-readable description" }
+{ "error": { "code": "SNAKE_CASE_CODE", "message": "human-readable description", "details": {} } }
 ```
 
 ## Endpoints

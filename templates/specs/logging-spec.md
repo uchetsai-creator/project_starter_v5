@@ -45,7 +45,8 @@ The module name passed to the logger must match the Module Naming Convention tab
 
 ## Log Output Destination
 
-Logs must be written to both console and file simultaneously.
+Choose one destination model for the project (see the decision table below). The default for
+processes that run in containers is stdout only.
 
 Each module writes to its own log file, named with the module name and the timestamp of when the session started:
 
@@ -68,9 +69,20 @@ Log files must be appended to within a session, never overwritten.
 The shared logger utility is responsible for handling file writes — individual modules do not write
 to files directly.
 
+### Choosing the destination
+
+| Where the process runs | Destination | Why |
+|---|---|---|
+| Container (Docker, Kubernetes) or any platform that collects stdout | stdout only (JSON renderer in production) | The platform collects, rotates and ships stdout. Files inside a container are lost on restart and are not collected. |
+| Long-running process on a host you manage | console **and** per-module files (below) | Local files survive restarts and can be read directly. |
+
+When both are used, the file copy is written by the shared logger, never by individual modules.
+
 ---
 
 ## Log Output Format
+
+The text layout below is the console (development) rendering. In production the same data is emitted as one JSON object per line, with each field as its own key (see Structured fields below).
 
 ```
 [<ISO 8601 timestamp>] [<LEVEL>] [<MODULE>] <message>
@@ -119,6 +131,27 @@ Every log message must follow this pattern:
 
 This means every log line is self-describing. Reading the log alone tells you which module,
 which operation, and what happened at that point — without needing to read the source code.
+
+### Structured fields (machine-readable)
+
+The message is a constant event name. Values go into separate fields, never into the message text.
+Without this, a log aggregator can only search the free text and cannot filter by a field.
+
+```python
+log.warning("order_create_failed", reason="insufficient_stock", product_id="p_099", requested=2)
+```
+
+Produces one JSON object per line where every value is its own key:
+
+```json
+{"level": "warning", "event": "order_create_failed", "reason": "insufficient_stock", "product_id": "p_099", "requested": 2}
+```
+
+Rules:
+- Event names are snake_case and contain no values (`order_create_failed`, not `order create failed for p_099`).
+- The state suffix (`_start`, `_success`, `_failed`, `_skipped`) is part of the event name; the reason goes in a `reason` field.
+- Do not use positional `%s` / `{}` placeholders in the message. Use the library's keyword/field API.
+- The human-readable `<operation> — <state>` pattern above describes the meaning of the event; the event name is its machine-readable form.
 
 ---
 
@@ -184,6 +217,11 @@ and in this document — the code method name follows the library.
 | Job start | info | `<job name> — start` |
 | Job finish | info | `<job name> — end: success` |
 
+Coverage beyond the table:
+- Every branch that returns an error, a not-found, a skip or a rejected rule logs at `warn` (expected failure) or `error` (unexpected failure). A branch that returns silently is a gap.
+- Read-only endpoints log their outcome once at `info` (success) and log `warn` on every not-found or rejected request.
+- A new module is not complete until its branches are covered; `log-<module>.md` must list them.
+
 ---
 
 ## Data Field Rules
@@ -191,6 +229,9 @@ and in this document — the code method name follows the library.
 - Always include the IDs needed to trace this call across modules (e.g. userId, orderId, resourceId).
 - NEVER log: passwords, tokens, API keys, credit card numbers, or any PII.
 - `debug` level is for development only — never put critical information exclusively in debug logs.
+
+- Every `error` log includes the exception type, message and stack trace (for example `exc_info` in Python, `error.stack` in Node.js). An error log without a stack cannot be traced to its cause.
+- Verify this in the production output, not only in development: some JSON renderers drop the stack unless the exception formatter is configured (Python structlog needs `format_exc_info` in the processor chain).
 
 ---
 
@@ -225,6 +266,8 @@ Every external entry point must generate a `trace_id` and propagate it through a
 ```
 
 The same `trace_id` threads all three log lines together — you can filter by `trace_id` in any log aggregator to see the complete chain for one request.
+
+If the framework already names this id differently (for example `request_id`), use that name consistently across code and docs. The validator (`verify_logs.py`) accepts either `trace_id` or `request_id`.
 
 **Not applicable to:** Library / SDK projects (libraries do not own entry points and should not generate trace IDs).
 

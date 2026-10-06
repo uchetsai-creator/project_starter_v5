@@ -14,6 +14,13 @@ All notable changes to this framework are documented here. Format loosely follow
 
 ## [Unreleased]
 
+### Fixed (logging and error responses)
+- `templates/specs/logging-spec.md`: documents the two destination models (stdout-only for containers, console + per-module files for hosted processes) instead of requiring files everywhere; adds a Structured fields section (constant snake_case event names, values in keyword fields, no interpolated messages); adds failure-branch coverage rules; requires `error` logs to carry the stack and notes that Python structlog needs `format_exc_info` for JSON output.
+- `templates/specs/api-contract.md`: adds guidance that framework-generated errors (unknown route, request validation, plain HTTP exceptions) must go through the same error envelope, with a table of the required handling per source.
+- `templates/script/validators/verify_logs.py`: the Request Tracing check accepts `request_id` as an alias of `trace_id`; the docstring now states that module log files are found under `<docs>/modules/**` (set with `--docs`).
+- `examples/web-app/docs/specs/logging-spec.md`: replaced the one-line placeholder with a concrete format (fields, required log points, request tracing). `examples/web-app` and `examples/microservices-web-app` `api-contract.md` now use the unified error envelope the template defines.
+- `tests/unit/test_verify_logs_tracing.py`: covers `trace_id`, `request_id` and the no-correlation-id failure case.
+
 ### Added
 - Type-agnostic decomposition: `guidance/decomposition/common.md` defines one method for every project type —
   requirement → slices (one behavior an external observer can check from the entry point, with an Independent Test

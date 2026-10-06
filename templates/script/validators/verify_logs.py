@@ -3,7 +3,7 @@
 verify_logs.py — Log documentation quality audit for project_starter_v5 projects.
 
 Checks that logging-spec.md has required sections filled, and that each module
-log file (docs/modules/*/log-*.md) documents trace_id, structured fields, and
+log file (<docs>/modules/**/log-*.md, <docs> set by --docs) documents trace_id (or request_id), structured fields, and
 no raw print statements. Per-type addenda: pipeline row count, LLM call log fields.
 
 Usage:
@@ -53,7 +53,9 @@ MIN_SECTION_LINES = 3
 # Module log file patterns
 _PRINT_RE = re.compile(r'\bprint\s*\(|console\.(log|error|warn)\s*\(', re.IGNORECASE)
 _STRUCTURED_RE = re.compile(r'(\{[^}]{2,}\}|key=value|→\s*\{|"trace_id"|structured|json payload|log payload)', re.IGNORECASE)
-_TRACE_ID_RE = re.compile(r'trace.?id', re.IGNORECASE)
+# Request-scoped correlation id. `request_id` is accepted as an alias: many frameworks
+# (e.g. FastAPI + middleware) use that name for the same concept.
+_TRACE_ID_RE = re.compile(r'trace.?id|request.?id', re.IGNORECASE)
 _ROW_COUNT_RE = re.compile(r'row.?count|rows.?processed|records.?processed|record.?count|rows.?in\b|rows.?out\b', re.IGNORECASE)
 _LLM_FIELDS_RE = re.compile(r'\bmodel\b|\btoken\b|\bprompt\b|\bcompletion\b|\bllm.?call\b|\binference\b', re.IGNORECASE)
 
@@ -127,14 +129,14 @@ def check_logging_spec(docs_dir, types):
                 'file': 'specs/logging-spec.md',
                 'check': 'trace_id documented',
                 'status': 'pass',
-                'detail': 'trace_id found in spec',
+                'detail': 'trace_id (or request_id) found in spec',
             })
         else:
             results.append({
                 'file': 'specs/logging-spec.md',
                 'check': 'trace_id documented',
                 'status': 'fail',
-                'detail': 'trace_id not mentioned — add Request Tracing section',
+                'detail': 'trace_id / request_id not mentioned — add Request Tracing section',
             })
 
     # Per-type: pipeline row count field
@@ -192,7 +194,7 @@ def check_module_log_file(path, types):
             'file': path,
             'check': 'trace_id',
             'status': 'pass' if found else 'warn',
-            'detail': 'trace_id documented' if found else 'trace_id not mentioned in log points',
+            'detail': 'trace_id / request_id documented' if found else 'trace_id / request_id not mentioned in log points',
         })
 
     # Structured format (JSON fields or key=value notation documented)
