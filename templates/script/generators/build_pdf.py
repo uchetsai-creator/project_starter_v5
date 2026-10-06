@@ -34,7 +34,7 @@ Usage:
                                        ml-pipeline, microservices, llm-app, iac, mobile-app
                          Omit to include all files that exist (backward-compatible default).
   --content spec|full    Control which chapters are included (default: full).
-                           full — all six chapters (Introduction, Plan, Design, Build, Test, Deployment)
+                           full — all six chapters (Introduction, Design, Build, Test, Deployment, Plan)
                            spec — system specification only: Introduction, Design, Build, Deployment
                                   (omits Plan and Test chapters — suitable for stakeholder handoff)
 
@@ -88,7 +88,7 @@ _STATIC_PDF_ENTRIES = [
     ("build",        "codebase-map.md",                 _ALL9),
 ]
 
-_CHAPTER_SORT = {"introduction": 0, "plan": 1, "design": 2, "build": 3, "test": 4, "deployment": 5}
+_CHAPTER_SORT = {"introduction": 0, "design": 1, "build": 2, "test": 3, "deployment": 4, "plan": 5}
 
 
 def get_pdf_allowlist(docs_dir: str) -> list:
@@ -208,11 +208,11 @@ python3 docs/script/generators/build_pdf.py docs --lang en -o docs/project-docum
 """,
         "sections": {
             "introduction":   "1. Introduction",
-            "plan":           "2. Plan",
-            "design":         "3. Design",
-            "build":          "4. Build",
-            "test":           "5. Test",
-            "deployment":     "6. Deployment",
+            "design":         "2. Design",
+            "build":          "3. Build",
+            "test":           "4. Test",
+            "deployment":     "5. Deployment",
+            "plan":           "6. Plan",
             # legacy keys kept for backward compatibility
             "requirements":   "1. Introduction",
             "specifications": "3. Design",
@@ -250,11 +250,11 @@ python3 docs/script/generators/build_pdf.py docs-zh --lang zh -o docs/project-do
 """,
         "sections": {
             "introduction":   "一、系統介紹",
-            "plan":           "二、開發計畫",
-            "design":         "三、系統設計",
-            "build":          "四、建構實作",
-            "test":           "五、測試",
-            "deployment":     "六、部署",
+            "design":         "二、系統設計",
+            "build":          "三、建構實作",
+            "test":           "四、測試",
+            "deployment":     "五、部署",
+            "plan":           "六、開發計畫",
             # legacy keys kept for backward compatibility
             "requirements":   "一、系統介紹",
             "specifications": "三、系統設計",

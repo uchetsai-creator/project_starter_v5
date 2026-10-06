@@ -45,7 +45,7 @@ documents:
     used_by: [context-builder, validator, pdf]
     related: [test-plan, test-report, business-rules]
     pdf: true
-    pdf_chapter: plan
+    pdf_chapter: introduction
     audience: internal
     required_sections: ["Functional Requirements", "Acceptance Criteria"]
     update_trigger: "feature added, removed, or acceptance criteria changed; scope, roles, non-functional requirements, edge cases, or assumptions changed"

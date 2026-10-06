@@ -16,9 +16,11 @@ VALID_TYPES: list[str] = [
     'data-pipeline', 'ml-pipeline', 'microservices', 'llm-app', 'iac', 'mobile-app',
 ]
 
+# Reader order: overview and requirements first, then design, build, test and deployment.
+# The plan (project status, changelog) is last: it is reference for maintainers, not the way in.
 CHAPTER_ORDER: dict[str, int] = {
-    'introduction': 0, 'plan': 1, 'design': 2,
-    'build': 3, 'test': 4, 'deployment': 5,
+    'introduction': 0, 'design': 1, 'build': 2,
+    'test': 3, 'deployment': 4, 'plan': 5,
 }
 
 # Per-type behavioural flags — the single source for classifications more than one
