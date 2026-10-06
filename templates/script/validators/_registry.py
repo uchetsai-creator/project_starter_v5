@@ -37,7 +37,9 @@ TRACE_ID_TYPES: frozenset[str] = frozenset({
 PIPELINE_TYPES: frozenset[str] = frozenset({'data-pipeline', 'ml-pipeline'})
 LLM_TYPES: frozenset[str] = frozenset({'llm-app'})
 
-_REGISTRY: dict[str, Any] | None = None
+# Cache is keyed by resolved registry path: a single global would hand back the
+# first registry loaded even when a caller asks for a different docs directory.
+_REGISTRY_CACHE: dict[str, dict[str, Any]] = {}
 
 
 def _find_registry_path() -> Path:
@@ -129,13 +131,12 @@ def _parse_registry(text: str) -> dict[str, Any]:
 
 
 def load_registry(path: Path | None = None) -> dict[str, Any]:
-    """Load and cache document-registry.yaml. Returns the documents dict."""
-    global _REGISTRY
-    if _REGISTRY is not None:
-        return _REGISTRY
-    reg_path = path or _find_registry_path()
-    _REGISTRY = _parse_registry(reg_path.read_text(encoding='utf-8'))
-    return _REGISTRY
+    """Load and cache document-registry.yaml (per path). Returns the documents dict."""
+    reg_path = (path or _find_registry_path()).resolve()
+    key = str(reg_path)
+    if key not in _REGISTRY_CACHE:
+        _REGISTRY_CACHE[key] = _parse_registry(reg_path.read_text(encoding='utf-8'))
+    return _REGISTRY_CACHE[key]
 
 
 # ---------------------------------------------------------------------------

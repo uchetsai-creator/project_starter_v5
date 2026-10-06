@@ -2,7 +2,8 @@
 """build_pdf.py — Merge approved docs/ content into a single PDF
 
 What it does:
-1. Reads only the files listed in PDF_ALLOWLIST (explicit allowlist — no wildcard scanning).
+1. Reads only the files in the allowlist from get_pdf_allowlist() (registry pdf=true + static
+   scaffold entries — no wildcard scanning, except the auto-scanned flow/process/object patterns).
    modules/*/*-module-data-flow.md files are the only exception: they are added automatically
    because they are created per module during development.
    log-*.md files are intentionally excluded (implementation detail, not suitable for PDF audience).
@@ -43,6 +44,7 @@ For non-registry scaffold files, add an entry to _STATIC_PDF_ENTRIES in this scr
 Requires: pip install markdown weasyprint cairosvg --break-system-packages
 """
 import argparse
+from pathlib import Path
 import glob
 import os
 import re
@@ -88,12 +90,26 @@ _STATIC_PDF_ENTRIES = [
 _CHAPTER_SORT = {"introduction": 0, "plan": 1, "design": 2, "build": 3, "test": 4, "deployment": 5}
 
 
-def _build_pdf_allowlist() -> list:
-    """Build PDF_ALLOWLIST from static scaffold entries + registry pdf=true entries."""
-    registry_entries = build_pdf_entries(load_registry())
+def get_pdf_allowlist(docs_dir: str) -> list:
+    """Build the PDF allowlist: static scaffold entries + registry pdf=true entries.
+
+    The registry is read from docs_dir first (the docs being merged), then the cwd and the
+    starter folder. Built on demand, not at import time, so --help works without a registry.
+
+    Registry is the policy source: a file the registry declares replaces any static entry
+    for the same path (otherwise project-requirements.md was merged twice, see CHANGELOG).
+    """
+    reg_file = os.path.join(docs_dir, "document-registry.yaml")
+    registry_entries = build_pdf_entries(
+        load_registry(Path(reg_file) if os.path.exists(reg_file) else None))
+    registry_rels = {rel for _, rel, _ in registry_entries}
 
     by_chapter: dict[str, list] = {c: [] for c in _CHAPTER_SORT}
     for entry in _STATIC_PDF_ENTRIES:
+        if entry[1] in registry_rels:
+            print(f"Note: {entry[1]} is declared in document-registry.yaml; "
+                  f"using the registry chapter instead of {entry[0]}.")
+            continue
         by_chapter[entry[0]].append(entry)
     for entry in registry_entries:
         by_chapter[entry[0]].append(entry)
@@ -102,9 +118,6 @@ def _build_pdf_allowlist() -> list:
     for chapter in sorted(by_chapter, key=lambda c: _CHAPTER_SORT[c]):
         result.extend(by_chapter[chapter])
     return result
-
-
-PDF_ALLOWLIST = _build_pdf_allowlist()
 
 # ── Per-file section filter ───────────────────────────────────────────────────
 PDF_SECTION_FILTER = {
@@ -258,7 +271,7 @@ CSS_FONT_ZH = "'Noto Sans CJK TC', 'Noto Sans TC', 'Microsoft JhengHei', 'Segoe 
 
 SPEC_SECTIONS = {"introduction", "design", "build", "deployment"}
 
-def find_allowed_files(docs_dir, strings, project_type=None, content="full"):
+def find_allowed_files(docs_dir, strings, project_type=None, content="full", allowlist=None):
     """Return (rel, abs_path, section_label) for every allowlisted file that exists
     and applies to the given project_type. log-*.md files are intentionally excluded.
 
@@ -266,14 +279,18 @@ def find_allowed_files(docs_dir, strings, project_type=None, content="full"):
                   or None to include all entries regardless of type (backward-compatible default).
     content: "full" (default) — all chapters; "spec" — Introduction, Design, Build, Deployment only.
     """
+    if allowlist is None:
+        allowlist = get_pdf_allowlist(docs_dir)
     result = []
     seen = set()
 
-    for section_key, rel, types in PDF_ALLOWLIST:
+    for section_key, rel, types in allowlist:
         if content == "spec" and section_key not in SPEC_SECTIONS:
             continue
         if project_type is not None and not (project_type & types):
             continue
+        if rel in seen:
+            continue  # same file listed twice -> merge once
         abs_path = os.path.join(docs_dir, rel)
         section_label = strings["sections"][section_key]
         if os.path.exists(abs_path):
@@ -432,7 +449,7 @@ def extract_plantuml_from_file(md_path, svg_cache_dir):
     return pairs
 
 
-def find_plantuml_diagrams(docs_dir, png_cache_dir, project_type=None, content="full"):
+def find_plantuml_diagrams(docs_dir, png_cache_dir, project_type=None, content="full", allowlist=None):
     """Scan all allowlisted markdown files for ```plantuml blocks.
     Renders each block to SVG (with mtime-based caching).
     Returns dict: {diagram_key: {svg, md}}"""
@@ -442,7 +459,9 @@ def find_plantuml_diagrams(docs_dir, png_cache_dir, project_type=None, content="
     all_pairs = {}
     # Collect md files from allowlist + auto-scanned patterns
     md_files = set()
-    for section_key, rel, types in PDF_ALLOWLIST:
+    if allowlist is None:
+        allowlist = get_pdf_allowlist(docs_dir)
+    for section_key, rel, types in allowlist:
         if content == "spec" and section_key not in SPEC_SECTIONS:
             continue
         if project_type is not None and not (project_type & types):
@@ -732,13 +751,55 @@ def clean_for_pdf(md_text):
     # Clean up excessive blank lines
     md_text = re.sub(r'\n{3,}', '\n\n', md_text)
 
-    return md_text
+    return _status_emoji_to_text(md_text)
 
 
-def build_merged_markdown(docs_dir, html_svg_pairs, png_cache_dir, strings, project_type=None, content="full"):
-    files = find_allowed_files(docs_dir, strings, project_type, content)
+# Colour emoji render as embedded bitmaps (one image per occurrence, ~2 MB for this project).
+# Status circles become coloured text glyphs instead; the markdown source is not changed.
+_STATUS_GLYPHS = {
+    "🟢": '<span style="color:#16a34a">●</span>',
+    "🔴": '<span style="color:#dc2626">●</span>',
+    "⚪": '<span style="color:#9ca3af">○</span>',
+    "⏳": '<span style="color:#d97706">⏳</span>',
+}
+_FENCE = re.compile(r'(```.*?```)', re.DOTALL)
+
+
+def _status_emoji_to_text(md_text):
+    """Replace status emoji outside fenced code blocks (code samples keep their text)."""
+    parts = _FENCE.split(md_text)
+    for i in range(0, len(parts), 2):  # even indices are outside fences
+        for emoji, glyph in _STATUS_GLYPHS.items():
+            parts[i] = parts[i].replace(emoji, glyph)
+    return ''.join(parts)
+
+
+def _disable_color_emoji_font():
+    """Stop WeasyPrint from picking the colour emoji bitmap font for this build only.
+
+    Monochrome fonts already cover ✅ ❌ ⚠ on this system. Sets FONTCONFIG_FILE to a temp
+    config that includes the system config and rejects the colour emoji font. The system
+    configuration itself is not changed. No-op when the system config is not found.
+    """
+    system_conf = "/etc/fonts/fonts.conf"
+    if not os.path.exists(system_conf):
+        return None
+    fd, conf_path = tempfile.mkstemp(prefix="build_pdf_fonts_", suffix=".conf")
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        f.write(
+            '<?xml version="1.0"?>\n<!DOCTYPE fontconfig SYSTEM "fonts.dtd">\n<fontconfig>\n'
+            f'  <include ignore_missing="yes">{system_conf}</include>\n'
+            '  <selectfont><rejectfont><glob>*NotoColorEmoji*</glob></rejectfont></selectfont>\n'
+            '</fontconfig>\n')
+    os.environ["FONTCONFIG_FILE"] = conf_path
+    return conf_path
+
+
+def build_merged_markdown(docs_dir, html_svg_pairs, png_cache_dir, strings, project_type=None, content="full",
+                          allowlist=None):
+    files = find_allowed_files(docs_dir, strings, project_type, content, allowlist=allowlist)
     if not files:
-        print("No files to include — check PDF_ALLOWLIST in build_pdf.py")
+        print("No files to include — check the registry (document-registry.yaml) pdf=true entries")
         sys.exit(1)
 
     parts = [f"# {strings['pdf_title']}\n"]
@@ -885,6 +946,12 @@ def parse_args():
         help="Output PDF path (default: <docs_dir>/project-{documentation|spec}-<lang>.pdf)",
     )
     parser.add_argument(
+        "--name",
+        metavar="BASENAME",
+        help="Output file name without extension, written into docs_dir (e.g. my_project_spec_zh_v3). "
+             "Ignored when -o is given.",
+    )
+    parser.add_argument(
         "--lang",
         default="en",
         choices=list(STRINGS),
@@ -920,6 +987,8 @@ def parse_args():
             )
 
     output_path = args.output_path
+    if not output_path and args.name:
+        output_path = os.path.join(args.docs_dir, f"{args.name}.pdf")
     if not output_path:
         suffix = "spec" if args.content == "spec" else "documentation"
         output_path = os.path.join(args.docs_dir, f"project-{suffix}-{args.lang}.pdf")
@@ -937,6 +1006,7 @@ def main():
 
     docs_dir, output_path, lang, project_type, content = parse_args()
     strings = STRINGS[lang]
+    font_conf = _disable_color_emoji_font()
 
     if not os.path.isdir(docs_dir):
         print(f"Directory not found: {docs_dir}")
@@ -955,12 +1025,13 @@ def main():
     # Legacy: find manually-generated SVG/HTML pairs (e.g. schema ERD)
     html_svg_pairs = find_html_svg_pairs(docs_dir)
     # New: extract and render all ```plantuml blocks from markdown files
-    plantuml_pairs = find_plantuml_diagrams(docs_dir, png_cache_dir, project_type, content)
+    allowlist = get_pdf_allowlist(docs_dir)
+    plantuml_pairs = find_plantuml_diagrams(docs_dir, png_cache_dir, project_type, content, allowlist=allowlist)
     html_svg_pairs.update(plantuml_pairs)
     print(f"Found {len(html_svg_pairs)} diagram(s): {list(html_svg_pairs.keys())}")
     print(f"Language: {lang}")
 
-    merged_md = build_merged_markdown(docs_dir, html_svg_pairs, png_cache_dir, strings,
+    merged_md = build_merged_markdown(docs_dir, html_svg_pairs, png_cache_dir, strings, allowlist=allowlist,
                                       project_type=project_type, content=content)
 
     md_html = markdown.markdown(
@@ -975,6 +1046,8 @@ def main():
         stylesheets=[CSS(string=build_css(lang))]
     )
 
+    if font_conf:
+        os.remove(font_conf)
     print(f"Done: {output_path}")
 
 
