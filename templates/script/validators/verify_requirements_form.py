@@ -75,7 +75,7 @@ def check_ears(lines):
 
 def _groups(lines):
     """Return ({group_name: [line_numbers]}, has_slices) for the functional-requirement groups."""
-    has_slices = any(SLICE_HEADING.match(l) for l in lines)
+    has_slices = any(SLICE_HEADING.match(line) for line in lines)
     groups: dict[str, list[int]] = {}
     in_fr = False
     current = None
@@ -164,7 +164,7 @@ def check_glossary(path: str) -> dict:
 
 def run(docs_dir: str) -> dict:
     req_path = os.path.join(docs_dir, "project-requirements.md")
-    result = {"file": req_path, "checks": {}, "passed": True}
+    result: dict = {"file": req_path, "checks": {}, "passed": True}
     if not os.path.exists(req_path):
         result["checks"]["file"] = {"ok": False, "detail": "project-requirements.md not found"}
         result["passed"] = False

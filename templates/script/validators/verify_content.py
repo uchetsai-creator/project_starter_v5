@@ -34,8 +34,8 @@ from _registry import (
     build_doc_paths,
     build_required_sections,
     build_type_docs,
-    get_universal_docs,
     docs_dir_from_argv,
+    get_universal_docs,
     load_registry_for_docs,
 )
 from _verify_common import (
