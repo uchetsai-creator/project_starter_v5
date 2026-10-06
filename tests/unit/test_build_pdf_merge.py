@@ -84,3 +84,17 @@ def test_disable_color_emoji_font_writes_conf_and_sets_env(build_pdf, monkeypatc
         monkeypatch.delenv("FONTCONFIG_FILE", raising=False)
         if conf and Path(conf).exists():
             Path(conf).unlink()
+
+
+def test_filter_sections_keeps_whole_file_when_no_heading_matches(build_pdf, capsys):
+    """A Chinese-headed file must not be silently emptied by English PDF_SECTION_FILTER keys."""
+    md = "# 標題\n\n## 模組地圖\n\n內容 A\n\n## 主要流程\n\n內容 B\n"
+    out = build_pdf.filter_sections(md, ["## Flow Files"])
+    assert "內容 A" in out and "內容 B" in out
+    assert "keeping the whole file" in capsys.readouterr().out
+
+
+def test_filter_sections_still_trims_when_heading_matches(build_pdf):
+    md = "# T\n\n## Keep\n\nkeep me\n\n## Drop\n\ndrop me\n"
+    out = build_pdf.filter_sections(md, ["## Keep"])
+    assert "keep me" in out and "drop me" not in out

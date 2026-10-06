@@ -675,6 +675,7 @@ def filter_sections(md_text, keep_headings):
     result = []
     inside_kept = False
     current_level = None
+    matched = False
 
     for line in lines:
         stripped = line.rstrip()
@@ -687,6 +688,7 @@ def filter_sections(md_text, keep_headings):
 
             # Check if this heading is one we want to keep
             if full_heading in keep_headings:
+                matched = True
                 inside_kept = True
                 current_level = level
                 result.append(line)
@@ -702,6 +704,13 @@ def filter_sections(md_text, keep_headings):
         if inside_kept:
             result.append(line)
 
+    if not matched:
+        # Headings are matched exactly, so a file written in another language (e.g. Chinese
+        # headings) matches nothing. Dropping it would silently remove the whole file from the
+        # PDF; keep it whole and say so. Add the real headings to PDF_SECTION_FILTER to trim it.
+        print(f"Warning: none of {keep_headings} found; keeping the whole file. "
+              "Add its headings to PDF_SECTION_FILTER if only some sections should be included.")
+        return md_text.strip()
     return ''.join(result).strip()
 
 
@@ -1048,6 +1057,8 @@ def main():
 
     if font_conf:
         os.remove(font_conf)
+    # Rendered diagram PNGs are only needed while writing the PDF; don't leave them in docs/
+    shutil.rmtree(png_cache_dir, ignore_errors=True)
     print(f"Done: {output_path}")
 
 
