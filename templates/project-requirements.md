@@ -107,10 +107,16 @@
 
 ## Non-Functional Requirements
 
-* **Performance**: [e.g., Web App: p95 < 200ms | CLI: execution < 5s | Pipeline: 1M rows in < 10min | LLM App: first token < 2s]
+<!-- Write each item as a testable statement with a number and a unit, in the same EARS form as the FRs
+     (WHEN / IF / WHILE ... THE SYSTEM SHALL ... within / at most ...). If the user has not answered, keep the
+     bracketed placeholder; never fill in a number that the user did not give. -->
+
+* **Performance**: [e.g., Web App: WHEN a page is requested, THE SYSTEM SHALL respond within 200ms at p95 | CLI: execution < 5s | Pipeline: 1M rows in < 10min | LLM App: first token < 2s]
+* **Real-time updates**: [choose: none / periodic refresh every N seconds / push within N seconds — e.g., WHEN a machine status changes, THE SYSTEM SHALL show it to the viewer within 2 seconds | N/A if the user chose "none"]
 * **Availability**: [e.g., 99.9% uptime | N/A for CLI Tool / Library]
 * **Security**: [e.g., Web App: JWT on all endpoints | Pipeline: encrypted credentials | LLM App: no PII in prompts]
-* **Scalability**: [e.g., Web App: 10,000 concurrent users | Pipeline: 100M rows per run | LLM App: 50 concurrent sessions]
+* **Scalability**: [current and 12-month numbers, e.g., Web App: 10,000 concurrent users now, 30,000 in 12 months | Pipeline: 100M rows per run | LLM App: 50 concurrent sessions]
+* **Maintainability**: [module boundaries, who may change each module, expected change frequency — e.g., WHEN a new production line is added, THE SYSTEM SHALL require changes in no more than one module | the answer "not discussed" is not allowed; write the user's answer here]
 
 ---
 
