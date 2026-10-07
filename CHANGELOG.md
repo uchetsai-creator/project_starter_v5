@@ -14,6 +14,16 @@ All notable changes to this framework are documented here. Format loosely follow
 
 ## [Unreleased]
 
+### Fixed (glossary update trigger missed i18n/UI label renames)
+- `document-registry.yaml` / `guidance/document-purposes/common.md`: `specs/glossary.md`'s update
+  trigger only said "a new domain term is introduced or an existing definition changes" — a rename
+  of an *existing* UI-facing label (e.g. an i18n locale-file edit that renames a term used
+  throughout the app) doesn't look like either of those, so it was silently missed in a live run:
+  the glossary and several business/API docs kept quoting the old label after the UI had already
+  moved to the new one, and nothing in `build-context.py`'s trigger text pointed at the other docs
+  that quote the same term. Both files now explicitly call out UI/i18n label renames and say to
+  grep the old label across every doc that quotes it, not just the glossary entry.
+
 ### Fixed (logging and error responses)
 - `templates/specs/logging-spec.md`: documents the two destination models (stdout-only for containers, console + per-module files for hosted processes) instead of requiring files everywhere; adds a Structured fields section (constant snake_case event names, values in keyword fields, no interpolated messages); adds failure-branch coverage rules; requires `error` logs to carry the stack and notes that Python structlog needs `format_exc_info` for JSON output.
 - `templates/specs/api-contract.md`: adds guidance that framework-generated errors (unknown route, request validation, plain HTTP exceptions) must go through the same error envelope, with a table of the required handling per source.
