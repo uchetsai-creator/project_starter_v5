@@ -6,6 +6,7 @@ These rarely change — everything else in this file is operational mechanics bu
 of them. When a task pressures you to bend one of these, stop and ask instead of bending it.
 
 - **Maintainability First** — prefer readable, changeable architecture over temporary shortcuts
+- **No Silent Failure** — a rejected record, a corrected value or a failed write must be logged or surfaced; never hide it behind a default, a clamp or a swallowed error
 - **Package First** — use existing packages, utilities, and framework conventions before writing custom code
   - Priority: existing package → existing utility → framework convention → custom code
   - Custom code only for: business logic, domain rules, data mapping, system integration

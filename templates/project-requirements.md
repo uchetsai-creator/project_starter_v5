@@ -117,6 +117,7 @@
 * **Security**: [e.g., Web App: JWT on all endpoints | Pipeline: encrypted credentials | LLM App: no PII in prompts]
 * **Scalability**: [current and 12-month numbers, e.g., Web App: 10,000 concurrent users now, 30,000 in 12 months | Pipeline: 100M rows per run | LLM App: 50 concurrent sessions]
 * **Maintainability**: [module boundaries, who may change each module, expected change frequency — e.g., WHEN a new production line is added, THE SYSTEM SHALL require changes in no more than one module | the answer "not discussed" is not allowed; write the user's answer here]
+* **Data integrity**: [e.g., IF a value violates a data invariant, THE SYSTEM SHALL NOT write it to any store, SHALL log the rule, the identifier and the values, and SHALL route the record to the quarantine store | the answer "not discussed" is not allowed]
 
 ---
 

@@ -705,6 +705,15 @@ Check:
 - Does each stage validate column names, types, and required fields against `pipeline-contract.md` at startup?
 - Are schema mismatches logged and surfaced — not silently dropped?
 
+**Silent correction and swallowed errors** (applies to any code that writes data, not only pipelines)
+
+Check:
+- Is a value that violates a rule ever corrected with a default or clamp (`Math.max(0, …)`, `Math.min`, `clamp`, `?? 0`) instead of being rejected and logged?
+- Does any write, publish or cache update end in a `.catch(() => null)` or an empty `catch` that discards the error?
+- Is every rejected record recorded with its rule, its identifier and the values that failed?
+
+Severity: **High** if a value that breaks a stated invariant reaches storage or a downstream consumer without a log entry.
+
 Severity: **High** if a stage processes data without validating the input contract (silent data corruption risk).
 
 ---

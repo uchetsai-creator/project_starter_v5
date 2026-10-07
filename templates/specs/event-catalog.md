@@ -70,6 +70,24 @@ Alert: [e.g. PagerDuty alert when DLQ depth > 10]
 - **Requires version bump:** removing fields, changing field types, changing field semantics
 - **Deprecation:** mark field as `deprecated` in this file for one release cycle before removing
 
+#### Validate-Before-Fan-out Rule
+
+Validate each event once, against the Payload Schema and the Data Invariants below, before it is
+published or written to any other destination (cache, database, other subscribers). No destination
+receives an event that has not passed validation.
+
+A rejected event:
+- is not published and not written to any destination
+- is logged with `event_id`, the rule violated, and the values that failed
+- is routed to `[dlq-name / quarantine store]` and reviewed by `[owner]`
+
+Data Invariants (cross-field rules that the payload schema cannot express):
+
+| Invariant | Condition | On violation |
+|---|---|---|
+| [e.g., good ≤ total] | `goodUnits ≤ totalUnits` | Reject, log, quarantine |
+| [Invariant] | [Condition] | [Behaviour] |
+
 ---
 
 ## Sequence Diagram

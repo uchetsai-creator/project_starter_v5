@@ -82,6 +82,17 @@ Repeat this block for each pipeline stage.
 | Schema | [Field names and types — or reference to data-model.md] |
 | Lifecycle | [Consumed and archived / Persisted / Overwritten / Immutable append] |
 
+#### Data Invariants
+
+Cross-field rules that the column types cannot express. Each violated invariant follows the behaviour
+in its last column. A violated value must not be corrected silently (for example by clamping it to a
+default); record it and apply the behaviour below.
+
+| Invariant | Condition | On violation |
+|---|---|---|
+| [e.g., good ≤ total] | `good_count ≤ total_count` | [Skip row / quarantine row / halt stage] |
+| [Invariant] | [Condition] | [Behaviour] |
+
 #### Error / Skip Handling
 
 | Scenario | Behaviour |

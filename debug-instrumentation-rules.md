@@ -167,6 +167,11 @@ Print:
 This is one of the most valuable instrumentation points — include it at every meaningful
 decision branch, not just the first one.
 
+When the decision is a rejection of data against a rule (a violated invariant or validation rule), also print
+* The rule name and the condition that failed
+* The offending values and their identifiers
+* The action taken (skipped, quarantined, or halted)
+
 ### 8. Data Access — Read
 
 Where data is fetched from a database, cache, file, or external store.
