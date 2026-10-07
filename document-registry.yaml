@@ -632,7 +632,7 @@ documents:
     pdf_chapter: introduction
     audience: internal
     required_sections: []
-    update_trigger: "domain term added or definition updated; a user-facing label is renamed in the UI/i18n strings — that is a rename of an existing term, not a new one, so also grep the old label across business/*.md, specs/api-contract.md, and any other doc that quotes it"
+    update_trigger: "domain term added or definition updated; an existing term's external name changes anywhere in the project (UI label, CLI flag, config key, API field, column name, etc.) — that is a rename of an existing term, not a new one, so also grep the old name across business/*.md, specs/api-contract.md, and any other doc that quotes it"
 
   dependencies:
     file: dependencies.md

@@ -76,10 +76,11 @@ Do not create it just because a project exists — only create when there are ac
 
 Update when (defer to Milestone Documentation Sync):
 * A new domain term is introduced or an existing definition changes
-* A user-facing label is renamed in the UI/i18n strings — this is a rename of an *existing* term, so
-  "a new domain term is introduced" above won't catch it. Grep the old label across every doc that
-  quotes it (business/*.md, specs/api-contract.md, etc.), not just the glossary entry — a UI copy
-  change in a locale file is easy to miss since nothing about it looks like a "domain term" edit.
+* An existing term's external name changes anywhere in the project (UI label, CLI flag, config key,
+  API field, column name, etc.) — this is a rename of an *existing* term, so "a new domain term is
+  introduced" above won't catch it. Grep the old name across every doc that quotes it (business/*.md,
+  specs/api-contract.md, etc.), not just the glossary entry — a rename buried in one source file is
+  easy to miss since nothing about it looks like a "domain term" edit.
 
 ### specs/dependencies.md
 **Applies to: All project types (Optional — create on demand)**
