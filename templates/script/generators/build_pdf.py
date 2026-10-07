@@ -906,6 +906,7 @@ code {{
     padding: 1px 5px;
     border-radius: 3px;
     font-size: 9pt;
+    word-break: break-all;
 }}
 pre {{
     background: #1A202C;
@@ -919,6 +920,7 @@ pre {{
 pre code {{ background: none; color: inherit; padding: 0; }}
 table {{
     border-collapse: collapse;
+    table-layout: fixed;
     width: 100%;
     font-size: 9pt;
     margin: 12px 0;
